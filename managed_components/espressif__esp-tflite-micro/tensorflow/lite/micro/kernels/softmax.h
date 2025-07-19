@@ -12,56 +12,136 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_MICRO_KERNELS_SOFTMAX_H_
-#define TENSORFLOW_LITE_MICRO_KERNELS_SOFTMAX_H_
 
 #include "tensorflow/lite/c/builtin_op_data.h"
-#include "tensorflow/lite/kernels/internal/types.h"
-#include "tensorflow/lite/micro/micro_common.h"
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/common.h"
+#include "tensorflow/lite/kernels/internal/quantization_util.h"
+#include "tensorflow/lite/kernels/kernel_util.h"
+#include "tensorflow/lite/kernels/op_macros.h"
+#include "tensorflow/lite/micro/kernels/softmax.h"
+#include "tensorflow/lite/micro/micro_context.h"
 
 namespace tflite {
 
-void* SoftmaxInit(TfLiteContext* context, const char* buffer, size_t length);
+namespace {
+// Softmax parameter data that persists in user_data
+const int kInt16LUTArraySize = LUTSize<int16_t>();
 
-// Common helper function to SoftmaxPrepare.
-TfLiteStatus CalculateSoftmaxParams(TfLiteContext* context,
-                                    const TfLiteTensor* input,
-                                    TfLiteTensor* output,
-                                    const TfLiteSoftmaxParams* params,
-                                    SoftmaxParams* op_data);
+TfLiteStatus InitializeLutForInt16(TfLiteContext *context, const TfLiteTensor *input, TfLiteTensor *output,
+                                   SoftmaxParams *op_data) {
+  // Only allocate LUTs for KTfLiteInt16 data type
+  if (input->type == kTfLiteInt16) {
+    void *raw_exp_lut = context->AllocatePersistentBuffer(context, sizeof(int16_t) * kInt16LUTArraySize);
+    TF_LITE_ENSURE(context, raw_exp_lut != nullptr);
+    op_data->exp_lut = reinterpret_cast<int16_t *>(raw_exp_lut);
+    void *one_over_one_plus_x_lut = context->AllocatePersistentBuffer(context, sizeof(int16_t) * kInt16LUTArraySize);
+    TF_LITE_ENSURE(context, one_over_one_plus_x_lut != nullptr);
+    op_data->one_over_one_plus_x_lut = reinterpret_cast<int16_t *>(one_over_one_plus_x_lut);
+  }
 
-TfLiteStatus SoftmaxPrepare(TfLiteContext* context, TfLiteNode* node);
+  if (output->type == kTfLiteInt16) {
+    TF_LITE_ENSURE(context, input->type == kTfLiteInt8 || input->type == kTfLiteInt16);
+  } else {
+    TF_LITE_ENSURE_EQ(context, input->type, output->type);
+  }
 
-// This is the most generic TFLMRegistration. The actual supported types
-// may still be target dependent. The only requirement is that every
-// implementation (reference or optimized) must define this function.
-TFLMRegistration Register_SOFTMAX();
+  // Populate LUT if required
+  if (input->type == kTfLiteInt16) {
+    TF_LITE_ENSURE_EQ(context, output->params.zero_point, 0);
+    // exp LUT only used on negative values
+    // we consider exp(-10.0) is insignificant to accumulation
+    const int32_t range = std::numeric_limits<int16_t>::max() - std::numeric_limits<int16_t>::min();
+    LUTPopulate<int16_t>(
+        10.0f / range, std::numeric_limits<int16_t>::max(), 2.0f / range, 0,
+        [](float value) { return std::exp(value); }, op_data->exp_lut);
 
-#if defined(XTENSA) || defined(CMSIS_NN)
-// Returns a TFLMRegistration struct for kernel variant that only supports
-// int8 input and int16 output.
-TFLMRegistration Register_SOFTMAX_INT8_INT16();
-#else
-inline TFLMRegistration Register_SOFTMAX_INT8_INT16() {
-  return Register_SOFTMAX();
+    LUTPopulate<int16_t>(
+        1.0f / range, std::numeric_limits<int16_t>::min(), 2.0f / range, 0,
+        [](float value) { return 1.0f / (1.0f + value); }, op_data->one_over_one_plus_x_lut);
+
+    op_data->zero_point = output->params.zero_point;
+    op_data->scale = output->params.scale;
+  }
+
+  return kTfLiteOk;
 }
-#endif
 
-#if defined(CMSIS_NN)
-// Returns a TFLMRegistration struct for kernel variant that only supports
-// int8 input/output and uses the latency optimized implementations.
-TFLMRegistration Register_SOFTMAX_INT8();
+}  // namespace
 
-// Returns a TFLMRegistration struct for kernel variant that only supports
-// int16 input/output and uses the latency optimized implementations.
-TFLMRegistration Register_SOFTMAX_INT16();
+TfLiteStatus CalculateSoftmaxParams(TfLiteContext *context, const TfLiteTensor *input, TfLiteTensor *output,
+                                    const TfLiteSoftmaxParams *params, SoftmaxParams *op_data) {
+  if (InitializeLutForInt16(context, input, output, op_data) != kTfLiteOk) {
+    return kTfLiteError;
+  }
 
-#else
-inline TFLMRegistration Register_SOFTMAX_INT8() { return Register_SOFTMAX(); }
+  if (input->type == kTfLiteInt8 || input->type == kTfLiteInt16) {
+    if (input->type == kTfLiteInt16) {
+      TF_LITE_ENSURE_EQ(context, input->params.zero_point, 0);
+      TF_LITE_ENSURE_EQ(context, output->params.zero_point, 0);
+      TF_LITE_ENSURE_NEAR(context, output->params.scale, 1.f / 32768, (0.001f * 1.f / 32768));
+    } else {  // input->type == kTfLiteInt8
+      TF_LITE_ENSURE_TYPES_EQ(context, input->type, kTfLiteInt8);
+      if (output->type == kTfLiteInt16) {
+        TF_LITE_ENSURE_EQ(context, output->params.zero_point, -32768);
+        TF_LITE_ENSURE_NEAR(context, output->params.scale, 1.f / 65536, (0.001f * 1.f / 65536));
+      } else {  // output->type == kTfLiteint8
+        TF_LITE_ENSURE_TYPES_EQ(context, output->type, kTfLiteInt8);
+        TF_LITE_ENSURE_EQ(context, output->params.zero_point, -128);
+        TF_LITE_ENSURE(context, output->params.scale == 1.f / 256);
+      }
+    }
 
-inline TFLMRegistration Register_SOFTMAX_INT16() { return Register_SOFTMAX(); }
-#endif
+    static const int kScaledDiffIntegerBits = 5;
+
+    // Calculate input_multiplier and input_left_shift
+    if (input->type == kTfLiteInt16) {
+      int input_left_shift;
+      double input_scale_beta_rescale = static_cast<double>(input->params.scale) * static_cast<double>(params->beta) /
+                                        (10.0 / 65535.0);  // scale the input_diff such that [-65535, 0]
+                                                           // correspond to [-10.0, 0.0]
+      QuantizeMultiplier(input_scale_beta_rescale, &op_data->input_multiplier, &input_left_shift);
+      op_data->input_left_shift = input_left_shift;
+    } else {
+      int input_left_shift;
+      tflite::PreprocessSoftmaxScaling(static_cast<double>(params->beta), static_cast<double>(input->params.scale),
+                                       kScaledDiffIntegerBits, &op_data->input_multiplier, &input_left_shift);
+      op_data->input_left_shift = input_left_shift;
+      op_data->diff_min = -1.0 * tflite::CalculateInputRadius(kScaledDiffIntegerBits, op_data->input_left_shift);
+    }
+  } else {
+    TF_LITE_ENSURE_TYPES_EQ(context, input->type, kTfLiteFloat32);
+    TF_LITE_ENSURE_TYPES_EQ(context, output->type, kTfLiteFloat32);
+    op_data->beta = static_cast<double>(params->beta);
+  }
+  return kTfLiteOk;
+}
+
+void *SoftmaxInit(TfLiteContext *context, const char *buffer, size_t length) {
+  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
+  return context->AllocatePersistentBuffer(context, sizeof(SoftmaxParams));
+}
+
+TfLiteStatus SoftmaxPrepare(TfLiteContext *context, TfLiteNode *node) {
+  MicroContext *micro_context = GetMicroContext(context);
+
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
+  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
+  TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, 0);
+  TF_LITE_ENSURE(context, input != nullptr);
+  TF_LITE_ENSURE(context, NumDimensions(input) >= 1);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, 0);
+  TF_LITE_ENSURE(context, output != nullptr);
+
+  TF_LITE_ENSURE(context, node->user_data != nullptr);
+  SoftmaxParams *op_data = static_cast<SoftmaxParams *>(node->user_data);
+
+  auto *params = static_cast<TfLiteSoftmaxParams *>(node->builtin_data);
+  auto ret_val = CalculateSoftmaxParams(context, input, output, params, op_data);
+
+  micro_context->DeallocateTempTfLiteTensor(input);
+  micro_context->DeallocateTempTfLiteTensor(output);
+  return ret_val;
+}
 
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_KERNELS_SOFTMAX_H_

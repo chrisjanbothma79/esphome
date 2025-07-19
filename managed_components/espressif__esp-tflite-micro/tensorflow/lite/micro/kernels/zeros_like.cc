@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,76 +13,158 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "tensorflow/lite/micro/memory_helpers.h"
+
+#include <cstddef>
+#include <cstdint>
+
+#include "flatbuffers/flatbuffers.h"  // from @flatbuffers
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/tflite_bridge/flatbuffer_conversions_bridge.h"
+#include "tensorflow/lite/schema/schema_generated.h"
 
 namespace tflite {
-namespace {
 
-constexpr int kInputTensor = 0;
-constexpr int kOutputTensor = 0;
-
-TfLiteStatus ZerosLikePrepare(TfLiteContext* context, TfLiteNode* node) {
-  MicroContext* micro_context = GetMicroContext(context);
-
-  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
-  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
-  TF_LITE_ENSURE(context, input != nullptr);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
-  TF_LITE_ENSURE(context, output != nullptr);
-  output->type = input->type;
-
-  micro_context->DeallocateTempTfLiteTensor(input);
-  micro_context->DeallocateTempTfLiteTensor(output);
-  return kTfLiteOk;
+uint8_t *AlignPointerUp(uint8_t *data, size_t alignment) {
+  std::uintptr_t data_as_uintptr_t = reinterpret_cast<std::uintptr_t>(data);
+  uint8_t *aligned_result =
+      reinterpret_cast<uint8_t *>(((data_as_uintptr_t + (alignment - 1)) / alignment) * alignment);
+  return aligned_result;
 }
 
-template <typename T>
-void resetZeros(T* out, const int num_elements) {
-  for (int i = 0; i < num_elements; ++i) {
-    out[i] = static_cast<T>(0);
-  }
+uint8_t *AlignPointerDown(uint8_t *data, size_t alignment) {
+  std::uintptr_t data_as_uintptr_t = reinterpret_cast<std::uintptr_t>(data);
+  uint8_t *aligned_result = reinterpret_cast<uint8_t *>((data_as_uintptr_t / alignment) * alignment);
+  return aligned_result;
 }
 
-TfLiteStatus ZerosLikeEval(TfLiteContext* context, TfLiteNode* node) {
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-  int flat_size = MatchingFlatSize(tflite::micro::GetTensorShape(input),
-                                   tflite::micro::GetTensorShape(output));
-  switch (input->type) {
-    case kTfLiteInt64:
-      resetZeros(tflite::micro::GetTensorData<int64_t>(output), flat_size);
+size_t AlignSizeUp(size_t size, size_t alignment) {
+  size_t aligned_size = (((size + (alignment - 1)) / alignment) * alignment);
+  return aligned_size;
+}
+
+TfLiteStatus TfLiteTypeSizeOf(TfLiteType type, size_t *size) {
+  switch (type) {
+    case kTfLiteFloat16:
+      *size = sizeof(int16_t);
       break;
-    case kTfLiteInt32:
-      resetZeros(tflite::micro::GetTensorData<int32_t>(output), flat_size);
-      break;
-    case kTfLiteInt8:
-      resetZeros(tflite::micro::GetTensorData<int8_t>(output), flat_size);
+    case kTfLiteBFloat16:
+      *size = sizeof(int16_t);
       break;
     case kTfLiteFloat32:
-      resetZeros(tflite::micro::GetTensorData<float>(output), flat_size);
+      *size = sizeof(float);
+      break;
+    case kTfLiteFloat64:
+      *size = sizeof(double);
+      break;
+    case kTfLiteInt16:
+      *size = sizeof(int16_t);
+      break;
+    case kTfLiteInt32:
+      *size = sizeof(int32_t);
+      break;
+    case kTfLiteUInt32:
+      *size = sizeof(uint32_t);
+      break;
+    case kTfLiteUInt8:
+      *size = sizeof(uint8_t);
+      break;
+    case kTfLiteUInt16:
+      *size = sizeof(uint16_t);
+      break;
+    case kTfLiteInt8:
+      *size = sizeof(int8_t);
+      break;
+    case kTfLiteInt64:
+      *size = sizeof(int64_t);
+      break;
+    case kTfLiteUInt64:
+      *size = sizeof(uint64_t);
+      break;
+    case kTfLiteBool:
+      *size = sizeof(bool);
+      break;
+    case kTfLiteResource:
+      *size = sizeof(int32_t);
+      break;
+    case kTfLiteComplex64:
+      *size = sizeof(float) * 2;
+      break;
+    case kTfLiteComplex128:
+      *size = sizeof(double) * 2;
+      break;
+    case kTfLiteInt4:
+      *size = sizeof(int8_t);
       break;
     default:
-      MicroPrintf(
-          "ZerosLike only currently supports int64, int32, "
-          "and float32, got %d.",
-          input->type);
       return kTfLiteError;
   }
   return kTfLiteOk;
 }
-}  // namespace
 
-TFLMRegistration Register_ZEROS_LIKE() {
-  return tflite::micro::RegisterOp(nullptr, ZerosLikePrepare, ZerosLikeEval);
+TfLiteStatus BytesRequiredForTensor(const tflite::Tensor &flatbuffer_tensor, size_t *bytes, size_t *type_size) {
+  int element_count = 1;
+  // If flatbuffer_tensor.shape == nullptr, then flatbuffer_tensor is a scalar
+  // so has 1 element.
+  if (flatbuffer_tensor.shape() != nullptr) {
+    for (size_t n = 0; n < flatbuffer_tensor.shape()->size(); ++n) {
+      element_count *= flatbuffer_tensor.shape()->Get(n);
+    }
+  }
+
+  TfLiteType tf_lite_type;
+  TF_LITE_ENSURE_STATUS(ConvertTensorType(flatbuffer_tensor.type(), &tf_lite_type));
+  TF_LITE_ENSURE_STATUS(TfLiteTypeSizeOf(tf_lite_type, type_size));
+  *bytes = element_count * (*type_size);
+  return kTfLiteOk;
+}
+
+TfLiteStatus TfLiteEvalTensorByteLength(const TfLiteEvalTensor *eval_tensor, size_t *out_bytes) {
+  TFLITE_DCHECK(out_bytes != nullptr);
+
+  int element_count = 1;
+  // If eval_tensor->dims == nullptr, then tensor is a scalar so has 1 element.
+  if (eval_tensor->dims != nullptr) {
+    for (int n = 0; n < eval_tensor->dims->size; ++n) {
+      element_count *= eval_tensor->dims->data[n];
+    }
+  }
+  size_t type_size;
+  TF_LITE_ENSURE_STATUS(TfLiteTypeSizeOf(eval_tensor->type, &type_size));
+  *out_bytes = element_count * type_size;
+  return kTfLiteOk;
+}
+
+TfLiteStatus AllocateOutputDimensionsFromInput(TfLiteContext *context, const TfLiteTensor *input1,
+                                               const TfLiteTensor *input2, TfLiteTensor *output) {
+  const TfLiteTensor *input = nullptr;
+
+  TF_LITE_ENSURE(context, input1->dims != nullptr);
+  TF_LITE_ENSURE(context, input2->dims != nullptr);
+  TF_LITE_ENSURE(context, output->dims->size == 0);
+
+  input = input1->dims->size > input2->dims->size ? input1 : input2;
+  TF_LITE_ENSURE(context, output->type == input->type);
+
+  size_t size = 0;
+  TfLiteTypeSizeOf(input->type, &size);
+  const int dimensions_count = tflite::GetTensorShape(input).DimensionsCount();
+  for (int i = 0; i < dimensions_count; i++) {
+    size *= input->dims->data[i];
+  }
+
+  output->bytes = size;
+
+  output->dims = reinterpret_cast<TfLiteIntArray *>(
+      context->AllocatePersistentBuffer(context, TfLiteIntArrayGetSizeInBytes(size)));
+
+  output->dims->size = input->dims->size;
+  for (int i = 0; i < dimensions_count; i++) {
+    output->dims->data[i] = input->dims->data[i];
+  }
+
+  return kTfLiteOk;
 }
 
 }  // namespace tflite

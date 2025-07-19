@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Google Inc. All rights reserved.
+ * Copyright 2021 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,225 +14,37 @@
  * limitations under the License.
  */
 
-#ifndef FLATBUFFERS_CODE_GENERATORS_H_
-#define FLATBUFFERS_CODE_GENERATORS_H_
+#ifndef FLATBUFFERS_DEFAULT_ALLOCATOR_H_
+#define FLATBUFFERS_DEFAULT_ALLOCATOR_H_
 
-#include <map>
-#include <sstream>
-
-#include "flatbuffers/idl.h"
+#include "flatbuffers/allocator.h"
+#include "flatbuffers/base.h"
 
 namespace flatbuffers {
 
-// Utility class to assist in generating code through use of text templates.
-//
-// Example code:
-//   CodeWriter code("\t");
-//   code.SetValue("NAME", "Foo");
-//   code += "void {{NAME}}() { printf("%s", "{{NAME}}"); }";
-//   code.SetValue("NAME", "Bar");
-//   code += "void {{NAME}}() { printf("%s", "{{NAME}}"); }";
-//   std::cout << code.ToString() << std::endl;
-//
-// Output:
-//  void Foo() { printf("%s", "Foo"); }
-//  void Bar() { printf("%s", "Bar"); }
-class CodeWriter {
+// DefaultAllocator uses new/delete to allocate memory regions
+class DefaultAllocator : public Allocator {
  public:
-  CodeWriter(std::string pad = std::string())
-      : pad_(pad), cur_ident_lvl_(0), ignore_ident_(false) {}
+  uint8_t *allocate(size_t size) FLATBUFFERS_OVERRIDE { return new uint8_t[size]; }
 
-  // Clears the current "written" code.
-  void Clear() {
-    stream_.str("");
-    stream_.clear();
-  }
+  void deallocate(uint8_t *p, size_t) FLATBUFFERS_OVERRIDE { delete[] p; }
 
-  // Associates a key with a value.  All subsequent calls to operator+=, where
-  // the specified key is contained in {{ and }} delimiters will be replaced by
-  // the given value.
-  void SetValue(const std::string &key, const std::string &value) {
-    value_map_[key] = value;
-  }
-
-  std::string GetValue(const std::string &key) const {
-    const auto it = value_map_.find(key);
-    return it == value_map_.end() ? "" : it->second;
-  }
-
-  // Appends the given text to the generated code as well as a newline
-  // character.  Any text within {{ and }} delimiters is replaced by values
-  // previously stored in the CodeWriter by calling SetValue above.  The newline
-  // will be suppressed if the text ends with the \\ character.
-  void operator+=(std::string text);
-
-  // Returns the current contents of the CodeWriter as a std::string.
-  std::string ToString() const { return stream_.str(); }
-
-  // Increase ident level for writing code
-  void IncrementIdentLevel() { cur_ident_lvl_++; }
-  // Decrease ident level for writing code
-  void DecrementIdentLevel() {
-    if (cur_ident_lvl_) cur_ident_lvl_--;
-  }
-
-  void SetPadding(const std::string &padding) { pad_ = padding; }
-
- private:
-  std::map<std::string, std::string> value_map_;
-  std::stringstream stream_;
-  std::string pad_;
-  int cur_ident_lvl_;
-  bool ignore_ident_;
-
-  // Add ident padding (tab or space) based on ident level
-  void AppendIdent(std::stringstream &stream);
+  static void dealloc(void *p, size_t) { delete[] static_cast<uint8_t *>(p); }
 };
 
-class BaseGenerator {
- public:
-  virtual bool generate() = 0;
+// These functions allow for a null allocator to mean use the default allocator,
+// as used by DetachedBuffer and vector_downward below.
+// This is to avoid having a statically or dynamically allocated default
+// allocator, or having to move it between the classes that may own it.
+inline uint8_t *Allocate(Allocator *allocator, size_t size) { return allocator->allocate(size); }
 
-  static std::string NamespaceDir(const Parser &parser, const std::string &path,
-                                  const Namespace &ns,
-                                  const bool dasherize = false);
+inline void Deallocate(Allocator *allocator, uint8_t *p, size_t size) { allocator->deallocate(p, size); }
 
-  std::string GeneratedFileName(const std::string &path,
-                                const std::string &file_name,
-                                const IDLOptions &options) const;
-
- protected:
-  BaseGenerator(const Parser &parser, const std::string &path,
-                const std::string &file_name, std::string qualifying_start,
-                std::string qualifying_separator, std::string default_extension)
-      : parser_(parser),
-        path_(path),
-        file_name_(file_name),
-        qualifying_start_(qualifying_start),
-        qualifying_separator_(qualifying_separator),
-        default_extension_(default_extension) {}
-  virtual ~BaseGenerator() {}
-
-  // No copy/assign.
-  BaseGenerator &operator=(const BaseGenerator &);
-  BaseGenerator(const BaseGenerator &);
-
-  std::string NamespaceDir(const Namespace &ns,
-                           const bool dasherize = false) const;
-
-  static const char *FlatBuffersGeneratedWarning();
-
-  static std::string FullNamespace(const char *separator, const Namespace &ns);
-
-  static std::string LastNamespacePart(const Namespace &ns);
-
-  // tracks the current namespace for early exit in WrapInNameSpace
-  // c++, java and csharp returns a different namespace from
-  // the following default (no early exit, always fully qualify),
-  // which works for js and php
-  virtual const Namespace *CurrentNameSpace() const { return nullptr; }
-
-  // Ensure that a type is prefixed with its namespace even within
-  // its own namespace to avoid conflict between generated method
-  // names and similarly named classes or structs
-  std::string WrapInNameSpace(const Namespace *ns,
-                              const std::string &name) const;
-
-  std::string WrapInNameSpace(const Definition &def,
-                              const std::string &suffix = "") const;
-
-  std::string GetNameSpace(const Definition &def) const;
-
-  const Parser &parser_;
-  const std::string &path_;
-  const std::string &file_name_;
-  const std::string qualifying_start_;
-  const std::string qualifying_separator_;
-  const std::string default_extension_;
-};
-
-struct CommentConfig {
-  const char *first_line;
-  const char *content_line_prefix;
-  const char *last_line;
-};
-
-extern void GenComment(const std::vector<std::string> &dc,
-                       std::string *code_ptr, const CommentConfig *config,
-                       const char *prefix = "");
-
-class FloatConstantGenerator {
- public:
-  virtual ~FloatConstantGenerator() {}
-  std::string GenFloatConstant(const FieldDef &field) const;
-
- private:
-  virtual std::string Value(double v, const std::string &src) const = 0;
-  virtual std::string Inf(double v) const = 0;
-  virtual std::string NaN(double v) const = 0;
-
-  virtual std::string Value(float v, const std::string &src) const = 0;
-  virtual std::string Inf(float v) const = 0;
-  virtual std::string NaN(float v) const = 0;
-
-  template<typename T>
-  std::string GenFloatConstantImpl(const FieldDef &field) const;
-};
-
-class SimpleFloatConstantGenerator : public FloatConstantGenerator {
- public:
-  SimpleFloatConstantGenerator(const char *nan_number,
-                               const char *pos_inf_number,
-                               const char *neg_inf_number);
-
- private:
-  std::string Value(double v,
-                    const std::string &src) const FLATBUFFERS_OVERRIDE;
-  std::string Inf(double v) const FLATBUFFERS_OVERRIDE;
-  std::string NaN(double v) const FLATBUFFERS_OVERRIDE;
-
-  std::string Value(float v, const std::string &src) const FLATBUFFERS_OVERRIDE;
-  std::string Inf(float v) const FLATBUFFERS_OVERRIDE;
-  std::string NaN(float v) const FLATBUFFERS_OVERRIDE;
-
-  const std::string nan_number_;
-  const std::string pos_inf_number_;
-  const std::string neg_inf_number_;
-};
-
-// C++, C#, Java like generator.
-class TypedFloatConstantGenerator : public FloatConstantGenerator {
- public:
-  TypedFloatConstantGenerator(const char *double_prefix,
-                              const char *single_prefix, const char *nan_number,
-                              const char *pos_inf_number,
-                              const char *neg_inf_number = "");
-
- private:
-  std::string Value(double v,
-                    const std::string &src) const FLATBUFFERS_OVERRIDE;
-  std::string Inf(double v) const FLATBUFFERS_OVERRIDE;
-
-  std::string NaN(double v) const FLATBUFFERS_OVERRIDE;
-
-  std::string Value(float v, const std::string &src) const FLATBUFFERS_OVERRIDE;
-  std::string Inf(float v) const FLATBUFFERS_OVERRIDE;
-  std::string NaN(float v) const FLATBUFFERS_OVERRIDE;
-
-  std::string MakeNaN(const std::string &prefix) const;
-  std::string MakeInf(bool neg, const std::string &prefix) const;
-
-  const std::string double_prefix_;
-  const std::string single_prefix_;
-  const std::string nan_number_;
-  const std::string pos_inf_number_;
-  const std::string neg_inf_number_;
-};
-
-std::string JavaCSharpMakeRule(const bool java, const Parser &parser,
-                               const std::string &path,
-                               const std::string &file_name);
+inline uint8_t *ReallocateDownward(Allocator *allocator, uint8_t *old_p, size_t old_size, size_t new_size,
+                                   size_t in_use_back, size_t in_use_front) {
+  return allocator->reallocate_downward(old_p, old_size, new_size, in_use_back, in_use_front);
+}
 
 }  // namespace flatbuffers
 
-#endif  // FLATBUFFERS_CODE_GENERATORS_H_
+#endif  // FLATBUFFERS_DEFAULT_ALLOCATOR_H_

@@ -1,65 +1,99 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+// Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+#include "tensorflow/lite/micro/hexdump.h"
 
-    http://www.apache.org/licenses/LICENSE-2.0
+#include <algorithm>
+#include <cctype>
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
+#include "tensorflow/lite/micro/debug_log.h"
+#include "tensorflow/lite/micro/static_vector.h"
 
-#ifndef THIRD_PARTY_TFLITE_MICRO_TENSORFLOW_LITE_MICRO_FLATBUFFER_UTILS_H_
-#define THIRD_PARTY_TFLITE_MICRO_TENSORFLOW_LITE_MICRO_FLATBUFFER_UTILS_H_
+namespace {
 
-#include "flatbuffers/flatbuffers.h"
-#include "flatbuffers/flexbuffers.h"
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/schema/schema_generated.h"
+tflite::Span<char> output(const tflite::Span<char> &buf, const char *format, ...) {
+  // Writes formatted output, printf-style, to either a buffer or DebugLog.
+  // Writes to DebugLog if the buffer data pointer is null. Does not exceed
+  // the size of the buffer. Returns the unused remainder of the buffer, or a
+  // buffer with a null data pointer in the case of printing to DebugLog.
 
-namespace tflite {
-// Kernels use flexbuffers::Map to pack their init parameters in a tflite file,
-// with the parameter names as map keys and the parameter values as the
-// corresponding map values.
-// Accessing the map values using the flexbuffers:Map class is inline heavy,
-// which can cause the code size to bloat beyond what's reasonable for a micro
-// application. Use this class instead, when possible.
-// FlexbufferWrapper takes advantage of the following properties of
-// flexbuffers::Map:
-// 1. It can be viewed as a flexbuffers::Vector of the values.
-// 2. The values in the vector are ordered alphabetically by their keys.
-// 3. All integer and Boolean values are stored as 64-bit numbers.
-// 4. All floating point values are stored as double precision numbers.
-// The properties are mentioned in the flexbuffers docs, but we rely on
-// a unit test to catch design changes.
-class FlexbufferWrapper : public flexbuffers::Vector {
- public:
-  // Construct with a serialized flexbuffer 'buffer' of 'size' bytes
-  explicit FlexbufferWrapper(const uint8_t* buffer, size_t size);
-  int64_t ElementAsInt64(size_t i) const;
-  uint64_t ElementAsUInt64(size_t i) const;
-  int32_t ElementAsInt32(size_t i) const;
-  bool ElementAsBool(size_t i) const;
-  double ElementAsDouble(size_t i) const;
-  float ElementAsFloat(size_t i) const;
-};
+  tflite::Span<char> result{nullptr, 0};
 
-// Return the number of operators in a subgraph tflite
-uint32_t NumSubgraphOperators(const SubGraph* subgraph);
-uint32_t NumSubgraphOperators(const Model* model, int subgraph_idx);
+  va_list args;
+  va_start(args, format);
 
-// Converts a flatbuffer array to a TfLiteArray.
-// TODO(b/188459715): These function convert a const input to a non-const via a
-// const_cast. It is unclear exactly why this is required.
-TfLiteIntArray* FlatBufferVectorToTfLiteTypeArray(
-    const flatbuffers::Vector<int32_t>* flatbuffer_array);
-TfLiteFloatArray* FlatBufferVectorToTfLiteTypeArray(
-    const flatbuffers::Vector<float>* flatbuffer_array);
+  if (buf.data() == nullptr) {
+    DebugLog(format, args);
+    result = {nullptr, 0};
+  } else {
+    size_t len = DebugVsnprintf(buf.data(), buf.size(), format, args);
+    // Returns the number of characters that would have been written if
+    // there were enough room, so cap it at the size of the buffer in order to
+    // know how much was actually written.
+    size_t consumed = std::min(len, buf.size());
+    result = {buf.data() + consumed, buf.size() - consumed};
+  }
 
-}  // namespace tflite
+  va_end(args);
+  return result;
+}
 
-#endif  // THIRD_PARTY_TFLITE_MICRO_TENSORFLOW_LITE_MICRO_FLATBUFFER_UTILS_H_
+}  // end anonymous namespace
+
+tflite::Span<char> tflite::hexdump(const tflite::Span<const std::byte> region, const tflite::Span<char> out) {
+  tflite::Span<char> buffer{out};
+  std::size_t byte_nr = 0;
+  constexpr int per_line = 16;
+  const int lines = (region.size() + per_line - 1) / per_line;  // round up
+
+  for (int line = 0; line < lines; ++line) {
+    tflite::StaticVector<char, per_line> ascii;
+
+    // print address
+    buffer = output(buffer, "%08X:", line);
+
+    for (int pos = 0; pos < per_line; ++pos) {
+      if (byte_nr < region.size()) {
+        // print byte
+        int as_int = static_cast<int>(region[byte_nr++]);
+        buffer = output(buffer, " %02X", as_int);
+
+        // buffer an ascii printable value
+        char c{'.'};
+        if (std::isprint(as_int)) {
+          c = static_cast<char>(as_int);
+        }
+        ascii.push_back(c);
+      } else {
+        buffer = output(buffer, "   ");
+      }
+
+      // print extra space in middle of the line
+      if (pos == per_line / 2 - 1) {
+        buffer = output(buffer, " ");
+      }
+    }
+
+    // print the ascii value
+    buffer = output(buffer, "  ");
+    for (const auto &c : ascii) {
+      buffer = output(buffer, "%c", c);
+    }
+    buffer = output(buffer, "%c", '\n');
+  }
+
+  return {out.data(), out.size() - buffer.size()};
+}
+
+void tflite::hexdump(const tflite::Span<const std::byte> region) { hexdump(region, {nullptr, 0}); }

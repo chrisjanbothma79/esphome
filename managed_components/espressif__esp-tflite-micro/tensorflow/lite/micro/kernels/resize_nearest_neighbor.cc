@@ -13,114 +13,52 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/resize_nearest_neighbor.h"
+#include "tensorflow/lite/kernels/internal/reference/round.h"
 
-#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/kernels/op_macros.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
-
 namespace {
 
 constexpr int kInputTensor = 0;
-constexpr int kSizeTensor = 1;
 constexpr int kOutputTensor = 0;
 
-TfLiteStatus ResizeNearestNeighborPrepare(TfLiteContext* context,
-                                          TfLiteNode* node) {
-  MicroContext* micro_context = GetMicroContext(context);
+TfLiteStatus RoundPrepare(TfLiteContext *context, TfLiteNode *node) {
+  MicroContext *micro_context = GetMicroContext(context);
 
-  TF_LITE_ENSURE_EQ(context, NumInputs(node), 2);
+  TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, kInputTensor);
+  TF_LITE_ENSURE(context, input != nullptr);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TF_LITE_ENSURE(context, output != nullptr);
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
   TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
-
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
-  TfLiteTensor* size =
-      micro_context->AllocateTempInputTensor(node, kSizeTensor);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
-
-  // Our current implementations rely on the input being 4D,
-  // and the size being 1D tensor with exactly 2 elements.
-  TF_LITE_ENSURE_EQ(context, NumDimensions(input), 4);
-  TF_LITE_ENSURE_EQ(context, NumDimensions(size), 1);
-  TF_LITE_ENSURE_EQ(context, size->type, kTfLiteInt32);
-  TF_LITE_ENSURE_EQ(context, size->dims->data[0], 2);
-
-  output->type = input->type;
-
-  if (!IsConstantTensor(size)) {
-    MicroPrintf("Dynamic tensors are unsupported in tfmicro.");
-    return kTfLiteError;
+  TF_LITE_ENSURE_TYPES_EQ(context, input->type, kTfLiteFloat32);
+  TF_LITE_ENSURE_TYPES_EQ(context, output->type, input->type);
+  TF_LITE_ENSURE_EQ(context, output->bytes, input->bytes);
+  TF_LITE_ENSURE_EQ(context, output->dims->size, input->dims->size);
+  for (int i = 0; i < output->dims->size; ++i) {
+    TF_LITE_ENSURE_EQ(context, output->dims->data[i], input->dims->data[i]);
   }
 
   micro_context->DeallocateTempTfLiteTensor(input);
-  micro_context->DeallocateTempTfLiteTensor(size);
   micro_context->DeallocateTempTfLiteTensor(output);
-
   return kTfLiteOk;
 }
 
-TfLiteStatus ResizeNearestNeighborEval(TfLiteContext* context,
-                                       TfLiteNode* node) {
-  auto* params =
-      reinterpret_cast<TfLiteResizeNearestNeighborParams*>(node->builtin_data);
+TfLiteStatus RoundEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kInputTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
 
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  const TfLiteEvalTensor* size =
-      tflite::micro::GetEvalInput(context, node, kSizeTensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-
-  tflite::ResizeNearestNeighborParams op_params;
-  op_params.align_corners = params->align_corners;
-  op_params.half_pixel_centers = false;
-
-  if (output->type == kTfLiteFloat32) {
-    reference_ops::ResizeNearestNeighbor(
-        op_params, tflite::micro::GetTensorShape(input),
-        tflite::micro::GetTensorData<int32_t>(input),
-        tflite::micro::GetTensorShape(size),
-        tflite::micro::GetTensorData<int32_t>(size),
-        tflite::micro::GetTensorShape(output),
-        tflite::micro::GetTensorData<int32_t>(output));
-  } else if (output->type == kTfLiteInt8) {
-    reference_ops::ResizeNearestNeighbor(
-        op_params, tflite::micro::GetTensorShape(input),
-        tflite::micro::GetTensorData<int8_t>(input),
-        tflite::micro::GetTensorShape(size),
-        tflite::micro::GetTensorData<int32_t>(size),
-        tflite::micro::GetTensorShape(output),
-        tflite::micro::GetTensorData<int8_t>(output));
-  } else if (output->type == kTfLiteInt16) {
-    reference_ops::ResizeNearestNeighbor(
-        op_params, tflite::micro::GetTensorShape(input),
-        tflite::micro::GetTensorData<int16_t>(input),
-        tflite::micro::GetTensorShape(size),
-        tflite::micro::GetTensorData<int32_t>(size),
-        tflite::micro::GetTensorShape(output),
-        tflite::micro::GetTensorData<int16_t>(output));
-  } else {
-    MicroPrintf("Output tensor type %s (%d) not supported.",
-                TfLiteTypeGetName(output->type), output->type);
-
-    return kTfLiteError;
-  }
+  reference_ops::Round(tflite::micro::GetTensorShape(input), tflite::micro::GetTensorData<float>(input),
+                       tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<float>(output));
 
   return kTfLiteOk;
 }
-
 }  // namespace
 
-TFLMRegistration Register_RESIZE_NEAREST_NEIGHBOR() {
-  return tflite::micro::RegisterOp(nullptr, ResizeNearestNeighborPrepare,
-                                   ResizeNearestNeighborEval);
-}
+TFLMRegistration Register_ROUND() { return tflite::micro::RegisterOp(nullptr, RoundPrepare, RoundEval); }
 
 }  // namespace tflite

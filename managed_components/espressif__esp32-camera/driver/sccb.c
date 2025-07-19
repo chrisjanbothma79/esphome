@@ -1,261 +1,60 @@
-/*
- * This file is part of the OpenMV project.
- * Copyright (c) 2013/2014 Ibrahim Abdelkader <i.abdalkader@gmail.com>
- * This work is licensed under the MIT license, see the file LICENSE for details.
- *
- * SCCB (I2C like) driver.
- *
- */
-
-#include <stdbool.h>
-#include <string.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include "sccb.h"
-#include "sensor.h"
 #include <stdio.h>
-#include "sdkconfig.h"
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#else
-#include "esp_log.h"
-static const char* TAG = "sccb";
-#endif
+#include "sensor.h"
 
-#define LITTLETOBIG(x)          ((x<<8)|(x>>8))
+const camera_sensor_info_t camera_sensor[CAMERA_MODEL_MAX] = {
+    // The sequence must be consistent with camera_model_t
+    {CAMERA_OV7725, "OV7725", OV7725_SCCB_ADDR, OV7725_PID, FRAMESIZE_VGA, false},
+    {CAMERA_OV2640, "OV2640", OV2640_SCCB_ADDR, OV2640_PID, FRAMESIZE_UXGA, true},
+    {CAMERA_OV3660, "OV3660", OV3660_SCCB_ADDR, OV3660_PID, FRAMESIZE_QXGA, true},
+    {CAMERA_OV5640, "OV5640", OV5640_SCCB_ADDR, OV5640_PID, FRAMESIZE_QSXGA, true},
+    {CAMERA_OV7670, "OV7670", OV7670_SCCB_ADDR, OV7670_PID, FRAMESIZE_VGA, false},
+    {CAMERA_NT99141, "NT99141", NT99141_SCCB_ADDR, NT99141_PID, FRAMESIZE_HD, true},
+    {CAMERA_GC2145, "GC2145", GC2145_SCCB_ADDR, GC2145_PID, FRAMESIZE_UXGA, false},
+    {CAMERA_GC032A, "GC032A", GC032A_SCCB_ADDR, GC032A_PID, FRAMESIZE_VGA, false},
+    {CAMERA_GC0308, "GC0308", GC0308_SCCB_ADDR, GC0308_PID, FRAMESIZE_VGA, false},
+    {CAMERA_BF3005, "BF3005", BF3005_SCCB_ADDR, BF3005_PID, FRAMESIZE_VGA, false},
+    {CAMERA_BF20A6, "BF20A6", BF20A6_SCCB_ADDR, BF20A6_PID, FRAMESIZE_VGA, false},
+    {CAMERA_SC101IOT, "SC101IOT", SC101IOT_SCCB_ADDR, SC101IOT_PID, FRAMESIZE_HD, false},
+    {CAMERA_SC030IOT, "SC030IOT", SC030IOT_SCCB_ADDR, SC030IOT_PID, FRAMESIZE_VGA, false},
+    {CAMERA_SC031GS, "SC031GS", SC031GS_SCCB_ADDR, SC031GS_PID, FRAMESIZE_VGA, false},
+    {CAMERA_MEGA_CCM, "MEGA_CCM", MEGA_CCM_SCCB_ADDR, MEGA_CCM_PID, FRAMESIZE_5MP, true},
+};
 
-#include "driver/i2c.h"
+const resolution_info_t resolution[FRAMESIZE_INVALID] = {
+    {96, 96, ASPECT_RATIO_1X1},     /* 96x96 */
+    {128, 128, ASPECT_RATIO_1X1},   /* 128x128 */
+    {160, 120, ASPECT_RATIO_4X3},   /* QQVGA */
+    {176, 144, ASPECT_RATIO_5X4},   /* QCIF  */
+    {240, 176, ASPECT_RATIO_4X3},   /* HQVGA */
+    {240, 240, ASPECT_RATIO_1X1},   /* 240x240 */
+    {320, 240, ASPECT_RATIO_4X3},   /* QVGA  */
+    {320, 320, ASPECT_RATIO_1X1},   /* 320x320 */
+    {400, 296, ASPECT_RATIO_4X3},   /* CIF   */
+    {480, 320, ASPECT_RATIO_3X2},   /* HVGA  */
+    {640, 480, ASPECT_RATIO_4X3},   /* VGA   */
+    {800, 600, ASPECT_RATIO_4X3},   /* SVGA  */
+    {1024, 768, ASPECT_RATIO_4X3},  /* XGA   */
+    {1280, 720, ASPECT_RATIO_16X9}, /* HD    */
+    {1280, 1024, ASPECT_RATIO_5X4}, /* SXGA  */
+    {1600, 1200, ASPECT_RATIO_4X3}, /* UXGA  */
+    // 3MP Sensors
+    {1920, 1080, ASPECT_RATIO_16X9}, /* FHD   */
+    {720, 1280, ASPECT_RATIO_9X16},  /* Portrait HD   */
+    {864, 1536, ASPECT_RATIO_9X16},  /* Portrait 3MP   */
+    {2048, 1536, ASPECT_RATIO_4X3},  /* QXGA  */
+    // 5MP Sensors
+    {2560, 1440, ASPECT_RATIO_16X9},  /* QHD    */
+    {2560, 1600, ASPECT_RATIO_16X10}, /* WQXGA  */
+    {1088, 1920, ASPECT_RATIO_9X16},  /* Portrait FHD   */
+    {2560, 1920, ASPECT_RATIO_4X3},   /* QSXGA  */
+    {2592, 1944, ASPECT_RATIO_4X3},   /* 5MP */
+};
 
-// support IDF 5.x
-#ifndef portTICK_RATE_MS
-#define portTICK_RATE_MS portTICK_PERIOD_MS
-#endif
-
-#define SCCB_FREQ               CONFIG_SCCB_CLK_FREQ  /*!< I2C master frequency*/
-#define WRITE_BIT               I2C_MASTER_WRITE      /*!< I2C master write */
-#define READ_BIT                I2C_MASTER_READ       /*!< I2C master read */
-#define ACK_CHECK_EN            0x1                   /*!< I2C master will check ack from slave*/
-#define ACK_CHECK_DIS           0x0                   /*!< I2C master will not check ack from slave */
-#define ACK_VAL                 0x0                   /*!< I2C ack value */
-#define NACK_VAL                0x1                   /*!< I2C nack value */
-#if CONFIG_SCCB_HARDWARE_I2C_PORT1
-const int SCCB_I2C_PORT_DEFAULT = 1;
-#else
-const int SCCB_I2C_PORT_DEFAULT = 0;
-#endif
-
-static int sccb_i2c_port;
-static bool sccb_owns_i2c_port;
-
-int SCCB_Init(int pin_sda, int pin_scl)
-{
-    ESP_LOGI(TAG, "pin_sda %d pin_scl %d", pin_sda, pin_scl);
-    i2c_config_t conf;
-    esp_err_t ret;
-
-    memset(&conf, 0, sizeof(i2c_config_t));
-
-    sccb_i2c_port = SCCB_I2C_PORT_DEFAULT;
-    sccb_owns_i2c_port = true;
-    ESP_LOGI(TAG, "sccb_i2c_port=%d", sccb_i2c_port);
-
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = pin_sda;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_io_num = pin_scl;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = SCCB_FREQ;
-
-    if ((ret =  i2c_param_config(sccb_i2c_port, &conf)) != ESP_OK) {
-        return ret;
+camera_sensor_info_t *esp_camera_sensor_get_info(sensor_id_t *id) {
+  for (int i = 0; i < CAMERA_MODEL_MAX; i++) {
+    if (id->PID == camera_sensor[i].pid) {
+      return (camera_sensor_info_t *) &camera_sensor[i];
     }
-
-    return i2c_driver_install(sccb_i2c_port, conf.mode, 0, 0, 0);
-}
-
-int SCCB_Use_Port(int i2c_num) { // sccb use an already initialized I2C port
-    if (sccb_owns_i2c_port) {
-        SCCB_Deinit();
-    }
-    if (i2c_num < 0 || i2c_num > I2C_NUM_MAX) {
-        return ESP_ERR_INVALID_ARG;
-    }
-    sccb_i2c_port = i2c_num;
-    return ESP_OK;
-}
-
-int SCCB_Deinit(void)
-{
-    if (!sccb_owns_i2c_port) {
-        return ESP_OK;
-    }
-    sccb_owns_i2c_port = false;
-    return i2c_driver_delete(sccb_i2c_port);
-}
-
-uint8_t SCCB_Probe(void)
-{
-    uint8_t slave_addr = 0x0;
-
-    for (size_t i = 0; i < CAMERA_MODEL_MAX; i++) {
-        if (slave_addr == camera_sensor[i].sccb_addr) {
-            continue;
-        }
-        slave_addr = camera_sensor[i].sccb_addr;
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, ( slave_addr << 1 ) | WRITE_BIT, ACK_CHECK_EN);
-        i2c_master_stop(cmd);
-        esp_err_t ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-        i2c_cmd_link_delete(cmd);
-        if( ret == ESP_OK) {
-            return slave_addr;
-        }
-    }
-    return 0;
-}
-
-uint8_t SCCB_Read(uint8_t slv_addr, uint8_t reg)
-{
-    uint8_t data=0;
-    esp_err_t ret = ESP_FAIL;
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | WRITE_BIT, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg, ACK_CHECK_EN);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) return -1;
-    cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | READ_BIT, ACK_CHECK_EN);
-    i2c_master_read_byte(cmd, &data, NACK_VAL);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) {
-        ESP_LOGE(TAG, "SCCB_Read Failed addr:0x%02x, reg:0x%02x, data:0x%02x, ret:%d", slv_addr, reg, data, ret);
-    }
-    return data;
-}
-
-int SCCB_Write(uint8_t slv_addr, uint8_t reg, uint8_t data)
-{
-    esp_err_t ret = ESP_FAIL;
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | WRITE_BIT, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, data, ACK_CHECK_EN);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) {
-        ESP_LOGE(TAG, "SCCB_Write Failed addr:0x%02x, reg:0x%02x, data:0x%02x, ret:%d", slv_addr, reg, data, ret);
-    }
-    return ret == ESP_OK ? 0 : -1;
-}
-
-uint8_t SCCB_Read16(uint8_t slv_addr, uint16_t reg)
-{
-    uint8_t data=0;
-    esp_err_t ret = ESP_FAIL;
-    uint16_t reg_htons = LITTLETOBIG(reg);
-    uint8_t *reg_u8 = (uint8_t *)&reg_htons;
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | WRITE_BIT, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg_u8[0], ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg_u8[1], ACK_CHECK_EN);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) return -1;
-    cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | READ_BIT, ACK_CHECK_EN);
-    i2c_master_read_byte(cmd, &data, NACK_VAL);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) {
-        ESP_LOGE(TAG, "W [%04x]=%02x fail\n", reg, data);
-    }
-    return data;
-}
-
-int SCCB_Write16(uint8_t slv_addr, uint16_t reg, uint8_t data)
-{
-    static uint16_t i = 0;
-    esp_err_t ret = ESP_FAIL;
-    uint16_t reg_htons = LITTLETOBIG(reg);
-    uint8_t *reg_u8 = (uint8_t *)&reg_htons;
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | WRITE_BIT, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg_u8[0], ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg_u8[1], ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, data, ACK_CHECK_EN);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) {
-        ESP_LOGE(TAG, "W [%04x]=%02x %d fail\n", reg, data, i++);
-    }
-    return ret == ESP_OK ? 0 : -1;
-}
-
-uint16_t SCCB_Read_Addr16_Val16(uint8_t slv_addr, uint16_t reg)
-{
-    uint16_t data = 0;
-    uint8_t *data_u8 = (uint8_t *)&data;
-    esp_err_t ret = ESP_FAIL;
-    uint16_t reg_htons = LITTLETOBIG(reg);
-    uint8_t *reg_u8 = (uint8_t *)&reg_htons;
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | WRITE_BIT, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg_u8[0], ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg_u8[1], ACK_CHECK_EN);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) return -1;
-
-    cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | READ_BIT, ACK_CHECK_EN);
-    i2c_master_read_byte(cmd, &data_u8[1], ACK_VAL);
-    i2c_master_read_byte(cmd, &data_u8[0], NACK_VAL);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) {
-        ESP_LOGE(TAG, "W [%04x]=%04x fail\n", reg, data);
-    }
-    return data;
-}
-
-int SCCB_Write_Addr16_Val16(uint8_t slv_addr, uint16_t reg, uint16_t data)
-{
-    esp_err_t ret = ESP_FAIL;
-    uint16_t reg_htons = LITTLETOBIG(reg);
-    uint8_t *reg_u8 = (uint8_t *)&reg_htons;
-    uint16_t data_htons = LITTLETOBIG(data);
-    uint8_t *data_u8 = (uint8_t *)&data_htons;
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, ( slv_addr << 1 ) | WRITE_BIT, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg_u8[0], ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, reg_u8[1], ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, data_u8[0], ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, data_u8[1], ACK_CHECK_EN);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(sccb_i2c_port, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    if(ret != ESP_OK) {
-        ESP_LOGE(TAG, "W [%04x]=%04x fail\n", reg, data);
-    }
-    return ret == ESP_OK ? 0 : -1;
+  }
+  return NULL;
 }

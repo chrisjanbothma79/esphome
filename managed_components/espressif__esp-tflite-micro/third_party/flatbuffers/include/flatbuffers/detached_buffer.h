@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google Inc. All rights reserved.
+ * Copyright 2023 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,101 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef FLATBUFFERS_DETACHED_BUFFER_H_
-#define FLATBUFFERS_DETACHED_BUFFER_H_
+#ifndef FLATBUFFERS_FILE_MANAGER_H_
+#define FLATBUFFERS_FILE_MANAGER_H_
 
-#include "flatbuffers/allocator.h"
-#include "flatbuffers/base.h"
-#include "flatbuffers/default_allocator.h"
+#include <set>
+#include <string>
+
+#include "flatbuffers/util.h"
 
 namespace flatbuffers {
 
-// DetachedBuffer is a finished flatbuffer memory region, detached from its
-// builder. The original memory region and allocator are also stored so that
-// the DetachedBuffer can manage the memory lifetime.
-class DetachedBuffer {
+// A File interface to write data to file by default or
+// save only file names
+class FileManager {
  public:
-  DetachedBuffer()
-      : allocator_(nullptr),
-        own_allocator_(false),
-        buf_(nullptr),
-        reserved_(0),
-        cur_(nullptr),
-        size_(0) {}
+  FileManager() = default;
+  virtual ~FileManager() = default;
 
-  DetachedBuffer(Allocator *allocator, bool own_allocator, uint8_t *buf,
-                 size_t reserved, uint8_t *cur, size_t sz)
-      : allocator_(allocator),
-        own_allocator_(own_allocator),
-        buf_(buf),
-        reserved_(reserved),
-        cur_(cur),
-        size_(sz) {}
+  virtual bool SaveFile(const std::string &absolute_file_name, const std::string &content) = 0;
 
-  DetachedBuffer(DetachedBuffer &&other) noexcept
-      : allocator_(other.allocator_),
-        own_allocator_(other.own_allocator_),
-        buf_(other.buf_),
-        reserved_(other.reserved_),
-        cur_(other.cur_),
-        size_(other.size_) {
-    other.reset();
-  }
+  virtual bool LoadFile(const std::string &absolute_file_name, std::string *buf) = 0;
 
-  DetachedBuffer &operator=(DetachedBuffer &&other) noexcept {
-    if (this == &other) return *this;
-
-    destroy();
-
-    allocator_ = other.allocator_;
-    own_allocator_ = other.own_allocator_;
-    buf_ = other.buf_;
-    reserved_ = other.reserved_;
-    cur_ = other.cur_;
-    size_ = other.size_;
-
-    other.reset();
-
-    return *this;
-  }
-
-  ~DetachedBuffer() { destroy(); }
-
-  const uint8_t *data() const { return cur_; }
-
-  uint8_t *data() { return cur_; }
-
-  size_t size() const { return size_; }
-
-  // These may change access mode, leave these at end of public section
-  FLATBUFFERS_DELETE_FUNC(DetachedBuffer(const DetachedBuffer &other));
-  FLATBUFFERS_DELETE_FUNC(
-      DetachedBuffer &operator=(const DetachedBuffer &other));
-
- protected:
-  Allocator *allocator_;
-  bool own_allocator_;
-  uint8_t *buf_;
-  size_t reserved_;
-  uint8_t *cur_;
-  size_t size_;
-
-  inline void destroy() {
-    if (buf_) Deallocate(allocator_, buf_, reserved_);
-    if (own_allocator_ && allocator_) { delete allocator_; }
-    reset();
-  }
-
-  inline void reset() {
-    allocator_ = nullptr;
-    own_allocator_ = false;
-    buf_ = nullptr;
-    reserved_ = 0;
-    cur_ = nullptr;
-    size_ = 0;
-  }
+ private:
+  // Copying is not supported.
+  FileManager(const FileManager &) = delete;
+  FileManager &operator=(const FileManager &) = delete;
 };
 
 }  // namespace flatbuffers
 
-#endif  // FLATBUFFERS_DETACHED_BUFFER_H_
+#endif  // FLATBUFFERS_FILE_MANAGER_H_

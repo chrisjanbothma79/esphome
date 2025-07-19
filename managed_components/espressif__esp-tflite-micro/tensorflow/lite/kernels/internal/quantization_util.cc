@@ -12,405 +12,256 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_QUANTIZATION_UTIL_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_QUANTIZATION_UTIL_H_
 
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-
-#include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 
 #include "tensorflow/lite/kernels/internal/compatibility.h"
-#include "tensorflow/lite/kernels/internal/cppmath.h"
+#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
 
-namespace {
-// These constants are used to manipulate the binary representation of doubles.
-// Double-precision binary64 floating point format is:
-// Bit |  63  |  62-52   |   51-0   |
-//     | Sign | Exponent | Fraction |
-// To avoid 64-bit integers as much as possible, I break this into high and
-// low 32-bit chunks. High is:
-// Bit |  31  |  30-20   |      19-0     |
-//     | Sign | Exponent | High Fraction |
-// Low is:
-// Bit |     31-0     |
-//     | Low Fraction |
-// We then access the components through logical bit-wise operations to
-// extract the parts needed, with the positions and masks derived from the
-// layout shown above.
-constexpr uint64_t kSignMask = 0x8000000000000000LL;
-constexpr uint64_t kExponentMask = 0x7ff0000000000000LL;
-constexpr int32_t kExponentShift = 52;
-constexpr int32_t kExponentBias = 1023;
-constexpr uint32_t kExponentIsBadNum = 0x7ff;
-constexpr uint64_t kFractionMask = 0x000fffffffc00000LL;
-constexpr uint32_t kFractionShift = 22;
-constexpr uint32_t kFractionRoundingMask = 0x003fffff;
-constexpr uint32_t kFractionRoundingThreshold = 0x00200000;
-}  // namespace
+// Given the min and max values of a float array, return
+// reasonable quantization parameters to use for this array.
+template<typename T> QuantizationParams ChooseQuantizationParams(double rmin, double rmax, bool narrow_range) {
+  const T qmin = std::numeric_limits<T>::min() + (narrow_range ? 1 : 0);
+  const T qmax = std::numeric_limits<T>::max();
+  const double qmin_double = qmin;
+  const double qmax_double = qmax;
+  // 0 should always be a representable value. Let's assume that the initial
+  // min,max range contains 0.
+  TFLITE_CHECK_LE(rmin, 0.);
+  TFLITE_CHECK_GE(rmax, 0.);
+  if (rmin == rmax) {
+    // Special case where the min,max range is a point. Should be {0}.
+    TFLITE_CHECK_EQ(rmin, 0.);
+    TFLITE_CHECK_EQ(rmax, 0.);
+    QuantizationParams quantization_params;
+    quantization_params.zero_point = 0;
+    quantization_params.scale = 0.;
+    return quantization_params;
+  }
 
-void QuantizeMultiplier(double double_multiplier, int32_t* quantized_multiplier,
-                        int* shift) {
-#if TFLITE_SINGLE_ROUNDING
-  // Single-rounding MultiplyByQuantizedMultiplier only supports positive
-  // multipliers.
-  // TFLITE_DCHECK(double_multiplier >= 0);
-#endif
-  if (double_multiplier == 0.) {
-    *quantized_multiplier = 0;
-    *shift = 0;
-    return;
+  // General case.
+  //
+  // First determine the scale.
+  const double scale = (rmax - rmin) / (qmax_double - qmin_double);
+
+  // Zero-point computation.
+  // First the initial floating-point computation. The zero-point can be
+  // determined from solving an affine equation for any known pair
+  // (real value, corresponding quantized value).
+  // We know two such pairs: (rmin, qmin) and (rmax, qmax).
+  // The arithmetic error on the zero point computed from either pair
+  // will be roughly machine_epsilon * (sum of absolute values of terms)
+  // so we want to use the variant that adds the smaller terms.
+  const double zero_point_from_min = qmin_double - rmin / scale;
+  const double zero_point_from_max = qmax_double - rmax / scale;
+  const double zero_point_from_min_error = std::abs(qmin_double) + std::abs(rmin / scale);
+  const double zero_point_from_max_error = std::abs(qmax_double) + std::abs(rmax / scale);
+
+  const double zero_point_double =
+      zero_point_from_min_error < zero_point_from_max_error ? zero_point_from_min : zero_point_from_max;
+
+  // Now we need to nudge the zero point to be an integer
+  // (our zero points are integer, and this is motivated by the requirement
+  // to be able to represent the real value "0" exactly as a quantized value,
+  // which is required in multiple places, for example in Im2col with SAME
+  // padding).
+  T nudged_zero_point = 0;
+  if (zero_point_double < qmin_double) {
+    nudged_zero_point = qmin;
+  } else if (zero_point_double > qmax_double) {
+    nudged_zero_point = qmax;
+  } else {
+    nudged_zero_point = static_cast<T>(round(zero_point_double));
   }
-#ifdef TFLITE_EMULATE_FLOAT
-  // If we're trying to avoid the use of floating-point instructions (for
-  // example on microcontrollers) then use an alternative implementation
-  // that only requires integer and bitwise operations. To enable this, you
-  // need to set the define during the build process for your platform.
-  int64_t q_fixed = IntegerFrExp(double_multiplier, shift);
-#else   // TFLITE_EMULATE_FLOAT
-  const double q = std::frexp(double_multiplier, shift);
-  auto q_fixed = static_cast<int64_t>(TfLiteRound(q * (1LL << 31)));
-#endif  // TFLITE_EMULATE_FLOAT
-  TFLITE_CHECK(q_fixed <= (1LL << 31));
-  if (q_fixed == (1LL << 31)) {
-    q_fixed /= 2;
-    ++*shift;
-  }
-  TFLITE_CHECK_LE(q_fixed, std::numeric_limits<int32_t>::max());
-  // A shift amount smaller than -31 would cause all bits to be shifted out
-  // and thus all results would be zero. We implement that instead with
-  // q_fixed==0, so as to avoid hitting issues with right-shift
-  // operations with shift amounts greater than 31. Note that this happens
-  // roughly when abs(double_multiplier) < 2^-31 and the present handling means
-  // that we're effectively flushing tiny double_multiplier's to zero.
-  // We could conceivably handle values in the range (roughly) [32, 63]
-  // as 'denormals' i.e. (shift==0, q_fixed < 2^30). In that point of view
-  // the present handling is just doing 'flush denormals to zero'. We could
-  // reconsider and actually generate nonzero denormals if a need arises.
-  if (*shift < -31) {
-    *shift = 0;
-    q_fixed = 0;
-  }
-#if TFLITE_SINGLE_ROUNDING
-  // Single-rounding MultiplyByQuantizedMultiplier doesn't support a shift > 30,
-  // saturate it.
-  if (*shift > 30) {
-    *shift = 30;
-    q_fixed = (1LL << 31) - 1;
-  }
-#endif
-  *quantized_multiplier = static_cast<int32_t>(q_fixed);
+  // The zero point should always be in the range of quantized value,
+  // [qmin, qmax].
+  TFLITE_CHECK_GE(nudged_zero_point, qmin);
+  TFLITE_CHECK_LE(nudged_zero_point, qmax);
+
+  // Finally, store the result nudged quantization params.
+  QuantizationParams quantization_params;
+  quantization_params.zero_point = nudged_zero_point;
+  quantization_params.scale = scale;
+  return quantization_params;
 }
 
-void QuantizeMultiplierGreaterThanOne(double double_multiplier,
-                                      int32_t* quantized_multiplier,
-                                      int* left_shift) {
-  TFLITE_CHECK_GT(double_multiplier, 1.);
-  QuantizeMultiplier(double_multiplier, quantized_multiplier, left_shift);
-  TFLITE_CHECK_GE(*left_shift, 0);
+template<typename T> QuantizationParams ChooseQuantizationParams(double rmin, double rmax) {
+  return ChooseQuantizationParams<T>(rmin, rmax, false);
 }
 
-void QuantizeMultiplierSmallerThanOneExp(double double_multiplier,
-                                         int32_t* quantized_multiplier,
-                                         int* left_shift) {
-  TFLITE_CHECK_LT(double_multiplier, 1.);
-  TFLITE_CHECK_GT(double_multiplier, 0.);
-  int shift;
-  QuantizeMultiplier(double_multiplier, quantized_multiplier, &shift);
-  TFLITE_CHECK_LE(shift, 0);
-  *left_shift = shift;
-}
+// LINT.IfChange
+// Converts a floating-point number to an integer. For all inputs x where
+// static_cast<IntOut>(x) is legal according to the C++ standard, the result
+// is identical to that cast (i.e. the result is x with its fractional part
+// truncated whenever that is representable as IntOut).
+//
+// static_cast would cause undefined behavior for the following cases, which
+// have well-defined behavior for this function:
+//
+//  1. If x is NaN, the result is zero.
+//
+//  2. If the truncated form of x is above the representable range of IntOut,
+//     the result is std::numeric_limits<IntOut>::max().
+//
+//  3. If the truncated form of x is below the representable range of IntOut,
+//     the result is std::numeric_limits<IntOut>::min().
+//
+// Note that cases #2 and #3 cover infinities as well as finite numbers.
+//
+// The range of FloatIn must include the range of IntOut, otherwise
+// the results are undefined.
+// TODO(sfeuz): Replace by absl::SafeCast once available.
+template<class IntOut, class FloatIn> IntOut SafeCast(FloatIn x) {
+  static_assert(!std::numeric_limits<FloatIn>::is_integer, "FloatIn is integer");
+  static_assert(std::numeric_limits<IntOut>::is_integer, "IntOut is not integer");
+  static_assert(std::numeric_limits<IntOut>::radix == 2, "IntOut is base 2");
 
-int64_t IntegerFrExp(double input, int* shift) {
-  // Make sure our assumptions about the double layout hold.
-  TFLITE_CHECK_EQ(8, sizeof(double));
-
-  // We want to access the bits of the input double value directly, which is
-  // tricky to do safely, so use a union to handle the casting.
-  union {
-    double double_value;
-    uint64_t double_as_uint;
-  } cast_union;
-  cast_union.double_value = input;
-  const uint64_t u = cast_union.double_as_uint;
-
-  // If the bitfield is all zeros apart from the sign bit, this is a normalized
-  // zero value, so return standard values for this special case.
-  if ((u & ~kSignMask) == 0) {
-    *shift = 0;
+  // Special case NaN, for which the logic below doesn't work.
+  if (std::isnan(x)) {
     return 0;
   }
 
-  // Deal with NaNs and Infs, which are always indicated with a fixed pattern in
-  // the exponent, and distinguished by whether the fractions are zero or
-  // non-zero.
-  const uint32_t exponent_part = ((u & kExponentMask) >> kExponentShift);
-  if (exponent_part == kExponentIsBadNum) {
-    *shift = std::numeric_limits<int>::max();
-    if (u & kFractionMask) {
-      // NaN, so just return zero (with the exponent set to INT_MAX).
-      return 0;
-    } else {
-      // Infinity, so return +/- INT_MAX.
-      if (u & kSignMask) {
-        return std::numeric_limits<int64_t>::min();
-      } else {
-        return std::numeric_limits<int64_t>::max();
-      }
-    }
-  }
-
-  // The shift is fairly easy to extract from the high bits of the double value,
-  // just by masking it out and applying a bias. The std::frexp() implementation
-  // always returns values between 0.5 and 1.0 though, whereas the exponent
-  // assumes 1.0 to 2.0 is the standard range, so I add on one to match that
-  // interface.
-  *shift = (exponent_part - kExponentBias) + 1;
-
-  // There's an implicit high bit in the double format definition, so make sure
-  // we include that at the top, and then reconstruct the rest of the fractional
-  // value from the remaining fragments.
-  int64_t fraction = 0x40000000 + ((u & kFractionMask) >> kFractionShift);
-
-  // We're cutting off some bits at the bottom, so to exactly match the standard
-  // frexp implementation here we'll apply rounding by adding one to the least
-  // significant bit of the result if the discarded portion is over half of the
-  // maximum.
-  if ((u & kFractionRoundingMask) > kFractionRoundingThreshold) {
-    fraction += 1;
-  }
-  // Negate the fraction if the sign bit was set.
-  if (u & kSignMask) {
-    fraction *= -1;
-  }
-
-  return fraction;
-}
-
-double DoubleFromFractionAndShift(int64_t fraction, int shift) {
-  union {
-    double double_value;
-    uint64_t double_as_uint;
-  } result;
-
-  // Detect NaNs and infinities.
-  if (shift == std::numeric_limits<int>::max()) {
-    if (fraction == 0) {
-      return std::numeric_limits<double>::quiet_NaN();
-    } else if (fraction > 0) {
-      return std::numeric_limits<double>::infinity();
-    } else {
-      return -std::numeric_limits<double>::infinity();
-    }
-  }
-
-  // Return a normalized zero for a zero fraction.
-  if (fraction == 0) {
-    result.double_as_uint = 0;
-    return result.double_value;
-  }
-
-  bool is_negative = (fraction < 0);
-  int64_t encoded_fraction = is_negative ? -fraction : fraction;
-  int64_t encoded_shift = (shift - 1);
-  while (encoded_fraction < 0x40000000) {
-    encoded_fraction *= 2;
-    encoded_shift -= 1;
-  }
-  while (encoded_fraction > 0x80000000) {
-    encoded_fraction /= 2;
-    encoded_shift += 1;
-  }
-  encoded_fraction -= 0x40000000;
-  if (encoded_shift < -1022) {
-    encoded_shift = -1023;
-  } else if (encoded_shift > 1022) {
-    encoded_shift = 1023;
-  }
-  encoded_shift += kExponentBias;
-  uint64_t encoded_sign = is_negative ? kSignMask : 0;
-  result.double_as_uint = encoded_sign | (encoded_shift << kExponentShift) |
-                          (encoded_fraction << kFractionShift);
-  return result.double_value;
-}
-
-double IntegerDoubleMultiply(double a, double b) {
-  int a_shift;
-  const int64_t a_fraction = IntegerFrExp(a, &a_shift);
-  int b_shift;
-  const int64_t b_fraction = IntegerFrExp(b, &b_shift);
-  // Detect NaNs and infinities.
-  if (a_shift == std::numeric_limits<int>::max() ||
-      (b_shift == std::numeric_limits<int>::max())) {
-    return std::numeric_limits<double>::quiet_NaN();
-  }
-  const int result_shift = a_shift + b_shift + 1;
-  const int64_t result_fraction = (a_fraction * b_fraction) >> 32;
-  return DoubleFromFractionAndShift(result_fraction, result_shift);
-}
-
-int IntegerDoubleCompare(double a, double b) {
-  int a_shift;
-  const int64_t a_fraction = IntegerFrExp(a, &a_shift);
-  int b_shift;
-  const int64_t b_fraction = IntegerFrExp(b, &b_shift);
-
-  // Detect NaNs and infinities.
-  if (a_shift == std::numeric_limits<int>::max() ||
-      (b_shift == std::numeric_limits<int>::max())) {
-    return 1;
-  }
-
-  if ((a_fraction == 0) && (b_fraction < 0)) {
-    return 1;
-  } else if ((a_fraction < 0) && (b_fraction == 0)) {
-    return -1;
-  } else if (a_shift < b_shift) {
-    return -1;
-  } else if (a_shift > b_shift) {
-    return 1;
-  } else if (a_fraction < b_fraction) {
-    return -1;
-  } else if (a_fraction > b_fraction) {
-    return 1;
-  } else {
+  // Negative values all clip to zero for unsigned results.
+  if (!std::numeric_limits<IntOut>::is_signed && x < 0) {
     return 0;
   }
-}
 
-void PreprocessSoftmaxScaling(double beta, double input_scale,
-                              int input_integer_bits,
-                              int32_t* quantized_multiplier, int* left_shift) {
-  // If the overall multiplier (input and beta) is large, then exp() of an
-  // input difference of 1 scaled by this will be large.  In other words, we
-  // can cap the multiplier and know that, when it is used, the output will be
-  // (round to) zero wherever the input is not at the maximum value.
-
-  // If the overall scale is less than one, and input_integer_bits=0, then the
-  // result is double equivalent of Q0.31 (actually with more precision). Thus
-  // this generates a Q(input_integer_bits).(31-input_integer_bits)
-  // representation.
-#if TFLITE_SINGLE_ROUNDING
-  const double max_real_multiplier = (1LL << 30) - 1.0;
-#else
-  const double max_real_multiplier = (1LL << 31) - 1.0;
-#endif
-
-#ifdef TFLITE_EMULATE_FLOAT
-  const double input_beta = IntegerDoubleMultiply(beta, input_scale);
-  int shift;
-  int64_t fraction = IntegerFrExp(input_beta, &shift);
-  shift += (31 - input_integer_bits);
-  double input_beta_real_multiplier =
-      DoubleFromFractionAndShift(fraction, shift);
-  if (IntegerDoubleCompare(input_beta_real_multiplier, max_real_multiplier) >
-      0) {
-    input_beta_real_multiplier = max_real_multiplier;
+  // Handle infinities.
+  if (std::isinf(x)) {
+    return x < 0 ? std::numeric_limits<IntOut>::min() : std::numeric_limits<IntOut>::max();
   }
-#else   // TFLITE_EMULATE_FLOAT
-  const double input_beta_real_multiplier =
-      std::min<double>(beta * input_scale * (1 << (31 - input_integer_bits)),
-                       max_real_multiplier);
-#endif  // TFLITE_EMULATE_FLOAT
 
-  QuantizeMultiplierGreaterThanOne(input_beta_real_multiplier,
-                                   quantized_multiplier, left_shift);
-}
+  // Set exp such that x == f * 2^exp for some f with |f| in [0.5, 1.0),
+  // unless x is zero in which case exp == 0. Note that this implies that the
+  // magnitude of x is strictly less than 2^exp.
+  int exp = 0;
+  std::frexp(x, &exp);
 
-void PreprocessLogSoftmaxScalingExp(double beta, double input_scale,
-                                    int input_integer_bits,
-                                    int32_t* quantized_multiplier,
-                                    int* left_shift,
-                                    int32_t* reverse_scaling_divisor,
-                                    int* reverse_scaling_left_shift) {
-  PreprocessSoftmaxScaling(beta, input_scale, input_integer_bits,
-                           quantized_multiplier, left_shift);
-
-  // Also calculate what amounts to the inverse scaling factor for the input.
-  const double real_reverse_scaling_divisor =
-      (1 << (31 - *left_shift)) / static_cast<double>(*quantized_multiplier);
-  tflite::QuantizeMultiplierSmallerThanOneExp(real_reverse_scaling_divisor,
-                                              reverse_scaling_divisor,
-                                              reverse_scaling_left_shift);
-}
-
-int CalculateInputRadius(int input_integer_bits, int input_left_shift,
-                         int total_signed_bits) {
-#ifdef TFLITE_EMULATE_FLOAT
-  int64_t result = (1 << input_integer_bits) - 1;
-  result <<= (total_signed_bits - input_integer_bits);
-  result >>= input_left_shift;
-  return result;
-#else   // TFLITE_EMULATE_FLOAT
-  const double max_input_rescaled =
-      1.0 * ((1 << input_integer_bits) - 1) *
-      (1LL << (total_signed_bits - input_integer_bits)) /
-      (1LL << input_left_shift);
-  // Tighten bound using floor.  Suppose that we could use the exact value.
-  // After scaling the difference, the result would be at the maximum.  Thus we
-  // must ensure that our value has lower magnitude.
-  return static_cast<int>(std::floor(max_input_rescaled));
-#endif  // TFLITE_EMULATE_FLOAT
-}
-
-void NudgeQuantizationRange(const float min, const float max,
-                            const int quant_min, const int quant_max,
-                            float* nudged_min, float* nudged_max,
-                            float* nudged_scale) {
-  // This code originates from tensorflow/core/kernels/fake_quant_ops_functor.h.
-  const float quant_min_float = static_cast<float>(quant_min);
-  const float quant_max_float = static_cast<float>(quant_max);
-  *nudged_scale = (max - min) / (quant_max_float - quant_min_float);
-  const float zero_point_from_min = quant_min_float - min / *nudged_scale;
-  uint16_t nudged_zero_point;
-  if (zero_point_from_min < quant_min_float) {
-    nudged_zero_point = static_cast<uint16_t>(quant_min);
-  } else if (zero_point_from_min > quant_max_float) {
-    nudged_zero_point = static_cast<uint16_t>(quant_max);
-  } else {
-    nudged_zero_point = static_cast<uint16_t>(TfLiteRound(zero_point_from_min));
+  // Let N be the number of non-sign bits in the representation of IntOut. If
+  // the magnitude of x is strictly less than 2^N, the truncated version of x
+  // is representable as IntOut. The only representable integer for which this
+  // is not the case is kMin for signed types (i.e. -2^N), but that is covered
+  // by the fall-through below.
+  if (exp <= std::numeric_limits<IntOut>::digits) {
+    return x;
   }
-  *nudged_min = (quant_min_float - nudged_zero_point) * (*nudged_scale);
-  *nudged_max = (quant_max_float - nudged_zero_point) * (*nudged_scale);
+
+  // Handle numbers with magnitude >= 2^N.
+  return x < 0 ? std::numeric_limits<IntOut>::min() : std::numeric_limits<IntOut>::max();
 }
+// LINT.ThenChange(//tensorflow/compiler/mlir/lite/kernels/internal/quantization_util.h)
 
-void FakeQuantizeArray(const float nudged_scale, const float nudged_min,
-                       const float nudged_max, const float* input_data,
-                       float* output_data, const float size) {
-  // This code originates from tensorflow/core/kernels/fake_quant_ops_functor.h.
-  const float inv_nudged_scale = 1.0f / nudged_scale;
+// Decompose a double multiplier into a Q0.31 int32 representation of its
+// significand, and shift representation of NEGATIVE its exponent ---
+// this is intended as a RIGHT-shift.
+//
+// Restricted to the case where the multiplier < 1 (and non-negative).
+void QuantizeMultiplierSmallerThanOneExp(double double_multiplier, int32_t *quantized_multiplier, int *left_shift);
 
-  for (int i = 0; i < size; i++) {
-    const float src_val = input_data[i];
-    const float clamped = std::min(nudged_max, std::max(nudged_min, src_val));
-    const float clamped_shifted = clamped - nudged_min;
-    const float dst_val =
-        TfLiteRound(clamped_shifted * inv_nudged_scale) * nudged_scale +
-        nudged_min;
-    output_data[i] = dst_val;
-  }
-}
+// Decompose a double multiplier into a Q0.31 int32 representation of its
+// significand, and shift representation of its exponent.
+//
+// Restricted to the case where the multiplier > 1.
+void QuantizeMultiplierGreaterThanOne(double double_multiplier, int32_t *quantized_multiplier, int *left_shift);
 
-bool CheckedLog2(const float x, int* log2_result) {
-  // Using TfLiteRound instead of std::round and std::log instead of
-  // std::log2 to work around these functions being missing in a toolchain
-  // used in some TensorFlow tests as of May 2018.
-  const float x_log2 = std::log(x) * (1.0f / std::log(2.0f));
-  const float x_log2_rounded = TfLiteRound(x_log2);
-  const float x_log2_fracpart = x_log2 - x_log2_rounded;
+// Decompose a double multiplier into a Q0.31 int32 representation of its
+// significand, and shift representation of its exponent.
+//
+// Handles an arbitrary positive multiplier. The 'shift' output-value is
+// basically the 'floating-point exponent' of the multiplier:
+// Negative for a right-shift (when the multiplier is <1), positive for a
+// left-shift (when the multiplier is >1)
+void QuantizeMultiplier(double double_multiplier, int32_t *quantized_multiplier, int *shift);
 
-  *log2_result = static_cast<int>(x_log2_rounded);
-  return std::abs(x_log2_fracpart) < 1e-3f;
-}
+// Splits a double input value into a returned fraction, and a shift value from
+// the exponent, using only bitwise and integer operations to support
+// microcontrollers and other environments without floating-point support.
+//
+// This is designed to be a replacement for how std::frexp() is used within the
+// QuantizeMultiplier() function, and so has a different signature than the
+// standard version, returning a 64-bit integer rather than a double. This
+// result has a maximum value of 1<<31, with the fraction expressed as a
+// proportion of that maximum.
+//
+// std::frexp() returns NaNs and infinities unmodified, but since we're
+// returning integers that can't represent those values, instead we return
+// a shift of std::numeric_limits<int>::max() for all bad numbers, with an int64
+// result of 0 for NaNs, std:numeric_limits<int64_t>::max() for +INFINITY, and
+// std::numeric_limits<int64_t>::min() for -INFINITY. Denormalized inputs will
+// result in return values that end up truncating some bits at the end,
+// reflecting the loss of precision inherent in denormalization.
+int64_t IntegerFrExp(double input, int *shift);
 
-void QuantizeMultiplierArray(const double* effective_scales, size_t size,
-                             int32_t* effective_scale_significand,
-                             int* effective_shift) {
-  for (size_t i = 0; i < size; ++i) {
-    QuantizeMultiplier(effective_scales[i], &effective_scale_significand[i],
-                       &effective_shift[i]);
-  }
-}
+// Converts an integer fraction in the format produced by IntegerFrExp (where
+// 0x40000000 is 1.0) and an exponent shift (between -1022 and +1022) into an
+// IEEE binary64 double format result. The implementation uses only integer and
+// bitwise operators, so no floating point hardware support or emulation is
+// needed. This is here so quantized operations can run non-time-critical
+// preparation calculations on microcontrollers and other platforms without
+// float support.
+double DoubleFromFractionAndShift(int64_t fraction, int shift);
+
+// Performs a multiplication of two numbers in double format, using only integer
+// and bitwise instructions. This is aimed at supporting housekeeping functions
+// for quantized operations on microcontrollers without floating-point hardware.
+double IntegerDoubleMultiply(double a, double b);
+
+// Returns -1 if a is less than b, 0 if a and b are equal, and +1 if a is
+// greater than b. It is implemented using only integer and logical instructions
+// so that it can be easily run on microcontrollers for quantized operations.
+int IntegerDoubleCompare(double a, double b);
+
+// This first creates a multiplier in a double equivalent of
+// Q(input_integer_bits).(31-input_integer_bits) representation, with extra
+// precision in the double's fractional bits.  It then splits the result into
+// significand and exponent.
+void PreprocessSoftmaxScaling(double beta, double input_scale, int input_integer_bits, int32_t *quantized_multiplier,
+                              int *left_shift);
+// Like PreprocessSoftmaxScaling, but inverse scaling factors also calculated.
+void PreprocessLogSoftmaxScalingExp(double beta, double input_scale, int input_integer_bits,
+                                    int32_t *quantized_multiplier, int *left_shift, int32_t *reverse_scaling_divisor,
+                                    int *reverse_scaling_left_shift);
+// Calculate the largest input that will result in a within-bounds intermediate
+// result within MultiplyByQuantizedMultiplierGreaterThanOne.  In other words,
+// it must not overflow before we reduce the value by multiplication by the
+// input multiplier.  The negative radius is used as the minimum difference in
+// Softmax.
+int CalculateInputRadius(int input_integer_bits, int input_left_shift, int total_signed_bits = 31);
+
+// Nudges a min/max quantization range to ensure zero is zero.
+// Gymnastics with nudged zero point is to ensure that real zero maps to
+// an integer, which is required for e.g. zero-padding in convolutional layers.
+// Outputs nudged_min, nudged_max, nudged_scale.
+void NudgeQuantizationRange(const float min, const float max, const int quant_min, const int quant_max,
+                            float *nudged_min, float *nudged_max, float *nudged_scale);
+
+// Fake quantizes (quantizes and dequantizes) input_data using the scale,
+// nudged_min, and nudged_max from NudgeQuantizationRange. This matches the code
+// in TensorFlow's FakeQuantizeWithMinMaxVarsFunctor.
+void FakeQuantizeArray(const float nudged_scale, const float nudged_min, const float nudged_max,
+                       const float *input_data, float *output_data, const float size);
+
+// If x is approximately a power of two (with any positive or negative
+// exponent), stores that exponent (i.e. log2(x)) in *log2_result, otherwise
+// returns false.
+bool CheckedLog2(const float x, int *log2_result);
+
+// Decomposes an array of double multipliers into a Q0.31 int32 representation
+// of its significand, and shift representation of its exponent.
+//
+// Handles an arbitrary multiplier. The 'shift' output-value is
+// basically the 'floating-point exponent' of the multiplier:
+// Negative for a right-shift (when the multiplier is <1), positive for a
+// left-shift (when the multiplier is >1)
+void QuantizeMultiplierArray(const double *effective_scales, size_t size, int32_t *effective_scale_significand,
+                             int *effective_shift);
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_QUANTIZATION_UTIL_H_

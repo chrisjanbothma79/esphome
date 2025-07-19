@@ -13,63 +13,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/prelu.h"
-
-#include <cstdint>
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_PRELU_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_PRELU_H_
 
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/prelu.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
 
-void* PreluInit(TfLiteContext* context, const char* buffer, size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(PreluParams));
-}
+TfLiteStatus CalculatePreluParams(const TfLiteTensor *input, const TfLiteTensor *alpha, TfLiteTensor *output,
+                                  PreluParams *params);
 
-TfLiteStatus PreluEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const PreluParams& params =
-      *(static_cast<const PreluParams*>(node->user_data));
+void BroadcastPrelu4DSlowFloat(const RuntimeShape &unextended_input1_shape, const float *input1_data,
+                               const RuntimeShape &unextended_input2_shape, const float *input2_data,
+                               const RuntimeShape &unextended_output_shape, float *output_data);
 
-  const TfLiteEvalTensor* input = tflite::micro::GetEvalInput(context, node, 0);
-  const TfLiteEvalTensor* alpha = tflite::micro::GetEvalInput(context, node, 1);
-  TfLiteEvalTensor* output = tflite::micro::GetEvalOutput(context, node, 0);
-
-  switch (input->type) {
-    case kTfLiteFloat32: {
-      BroadcastPrelu4DSlowFloat(tflite::micro::GetTensorShape(input),
-                                tflite::micro::GetTensorData<float>(input),
-                                tflite::micro::GetTensorShape(alpha),
-                                tflite::micro::GetTensorData<float>(alpha),
-                                tflite::micro::GetTensorShape(output),
-                                tflite::micro::GetTensorData<float>(output));
-      return kTfLiteOk;
-    } break;
-    case kTfLiteInt8: {
-      reference_ops::BroadcastPrelu4DSlow(
-          params, tflite::micro::GetTensorShape(input),
-          tflite::micro::GetTensorData<int8_t>(input),
-          tflite::micro::GetTensorShape(alpha),
-          tflite::micro::GetTensorData<int8_t>(alpha),
-          tflite::micro::GetTensorShape(output),
-          tflite::micro::GetTensorData<int8_t>(output));
-      return kTfLiteOk;
-    } break;
-    default:
-      MicroPrintf("Only float32 and uint8_t are supported currently, got %d.",
-                  TfLiteTypeGetName(input->type));
-      return kTfLiteError;
-  }
-}
-
-TFLMRegistration Register_PRELU() {
-  return tflite::micro::RegisterOp(PreluInit, PreluPrepare, PreluEval);
-}
+TfLiteStatus PreluPrepare(TfLiteContext *context, TfLiteNode *node);
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_PRELU_H_

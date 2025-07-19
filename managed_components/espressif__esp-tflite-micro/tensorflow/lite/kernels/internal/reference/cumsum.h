@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,158 +12,54 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CUMSUM_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CUMSUM_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_DEPTH_TO_SPACE_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_DEPTH_TO_SPACE_H_
 
-#include <algorithm>
-#include <cstdint>
-#include <limits>
-
-#include "tensorflow/lite/kernels/internal/common.h"
-#include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
 namespace reference_ops {
 
-template <typename T>
-inline void CumSum(const T* input_data, const RuntimeShape& shape, int32_t axis,
-                   bool exclusive, bool reverse, T* output_data) {
-  const int32_t rank = shape.DimensionsCount();
-  TFLITE_DCHECK_GE(rank, 1);
-  TFLITE_DCHECK_GE(axis, 0);
-  TFLITE_DCHECK_LT(axis, rank);
+template<typename T>
+inline void DepthToSpace(const tflite::DepthToSpaceParams &op_params, const RuntimeShape &unextended_input_shape,
+                         const T *input_data, const RuntimeShape &unextended_output_shape, T *output_data) {
+  TFLITE_DCHECK_LE(unextended_input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_LE(unextended_output_shape.DimensionsCount(), 4);
+  const RuntimeShape input_shape = RuntimeShape::ExtendedShape(4, unextended_input_shape);
+  const RuntimeShape output_shape = RuntimeShape::ExtendedShape(4, unextended_output_shape);
 
-  size_t inner = 1;
-  size_t outer = 1;
-  size_t depth = 1;
-  for (int32_t i = 0; i < rank; i++) {
-    if (i < axis)
-      inner *= shape.Dims(i);
-    else if (i > axis)
-      outer *= shape.Dims(i);
-    else
-      depth = shape.Dims(i);
-  }
+  const int input_depth = input_shape.Dims(3);
+  const int input_width = input_shape.Dims(2);
+  const int input_height = input_shape.Dims(1);
+  const int input_batch = input_shape.Dims(0);
 
-  for (size_t outer_index = 0; outer_index < outer; outer_index++) {
-    size_t outer_index_adj;
-    if (reverse)
-      outer_index_adj = (outer - 1) - outer_index;
-    else
-      outer_index_adj = outer_index;
-    for (size_t inner_index = 0; inner_index < inner; inner_index++) {
-      T accumulator = 0;
-      size_t inner_index_adj;
-      if (reverse)
-        inner_index_adj = (inner - 1) - inner_index;
-      else
-        inner_index_adj = inner_index;
-      for (size_t depth_index = 0; depth_index < depth; depth_index++) {
-        size_t depth_index_adj;
-        if (reverse)
-          depth_index_adj = (depth - 1) - depth_index;
-        else
-          depth_index_adj = depth_index;
+  const int output_depth = output_shape.Dims(3);
+  const int output_width = output_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_batch = output_shape.Dims(0);
 
-        size_t index = outer_index_adj;
-        index += inner_index_adj * depth * outer;
-        index += depth_index_adj * outer;
+  const int32_t block_size = op_params.block_size;
 
-        if (exclusive) {
-          output_data[index] = accumulator;
-          accumulator += input_data[index];
-        } else {
-          accumulator += input_data[index];
-          output_data[index] = accumulator;
+  TFLITE_DCHECK_EQ(input_width * block_size, output_width);
+  TFLITE_DCHECK_EQ(input_height * block_size, output_height);
+  TFLITE_DCHECK_EQ(input_depth, output_depth * block_size * block_size);
+  TFLITE_DCHECK_EQ(input_batch, output_batch);
+
+  for (int out_b = 0; out_b < output_batch; ++out_b) {
+    for (int out_h = 0; out_h < output_height; ++out_h) {
+      for (int out_w = 0; out_w < output_width; ++out_w) {
+        for (int out_d = 0; out_d < output_depth; ++out_d) {
+          const int in_d = out_d + ((out_h % block_size) * block_size + out_w % block_size) * output_depth;
+
+          const int in_w = out_w / block_size;
+          const int in_h = out_h / block_size;
+          const int in_b = out_b;
+
+          const int input_index = Offset(input_shape, in_b, in_h, in_w, in_d);
+          const int output_index = Offset(output_shape, out_b, out_h, out_w, out_d);
+
+          output_data[output_index] = input_data[input_index];
         }
-      }
-    }
-  }
-}
-
-//
-// Quantized INT8 CUMSUM
-//
-inline void CumSum(const ArithmeticParams& params, const int8_t* input_data,
-                   const RuntimeShape& shape, int32_t axis, bool exclusive,
-                   bool reverse, int8_t* output_data) {
-  TFLITE_DCHECK_LE(params.quantized_activation_min,
-                   params.quantized_activation_max);
-  // Input offset is negative input zero point. Activation tensors are
-  // asymmetric quantized so they span the full int8 range.
-  // All inputs should have same zero-point and scale, this is checked during
-  // Prepare stage.
-  TFLITE_DCHECK_GE(-params.input1_offset, std::numeric_limits<int8_t>::min());
-  TFLITE_DCHECK_LE(-params.input1_offset, std::numeric_limits<int8_t>::max());
-
-  const int32_t rank = shape.DimensionsCount();
-  TFLITE_DCHECK_GE(rank, 1);
-  TFLITE_DCHECK_GE(axis, 0);
-  TFLITE_DCHECK_LT(axis, rank);
-
-  size_t inner = 1;
-  size_t outer = 1;
-  size_t depth = 1;
-  for (int32_t i = 0; i < rank; i++) {
-    if (i < axis)
-      inner *= shape.Dims(i);
-    else if (i > axis)
-      outer *= shape.Dims(i);
-    else
-      depth = shape.Dims(i);
-  }
-
-  for (size_t outer_index = 0; outer_index < outer; outer_index++) {
-    size_t outer_index_adj;
-    if (reverse)
-      outer_index_adj = (outer - 1) - outer_index;
-    else
-      outer_index_adj = outer_index;
-    for (size_t inner_index = 0; inner_index < inner; inner_index++) {
-      int32_t accumulator = params.input1_offset;  // accumulator = 0
-      accumulator *= (1 << params.left_shift);
-      accumulator = MultiplyByQuantizedMultiplierSmallerThanOneExp(
-          accumulator, params.input1_multiplier, params.input1_shift);
-
-      size_t inner_index_adj;
-      if (reverse)
-        inner_index_adj = (inner - 1) - inner_index;
-      else
-        inner_index_adj = inner_index;
-
-      for (size_t depth_index = 0; depth_index < depth; depth_index++) {
-        size_t depth_index_adj;
-        if (reverse)
-          depth_index_adj = (depth - 1) - depth_index;
-        else
-          depth_index_adj = depth_index;
-
-        size_t index = outer_index_adj;
-        index += inner_index_adj * depth * outer;
-        index += depth_index_adj * outer;
-
-        const int32_t y = params.input1_offset + input_data[index];
-        const int32_t shifted_y = y * (1 << params.left_shift);
-        const int32_t scaled_y = MultiplyByQuantizedMultiplierSmallerThanOneExp(
-            shifted_y, params.input1_multiplier, params.input1_shift);
-
-        int32_t scaled_output;
-        if (exclusive) {
-          scaled_output = accumulator;
-          accumulator += scaled_y;
-        } else {
-          accumulator += scaled_y;
-          scaled_output = accumulator;
-        }
-
-        const int32_t raw_output =
-            MultiplyByQuantizedMultiplierSmallerThanOneExp(
-                scaled_output, params.output_multiplier, params.output_shift) +
-            params.output_offset;
-        const int32_t clamped_output =
-            std::min(params.quantized_activation_max,
-                     std::max(params.quantized_activation_min, raw_output));
-        output_data[index] = static_cast<int8_t>(clamped_output);
       }
     }
   }
@@ -172,4 +68,4 @@ inline void CumSum(const ArithmeticParams& params, const int8_t* input_data,
 }  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CUMSUM_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_DEPTH_TO_SPACE_H_

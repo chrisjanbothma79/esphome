@@ -12,81 +12,28 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/kernels/internal/reference/strided_slice.h"
+
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_STRIDED_SLICE_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_STRIDED_SLICE_H_
 
 #include <cstdint>
-#include <cstring>
 
+#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/kernels/op_macros.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/strided_slice.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_common.h"
 
 namespace tflite {
 
-namespace {
+constexpr int kStridedSliceInputTensor = 0;
+constexpr int kStridedSliceBeginTensor = 1;
+constexpr int kStridedSliceEndTensor = 2;
+constexpr int kStridedSliceStridesTensor = 3;
+constexpr int kStridedSliceOutputTensor = 0;
 
-TfLiteStatus StridedSliceEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const StridedSliceParams& op_params =
-      *(static_cast<const StridedSliceParams*>(node->user_data));
+void *StridedSliceInit(TfLiteContext *context, const char *buffer, size_t length);
 
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kStridedSliceInputTensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kStridedSliceOutputTensor);
-  switch (output->type) {
-    case kTfLiteFloat32:
-      reference_ops::StridedSlice(op_params,
-                                  tflite::micro::GetTensorShape(input),
-                                  tflite::micro::GetTensorData<float>(input),
-                                  tflite::micro::GetTensorShape(output),
-                                  tflite::micro::GetTensorData<float>(output));
-      break;
-    case kTfLiteInt8:
-      reference_ops::StridedSlice(op_params,
-                                  tflite::micro::GetTensorShape(input),
-                                  tflite::micro::GetTensorData<int8_t>(input),
-                                  tflite::micro::GetTensorShape(output),
-                                  tflite::micro::GetTensorData<int8_t>(output));
-      break;
-    case kTfLiteInt16:
-      reference_ops::StridedSlice(
-          op_params, tflite::micro::GetTensorShape(input),
-          tflite::micro::GetTensorData<int16_t>(input),
-          tflite::micro::GetTensorShape(output),
-          tflite::micro::GetTensorData<int16_t>(output));
-      break;
-    case kTfLiteInt32:
-      reference_ops::StridedSlice(
-          op_params, tflite::micro::GetTensorShape(input),
-          tflite::micro::GetTensorData<int32_t>(input),
-          tflite::micro::GetTensorShape(output),
-          tflite::micro::GetTensorData<int32_t>(output));
-      break;
-    case kTfLiteBool:
-      reference_ops::StridedSlice(op_params,
-                                  tflite::micro::GetTensorShape(input),
-                                  tflite::micro::GetTensorData<bool>(input),
-                                  tflite::micro::GetTensorShape(output),
-                                  tflite::micro::GetTensorData<bool>(output));
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.", TfLiteTypeGetName(input->type),
-                  input->type);
-      return kTfLiteError;
-  }
-  return kTfLiteOk;
-}
-
-}  // namespace
-
-TFLMRegistration Register_STRIDED_SLICE() {
-  return tflite::micro::RegisterOp(StridedSliceInit, StridedSlicePrepare,
-                                   StridedSliceEval);
-}
+TfLiteStatus StridedSlicePrepare(TfLiteContext *context, TfLiteNode *node);
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_STRIDED_SLICE_H_

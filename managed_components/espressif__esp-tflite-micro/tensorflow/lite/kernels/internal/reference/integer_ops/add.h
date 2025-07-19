@@ -12,239 +12,212 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_ADD_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_ADD_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_CONV_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_CONV_H_
 
 #include <algorithm>
-#include <cstddef>
-#include <limits>
 
 #include "tensorflow/lite/kernels/internal/common.h"
-#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
 namespace reference_integer_ops {
 
-inline void CheckArithmeticParams(const ArithmeticParams& params) {
-  TFLITE_DCHECK_LE(params.quantized_activation_min,
-                   params.quantized_activation_max);
-  // Input offset is negative input zero point. Activation tensors are
-  // asymmetric quantized so they span the full int8 range.
-  TFLITE_DCHECK_GE(-params.input1_offset, std::numeric_limits<int8_t>::min());
-  TFLITE_DCHECK_GE(-params.input2_offset, std::numeric_limits<int8_t>::min());
-  TFLITE_DCHECK_LE(-params.input1_offset, std::numeric_limits<int8_t>::max());
-  TFLITE_DCHECK_LE(-params.input2_offset, std::numeric_limits<int8_t>::max());
-}
+// Fixed-point per-channel-quantization convolution reference kernel.
+inline void ConvPerChannel(const ConvParams &params, const int32_t *output_multiplier, const int32_t *output_shift,
+                           const RuntimeShape &input_shape, const int8_t *input_data, const RuntimeShape &filter_shape,
+                           const int8_t *filter_data, const RuntimeShape &bias_shape, const int32_t *bias_data,
+                           const RuntimeShape &output_shape, int8_t *output_data) {
+  // Get parameters.
+  const int32_t input_offset = params.input_offset;  // r = s(q - Z)
+  const int stride_width = params.stride_width;
+  const int stride_height = params.stride_height;
+  const int dilation_width_factor = params.dilation_width_factor;
+  const int dilation_height_factor = params.dilation_height_factor;
+  const int pad_width = params.padding_values.width;
+  const int pad_height = params.padding_values.height;
+  const int32_t output_offset = params.output_offset;
 
-// TODO: b/270589088 - move to a more appropriate file (b/270589088#comment2)
-template <typename T>
-void BroadcastInput1(int size, const ArithmeticParams& params,
-                     const T* input1_data, const T* input2_data, T* output_data,
-                     void (*check_arithmetic_params)(const ArithmeticParams&),
-                     T (*binary_func)(T, T, const ArithmeticParams&)) {
-  CheckArithmeticParams(params);
-  for (int i = 0; i < size; ++i) {
-    output_data[i] = binary_func(input1_data[0], input2_data[i], params);
+  // Set min and max value of the output.
+  const int32_t output_activation_min = params.quantized_activation_min;
+  const int32_t output_activation_max = params.quantized_activation_max;
+
+  // Consistency check.
+  TFLITE_DCHECK_LE(output_activation_min, output_activation_max);
+  TFLITE_DCHECK_EQ(input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(filter_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(output_shape.DimensionsCount(), 4);
+  const int batches = MatchingDim(input_shape, 0, output_shape, 0);
+  const int input_depth = input_shape.Dims(3);
+  const int output_depth = MatchingDim(filter_shape, 0, output_shape, 3);
+  if (bias_data) {
+    TFLITE_DCHECK_EQ(bias_shape.FlatSize(), output_depth);
   }
-}
 
-template <typename T>
-void BroadcastInput2(int size, const ArithmeticParams& params,
-                     const T* input1_data, const T* input2_data, T* output_data,
-                     void (*check_arithmetic_params)(const ArithmeticParams&),
-                     T (*binary_func)(T, T, const ArithmeticParams&)) {
-  CheckArithmeticParams(params);
-  for (int i = 0; i < size; ++i) {
-    output_data[i] = binary_func(input1_data[i], input2_data[0], params);
-  }
-}
+  // Check dimensions of the tensors.
+  const int input_height = input_shape.Dims(1);
+  const int input_width = input_shape.Dims(2);
+  const int filter_height = filter_shape.Dims(1);
+  const int filter_width = filter_shape.Dims(2);
+  const int filter_input_depth = filter_shape.Dims(3);
+  const int groups = input_depth / filter_input_depth;
+  TFLITE_DCHECK_NE(groups, 0);
+  TFLITE_DCHECK_EQ(input_depth % filter_input_depth, 0);
+  const int filters_per_group = output_depth / groups;
+  TFLITE_DCHECK_NE(filters_per_group, 0);
+  const int output_height = output_shape.Dims(1);
+  const int output_width = output_shape.Dims(2);
+  for (int batch = 0; batch < batches; ++batch) {
+    for (int out_y = 0; out_y < output_height; ++out_y) {
+      const int in_y_origin = (out_y * stride_height) - pad_height;
+      for (int out_x = 0; out_x < output_width; ++out_x) {
+        const int in_x_origin = (out_x * stride_width) - pad_width;
+        for (int out_channel = 0; out_channel < output_depth; ++out_channel) {
+          auto group = out_channel / filters_per_group;
+          int32_t acc = 0;
+          for (int filter_y = 0; filter_y < filter_height; ++filter_y) {
+            const int in_y = in_y_origin + dilation_height_factor * filter_y;
+            for (int filter_x = 0; filter_x < filter_width; ++filter_x) {
+              const int in_x = in_x_origin + dilation_width_factor * filter_x;
 
-// TODO: b/270589088 - move to a more appropriate file (b/270589088#comment2)
-template <typename T>
-void ElementWise(int size, const ArithmeticParams& params, const T* input1_data,
-                 const T* input2_data, T* output_data,
-                 void (*check_arithmetic_params)(const ArithmeticParams&),
-                 T (*binary_func)(T, T, const ArithmeticParams&)) {
-  CheckArithmeticParams(params);
-  for (int i = 0; i < size; ++i) {
-    output_data[i] = binary_func(input1_data[i], input2_data[i], params);
-  }
-}
+              // Zero padding by omitting the areas outside the image.
+              const bool is_point_inside_image =
+                  (in_x >= 0) && (in_x < input_width) && (in_y >= 0) && (in_y < input_height);
 
-template <typename T>
-inline void BroadcastAddRecursiveDimensions(
-    const ArithmeticParams& params, int dimension, size_t* input1_offset_p,
-    size_t* input2_offset_p, size_t* output_offset,
-    size_t* compressed_input1_stride, size_t* compressed_input2_stride,
-    size_t* compressed_output_shape, const T* input1_data, const T* input2_data,
-    T* output_data, void (*check_arithmetic_params)(const ArithmeticParams&),
-    T (*binary_func)(T, T, const ArithmeticParams&)) {
-  if (dimension > 0) {
-    for (size_t c = 0; c < compressed_output_shape[dimension]; ++c) {
-      size_t input1_offset_c = *input1_offset_p;
-      size_t input2_offset_c = *input2_offset_p;
-      BroadcastAddRecursiveDimensions(
-          params, dimension - 1, &input1_offset_c, &input2_offset_c,
-          output_offset, compressed_input1_stride, compressed_input2_stride,
-          compressed_output_shape, input1_data, input2_data, output_data,
-          check_arithmetic_params, binary_func);
-      *input1_offset_p += compressed_input1_stride[dimension];
-      *input2_offset_p += compressed_input2_stride[dimension];
+              if (!is_point_inside_image) {
+                continue;
+              }
+
+              for (int in_channel = 0; in_channel < filter_input_depth; ++in_channel) {
+                int32_t input_val =
+                    input_data[Offset(input_shape, batch, in_y, in_x, in_channel + group * filter_input_depth)];
+                int32_t filter_val = filter_data[Offset(filter_shape, out_channel, filter_y, filter_x, in_channel)];
+                // Accumulate with 32 bits accumulator.
+                // In the nudging process during model quantization, we force
+                // real value of 0.0 be represented by a quantized value. This
+                // guarantees that the input_offset is a int8_t, even though
+                // it is represented using int32_t. int32_t += int8_t *
+                // (int8_t - int8_t) so the highest value we can get from each
+                // accumulation is [-127, 127] * ([-128, 127] -
+                // [-128, 127]), which is [-32512, 32512]. log2(32512)
+                // = 14.98, which means we can accumulate at least 2^16
+                // multiplications without overflow. The accumulator is
+                // applied to a filter so the accumulation logic will hold as
+                // long as the filter size (filter_y * filter_x * in_channel)
+                // does not exceed 2^16, which is the case in all the models
+                // we have seen so far.
+                // TODO(b/174275578): Add a check to make sure the
+                // accumulator depth is smaller than 2^16.
+                acc += filter_val * (input_val + input_offset);
+              }
+            }
+          }
+
+          if (bias_data) {
+            acc += bias_data[out_channel];
+          }
+          acc = MultiplyByQuantizedMultiplier(acc, output_multiplier[out_channel], output_shift[out_channel]);
+          acc += output_offset;
+          acc = std::max(acc, output_activation_min);
+          acc = std::min(acc, output_activation_max);
+          output_data[Offset(output_shape, batch, out_y, out_x, out_channel)] = static_cast<int8_t>(acc);
+        }
+      }
     }
-  } else {
-    TFLITE_DCHECK(dimension == 0);
-    bool input1_is_broadcast = compressed_input1_stride[dimension] == 0;
-    bool input2_is_broadcast = compressed_input2_stride[dimension] == 0;
-    TFLITE_DCHECK(!(input1_is_broadcast && input2_is_broadcast));
-    const T* input1_data_ptr = input1_data + *input1_offset_p;
-    const T* input2_data_ptr = input2_data + *input2_offset_p;
-    T* output_data_ptr = output_data + *output_offset;
-    if (input1_is_broadcast) {
-      // input1 is broadcast.
-      BroadcastInput1<T>(compressed_output_shape[dimension], params,
-                         input1_data_ptr, input2_data_ptr, output_data_ptr,
-                         check_arithmetic_params, binary_func);
-      *input2_offset_p += compressed_output_shape[dimension];
-    } else if (input2_is_broadcast) {
-      // input2 is broadcast.
-      BroadcastInput2<T>(compressed_output_shape[dimension], params,
-                         input1_data_ptr, input2_data_ptr, output_data_ptr,
-                         check_arithmetic_params, binary_func);
-      *input1_offset_p += compressed_output_shape[dimension];
-    } else {
-      // Add element-wise.
-      ElementWise<T>(compressed_output_shape[dimension], params,
-                     input1_data_ptr, input2_data_ptr, output_data_ptr,
-                     check_arithmetic_params, binary_func);
-      *input1_offset_p += compressed_output_shape[dimension];
-      *input2_offset_p += compressed_output_shape[dimension];
+  }
+}
+
+// Fixed-point per-channel-quantization convolution reference kernel.
+// 16-bit data and 8-bit filter
+template<typename AccumScalar>
+inline void ConvPerChannel(const ConvParams &params, const int32_t *output_multiplier, const int32_t *output_shift,
+                           const RuntimeShape &input_shape, const int16_t *input_data, const RuntimeShape &filter_shape,
+                           const int8_t *filter_data, const RuntimeShape &bias_shape, const AccumScalar *bias_data,
+                           const RuntimeShape &output_shape, int16_t *output_data) {
+  // Get parameters.
+  const int stride_width = params.stride_width;
+  const int stride_height = params.stride_height;
+  const int dilation_width_factor = params.dilation_width_factor;
+  const int dilation_height_factor = params.dilation_height_factor;
+  const int pad_width = params.padding_values.width;
+  const int pad_height = params.padding_values.height;
+
+  // Set min and max value of the output.
+  const int32_t output_activation_min = params.quantized_activation_min;
+  const int32_t output_activation_max = params.quantized_activation_max;
+
+  // Consistency check.
+  TFLITE_DCHECK_LE(output_activation_min, output_activation_max);
+  TFLITE_DCHECK_EQ(input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(filter_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(output_shape.DimensionsCount(), 4);
+  const int batches = MatchingDim(input_shape, 0, output_shape, 0);
+  const int input_depth = input_shape.Dims(3);
+  const int output_depth = MatchingDim(filter_shape, 0, output_shape, 3);
+  if (bias_data) {
+    TFLITE_DCHECK_EQ(bias_shape.FlatSize(), output_depth);
+  }
+
+  // Check dimensions of the tensors.
+  const int input_height = input_shape.Dims(1);
+  const int input_width = input_shape.Dims(2);
+  const int filter_height = filter_shape.Dims(1);
+  const int filter_width = filter_shape.Dims(2);
+  const int filter_input_depth = filter_shape.Dims(3);
+  const int groups = input_depth / filter_input_depth;
+  TFLITE_DCHECK_EQ(input_depth % filter_input_depth, 0);
+  const int filters_per_group = output_depth / groups;
+  const int output_height = output_shape.Dims(1);
+  const int output_width = output_shape.Dims(2);
+  for (int batch = 0; batch < batches; ++batch) {
+    for (int out_y = 0; out_y < output_height; ++out_y) {
+      const int in_y_origin = (out_y * stride_height) - pad_height;
+      for (int out_x = 0; out_x < output_width; ++out_x) {
+        const int in_x_origin = (out_x * stride_width) - pad_width;
+        for (int out_channel = 0; out_channel < output_depth; ++out_channel) {
+          auto group = out_channel / filters_per_group;
+          AccumScalar acc = 0;
+          for (int filter_y = 0; filter_y < filter_height; ++filter_y) {
+            const int in_y = in_y_origin + dilation_height_factor * filter_y;
+            for (int filter_x = 0; filter_x < filter_width; ++filter_x) {
+              const int in_x = in_x_origin + dilation_width_factor * filter_x;
+
+              // Zero padding by omitting the areas outside the image.
+              const bool is_point_inside_image =
+                  (in_x >= 0) && (in_x < input_width) && (in_y >= 0) && (in_y < input_height);
+
+              if (!is_point_inside_image) {
+                continue;
+              }
+
+              for (int in_channel = 0; in_channel < filter_input_depth; ++in_channel) {
+                int32_t input_val =
+                    input_data[Offset(input_shape, batch, in_y, in_x, in_channel + group * filter_input_depth)];
+                int32_t filter_val = filter_data[Offset(filter_shape, out_channel, filter_y, filter_x, in_channel)];
+                // Accumulate with 64 bits accumulator.
+                // int64_t += int8_t * int16_t so the highest value we can
+                // get from each accumulation is [-127, 127] * ([-32768,
+                // 32767] -
+                // [-32768, 32767]), which is [-8322945, 8322945].
+                // log2(8322945) = 22.99.
+                acc += filter_val * input_val;
+              }
+            }
+          }
+          if (bias_data) {
+            acc += bias_data[out_channel];
+          }
+          int32_t scaled_acc =
+              MultiplyByQuantizedMultiplier(acc, output_multiplier[out_channel], output_shift[out_channel]);
+          scaled_acc = std::max(scaled_acc, output_activation_min);
+          scaled_acc = std::min(scaled_acc, output_activation_max);
+          output_data[Offset(output_shape, batch, out_y, out_x, out_channel)] = static_cast<int16_t>(scaled_acc);
+        }
+      }
     }
-    *output_offset += compressed_output_shape[dimension];
   }
-}
-
-// TODO: b/270589088 - move to a more appropriate file. (b/270589088#comment2)
-template <typename T>
-void BroadcastBinaryFunction6DSlow(
-    const ArithmeticParams& params, const RuntimeShape& input1_shape,
-    const T* input1_data, const RuntimeShape& input2_shape,
-    const T* input2_data, const RuntimeShape& output_shape, T* output_data,
-    void (*check_arithmetic_params)(const ArithmeticParams&),
-    T (*binary_func)(T, T, const ArithmeticParams&)) {
-  constexpr int kMaxBroadcastDim = 6;
-
-  // In Tensorflow, the dimensions are canonically named (batch_number, row,
-  // col, channel), with extents (batches, height, width, depth), with the
-  // trailing dimension changing most rapidly (channels has the smallest stride,
-  // typically 1 element).
-  //
-  // In generated C code, we store arrays with the dimensions reversed. The
-  // first dimension has smallest stride.
-  //
-  // We name our variables by their Tensorflow convention, but generate C code
-  // nesting loops such that the innermost loop has the smallest stride for the
-  // best cache behavior.
-  size_t compressed_input1_stride[kMaxBroadcastDim];
-  size_t compressed_input2_stride[kMaxBroadcastDim];
-  size_t compressed_output_shape[kMaxBroadcastDim];
-  bool broadcastable_shape = ReduceDimensionsForBroadcast<kMaxBroadcastDim>(
-      input1_shape, input2_shape, compressed_input1_stride,
-      compressed_input2_stride, compressed_output_shape);
-  // Skip broadcasting for degenerate shapes.
-  if (!broadcastable_shape) {
-    return;
-  }
-
-  size_t input1_offset = 0;
-  size_t input2_offset = 0;
-  size_t output_offset = 0;
-  BroadcastAddRecursiveDimensions(
-      params, kMaxBroadcastDim - 1, &input1_offset, &input2_offset,
-      &output_offset, compressed_input1_stride, compressed_input2_stride,
-      compressed_output_shape, input1_data, input2_data, output_data,
-      check_arithmetic_params, binary_func);
-}
-
-template <typename T>
-void BroadcastBinaryFunction4DSlow(
-    const ArithmeticParams& params, const RuntimeShape& input1_shape,
-    const T* input1_data, const RuntimeShape& input2_shape,
-    const T* input2_data, const RuntimeShape& output_shape, T* output_data,
-    void (*check_arithmetic_params)(const ArithmeticParams&),
-    T (*binary_func)(T, T, const ArithmeticParams&)) {
-  BroadcastBinaryFunction6DSlow(params, input1_shape, input1_data, input2_shape,
-                                input2_data, output_shape, output_data,
-                                check_arithmetic_params, binary_func);
-}
-
-inline int8_t AddFunc(int8_t x, int8_t y, const ArithmeticParams& params) {
-  const int32_t input1_val = params.input1_offset + x;
-  const int32_t input2_val = params.input2_offset + y;
-  const int32_t shifted_input1_val = input1_val * (1 << params.left_shift);
-  const int32_t shifted_input2_val = input2_val * (1 << params.left_shift);
-  const int32_t scaled_input1_val =
-      MultiplyByQuantizedMultiplierSmallerThanOneExp(
-          shifted_input1_val, params.input1_multiplier, params.input1_shift);
-  const int32_t scaled_input2_val =
-      MultiplyByQuantizedMultiplierSmallerThanOneExp(
-          shifted_input2_val, params.input2_multiplier, params.input2_shift);
-  const int32_t raw_sum = scaled_input1_val + scaled_input2_val;
-  const int32_t raw_output =
-      MultiplyByQuantizedMultiplierSmallerThanOneExp(
-          raw_sum, params.output_multiplier, params.output_shift) +
-      params.output_offset;
-  const int32_t clamped_output =
-      std::min(params.quantized_activation_max,
-               std::max(params.quantized_activation_min, raw_output));
-  return static_cast<int8_t>(clamped_output);
-}
-
-// Element-wise add that can often be used for inner loop of broadcast add as
-// well as the non-broadcast add.
-inline void AddElementwise(int size, const ArithmeticParams& params,
-                           const int8_t* input1_data, const int8_t* input2_data,
-                           int8_t* output_data) {
-  ElementWise(size, params, input1_data, input2_data, output_data,
-              CheckArithmeticParams, AddFunc);
-}
-
-inline void Add(const ArithmeticParams& params,
-                const RuntimeShape& input1_shape, const int8_t* input1_data,
-                const RuntimeShape& input2_shape, const int8_t* input2_data,
-                const RuntimeShape& output_shape, int8_t* output_data) {
-  CheckArithmeticParams(params);
-
-  const int flat_size =
-      MatchingElementsSize(input1_shape, input2_shape, output_shape);
-
-  AddElementwise(flat_size, params, input1_data, input2_data, output_data);
-}
-
-inline void BroadcastAdd6DSlow(const ArithmeticParams& params,
-                               const RuntimeShape& input1_shape,
-                               const int8_t* input1_data,
-                               const RuntimeShape& input2_shape,
-                               const int8_t* input2_data,
-                               const RuntimeShape& output_shape,
-                               int8_t* output_data) {
-  BroadcastBinaryFunction6DSlow(params, input1_shape, input1_data, input2_shape,
-                                input2_data, output_shape, output_data,
-                                CheckArithmeticParams, AddFunc);
-}
-
-inline void BroadcastAdd4DSlow(const ArithmeticParams& params,
-                               const RuntimeShape& input1_shape,
-                               const int8_t* input1_data,
-                               const RuntimeShape& input2_shape,
-                               const int8_t* input2_data,
-                               const RuntimeShape& output_shape,
-                               int8_t* output_data) {
-  BroadcastBinaryFunction6DSlow(params, input1_shape, input1_data, input2_shape,
-                                input2_data, output_shape, output_data,
-                                CheckArithmeticParams, AddFunc);
 }
 
 }  // namespace reference_integer_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_ADD_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_CONV_H_

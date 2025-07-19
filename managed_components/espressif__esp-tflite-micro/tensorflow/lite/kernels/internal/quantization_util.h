@@ -1,4 +1,4 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,282 +12,474 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_QUANTIZATION_UTIL_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_QUANTIZATION_UTIL_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ADD_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ADD_H_
 
-#include <cmath>
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
-#include <limits>
+#include <type_traits>
 
+#include "fixedpoint/fixedpoint.h"
+#include "tensorflow/lite/kernels/internal/common.h"
 #include "tensorflow/lite/kernels/internal/compatibility.h"
-#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
 
-// Given the min and max values of a float array, return
-// reasonable quantization parameters to use for this array.
-template <typename T>
-QuantizationParams ChooseQuantizationParams(double rmin, double rmax,
-                                            bool narrow_range) {
-  const T qmin = std::numeric_limits<T>::min() + (narrow_range ? 1 : 0);
-  const T qmax = std::numeric_limits<T>::max();
-  const double qmin_double = qmin;
-  const double qmax_double = qmax;
-  // 0 should always be a representable value. Let's assume that the initial
-  // min,max range contains 0.
-  TFLITE_CHECK_LE(rmin, 0.);
-  TFLITE_CHECK_GE(rmax, 0.);
-  if (rmin == rmax) {
-    // Special case where the min,max range is a point. Should be {0}.
-    TFLITE_CHECK_EQ(rmin, 0.);
-    TFLITE_CHECK_EQ(rmax, 0.);
-    QuantizationParams quantization_params;
-    quantization_params.zero_point = 0;
-    quantization_params.scale = 0.;
-    return quantization_params;
+namespace reference_ops {
+
+template<typename T>
+inline void Add(const ArithmeticParams &params, const RuntimeShape &input1_shape, const T *input1_data,
+                const RuntimeShape &input2_shape, const T *input2_data, const RuntimeShape &output_shape,
+                T *output_data) {
+  T activation_min, activation_max;
+  GetActivationParams(params, &activation_min, &activation_max);
+
+  const int flat_size = MatchingElementsSize(input1_shape, input2_shape, output_shape);
+  for (int i = 0; i < flat_size; ++i) {
+    output_data[i] = ActivationFunctionWithMinMax(input1_data[i] + input2_data[i], activation_min, activation_max);
+  }
+}
+
+// Element-wise add that can often be used for inner loop of broadcast add as
+// well as the non-broadcast add.
+
+// This function is used for 8-bit as well as for 16-bit, but the accumulator
+// is 32-bit for both cases. The overflow does not happen due to the
+// choice of the shift (20 or 15, accordingly - see add.cc for more comments).
+template<typename T>
+inline void AddElementwise(int size, const ArithmeticParams &params, const T *input1_data, const T *input2_data,
+                           T *output_data) {
+  TFLITE_DCHECK_GT(params.input1_offset, -std::numeric_limits<T>::max());
+  TFLITE_DCHECK_GT(params.input2_offset, -std::numeric_limits<T>::max());
+  TFLITE_DCHECK_LT(params.input1_offset, std::numeric_limits<T>::max());
+  TFLITE_DCHECK_LT(params.input2_offset, std::numeric_limits<T>::max());
+
+  for (int i = 0; i < size; ++i) {
+    const int32_t input1_val = params.input1_offset + input1_data[i];
+    const int32_t input2_val = params.input2_offset + input2_data[i];
+    const int32_t shifted_input1_val = input1_val * (1 << params.left_shift);
+    const int32_t shifted_input2_val = input2_val * (1 << params.left_shift);
+    const int32_t scaled_input1_val = MultiplyByQuantizedMultiplierSmallerThanOneExp(
+        shifted_input1_val, params.input1_multiplier, params.input1_shift);
+    const int32_t scaled_input2_val = MultiplyByQuantizedMultiplierSmallerThanOneExp(
+        shifted_input2_val, params.input2_multiplier, params.input2_shift);
+    const int32_t raw_sum = scaled_input1_val + scaled_input2_val;
+    const int32_t raw_output =
+        MultiplyByQuantizedMultiplierSmallerThanOneExp(raw_sum, params.output_multiplier, params.output_shift) +
+        params.output_offset;
+    const int32_t clamped_output =
+        std::min(params.quantized_activation_max, std::max(params.quantized_activation_min, raw_output));
+    output_data[i] = static_cast<T>(clamped_output);
+  }
+}
+
+// Scalar-broadcast add that can be used for inner loop of more general
+// broadcast add, so that, for example, scalar-broadcast with batch will still
+// be fast.
+inline void AddScalarBroadcast(int size, const ArithmeticParams &params, uint8_t input1_data,
+                               const uint8_t *input2_data, uint8_t *output_data) {
+  TFLITE_DCHECK_GT(params.input1_offset, -256);
+  TFLITE_DCHECK_GT(params.input2_offset, -256);
+  TFLITE_DCHECK_LT(params.input1_offset, 256);
+  TFLITE_DCHECK_LT(params.input2_offset, 256);
+
+  const int32_t input1_val = params.input1_offset + input1_data;
+  const int32_t shifted_input1_val = input1_val * (1 << params.left_shift);
+  const int32_t scaled_input1_val =
+      MultiplyByQuantizedMultiplierSmallerThanOneExp(shifted_input1_val, params.input1_multiplier, params.input1_shift);
+  for (int i = 0; i < size; ++i) {
+    const int32_t input2_val = params.input2_offset + input2_data[i];
+    const int32_t shifted_input2_val = input2_val * (1 << params.left_shift);
+    const int32_t scaled_input2_val = MultiplyByQuantizedMultiplierSmallerThanOneExp(
+        shifted_input2_val, params.input2_multiplier, params.input2_shift);
+    const int32_t raw_sum = scaled_input1_val + scaled_input2_val;
+    const int32_t raw_output =
+        MultiplyByQuantizedMultiplierSmallerThanOneExp(raw_sum, params.output_multiplier, params.output_shift) +
+        params.output_offset;
+    const int32_t clamped_output =
+        std::min(params.quantized_activation_max, std::max(params.quantized_activation_min, raw_output));
+    output_data[i] = static_cast<uint8_t>(clamped_output);
+  }
+}
+
+inline void Add(const ArithmeticParams &params, const RuntimeShape &input1_shape, const uint8_t *input1_data,
+                const RuntimeShape &input2_shape, const uint8_t *input2_data, const RuntimeShape &output_shape,
+                uint8_t *output_data) {
+  TFLITE_DCHECK_LE(params.quantized_activation_min, params.quantized_activation_max);
+  const int flat_size = MatchingElementsSize(input1_shape, input2_shape, output_shape);
+
+  TFLITE_DCHECK_GT(params.input1_offset, -256);
+  TFLITE_DCHECK_GT(params.input2_offset, -256);
+  TFLITE_DCHECK_LT(params.input1_offset, 256);
+  TFLITE_DCHECK_LT(params.input2_offset, 256);
+  AddElementwise(flat_size, params, input1_data, input2_data, output_data);
+}
+
+inline void AddGeneralParamScale(const ArithmeticParams &params, const RuntimeShape &input1_shape,
+                                 const int16_t *input1_data, const RuntimeShape &input2_shape,
+                                 const int16_t *input2_data, const RuntimeShape &output_shape, int16_t *output_data) {
+  TFLITE_DCHECK_LE(params.quantized_activation_min, params.quantized_activation_max);
+  const int flat_size = MatchingElementsSize(input1_shape, input2_shape, output_shape);
+
+  int max_value = std::numeric_limits<int16_t>::max();
+
+  TFLITE_DCHECK_GT(params.input1_offset, -max_value);
+  TFLITE_DCHECK_GT(params.input2_offset, -max_value);
+  TFLITE_DCHECK_LT(params.input1_offset, max_value);
+  TFLITE_DCHECK_LT(params.input2_offset, max_value);
+  AddElementwise(flat_size, params, input1_data, input2_data, output_data);
+}
+
+inline void Add(const ArithmeticParams &params, const RuntimeShape &input1_shape, const int16_t *input1_data,
+                const RuntimeShape &input2_shape, const int16_t *input2_data, const RuntimeShape &output_shape,
+                int16_t *output_data, bool pot_scale = true) {
+  if (!pot_scale) {
+    AddGeneralParamScale(params, input1_shape, input1_data, input2_shape, input2_data, output_shape, output_data);
+    return;
   }
 
-  // General case.
-  //
-  // First determine the scale.
-  const double scale = (rmax - rmin) / (qmax_double - qmin_double);
+  TFLITE_DCHECK_LE(params.quantized_activation_min, params.quantized_activation_max);
 
-  // Zero-point computation.
-  // First the initial floating-point computation. The zero-point can be
-  // determined from solving an affine equation for any known pair
-  // (real value, corresponding quantized value).
-  // We know two such pairs: (rmin, qmin) and (rmax, qmax).
-  // The arithmetic error on the zero point computed from either pair
-  // will be roughly machine_epsilon * (sum of absolute values of terms)
-  // so we want to use the variant that adds the smaller terms.
-  const double zero_point_from_min = qmin_double - rmin / scale;
-  const double zero_point_from_max = qmax_double - rmax / scale;
-  const double zero_point_from_min_error =
-      std::abs(qmin_double) + std::abs(rmin / scale);
-  const double zero_point_from_max_error =
-      std::abs(qmax_double) + std::abs(rmax / scale);
+  const int input1_shift = params.input1_shift;
+  const int flat_size = MatchingElementsSize(input1_shape, input2_shape, output_shape);
+  const int16_t output_activation_min = params.quantized_activation_min;
+  const int16_t output_activation_max = params.quantized_activation_max;
 
-  const double zero_point_double =
-      zero_point_from_min_error < zero_point_from_max_error
-          ? zero_point_from_min
-          : zero_point_from_max;
+  TFLITE_DCHECK(input1_shift == 0 || params.input2_shift == 0);
+  TFLITE_DCHECK_LE(input1_shift, 0);
+  TFLITE_DCHECK_LE(params.input2_shift, 0);
+  const int16_t *not_shift_input = input1_shift == 0 ? input1_data : input2_data;
+  const int16_t *shift_input = input1_shift == 0 ? input2_data : input1_data;
+  const int input_right_shift = input1_shift == 0 ? -params.input2_shift : -input1_shift;
 
-  // Now we need to nudge the zero point to be an integer
-  // (our zero points are integer, and this is motivated by the requirement
-  // to be able to represent the real value "0" exactly as a quantized value,
-  // which is required in multiple places, for example in Im2col with SAME
-  // padding).
-  T nudged_zero_point = 0;
-  if (zero_point_double < qmin_double) {
-    nudged_zero_point = qmin;
-  } else if (zero_point_double > qmax_double) {
-    nudged_zero_point = qmax;
+  for (int i = 0; i < flat_size; i++) {
+    // F0 uses 0 integer bits, range [-1, 1].
+    using F0 = gemmlowp::FixedPoint<std::int16_t, 0>;
+
+    F0 input_ready_scaled = F0::FromRaw(not_shift_input[i]);
+    F0 scaled_input = F0::FromRaw(gemmlowp::RoundingDivideByPOT(shift_input[i], input_right_shift));
+    F0 result = gemmlowp::SaturatingAdd(scaled_input, input_ready_scaled);
+    const int16_t raw_output = result.raw();
+    const int16_t clamped_output = std::min(output_activation_max, std::max(output_activation_min, raw_output));
+    output_data[i] = clamped_output;
+  }
+}
+
+template<typename T>
+inline void AddBroadcast(const T *input_data, const T *broadcast_data, T *output_data, size_t size, T activation_min,
+                         T activation_max) {
+  for (size_t c = 0; c < size; ++c) {
+    output_data[c] = ActivationFunctionWithMinMax<T>(input_data[c] + broadcast_data[0], activation_min, activation_max);
+  }
+}
+
+template<>
+inline void AddBroadcast<int32_t>(const int32_t *input_data, const int32_t *broadcast_data, int32_t *output_data,
+                                  size_t size, int32_t activation_min, int32_t activation_max) {
+  size_t c = 0;
+#ifdef USE_NEON
+  const int32x4_t vmax = vdupq_n_s32(activation_max);
+  const int32x4_t vmin = vdupq_n_s32(activation_min);
+  const int32x4_t vb = vdupq_n_s32(broadcast_data[0]);
+  for (; c + 4 <= size; c += 4) {
+    const int32x4_t va = vld1q_s32(&input_data[c]);
+    int32x4_t vres = vaddq_s32(va, vb);
+    vres = vmaxq_s32(vmin, vres);
+    vres = vminq_s32(vmax, vres);
+    vst1q_s32(&output_data[c], vres);
+  }
+#endif
+  for (; c < size; ++c) {
+    output_data[c] =
+        ActivationFunctionWithMinMax<int32_t>(input_data[c] + broadcast_data[0], activation_min, activation_max);
+  }
+}
+
+template<typename T>
+void AddElementwise(const T *input1_data, const T *input2_data, T *output_data, size_t size, T activation_min,
+                    T activation_max) {
+  for (size_t c = 0; c < size; ++c) {
+    output_data[c] = ActivationFunctionWithMinMax<T>(input1_data[c] + input2_data[c], activation_min, activation_max);
+  }
+}
+
+template<>
+inline void AddElementwise<int32_t>(const int32_t *input1_data, const int32_t *input2_data, int32_t *output_data,
+                                    size_t size, int32_t activation_min, int32_t activation_max) {
+  size_t c = 0;
+#ifdef USE_NEON
+  const int32x4_t vmax = vdupq_n_s32(activation_max);
+  const int32x4_t vmin = vdupq_n_s32(activation_min);
+  for (; c + 4 <= size; c += 4) {
+    const int32x4_t va = vld1q_s32(&input1_data[c]);
+    const int32x4_t vb = vld1q_s32(&input2_data[c]);
+    int32x4_t vres = vaddq_s32(va, vb);
+    vres = vmaxq_s32(vmin, vres);
+    vres = vminq_s32(vmax, vres);
+    vst1q_s32(&output_data[c], vres);
+  }
+#endif
+  for (; c < size; ++c) {
+    output_data[c] =
+        ActivationFunctionWithMinMax<int32_t>(input1_data[c] + input2_data[c], activation_min, activation_max);
+  }
+}
+
+template<typename T>
+inline void BroadcastAddRecursiveDimensions(int dimension, size_t *input1_offset_p, size_t *input2_offset_p,
+                                            size_t *output_offset, size_t *compressed_input1_stride,
+                                            size_t *compressed_input2_stride, size_t *compressed_output_shape,
+                                            T activation_min, T activation_max, const T *input1_data,
+                                            const T *input2_data, T *output_data) {
+  if (dimension > 0) {
+    for (size_t c = 0; c < compressed_output_shape[dimension]; ++c) {
+      size_t input1_offset_c = *input1_offset_p;
+      size_t input2_offset_c = *input2_offset_p;
+      BroadcastAddRecursiveDimensions(dimension - 1, &input1_offset_c, &input2_offset_c, output_offset,
+                                      compressed_input1_stride, compressed_input2_stride, compressed_output_shape,
+                                      activation_min, activation_max, input1_data, input2_data, output_data);
+      *input1_offset_p += compressed_input1_stride[dimension];
+      *input2_offset_p += compressed_input2_stride[dimension];
+    }
   } else {
-    nudged_zero_point = static_cast<T>(round(zero_point_double));
+    TFLITE_DCHECK(dimension == 0);
+    bool input1_is_broadcast = compressed_input1_stride[dimension] == 0;
+    bool input2_is_broadcast = compressed_input2_stride[dimension] == 0;
+    TFLITE_DCHECK(!(input1_is_broadcast && input2_is_broadcast));
+    const T *input1_data_ptr = input1_data + *input1_offset_p;
+    const T *input2_data_ptr = input2_data + *input2_offset_p;
+    T *output_data_ptr = output_data + *output_offset;
+    if (input1_is_broadcast) {
+      // input1 is broadcast.
+      AddBroadcast<T>(input2_data_ptr, input1_data_ptr, output_data_ptr, compressed_output_shape[dimension],
+                      activation_min, activation_max);
+      *input2_offset_p += compressed_output_shape[dimension];
+    } else if (input2_is_broadcast) {
+      // input2 is broadcast.
+      AddBroadcast<T>(input1_data_ptr, input2_data_ptr, output_data_ptr, compressed_output_shape[dimension],
+                      activation_min, activation_max);
+      *input1_offset_p += compressed_output_shape[dimension];
+    } else {
+      // Add element-wise.
+      AddElementwise<T>(input1_data_ptr, input2_data_ptr, output_data_ptr, compressed_output_shape[dimension],
+                        activation_min, activation_max);
+      *input1_offset_p += compressed_output_shape[dimension];
+      *input2_offset_p += compressed_output_shape[dimension];
+    }
+    *output_offset += compressed_output_shape[dimension];
   }
-  // The zero point should always be in the range of quantized value,
-  // [qmin, qmax].
-  TFLITE_CHECK_GE(nudged_zero_point, qmin);
-  TFLITE_CHECK_LE(nudged_zero_point, qmax);
-
-  // Finally, store the result nudged quantization params.
-  QuantizationParams quantization_params;
-  quantization_params.zero_point = nudged_zero_point;
-  quantization_params.scale = scale;
-  return quantization_params;
 }
 
-template <typename T>
-QuantizationParams ChooseQuantizationParams(double rmin, double rmax) {
-  return ChooseQuantizationParams<T>(rmin, rmax, false);
+template<typename T,
+         // For unquantized add for small integers, explicitly set to true.
+         bool dummy = false>
+inline typename std::enable_if<!is_small_integer<T>::value || dummy, void>::type BroadcastAdd6DSlow(
+    const ArithmeticParams &params, const RuntimeShape &input1_shape, const T *input1_data,
+    const RuntimeShape &input2_shape, const T *input2_data, const RuntimeShape &output_shape, T *output_data) {
+  constexpr int kMaxBroadcastDim = 6;
+  T activation_min, activation_max;
+  GetActivationParams(params, &activation_min, &activation_max);
+
+  // In Tensorflow, the dimensions are canonically named (batch_number, row,
+  // col, channel), with extents (batches, height, width, depth), with the
+  // trailing dimension changing most rapidly (channels has the smallest stride,
+  // typically 1 element).
+  //
+  // In generated C code, we store arrays with the dimensions reversed. The
+  // first dimension has smallest stride.
+  //
+  // We name our variables by their Tensorflow convention, but generate C code
+  // nesting loops such that the innermost loop has the smallest stride for the
+  // best cache behavior.
+  size_t compressed_input1_stride[kMaxBroadcastDim];
+  size_t compressed_input2_stride[kMaxBroadcastDim];
+  size_t compressed_output_shape[kMaxBroadcastDim];
+  bool broadcastable_shape = ReduceDimensionsForBroadcast<kMaxBroadcastDim>(
+      input1_shape, input2_shape, compressed_input1_stride, compressed_input2_stride, compressed_output_shape);
+  // Skip broadcasting for degenerate shapes.
+  if (!broadcastable_shape) {
+    return;
+  }
+
+  size_t input1_offset = 0;
+  size_t input2_offset = 0;
+  size_t output_offset = 0;
+  BroadcastAddRecursiveDimensions<T>(kMaxBroadcastDim - 1, &input1_offset, &input2_offset, &output_offset,
+                                     compressed_input1_stride, compressed_input2_stride, compressed_output_shape,
+                                     activation_min, activation_max, input1_data, input2_data, output_data);
 }
 
-// LINT.IfChange
-// Converts a floating-point number to an integer. For all inputs x where
-// static_cast<IntOut>(x) is legal according to the C++ standard, the result
-// is identical to that cast (i.e. the result is x with its fractional part
-// truncated whenever that is representable as IntOut).
-//
-// static_cast would cause undefined behavior for the following cases, which
-// have well-defined behavior for this function:
-//
-//  1. If x is NaN, the result is zero.
-//
-//  2. If the truncated form of x is above the representable range of IntOut,
-//     the result is std::numeric_limits<IntOut>::max().
-//
-//  3. If the truncated form of x is below the representable range of IntOut,
-//     the result is std::numeric_limits<IntOut>::min().
-//
-// Note that cases #2 and #3 cover infinities as well as finite numbers.
-//
-// The range of FloatIn must include the range of IntOut, otherwise
-// the results are undefined.
-// TODO(sfeuz): Replace by absl::SafeCast once available.
-template <class IntOut, class FloatIn>
-IntOut SafeCast(FloatIn x) {
-  static_assert(!std::numeric_limits<FloatIn>::is_integer,
-                "FloatIn is integer");
-  static_assert(std::numeric_limits<IntOut>::is_integer,
-                "IntOut is not integer");
-  static_assert(std::numeric_limits<IntOut>::radix == 2, "IntOut is base 2");
-
-  // Special case NaN, for which the logic below doesn't work.
-  if (std::isnan(x)) {
-    return 0;
+// This function is used for 8-bit as well as for 16-bit, but the accumulator
+// is 32-bit for both cases. The overflow does not happen due to the
+// choice of the shift (20 or 15, accordingly - see add.cc for more comments).
+template<typename T>
+inline void BroadcastAddRecursiveDimensions(const ArithmeticParams &params, int dimension, size_t *input1_offset_p,
+                                            size_t *input2_offset_p, size_t *output_offset,
+                                            size_t *compressed_input1_stride, size_t *compressed_input2_stride,
+                                            size_t *compressed_output_shape, const T *input1_data, const T *input2_data,
+                                            T *output_data) {
+  for (size_t c = 0; c < compressed_output_shape[dimension]; ++c) {
+    if (dimension > 0) {
+      size_t input1_offset_c = *input1_offset_p;
+      size_t input2_offset_c = *input2_offset_p;
+      BroadcastAddRecursiveDimensions(params, dimension - 1, &input1_offset_c, &input2_offset_c, output_offset,
+                                      compressed_input1_stride, compressed_input2_stride, compressed_output_shape,
+                                      input1_data, input2_data, output_data);
+    } else {
+      TFLITE_DCHECK(dimension == 0);
+      const int32_t input1_val = params.input1_offset + input1_data[*input1_offset_p];
+      const int32_t input2_val = params.input2_offset + input2_data[*input2_offset_p];
+      const int32_t shifted_input1_val = input1_val * (1 << params.left_shift);
+      const int32_t shifted_input2_val = input2_val * (1 << params.left_shift);
+      const int32_t scaled_input1_val = MultiplyByQuantizedMultiplierSmallerThanOneExp(
+          shifted_input1_val, params.input1_multiplier, params.input1_shift);
+      const int32_t scaled_input2_val = MultiplyByQuantizedMultiplierSmallerThanOneExp(
+          shifted_input2_val, params.input2_multiplier, params.input2_shift);
+      const int32_t raw_sum = scaled_input1_val + scaled_input2_val;
+      const int32_t raw_output =
+          MultiplyByQuantizedMultiplierSmallerThanOneExp(raw_sum, params.output_multiplier, params.output_shift) +
+          params.output_offset;
+      const int32_t clamped_output =
+          std::min(params.quantized_activation_max, std::max(params.quantized_activation_min, raw_output));
+      output_data[*output_offset] = static_cast<T>(clamped_output);
+      ++(*output_offset);
+    }
+    *input1_offset_p += compressed_input1_stride[dimension];
+    *input2_offset_p += compressed_input2_stride[dimension];
   }
-
-  // Negative values all clip to zero for unsigned results.
-  if (!std::numeric_limits<IntOut>::is_signed && x < 0) {
-    return 0;
-  }
-
-  // Handle infinities.
-  if (std::isinf(x)) {
-    return x < 0 ? std::numeric_limits<IntOut>::min()
-                 : std::numeric_limits<IntOut>::max();
-  }
-
-  // Set exp such that x == f * 2^exp for some f with |f| in [0.5, 1.0),
-  // unless x is zero in which case exp == 0. Note that this implies that the
-  // magnitude of x is strictly less than 2^exp.
-  int exp = 0;
-  std::frexp(x, &exp);
-
-  // Let N be the number of non-sign bits in the representation of IntOut. If
-  // the magnitude of x is strictly less than 2^N, the truncated version of x
-  // is representable as IntOut. The only representable integer for which this
-  // is not the case is kMin for signed types (i.e. -2^N), but that is covered
-  // by the fall-through below.
-  if (exp <= std::numeric_limits<IntOut>::digits) {
-    return x;
-  }
-
-  // Handle numbers with magnitude >= 2^N.
-  return x < 0 ? std::numeric_limits<IntOut>::min()
-               : std::numeric_limits<IntOut>::max();
 }
-// LINT.ThenChange(//tensorflow/compiler/mlir/lite/kernels/internal/quantization_util.h)
 
-// Decompose a double multiplier into a Q0.31 int32 representation of its
-// significand, and shift representation of NEGATIVE its exponent ---
-// this is intended as a RIGHT-shift.
-//
-// Restricted to the case where the multiplier < 1 (and non-negative).
-void QuantizeMultiplierSmallerThanOneExp(double double_multiplier,
-                                         int32_t* quantized_multiplier,
-                                         int* left_shift);
+// This function is used for 8-bit as well as for 16-bit, but the accumulator
+// is 32-bit for both cases. The overflow does not happen due to the
+// choice of the shift (20 or 15, accordingly - see add.cc for more comments).
+template<typename T>
+inline typename std::enable_if<is_small_integer<T>::value, void>::type BroadcastAdd6DSlow(
+    const ArithmeticParams &params, const RuntimeShape &input1_shape, const T *input1_data,
+    const RuntimeShape &input2_shape, const T *input2_data, const RuntimeShape &output_shape, T *output_data) {
+  constexpr int kMaxBroadcastDim = 6;
 
-// Decompose a double multiplier into a Q0.31 int32 representation of its
-// significand, and shift representation of its exponent.
-//
-// Restricted to the case where the multiplier > 1.
-void QuantizeMultiplierGreaterThanOne(double double_multiplier,
-                                      int32_t* quantized_multiplier,
-                                      int* left_shift);
+  // In Tensorflow, the dimensions are canonically named (batch_number, row,
+  // col, channel), with extents (batches, height, width, depth), with the
+  // trailing dimension changing most rapidly (channels has the smallest stride,
+  // typically 1 element).
+  //
+  // In generated C code, we store arrays with the dimensions reversed. The
+  // first dimension has smallest stride.
+  //
+  // We name our variables by their Tensorflow convention, but generate C code
+  // nesting loops such that the innermost loop has the smallest stride for the
+  // best cache behavior.
+  size_t compressed_input1_stride[kMaxBroadcastDim];
+  size_t compressed_input2_stride[kMaxBroadcastDim];
+  size_t compressed_output_shape[kMaxBroadcastDim];
+  bool broadcastable_shape = ReduceDimensionsForBroadcast<kMaxBroadcastDim>(
+      input1_shape, input2_shape, compressed_input1_stride, compressed_input2_stride, compressed_output_shape);
+  // Skip broadcasting for degenerate shapes.
+  if (!broadcastable_shape) {
+    return;
+  }
 
-// Decompose a double multiplier into a Q0.31 int32 representation of its
-// significand, and shift representation of its exponent.
-//
-// Handles an arbitrary positive multiplier. The 'shift' output-value is
-// basically the 'floating-point exponent' of the multiplier:
-// Negative for a right-shift (when the multiplier is <1), positive for a
-// left-shift (when the multiplier is >1)
-void QuantizeMultiplier(double double_multiplier, int32_t* quantized_multiplier,
-                        int* shift);
+  size_t input1_offset = 0;
+  size_t input2_offset = 0;
+  size_t output_offset = 0;
+  BroadcastAddRecursiveDimensions(params, kMaxBroadcastDim - 1, &input1_offset, &input2_offset, &output_offset,
+                                  compressed_input1_stride, compressed_input2_stride, compressed_output_shape,
+                                  input1_data, input2_data, output_data);
+}
 
-// Splits a double input value into a returned fraction, and a shift value from
-// the exponent, using only bitwise and integer operations to support
-// microcontrollers and other environments without floating-point support.
-//
-// This is designed to be a replacement for how std::frexp() is used within the
-// QuantizeMultiplier() function, and so has a different signature than the
-// standard version, returning a 64-bit integer rather than a double. This
-// result has a maximum value of 1<<31, with the fraction expressed as a
-// proportion of that maximum.
-//
-// std::frexp() returns NaNs and infinities unmodified, but since we're
-// returning integers that can't represent those values, instead we return
-// a shift of std::numeric_limits<int>::max() for all bad numbers, with an int64
-// result of 0 for NaNs, std:numeric_limits<int64_t>::max() for +INFINITY, and
-// std::numeric_limits<int64_t>::min() for -INFINITY. Denormalized inputs will
-// result in return values that end up truncating some bits at the end,
-// reflecting the loss of precision inherent in denormalization.
-int64_t IntegerFrExp(double input, int* shift);
+template<typename T>
+inline void BroadcastAdd4DSlow(const ArithmeticParams &params, const RuntimeShape &input1_shape, const T *input1_data,
+                               const RuntimeShape &input2_shape, const T *input2_data, const RuntimeShape &output_shape,
+                               T *output_data) {
+  return BroadcastAdd6DSlow(params, input1_shape, input1_data, input2_shape, input2_data, output_shape, output_data);
+}
 
-// Converts an integer fraction in the format produced by IntegerFrExp (where
-// 0x40000000 is 1.0) and an exponent shift (between -1022 and +1022) into an
-// IEEE binary64 double format result. The implementation uses only integer and
-// bitwise operators, so no floating point hardware support or emulation is
-// needed. This is here so quantized operations can run non-time-critical
-// preparation calculations on microcontrollers and other platforms without
-// float support.
-double DoubleFromFractionAndShift(int64_t fraction, int shift);
+inline void BroadcastAddFivefold(const ArithmeticParams &unswitched_params, const RuntimeShape &unswitched_input1_shape,
+                                 const uint8_t *unswitched_input1_data, const RuntimeShape &unswitched_input2_shape,
+                                 const uint8_t *unswitched_input2_data, const RuntimeShape &output_shape,
+                                 uint8_t *output_data) {
+  ArithmeticParams switched_params = unswitched_params;
+  switched_params.input1_offset = unswitched_params.input2_offset;
+  switched_params.input1_multiplier = unswitched_params.input2_multiplier;
+  switched_params.input1_shift = unswitched_params.input2_shift;
+  switched_params.input2_offset = unswitched_params.input1_offset;
+  switched_params.input2_multiplier = unswitched_params.input1_multiplier;
+  switched_params.input2_shift = unswitched_params.input1_shift;
 
-// Performs a multiplication of two numbers in double format, using only integer
-// and bitwise instructions. This is aimed at supporting housekeeping functions
-// for quantized operations on microcontrollers without floating-point hardware.
-double IntegerDoubleMultiply(double a, double b);
+  const bool use_unswitched =
+      unswitched_params.broadcast_category == tflite::BroadcastableOpCategory::kFirstInputBroadcastsFast;
 
-// Returns -1 if a is less than b, 0 if a and b are equal, and +1 if a is
-// greater than b. It is implemented using only integer and logical instructions
-// so that it can be easily run on microcontrollers for quantized operations.
-int IntegerDoubleCompare(double a, double b);
+  const ArithmeticParams &params = use_unswitched ? unswitched_params : switched_params;
+  const uint8_t *input1_data = use_unswitched ? unswitched_input1_data : unswitched_input2_data;
+  const uint8_t *input2_data = use_unswitched ? unswitched_input2_data : unswitched_input1_data;
 
-// This first creates a multiplier in a double equivalent of
-// Q(input_integer_bits).(31-input_integer_bits) representation, with extra
-// precision in the double's fractional bits.  It then splits the result into
-// significand and exponent.
-void PreprocessSoftmaxScaling(double beta, double input_scale,
-                              int input_integer_bits,
-                              int32_t* quantized_multiplier, int* left_shift);
-// Like PreprocessSoftmaxScaling, but inverse scaling factors also calculated.
-void PreprocessLogSoftmaxScalingExp(double beta, double input_scale,
-                                    int input_integer_bits,
-                                    int32_t* quantized_multiplier,
-                                    int* left_shift,
-                                    int32_t* reverse_scaling_divisor,
-                                    int* reverse_scaling_left_shift);
-// Calculate the largest input that will result in a within-bounds intermediate
-// result within MultiplyByQuantizedMultiplierGreaterThanOne.  In other words,
-// it must not overflow before we reduce the value by multiplication by the
-// input multiplier.  The negative radius is used as the minimum difference in
-// Softmax.
-int CalculateInputRadius(int input_integer_bits, int input_left_shift,
-                         int total_signed_bits = 31);
+  // Fivefold nested loops. The second input resets its position for each
+  // iteration of the second loop. The first input resets its position at the
+  // beginning of the fourth loop. The innermost loop is an elementwise add of
+  // sections of the arrays.
+  uint8_t *output_data_ptr = output_data;
+  const uint8_t *input1_data_ptr = input1_data;
+  const uint8_t *input2_data_reset = input2_data;
+  // In the fivefold pattern, y0, y2 and y4 are not broadcast, and so shared
+  // between input shapes. y3 for input 1 is always broadcast, and so the
+  // dimension there is 1, whereas optionally y1 might be broadcast for input 2.
+  // Put another way,
+  // input1.shape.FlatSize = y0 * y1 * y2 * y4,
+  // input2.shape.FlatSize = y0 * y2 * y3 * y4.
+  int y0 = params.broadcast_shape[0];
+  int y1 = params.broadcast_shape[1];
+  int y2 = params.broadcast_shape[2];
+  int y3 = params.broadcast_shape[3];
+  int y4 = params.broadcast_shape[4];
+  if (y4 > 1) {
+    // General fivefold pattern, with y4 > 1 so there is a non-broadcast inner
+    // dimension.
+    for (int i0 = 0; i0 < y0; ++i0) {
+      const uint8_t *input2_data_ptr;
+      for (int i1 = 0; i1 < y1; ++i1) {
+        input2_data_ptr = input2_data_reset;
+        for (int i2 = 0; i2 < y2; ++i2) {
+          for (int i3 = 0; i3 < y3; ++i3) {
+            AddElementwise(y4, params, input1_data_ptr, input2_data_ptr, output_data_ptr);
+            input2_data_ptr += y4;
+            output_data_ptr += y4;
+          }
+          // We have broadcast y4 of input1 data y3 times, and now move on.
+          input1_data_ptr += y4;
+        }
+      }
+      // We have broadcast y2*y3*y4 of input2 data y1 times, and now move on.
+      input2_data_reset = input2_data_ptr;
+    }
+  } else {
+    // Special case of y4 == 1, in which the innermost loop is a single element
+    // and can be combined with the next (y3) as an inner broadcast.
+    //
+    // Note that this handles the case of pure scalar broadcast when
+    // y0 == y1 == y2 == 1. With low overhead it handles cases such as scalar
+    // broadcast with batch (as y2 > 1).
+    //
+    // NOTE The process is the same as the above general case except simplified
+    // for y4 == 1 and the loop over y3 is contained within the
+    // AddScalarBroadcast function.
+    for (int i0 = 0; i0 < y0; ++i0) {
+      const uint8_t *input2_data_ptr;
+      for (int i1 = 0; i1 < y1; ++i1) {
+        input2_data_ptr = input2_data_reset;
+        for (int i2 = 0; i2 < y2; ++i2) {
+          AddScalarBroadcast(y3, params, *input1_data_ptr, input2_data_ptr, output_data_ptr);
+          input2_data_ptr += y3;
+          output_data_ptr += y3;
+          input1_data_ptr += 1;
+        }
+      }
+      input2_data_reset = input2_data_ptr;
+    }
+  }
+}
 
-// Nudges a min/max quantization range to ensure zero is zero.
-// Gymnastics with nudged zero point is to ensure that real zero maps to
-// an integer, which is required for e.g. zero-padding in convolutional layers.
-// Outputs nudged_min, nudged_max, nudged_scale.
-void NudgeQuantizationRange(const float min, const float max,
-                            const int quant_min, const int quant_max,
-                            float* nudged_min, float* nudged_max,
-                            float* nudged_scale);
-
-// Fake quantizes (quantizes and dequantizes) input_data using the scale,
-// nudged_min, and nudged_max from NudgeQuantizationRange. This matches the code
-// in TensorFlow's FakeQuantizeWithMinMaxVarsFunctor.
-void FakeQuantizeArray(const float nudged_scale, const float nudged_min,
-                       const float nudged_max, const float* input_data,
-                       float* output_data, const float size);
-
-// If x is approximately a power of two (with any positive or negative
-// exponent), stores that exponent (i.e. log2(x)) in *log2_result, otherwise
-// returns false.
-bool CheckedLog2(const float x, int* log2_result);
-
-// Decomposes an array of double multipliers into a Q0.31 int32 representation
-// of its significand, and shift representation of its exponent.
-//
-// Handles an arbitrary multiplier. The 'shift' output-value is
-// basically the 'floating-point exponent' of the multiplier:
-// Negative for a right-shift (when the multiplier is <1), positive for a
-// left-shift (when the multiplier is >1)
-void QuantizeMultiplierArray(const double* effective_scales, size_t size,
-                             int32_t* effective_scale_significand,
-                             int* effective_shift);
-
+}  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_QUANTIZATION_UTIL_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ADD_H_

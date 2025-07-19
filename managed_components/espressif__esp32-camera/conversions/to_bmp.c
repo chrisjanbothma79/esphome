@@ -13,385 +13,209 @@
 // limitations under the License.
 #include <stddef.h>
 #include <string.h>
-#include "img_converters.h"
+#include "esp_attr.h"
 #include "soc/efuse_reg.h"
 #include "esp_heap_caps.h"
+#include "esp_camera.h"
+#include "img_converters.h"
+#include "jpge.h"
 #include "yuv.h"
-#include "sdkconfig.h"
-#include "esp_jpg_decode.h"
-
-#include "esp_system.h"
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
 #include "esp32-hal-log.h"
 #define TAG ""
 #else
 #include "esp_log.h"
-static const char* TAG = "to_bmp";
+static const char *TAG = "to_jpg";
 #endif
 
-static const int BMP_HEADER_LEN = 54;
+static void *_malloc(size_t size) {
+  void *res = malloc(size);
+  if (res) {
+    return res;
+  }
 
-typedef struct {
-    uint32_t filesize;
-    uint32_t reserved;
-    uint32_t fileoffset_to_pixelarray;
-    uint32_t dibheadersize;
-    int32_t width;
-    int32_t height;
-    uint16_t planes;
-    uint16_t bitsperpixel;
-    uint32_t compression;
-    uint32_t imagesize;
-    uint32_t ypixelpermeter;
-    uint32_t xpixelpermeter;
-    uint32_t numcolorspallette;
-    uint32_t mostimpcolor;
-} bmp_header_t;
-
-typedef struct {
-        uint16_t width;
-        uint16_t height;
-        uint16_t data_offset;
-        const uint8_t *input;
-        uint8_t *output;
-} rgb_jpg_decoder;
-
-static void *_malloc(size_t size)
-{
-    // check if SPIRAM is enabled and allocate on SPIRAM if allocatable
+  // check if SPIRAM is enabled and is allocatable
 #if (CONFIG_SPIRAM_SUPPORT && (CONFIG_SPIRAM_USE_CAPS_ALLOC || CONFIG_SPIRAM_USE_MALLOC))
-    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 #endif
-    // try allocating in internal memory
-    return malloc(size);
+  return NULL;
 }
 
-//output buffer and image width
-static bool _rgb_write(void * arg, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data)
-{
-    rgb_jpg_decoder * jpeg = (rgb_jpg_decoder *)arg;
-    if(!data){
-        if(x == 0 && y == 0){
-            //write start
-            jpeg->width = w;
-            jpeg->height = h;
-            //if output is null, this is BMP
-            if(!jpeg->output){
-                jpeg->output = (uint8_t *)_malloc((w*h*3)+jpeg->data_offset);
-                if(!jpeg->output){
-                    return false;
-                }
-            }
-        } else {
-            //write end
-        }
-        return true;
+static IRAM_ATTR void convert_line_format(uint8_t *src, pixformat_t format, uint8_t *dst, size_t width,
+                                          size_t in_channels, size_t line) {
+  int i = 0, o = 0, l = 0;
+  if (format == PIXFORMAT_GRAYSCALE) {
+    memcpy(dst, src + line * width, width);
+  } else if (format == PIXFORMAT_RGB888) {
+    l = width * 3;
+    src += l * line;
+    for (i = 0; i < l; i += 3) {
+      dst[o++] = src[i + 2];
+      dst[o++] = src[i + 1];
+      dst[o++] = src[i];
     }
+  } else if (format == PIXFORMAT_RGB565) {
+    l = width * 2;
+    src += l * line;
+    for (i = 0; i < l; i += 2) {
+      dst[o++] = src[i] & 0xF8;
+      dst[o++] = (src[i] & 0x07) << 5 | (src[i + 1] & 0xE0) >> 3;
+      dst[o++] = (src[i + 1] & 0x1F) << 3;
+    }
+  } else if (format == PIXFORMAT_YUV422) {
+    uint8_t y0, y1, u, v;
+    uint8_t r, g, b;
+    l = width * 2;
+    src += l * line;
+    for (i = 0; i < l; i += 4) {
+      y0 = src[i];
+      u = src[i + 1];
+      y1 = src[i + 2];
+      v = src[i + 3];
 
-    size_t jw = jpeg->width*3;
-    size_t t = y * jw;
-    size_t b = t + (h * jw);
-    size_t l = x * 3;
-    uint8_t *out = jpeg->output+jpeg->data_offset;
-    uint8_t *o = out;
-    size_t iy, ix;
+      yuv2rgb(y0, u, v, &r, &g, &b);
+      dst[o++] = r;
+      dst[o++] = g;
+      dst[o++] = b;
 
-    w = w * 3;
+      yuv2rgb(y1, u, v, &r, &g, &b);
+      dst[o++] = r;
+      dst[o++] = g;
+      dst[o++] = b;
+    }
+  }
+}
 
-    for(iy=t; iy<b; iy+=jw) {
-        o = out+iy+l;
-        for(ix=0; ix<w; ix+= 3) {
-            o[ix] = data[ix+2];
-            o[ix+1] = data[ix+1];
-            o[ix+2] = data[ix];
-        }
-        data+=w;
+bool convert_image(uint8_t *src, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality,
+                   jpge::output_stream *dst_stream) {
+  int num_channels = 3;
+  jpge::subsampling_t subsampling = jpge::H2V2;
+
+  if (format == PIXFORMAT_GRAYSCALE) {
+    num_channels = 1;
+    subsampling = jpge::Y_ONLY;
+  }
+
+  if (!quality) {
+    quality = 1;
+  } else if (quality > 100) {
+    quality = 100;
+  }
+
+  jpge::params comp_params = jpge::params();
+  comp_params.m_subsampling = subsampling;
+  comp_params.m_quality = quality;
+
+  jpge::jpeg_encoder dst_image;
+
+  if (!dst_image.init(dst_stream, width, height, num_channels, comp_params)) {
+    ESP_LOGE(TAG, "JPG encoder init failed");
+    return false;
+  }
+
+  uint8_t *line = (uint8_t *) _malloc(width * num_channels);
+  if (!line) {
+    ESP_LOGE(TAG, "Scan line malloc failed");
+    return false;
+  }
+
+  for (int i = 0; i < height; i++) {
+    convert_line_format(src, format, line, width, num_channels, i);
+    if (!dst_image.process_scanline(line)) {
+      ESP_LOGE(TAG, "JPG process line %u failed", i);
+      free(line);
+      return false;
+    }
+  }
+  free(line);
+
+  if (!dst_image.process_scanline(NULL)) {
+    ESP_LOGE(TAG, "JPG image finish failed");
+    return false;
+  }
+  dst_image.deinit();
+  return true;
+}
+
+class callback_stream : public jpge::output_stream {
+ protected:
+  jpg_out_cb ocb;
+  void *oarg;
+  size_t index;
+
+ public:
+  callback_stream(jpg_out_cb cb, void *arg) : ocb(cb), oarg(arg), index(0) {}
+  virtual ~callback_stream() {}
+  virtual bool put_buf(const void *data, int len) {
+    index += ocb(oarg, index, data, len);
+    return true;
+  }
+  virtual size_t get_size() const { return index; }
+};
+
+bool fmt2jpg_cb(uint8_t *src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality,
+                jpg_out_cb cb, void *arg) {
+  callback_stream dst_stream(cb, arg);
+  return convert_image(src, width, height, format, quality, &dst_stream);
+}
+
+bool frame2jpg_cb(camera_fb_t *fb, uint8_t quality, jpg_out_cb cb, void *arg) {
+  return fmt2jpg_cb(fb->buf, fb->len, fb->width, fb->height, fb->format, quality, cb, arg);
+}
+
+class memory_stream : public jpge::output_stream {
+ protected:
+  uint8_t *out_buf;
+  size_t max_len, index;
+
+ public:
+  memory_stream(void *pBuf, uint buf_size) : out_buf(static_cast<uint8_t *>(pBuf)), max_len(buf_size), index(0) {}
+
+  virtual ~memory_stream() {}
+
+  virtual bool put_buf(const void *pBuf, int len) {
+    if (!pBuf) {
+      // end of image
+      return true;
+    }
+    if ((size_t) len > (max_len - index)) {
+      // ESP_LOGW(TAG, "JPG output overflow: %d bytes (%d,%d,%d)", len - (max_len - index), len, index, max_len);
+      len = max_len - index;
+    }
+    if (len) {
+      memcpy(out_buf + index, pBuf, len);
+      index += len;
     }
     return true;
+  }
+
+  virtual size_t get_size() const { return index; }
+};
+
+bool fmt2jpg(uint8_t *src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality,
+             uint8_t **out, size_t *out_len) {
+  // todo: allocate proper buffer for holding JPEG data
+  // this should be enough for CIF frame size
+  int jpg_buf_len = 128 * 1024;
+
+  uint8_t *jpg_buf = (uint8_t *) _malloc(jpg_buf_len);
+  if (jpg_buf == NULL) {
+    ESP_LOGE(TAG, "JPG buffer malloc failed");
+    return false;
+  }
+  memory_stream dst_stream(jpg_buf, jpg_buf_len);
+
+  if (!convert_image(src, width, height, format, quality, &dst_stream)) {
+    free(jpg_buf);
+    return false;
+  }
+
+  *out = jpg_buf;
+  *out_len = dst_stream.get_size();
+  return true;
 }
 
-static bool _rgb565_write(void * arg, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data)
-{
-    rgb_jpg_decoder * jpeg = (rgb_jpg_decoder *)arg;
-    if(!data){
-        if(x == 0 && y == 0){
-            //write start
-            jpeg->width = w;
-            jpeg->height = h;
-            //if output is null, this is BMP
-            if(!jpeg->output){
-                jpeg->output = (uint8_t *)_malloc((w*h*3)+jpeg->data_offset);
-                if(!jpeg->output){
-                    return false;
-                }
-            }
-        } else {
-            //write end
-        }
-        return true;
-    }
-
-    size_t jw = jpeg->width*3;
-    size_t jw2 = jpeg->width*2;
-    size_t t = y * jw;
-    size_t t2 = y * jw2;
-    size_t b = t + (h * jw);
-    size_t l = x * 2;
-    uint8_t *out = jpeg->output+jpeg->data_offset;
-    uint8_t *o = out;
-    size_t iy, iy2, ix, ix2;
-
-    w = w * 3;
-
-    for(iy=t, iy2=t2; iy<b; iy+=jw, iy2+=jw2) {
-        o = out+iy2+l;
-        for(ix2=ix=0; ix<w; ix+= 3, ix2 +=2) {
-            uint16_t r = data[ix];
-            uint16_t g = data[ix+1];
-            uint16_t b = data[ix+2];
-            uint16_t c = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-            o[ix2+1] = c>>8;
-            o[ix2] = c&0xff;
-        }
-        data+=w;
-    }
-    return true;
-}
-
-//input buffer
-static unsigned int _jpg_read(void * arg, size_t index, uint8_t *buf, size_t len)
-{
-    rgb_jpg_decoder * jpeg = (rgb_jpg_decoder *)arg;
-    if(buf) {
-        memcpy(buf, jpeg->input + index, len);
-    }
-    return len;
-}
-
-static bool jpg2rgb888(const uint8_t *src, size_t src_len, uint8_t * out, jpg_scale_t scale)
-{
-    rgb_jpg_decoder jpeg;
-    jpeg.width = 0;
-    jpeg.height = 0;
-    jpeg.input = src;
-    jpeg.output = out;
-    jpeg.data_offset = 0;
-
-    if(esp_jpg_decode(src_len, scale, _jpg_read, _rgb_write, (void*)&jpeg) != ESP_OK){
-        return false;
-    }
-    return true;
-}
-
-bool jpg2rgb565(const uint8_t *src, size_t src_len, uint8_t * out, jpg_scale_t scale)
-{
-    rgb_jpg_decoder jpeg;
-    jpeg.width = 0;
-    jpeg.height = 0;
-    jpeg.input = src;
-    jpeg.output = out;
-    jpeg.data_offset = 0;
-
-    if(esp_jpg_decode(src_len, scale, _jpg_read, _rgb565_write, (void*)&jpeg) != ESP_OK){
-        return false;
-    }
-    return true;
-}
-
-bool jpg2bmp(const uint8_t *src, size_t src_len, uint8_t ** out, size_t * out_len)
-{
-
-    rgb_jpg_decoder jpeg;
-    jpeg.width = 0;
-    jpeg.height = 0;
-    jpeg.input = src;
-    jpeg.output = NULL;
-    jpeg.data_offset = BMP_HEADER_LEN;
-
-    if(esp_jpg_decode(src_len, JPG_SCALE_NONE, _jpg_read, _rgb_write, (void*)&jpeg) != ESP_OK){
-        return false;
-    }
-
-    size_t output_size = jpeg.width*jpeg.height*3;
-
-    jpeg.output[0] = 'B';
-    jpeg.output[1] = 'M';
-    bmp_header_t * bitmap  = (bmp_header_t*)&jpeg.output[2];
-    bitmap->reserved = 0;
-    bitmap->filesize = output_size+BMP_HEADER_LEN;
-    bitmap->fileoffset_to_pixelarray = BMP_HEADER_LEN;
-    bitmap->dibheadersize = 40;
-    bitmap->width = jpeg.width;
-    bitmap->height = -jpeg.height;//set negative for top to bottom
-    bitmap->planes = 1;
-    bitmap->bitsperpixel = 24;
-    bitmap->compression = 0;
-    bitmap->imagesize = output_size;
-    bitmap->ypixelpermeter = 0x0B13 ; //2835 , 72 DPI
-    bitmap->xpixelpermeter = 0x0B13 ; //2835 , 72 DPI
-    bitmap->numcolorspallette = 0;
-    bitmap->mostimpcolor = 0;
-
-    *out = jpeg.output;
-    *out_len = output_size+BMP_HEADER_LEN;
-
-    return true;
-}
-
-bool fmt2rgb888(const uint8_t *src_buf, size_t src_len, pixformat_t format, uint8_t * rgb_buf)
-{
-    int pix_count = 0;
-    if(format == PIXFORMAT_JPEG) {
-        return jpg2rgb888(src_buf, src_len, rgb_buf, JPG_SCALE_NONE);
-    } else if(format == PIXFORMAT_RGB888) {
-        memcpy(rgb_buf, src_buf, src_len);
-    } else if(format == PIXFORMAT_RGB565) {
-        int i;
-        uint8_t hb, lb;
-        pix_count = src_len / 2;
-        for(i=0; i<pix_count; i++) {
-            hb = *src_buf++;
-            lb = *src_buf++;
-            *rgb_buf++ = (lb & 0x1F) << 3;
-            *rgb_buf++ = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-            *rgb_buf++ = hb & 0xF8;
-        }
-    } else if(format == PIXFORMAT_GRAYSCALE) {
-        int i;
-        uint8_t b;
-        pix_count = src_len;
-        for(i=0; i<pix_count; i++) {
-            b = *src_buf++;
-            *rgb_buf++ = b;
-            *rgb_buf++ = b;
-            *rgb_buf++ = b;
-        }
-    } else if(format == PIXFORMAT_YUV422) {
-        pix_count = src_len / 2;
-        int i, maxi = pix_count / 2;
-        uint8_t y0, y1, u, v;
-        uint8_t r, g, b;
-        for(i=0; i<maxi; i++) {
-            y0 = *src_buf++;
-            u = *src_buf++;
-            y1 = *src_buf++;
-            v = *src_buf++;
-
-            yuv2rgb(y0, u, v, &r, &g, &b);
-            *rgb_buf++ = b;
-            *rgb_buf++ = g;
-            *rgb_buf++ = r;
-
-            yuv2rgb(y1, u, v, &r, &g, &b);
-            *rgb_buf++ = b;
-            *rgb_buf++ = g;
-            *rgb_buf++ = r;
-        }
-    }
-    return true;
-}
-
-bool fmt2bmp(uint8_t *src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t ** out, size_t * out_len)
-{
-    if(format == PIXFORMAT_JPEG) {
-        return jpg2bmp(src, src_len, out, out_len);
-    }
-
-    *out = NULL;
-    *out_len = 0;
-
-    int pix_count = width*height;
-
-    // With BMP, 8-bit greyscale requires a palette.
-    // For a 640x480 image though, that's a savings
-    // over going RGB-24.
-    int bpp = (format == PIXFORMAT_GRAYSCALE) ? 1 : 3;
-    int palette_size = (format == PIXFORMAT_GRAYSCALE) ? 4 * 256 : 0;
-    size_t out_size = (pix_count * bpp) + BMP_HEADER_LEN + palette_size;
-    uint8_t * out_buf = (uint8_t *)_malloc(out_size);
-    if(!out_buf) {
-        ESP_LOGE(TAG, "_malloc failed! %u", out_size);
-        return false;
-    }
-
-    out_buf[0] = 'B';
-    out_buf[1] = 'M';
-    bmp_header_t * bitmap  = (bmp_header_t*)&out_buf[2];
-    bitmap->reserved = 0;
-    bitmap->filesize = out_size;
-    bitmap->fileoffset_to_pixelarray = BMP_HEADER_LEN + palette_size;
-    bitmap->dibheadersize = 40;
-    bitmap->width = width;
-    bitmap->height = -height;//set negative for top to bottom
-    bitmap->planes = 1;
-    bitmap->bitsperpixel = bpp * 8;
-    bitmap->compression = 0;
-    bitmap->imagesize = pix_count * bpp;
-    bitmap->ypixelpermeter = 0x0B13 ; //2835 , 72 DPI
-    bitmap->xpixelpermeter = 0x0B13 ; //2835 , 72 DPI
-    bitmap->numcolorspallette = 0;
-    bitmap->mostimpcolor = 0;
-
-    uint8_t * palette_buf = out_buf + BMP_HEADER_LEN;
-    uint8_t * pix_buf = palette_buf + palette_size;
-    uint8_t * src_buf = src;
-
-    if (palette_size > 0) {
-        // Grayscale palette
-        for (int i = 0; i < 256; ++i) {
-            for (int j = 0; j < 3; ++j) {
-                *palette_buf = i;
-                palette_buf++;
-            }
-            // Reserved / alpha channel.
-            *palette_buf = 0;
-            palette_buf++;
-        }
-    }
-
-    //convert data to RGB888
-    if(format == PIXFORMAT_RGB888) {
-        memcpy(pix_buf, src_buf, pix_count*3);
-    } else if(format == PIXFORMAT_RGB565) {
-        int i;
-        uint8_t hb, lb;
-        for(i=0; i<pix_count; i++) {
-            hb = *src_buf++;
-            lb = *src_buf++;
-            *pix_buf++ = (lb & 0x1F) << 3;
-            *pix_buf++ = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
-            *pix_buf++ = hb & 0xF8;
-        }
-    } else if(format == PIXFORMAT_GRAYSCALE) {
-        memcpy(pix_buf, src_buf, pix_count);
-    } else if(format == PIXFORMAT_YUV422) {
-        int i, maxi = pix_count / 2;
-        uint8_t y0, y1, u, v;
-        uint8_t r, g, b;
-        for(i=0; i<maxi; i++) {
-            y0 = *src_buf++;
-            u = *src_buf++;
-            y1 = *src_buf++;
-            v = *src_buf++;
-
-            yuv2rgb(y0, u, v, &r, &g, &b);
-            *pix_buf++ = b;
-            *pix_buf++ = g;
-            *pix_buf++ = r;
-
-            yuv2rgb(y1, u, v, &r, &g, &b);
-            *pix_buf++ = b;
-            *pix_buf++ = g;
-            *pix_buf++ = r;
-        }
-    }
-    *out = out_buf;
-    *out_len = out_size;
-    return true;
-}
-
-bool frame2bmp(camera_fb_t * fb, uint8_t ** out, size_t * out_len)
-{
-    return fmt2bmp(fb->buf, fb->len, fb->width, fb->height, fb->format, out, out_len);
+bool frame2jpg(camera_fb_t *fb, uint8_t quality, uint8_t **out, size_t *out_len) {
+  return fmt2jpg(fb->buf, fb->len, fb->width, fb->height, fb->format, quality, out, out_len);
 }

@@ -1,423 +1,944 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
  *
- * SPDX-License-Identifier: Unlicense OR CC0-1.0
+ * SPDX-License-Identifier: Apache-2.0
  */
+#ifndef ESP_MDNS_H_
+#define ESP_MDNS_H_
 
-/*
- * MDNS-SD Query and advertise Example
-*/
-#include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_netif_ip_addr.h"
-#include "esp_mac.h"
-#include "esp_event.h"
-#include "esp_log.h"
-#include "nvs_flash.h"
-#include "esp_netif.h"
-#include "protocol_examples_common.h"
-#include "mdns.h"
-#include "driver/gpio.h"
-#include "netdb.h"
-
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 1, 0)
-/* CONFIG_LWIP_IPV4 was introduced in IDF v5.1, set CONFIG_LWIP_IPV4 to 1 by default for IDF v5.0 */
-#ifndef CONFIG_LWIP_IPV4
-#define CONFIG_LWIP_IPV4 1
-#endif // CONFIG_LWIP_IPV4
-#endif // ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 1, 0)
-
-#define EXAMPLE_MDNS_INSTANCE CONFIG_MDNS_INSTANCE
-#define EXAMPLE_BUTTON_GPIO   CONFIG_MDNS_BUTTON_GPIO
-
-static const char *TAG = "mdns-test";
-static char *generate_hostname(void);
-
-#if CONFIG_MDNS_RESOLVE_TEST_SERVICES == 1
-static void  query_mdns_host_with_gethostbyname(char *host);
-static void  query_mdns_host_with_getaddrinfo(char *host);
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-static void initialise_mdns(void)
-{
-    char *hostname = generate_hostname();
+#include "sdkconfig.h"
+#include <esp_netif.h>
 
-    //initialize mDNS
-    ESP_ERROR_CHECK(mdns_init());
-    //set mDNS hostname (required if you want to advertise services)
-    ESP_ERROR_CHECK(mdns_hostname_set(hostname));
-    ESP_LOGI(TAG, "mdns hostname set to: [%s]", hostname);
-    //set default mDNS instance name
-    ESP_ERROR_CHECK(mdns_instance_name_set(EXAMPLE_MDNS_INSTANCE));
+#define MDNS_TYPE_A 0x0001
+#define MDNS_TYPE_PTR 0x000C
+#define MDNS_TYPE_TXT 0x0010
+#define MDNS_TYPE_AAAA 0x001C
+#define MDNS_TYPE_SRV 0x0021
+#define MDNS_TYPE_OPT 0x0029
+#define MDNS_TYPE_NSEC 0x002F
+#define MDNS_TYPE_ANY 0x00FF
 
-    //structure with TXT records
-    mdns_txt_item_t serviceTxtData[3] = {
-        {"board", "esp32"},
-        {"u", "user"},
-        {"p", "password"}
-    };
-
-    //initialize service
-    ESP_ERROR_CHECK(mdns_service_add("ESP32-WebServer", "_http", "_tcp", 80, serviceTxtData, 3));
-    ESP_ERROR_CHECK(mdns_service_subtype_add_for_host("ESP32-WebServer", "_http", "_tcp", NULL, "_server"));
-#if CONFIG_MDNS_MULTIPLE_INSTANCE
-    ESP_ERROR_CHECK(mdns_service_add("ESP32-WebServer1", "_http", "_tcp", 80, NULL, 0));
-#endif
-
-#if CONFIG_MDNS_PUBLISH_DELEGATE_HOST
-    char *delegated_hostname;
-    if (-1 == asprintf(&delegated_hostname, "%s-delegated", hostname)) {
-        abort();
-    }
-
-    mdns_ip_addr_t addr4, addr6;
-    esp_netif_str_to_ip4("10.0.0.1", &addr4.addr.u_addr.ip4);
-    addr4.addr.type = ESP_IPADDR_TYPE_V4;
-    esp_netif_str_to_ip6("fd11:22::1", &addr6.addr.u_addr.ip6);
-    addr6.addr.type = ESP_IPADDR_TYPE_V6;
-    addr4.next = &addr6;
-    addr6.next = NULL;
-    ESP_ERROR_CHECK(mdns_delegate_hostname_add(delegated_hostname, &addr4));
-    ESP_ERROR_CHECK(mdns_service_add_for_host("test0", "_http", "_tcp", delegated_hostname, 1234, serviceTxtData, 3));
-    free(delegated_hostname);
-#endif // CONFIG_MDNS_PUBLISH_DELEGATE_HOST
-
-    //add another TXT item
-    ESP_ERROR_CHECK(mdns_service_txt_item_set("_http", "_tcp", "path", "/foobar"));
-    //change TXT item value
-    ESP_ERROR_CHECK(mdns_service_txt_item_set_with_explicit_value_len("_http", "_tcp", "u", "admin", strlen("admin")));
-    free(hostname);
-}
-
-/* these strings match mdns_ip_protocol_t enumeration */
-static const char *ip_protocol_str[] = {"V4", "V6", "MAX"};
-
-static void mdns_print_results(mdns_result_t *results)
-{
-    mdns_result_t *r = results;
-    mdns_ip_addr_t *a = NULL;
-    int i = 1, t;
-    while (r) {
-        if (r->esp_netif) {
-            printf("%d: Interface: %s, Type: %s, TTL: %" PRIu32 "\n", i++, esp_netif_get_ifkey(r->esp_netif),
-                   ip_protocol_str[r->ip_protocol], r->ttl);
-        }
-        if (r->instance_name) {
-            printf("  PTR : %s.%s.%s\n", r->instance_name, r->service_type, r->proto);
-        }
-        if (r->hostname) {
-            printf("  SRV : %s.local:%u\n", r->hostname, r->port);
-        }
-        if (r->txt_count) {
-            printf("  TXT : [%zu] ", r->txt_count);
-            for (t = 0; t < r->txt_count; t++) {
-                printf("%s=%s(%d); ", r->txt[t].key, r->txt[t].value ? r->txt[t].value : "NULL", r->txt_value_len[t]);
-            }
-            printf("\n");
-        }
-        a = r->addr;
-        while (a) {
-            if (a->addr.type == ESP_IPADDR_TYPE_V6) {
-                printf("  AAAA: " IPV6STR "\n", IPV62STR(a->addr.u_addr.ip6));
-            } else {
-                printf("  A   : " IPSTR "\n", IP2STR(&(a->addr.u_addr.ip4)));
-            }
-            a = a->next;
-        }
-        r = r->next;
-    }
-}
-
-static void query_mdns_service(const char *service_name, const char *proto)
-{
-    ESP_LOGI(TAG, "Query PTR: %s.%s.local", service_name, proto);
-
-    mdns_result_t *results = NULL;
-    esp_err_t err = mdns_query_ptr(service_name, proto, 3000, 20,  &results);
-    if (err) {
-        ESP_LOGE(TAG, "Query Failed: %s", esp_err_to_name(err));
-        return;
-    }
-    if (!results) {
-        ESP_LOGW(TAG, "No results found!");
-        return;
-    }
-
-    mdns_print_results(results);
-    mdns_query_results_free(results);
-}
-
-#if CONFIG_MDNS_PUBLISH_DELEGATE_HOST
-static void lookup_mdns_delegated_service(const char *service_name, const char *proto)
-{
-    ESP_LOGI(TAG, "Lookup delegated service: %s.%s.local", service_name, proto);
-
-    mdns_result_t *results = NULL;
-    esp_err_t err = mdns_lookup_delegated_service(NULL, service_name, proto, 20, &results);
-    if (err) {
-        ESP_LOGE(TAG, "Lookup Failed: %s", esp_err_to_name(err));
-        return;
-    }
-    if (!results) {
-        ESP_LOGW(TAG, "No results found!");
-        return;
-    }
-
-    mdns_print_results(results);
-    mdns_query_results_free(results);
-}
-#endif // CONFIG_MDNS_PUBLISH_DELEGATE_HOST
-
-static void lookup_mdns_selfhosted_service(const char *service_name, const char *proto)
-{
-    ESP_LOGI(TAG, "Lookup selfhosted service: %s.%s.local", service_name, proto);
-    mdns_result_t *results = NULL;
-    esp_err_t err = mdns_lookup_selfhosted_service(NULL, service_name, proto, 20, &results);
-    if (err) {
-        ESP_LOGE(TAG, "Lookup Failed: %s", esp_err_to_name(err));
-        return;
-    }
-    if (!results) {
-        ESP_LOGW(TAG, "No results found!");
-        return;
-    }
-    mdns_print_results(results);
-    mdns_query_results_free(results);
-}
-
-static bool check_and_print_result(mdns_search_once_t *search)
-{
-    // Check if any result is available
-    mdns_result_t *result = NULL;
-    if (!mdns_query_async_get_results(search, 0, &result, NULL)) {
-        return false;
-    }
-
-    if (!result) {   // search timeout, but no result
-        return true;
-    }
-
-    // If yes, print the result
-    mdns_ip_addr_t *a = result->addr;
-    while (a) {
-        if (a->addr.type == ESP_IPADDR_TYPE_V6) {
-            printf("  AAAA: " IPV6STR "\n", IPV62STR(a->addr.u_addr.ip6));
-        } else {
-            printf("  A   : " IPSTR "\n", IP2STR(&(a->addr.u_addr.ip4)));
-        }
-        a = a->next;
-    }
-    // and free the result
-    mdns_query_results_free(result);
-    return true;
-}
-
-static void query_mdns_hosts_async(const char *host_name)
-{
-    ESP_LOGI(TAG, "Query both A and AAA: %s.local", host_name);
-
-    mdns_search_once_t *s_a = mdns_query_async_new(host_name, NULL, NULL, MDNS_TYPE_A, 1000, 1, NULL);
-    mdns_search_once_t *s_aaaa = mdns_query_async_new(host_name, NULL, NULL, MDNS_TYPE_AAAA, 1000, 1, NULL);
-    while (s_a || s_aaaa) {
-        if (s_a && check_and_print_result(s_a)) {
-            ESP_LOGI(TAG, "Query A %s.local finished", host_name);
-            mdns_query_async_delete(s_a);
-            s_a = NULL;
-        }
-        if (s_aaaa && check_and_print_result(s_aaaa)) {
-            ESP_LOGI(TAG, "Query AAAA %s.local finished", host_name);
-            mdns_query_async_delete(s_aaaa);
-            s_aaaa = NULL;
-        }
-        vTaskDelay(50 / portTICK_PERIOD_MS);
-    }
-}
-#ifdef CONFIG_LWIP_IPV4
-static void query_mdns_host(const char *host_name)
-{
-    ESP_LOGI(TAG, "Query A: %s.local", host_name);
-
-    struct esp_ip4_addr addr;
-    addr.addr = 0;
-
-    esp_err_t err = mdns_query_a(host_name, 2000,  &addr);
-    if (err) {
-        if (err == ESP_ERR_NOT_FOUND) {
-            ESP_LOGW(TAG, "%s: Host was not found!", esp_err_to_name(err));
-            return;
-        }
-        ESP_LOGE(TAG, "Query Failed: %s", esp_err_to_name(err));
-        return;
-    }
-
-    ESP_LOGI(TAG, "Query A: %s.local resolved to: " IPSTR, host_name, IP2STR(&addr));
-}
-#endif // CONFIG_LWIP_IPV4
-
-static void initialise_button(void)
-{
-    gpio_config_t io_conf = {0};
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    io_conf.pin_bit_mask = BIT64(EXAMPLE_BUTTON_GPIO);
-    io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pull_up_en = 1;
-    io_conf.pull_down_en = 0;
-    gpio_config(&io_conf);
-}
-
-static void check_button(void)
-{
-    static bool old_level = true;
-    bool new_level = gpio_get_level(EXAMPLE_BUTTON_GPIO);
-    if (!new_level && old_level) {
-        query_mdns_hosts_async("esp32-mdns");
-#ifdef CONFIG_LWIP_IPV4
-        query_mdns_host("esp32");
-#endif
-        query_mdns_service("_arduino", "_tcp");
-        query_mdns_service("_http", "_tcp");
-        query_mdns_service("_printer", "_tcp");
-        query_mdns_service("_ipp", "_tcp");
-        query_mdns_service("_afpovertcp", "_tcp");
-        query_mdns_service("_smb", "_tcp");
-        query_mdns_service("_ftp", "_tcp");
-        query_mdns_service("_nfs", "_tcp");
-#if CONFIG_MDNS_PUBLISH_DELEGATE_HOST
-        lookup_mdns_delegated_service("_http", "_tcp");
-#endif // CONFIG_MDNS_PUBLISH_DELEGATE_HOST
-        lookup_mdns_selfhosted_service("_http", "_tcp");
-    }
-    old_level = new_level;
-}
-
-static void mdns_example_task(void *pvParameters)
-{
-#if CONFIG_MDNS_RESOLVE_TEST_SERVICES == 1
-    /* Send initial queries that are started by CI tester */
-#ifdef CONFIG_LWIP_IPV4
-    query_mdns_host("tinytester");
-#endif
-    query_mdns_host_with_gethostbyname("tinytester-lwip.local");
-    query_mdns_host_with_getaddrinfo("tinytester-lwip.local");
-#endif
-
-    while (1) {
-        check_button();
-        vTaskDelay(50 / portTICK_PERIOD_MS);
-    }
-}
-
-void app_main(void)
-{
-    ESP_ERROR_CHECK(nvs_flash_init());
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-    ESP_LOGI(TAG, "mDNS Ver: %s", ESP_MDNS_VERSION_NUMBER);
-
-    initialise_mdns();
-
-    /* This helper function configures Wi-Fi or Ethernet, as selected in menuconfig.
-     * Read "Establishing Wi-Fi or Ethernet Connection" section in
-     * examples/protocols/README.md for more information about this function.
-     */
-    ESP_ERROR_CHECK(example_connect());
-
-#if defined(CONFIG_MDNS_ADD_CUSTOM_NETIF) && !defined(CONFIG_MDNS_PREDEF_NETIF_STA) && !defined(CONFIG_MDNS_PREDEF_NETIF_ETH)
-    /* Demonstration of adding a custom netif to mdns service, but we're adding the default example one,
-     * so we must disable all predefined interfaces (PREDEF_NETIF_STA, AP and ETH) first
-     */
-    ESP_ERROR_CHECK(mdns_register_netif(EXAMPLE_INTERFACE));
-    /* It is not enough to just register the interface, we have to enable is manually.
-     * This is typically performed in "GOT_IP" event handler, but we call it here directly
-     * since the `EXAMPLE_INTERFACE` netif is connected already, to keep the example simple.
-     */
-    ESP_ERROR_CHECK(mdns_netif_action(EXAMPLE_INTERFACE, MDNS_EVENT_ENABLE_IP4 | MDNS_EVENT_ENABLE_IP6));
-    ESP_ERROR_CHECK(mdns_netif_action(EXAMPLE_INTERFACE, MDNS_EVENT_ANNOUNCE_IP4 | MDNS_EVENT_ANNOUNCE_IP6));
-
-#if defined(CONFIG_MDNS_RESPOND_REVERSE_QUERIES)
-    ESP_ERROR_CHECK(mdns_netif_action(EXAMPLE_INTERFACE, MDNS_EVENT_IP4_REVERSE_LOOKUP | MDNS_EVENT_IP6_REVERSE_LOOKUP));
-#endif
-
-#endif // CONFIG_MDNS_ADD_CUSTOM_NETIF
-
-    initialise_button();
-    xTaskCreate(&mdns_example_task, "mdns_example_task", 2048, NULL, 5, NULL);
-}
-
-/** Generate host name based on sdkconfig, optionally adding a portion of MAC address to it.
- *  @return host name string allocated from the heap
- */
-static char *generate_hostname(void)
-{
-#ifndef CONFIG_MDNS_ADD_MAC_TO_HOSTNAME
-    return strdup(CONFIG_MDNS_HOSTNAME);
+#if defined(CONFIG_LWIP_IPV6) && defined(CONFIG_MDNS_RESPOND_REVERSE_QUERIES)
+#define MDNS_NAME_MAX_LEN (64 + 4)  // Need to account for IPv6 reverse queries (64 char address  + ".ip6" )
 #else
-    uint8_t mac[6];
-    char   *hostname;
-    esp_read_mac(mac, ESP_MAC_WIFI_STA);
-    if (-1 == asprintf(&hostname, "%s-%02X%02X%02X", CONFIG_MDNS_HOSTNAME, mac[3], mac[4], mac[5])) {
-        abort();
-    }
-    return hostname;
+#define MDNS_NAME_MAX_LEN 64  // Maximum string length of hostname, instance, service and proto
 #endif
-}
-
-#if CONFIG_MDNS_RESOLVE_TEST_SERVICES == 1
-/**
- *  @brief Executes gethostbyname and displays list of resolved addresses.
- *  Note: This function is used only to test advertised mdns hostnames resolution
- */
-static void  query_mdns_host_with_gethostbyname(char *host)
-{
-    struct hostent *res = gethostbyname(host);
-    if (res) {
-        unsigned int i = 0;
-        while (res->h_addr_list[i] != NULL) {
-            ESP_LOGI(TAG, "gethostbyname: %s resolved to: %s", host,
-#if defined(CONFIG_LWIP_IPV6) && defined(CONFIG_LWIP_IPV4)
-                     res->h_addrtype == AF_INET ? inet_ntoa(*(struct in_addr *)(res->h_addr_list[i])) :
-                     inet6_ntoa(*(struct in6_addr *)(res->h_addr_list[i]))
-#elif defined(CONFIG_LWIP_IPV6)
-                     inet6_ntoa(*(struct in6_addr *)(res->h_addr_list[i]))
-#else
-                     inet_ntoa(*(struct in_addr *)(res->h_addr_list[i]))
-#endif
-                    );
-            i++;
-        }
-    }
-}
+#define MDNS_NAME_BUF_LEN \
+  (MDNS_NAME_MAX_LEN + 1)  // Maximum char buffer size to hold hostname, instance, service or proto
 
 /**
- *  @brief Executes getaddrinfo and displays list of resolved addresses.
- *  Note: This function is used only to test advertised mdns hostnames resolution
+ * @brief   Asynchronous query handle
  */
-static void  query_mdns_host_with_getaddrinfo(char *host)
-{
-    struct addrinfo hints;
-    struct addrinfo *res;
+typedef struct mdns_search_once_s mdns_search_once_t;
 
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
+/**
+ * @brief   Daemon query handle
+ */
+typedef struct mdns_browse_s mdns_browse_t;
 
-    if (!getaddrinfo(host, NULL, &hints, &res)) {
-        while (res) {
-            char *resolved_addr;
-#if defined(CONFIG_LWIP_IPV6) && defined(CONFIG_LWIP_IPV4)
-            resolved_addr = res->ai_family == AF_INET ?
-                            inet_ntoa(((struct sockaddr_in *) res->ai_addr)->sin_addr) :
-                            inet6_ntoa(((struct sockaddr_in6 *) res->ai_addr)->sin6_addr);
-#elif defined(CONFIG_LWIP_IPV6)
-            resolved_addr = inet6_ntoa(((struct sockaddr_in6 *) res->ai_addr)->sin6_addr);
-#else
-            resolved_addr = inet_ntoa(((struct sockaddr_in *) res->ai_addr)->sin_addr);
-#endif // CONFIG_LWIP_IPV6
-            ESP_LOGI(TAG, "getaddrinfo: %s resolved to: %s", host, resolved_addr);
-            res = res->ai_next;
-        }
-    }
+typedef enum {
+  MDNS_EVENT_ENABLE_IP4 = 1 << 1,
+  MDNS_EVENT_ENABLE_IP6 = 1 << 2,
+  MDNS_EVENT_ANNOUNCE_IP4 = 1 << 3,
+  MDNS_EVENT_ANNOUNCE_IP6 = 1 << 4,
+  MDNS_EVENT_DISABLE_IP4 = 1 << 5,
+  MDNS_EVENT_DISABLE_IP6 = 1 << 6,
+  MDNS_EVENT_IP4_REVERSE_LOOKUP = 1 << 7,
+  MDNS_EVENT_IP6_REVERSE_LOOKUP = 1 << 8,
+} mdns_event_actions_t;
+
+/**
+ * @brief   mDNS enum to specify the ip_protocol type
+ */
+typedef enum { MDNS_IP_PROTOCOL_V4, MDNS_IP_PROTOCOL_V6, MDNS_IP_PROTOCOL_MAX } mdns_ip_protocol_t;
+
+/**
+ * @brief   mDNS basic text item structure
+ *          Used in mdns_service_add()
+ */
+typedef struct {
+  const char *key;   /*!< item key name */
+  const char *value; /*!< item value string */
+} mdns_txt_item_t;
+
+/**
+ * @brief   mDNS basic subtype item structure
+ *          Used in mdns_service_subtype_xxx() APIs
+ */
+typedef struct {
+  const char *subtype; /*!< subtype name */
+} mdns_subtype_item_t;
+
+/**
+ * @brief   mDNS query linked list IP item
+ */
+typedef struct mdns_ip_addr_s {
+  esp_ip_addr_t addr;          /*!< IP address */
+  struct mdns_ip_addr_s *next; /*!< next IP, or NULL for the last IP in the list */
+} mdns_ip_addr_t;
+
+/**
+ * @brief mDNS query type to be explicitly set to either Unicast or Multicast
+ */
+typedef enum {
+  MDNS_QUERY_UNICAST,
+  MDNS_QUERY_MULTICAST,
+} mdns_query_transmission_type_t;
+
+/**
+ * @brief   mDNS query result structure
+ */
+typedef struct mdns_result_s {
+  struct mdns_result_s *next; /*!< next result, or NULL for the last result in the list */
+
+  esp_netif_t *esp_netif; /*!< ptr to corresponding esp-netif */
+  uint32_t ttl;           /*!< time to live */
+
+  mdns_ip_protocol_t ip_protocol; /*!< ip_protocol type of the interface (v4/v6) */
+  // PTR
+  char *instance_name; /*!< instance name */
+  char *service_type;  /*!< service type */
+  char *proto;         /*!< srevice protocol */
+  // SRV
+  char *hostname; /*!< hostname */
+  uint16_t port;  /*!< service port */
+  // TXT
+  mdns_txt_item_t *txt;   /*!< txt record */
+  uint8_t *txt_value_len; /*!< array of txt value len of each record */
+  size_t txt_count;       /*!< number of txt items */
+  // A and AAAA
+  mdns_ip_addr_t *addr; /*!< linked list of IP addresses found */
+} mdns_result_t;
+
+typedef void (*mdns_query_notify_t)(mdns_search_once_t *search);
+typedef void (*mdns_browse_notify_t)(mdns_result_t *result);
+
+/**
+ * @brief  Initialize mDNS on given interface
+ *
+ * @return
+ *     - ESP_OK on success
+ *     - ESP_ERR_INVALID_STATE when failed to register event handler
+ *     - ESP_ERR_NO_MEM on memory error
+ *     - ESP_FAIL when failed to start mdns task
+ */
+esp_err_t mdns_init(void);
+
+/**
+ * @brief  Stop and free mDNS server
+ *
+ */
+void mdns_free(void);
+
+/**
+ * @brief  Set the hostname for mDNS server
+ *         required if you want to advertise services
+ *
+ * @param  hostname     Hostname to set
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_hostname_set(const char *hostname);
+
+/**
+ * @brief Get the hostname for mDNS server
+ *
+ * @param hostname      pointer to the hostname, it should be allocated
+ *                      and hold at least MDNS_NAME_BUF_LEN chars
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_INVALID_STATE when mdns is not initialized
+ */
+esp_err_t mdns_hostname_get(char *hostname);
+
+/**
+ * @brief  Adds a hostname and address to be delegated
+ *         A/AAAA queries will be replied for the hostname and
+ *         services can be added to this host.
+ *
+ * @param  hostname     Hostname to add
+ * @param  address_list The IP address list of the host
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE mDNS is not running
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NO_MEM memory error
+ *
+ */
+esp_err_t mdns_delegate_hostname_add(const char *hostname, const mdns_ip_addr_t *address_list);
+
+/**
+ * @brief  Set the address to a delegated hostname
+ *
+ * @param  hostname     Hostname to set
+ * @param  address_list The IP address list of the host
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE mDNS is not running
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NO_MEM memory error
+ *
+ */
+esp_err_t mdns_delegate_hostname_set_address(const char *hostname, const mdns_ip_addr_t *address_list);
+
+/**
+ * @brief  Remove a delegated hostname
+ *         All the services added to this host will also be removed.
+ *
+ * @param  hostname     Hostname to remove
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE mDNS is not running
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NO_MEM memory error
+ *
+ */
+esp_err_t mdns_delegate_hostname_remove(const char *hostname);
+
+/**
+ * @brief  Query whether a hostname has been added
+ *
+ * @param  hostname     Hostname to query
+ *
+ * @return
+ *     - true   The hostname has been added.
+ *     - false  The hostname has not been added.
+ *
+ */
+bool mdns_hostname_exists(const char *hostname);
+
+/**
+ * @brief  Set the default instance name for mDNS server
+ *
+ * @param  instance_name     Instance name to set
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_instance_name_set(const char *instance_name);
+
+/**
+ * @brief  Add service to mDNS server
+ *
+ * @note The value length of txt items will be automatically decided by strlen
+ *
+ * @param  instance_name    instance name to set. If NULL,
+ *                          global instance name or hostname will be used.
+ *                          Note that MDNS_MULTIPLE_INSTANCE config option
+ *                          needs to be enabled for adding multiple instances
+ *                          with the same instance type.
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  port             service port
+ * @param  txt              string array of TXT data (eg. {{"var","val"},{"other","2"}})
+ * @param  num_items        number of items in TXT data
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NO_MEM memory error
+ *     - ESP_FAIL failed to add service
+ */
+esp_err_t mdns_service_add(const char *instance_name, const char *service_type, const char *proto, uint16_t port,
+                           mdns_txt_item_t txt[], size_t num_items);
+
+/**
+ * @brief  Add service to mDNS server with a delegated hostname
+ *
+ * @note The value length of txt items will be automatically decided by strlen
+ *
+ * @param  instance_name    instance name to set. If NULL,
+ *                          global instance name or hostname will be used
+ *                          Note that MDNS_MULTIPLE_INSTANCE config option
+ *                          needs to be enabled for adding multiple instances
+ *                          with the same instance type.
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  hostname         service hostname. If NULL, local hostname will be used.
+ * @param  port             service port
+ * @param  txt              string array of TXT data (eg. {{"var","val"},{"other","2"}})
+ * @param  num_items        number of items in TXT data
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NO_MEM memory error
+ *     - ESP_FAIL failed to add service
+ */
+esp_err_t mdns_service_add_for_host(const char *instance_name, const char *service_type, const char *proto,
+                                    const char *hostname, uint16_t port, mdns_txt_item_t txt[], size_t num_items);
+
+/**
+ * @brief  Check whether a service has been added.
+ *
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  hostname         service hostname. If NULL, checks for the local hostname.
+ *
+ * @return
+ *     - true   Correspondding service has been added.
+ *     - false  Service not found.
+ */
+bool mdns_service_exists(const char *service_type, const char *proto, const char *hostname);
+
+/**
+ * @brief  Check whether a service has been added.
+ *
+ * @param  instance         instance name
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  hostname         service hostname. If NULL, checks for the local hostname.
+ *
+ * @return
+ *     - true   Correspondding service has been added.
+ *     - false  Service not found.
+ */
+bool mdns_service_exists_with_instance(const char *instance, const char *service_type, const char *proto,
+                                       const char *hostname);
+
+/**
+ * @brief  Remove service from mDNS server
+ *
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_remove(const char *service_type, const char *proto);
+
+/**
+ * @brief  Remove service from mDNS server with hostname
+ *
+ * @param  instance     instance name
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  hostname     service hostname. If NULL, local hostname will be used.
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_remove_for_host(const char *instance, const char *service_type, const char *proto,
+                                       const char *hostname);
+
+/**
+ * @brief  Set instance name for service
+ *
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  instance_name    instance name to set
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_instance_name_set(const char *service_type, const char *proto, const char *instance_name);
+
+/**
+ * @brief  Set instance name for service with hostname
+ *
+ * @param  instance_old     original instance name
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  hostname         service hostname. If NULL, local hostname will be used.
+ * @param  instance_name    instance name to set
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_instance_name_set_for_host(const char *instance_old, const char *service_type, const char *proto,
+                                                  const char *hostname, const char *instance_name);
+
+/**
+ * @brief  Set service port
+ *
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  port         service port
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_port_set(const char *service_type, const char *proto, uint16_t port);
+
+/**
+ * @brief  Set service port with hostname
+ *
+ * @param  instance     instance name
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  hostname     service hostname. If NULL, local hostname will be used.
+ * @param  port         service port
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_port_set_for_host(const char *instance, const char *service_type, const char *proto,
+                                         const char *hostname, uint16_t port);
+
+/**
+ * @brief  Replace all TXT items for service
+ *
+ * @note The value length of txt items will be automatically decided by strlen
+ *
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  txt          array of TXT data (eg. {{"var","val"},{"other","2"}})
+ * @param  num_items    number of items in TXT data
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_txt_set(const char *service_type, const char *proto, mdns_txt_item_t txt[], uint8_t num_items);
+
+/**
+ * @brief  Replace all TXT items for service with hostname
+ *
+ * @note The value length of txt items will be automatically decided by strlen
+ *
+ * @param  instance     instance name
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  hostname     service hostname. If NULL, local hostname will be used.
+ * @param  txt          array of TXT data (eg. {{"var","val"},{"other","2"}})
+ * @param  num_items    number of items in TXT data
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_txt_set_for_host(const char *instance, const char *service_type, const char *proto,
+                                        const char *hostname, mdns_txt_item_t txt[], uint8_t num_items);
+
+/**
+ * @brief  Set/Add TXT item for service TXT record
+ *
+ * @note The value length will be automatically decided by strlen
+ *
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  key          the key that you want to add/update
+ * @param  value        the new value of the key
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_txt_item_set(const char *service_type, const char *proto, const char *key, const char *value);
+
+/**
+ * @brief  Set/Add TXT item for service TXT record
+ *
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  key          the key that you want to add/update
+ * @param  value        the new value of the key
+ * @param  value_len    the length of the value
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_txt_item_set_with_explicit_value_len(const char *service_type, const char *proto,
+                                                            const char *key, const char *value, uint8_t value_len);
+
+/**
+ * @brief  Set/Add TXT item for service TXT record with hostname
+ *
+ * @note The value length will be automatically decided by strlen
+ *
+ * @param  instance     instance name
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  hostname     service hostname. If NULL, local hostname will be used.
+ * @param  key          the key that you want to add/update
+ * @param  value        the new value of the key
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_txt_item_set_for_host(const char *instance, const char *service_type, const char *proto,
+                                             const char *hostname, const char *key, const char *value);
+
+/**
+ * @brief  Set/Add TXT item for service TXT record with hostname and txt value length
+ *
+ * @param  instance     instance name
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  hostname     service hostname. If NULL, local hostname will be used.
+ * @param  key          the key that you want to add/update
+ * @param  value        the new value of the key
+ * @param  value_len    the length of the value
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_txt_item_set_for_host_with_explicit_value_len(const char *instance, const char *service_type,
+                                                                     const char *proto, const char *hostname,
+                                                                     const char *key, const char *value,
+                                                                     uint8_t value_len);
+
+/**
+ * @brief  Remove TXT item for service TXT record
+ *
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  key          the key that you want to remove
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_txt_item_remove(const char *service_type, const char *proto, const char *key);
+
+/**
+ * @brief  Remove TXT item for service TXT record with hostname
+ *
+ * @param  instance     instance name
+ * @param  service_type service type (_http, _ftp, etc)
+ * @param  proto        service protocol (_tcp, _udp)
+ * @param  hostname     service hostname. If NULL, local hostname will be used.
+ * @param  key          the key that you want to remove
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_txt_item_remove_for_host(const char *instance, const char *service_type, const char *proto,
+                                                const char *hostname, const char *key);
+
+/**
+ * @brief  Add a subtype for service.
+ *
+ * @param  instance_name    instance name. If NULL, will find the first service with the same service type and protocol.
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  hostname         service hostname. If NULL, local hostname will be used.
+ * @param  subtype          The subtype to add.
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_subtype_add_for_host(const char *instance_name, const char *service_type, const char *proto,
+                                            const char *hostname, const char *subtype);
+
+/**
+ * @brief  Remove a subtype for service.
+ *
+ * @param  instance_name    instance name. If NULL, will find the first service with the same service type and protocol.
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  hostname         service hostname. If NULL, local hostname will be used.
+ * @param  subtype          The subtype to remove.
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ */
+esp_err_t mdns_service_subtype_remove_for_host(const char *instance_name, const char *service_type, const char *proto,
+                                               const char *hostname, const char *subtype);
+
+/**
+ * @brief  Add multiple subtypes for service at once.
+ *
+ * @param  instance_name    instance name. If NULL, will find the first service with the same service type and protocol.
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  hostname         service hostname. If NULL, local hostname will be used.
+ * @param  subtype          the pointer of subtype array to add.
+ * @param  num_items        number of items in subtype array
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_subtype_add_multiple_items_for_host(const char *instance_name, const char *service_type,
+                                                           const char *proto, const char *hostname,
+                                                           mdns_subtype_item_t subtype[], uint8_t num_items);
+
+/**
+ * @brief  Update subtype for service.
+ *
+ * @param  instance_name    instance name. If NULL, will find the first service with the same service type and protocol.
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  hostname         service hostname. If NULL, local hostname will be used.
+ * @param  subtype          the pointer of subtype array to add.
+ * @param  num_items        number of items in subtype array
+ *
+ * @note  If `num_items` is 0, then remove all subtypes.
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ *     - ESP_ERR_NOT_FOUND Service not found
+ *     - ESP_ERR_NO_MEM memory error
+ */
+esp_err_t mdns_service_subtype_update_multiple_items_for_host(const char *instance_name, const char *service_type,
+                                                              const char *proto, const char *hostname,
+                                                              mdns_subtype_item_t subtype[], uint8_t num_items);
+/**
+ * @brief  Remove and free all services from mDNS server
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_ARG Parameter error
+ */
+esp_err_t mdns_service_remove_all(void);
+
+/**
+ * @brief Deletes the finished query. Call this only after the search has ended!
+ *
+ * @param search pointer to search object
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  search has not finished
+ *     - ESP_ERR_INVALID_ARG    pointer to search object is NULL
+ */
+esp_err_t mdns_query_async_delete(mdns_search_once_t *search);
+
+/**
+ * @brief Get results from search pointer. Results available as a pointer to the output parameter.
+ *        Pointer to search object has to be deleted via `mdns_query_async_delete` once the query has finished.
+ *        The results although have to be freed manually.
+ *
+ * @param search pointer to search object
+ * @param timeout time in milliseconds to wait for answers
+ * @param results pointer to the results of the query
+ * @param num_results pointer to the number of the actual result items (set to NULL to ignore this return value)
+ *
+ * @return
+ *      True if search has finished before or at timeout
+ *      False if search timeout is over
+ */
+bool mdns_query_async_get_results(mdns_search_once_t *search, uint32_t timeout, mdns_result_t **results,
+                                  uint8_t *num_results);
+
+/**
+ * @brief  Query mDNS for host or service asynchronousely.
+ *         Search has to be tested for progress and deleted manually!
+ *
+ * @param  name         service instance or host name (NULL for PTR queries)
+ * @param  service_type service type (_http, _arduino, _ftp etc.) (NULL for host queries)
+ * @param  proto        service protocol (_tcp, _udp, etc.) (NULL for host queries)
+ * @param  type         type of query (MDNS_TYPE_*)
+ * @param  timeout      time in milliseconds during which mDNS query is active
+ * @param  max_results  maximum results to be collected
+ * @param  notifier     Notification function to be called when the result is ready, can be NULL
+ *
+ * @return mdns_search_once_s pointer to new search object if query initiated successfully.
+ *         NULL otherwise.
+ */
+mdns_search_once_t *mdns_query_async_new(const char *name, const char *service_type, const char *proto, uint16_t type,
+                                         uint32_t timeout, size_t max_results, mdns_query_notify_t notifier);
+
+/**
+ * @brief  Generic mDNS query
+ *         All following query methods are derived from this one
+ *
+ * @param  name         service instance or host name (NULL for PTR queries)
+ * @param  service_type service type (_http, _arduino, _ftp etc.) (NULL for host queries)
+ * @param  proto        service protocol (_tcp, _udp, etc.) (NULL for host queries)
+ * @param  type         type of query (MDNS_TYPE_*)
+ * @param  transmission_type      either Unicast query, or Multicast query
+ * @param  timeout      time in milliseconds to wait for answers.
+ * @param  max_results  maximum results to be collected
+ * @param  results      pointer to the results of the query
+ *                      results must be freed using mdns_query_results_free below
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    timeout was not given
+ */
+esp_err_t mdns_query_generic(const char *name, const char *service_type, const char *proto, uint16_t type,
+                             mdns_query_transmission_type_t transmission_type, uint32_t timeout, size_t max_results,
+                             mdns_result_t **results);
+
+/**
+ * @brief  Query mDNS for host or service
+ *
+ * Note that querying PTR types sends Multicast query, all other types send Unicast queries
+ *
+ * @param  name         service instance or host name (NULL for PTR queries)
+ * @param  service_type service type (_http, _arduino, _ftp etc.) (NULL for host queries)
+ * @param  proto        service protocol (_tcp, _udp, etc.) (NULL for host queries)
+ * @param  type         type of query (MDNS_TYPE_*)
+ * @param  timeout      time in milliseconds to wait for answers.
+ * @param  max_results  maximum results to be collected
+ * @param  results      pointer to the results of the query
+ *                      results must be freed using mdns_query_results_free below
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    timeout was not given
+ */
+esp_err_t mdns_query(const char *name, const char *service_type, const char *proto, uint16_t type, uint32_t timeout,
+                     size_t max_results, mdns_result_t **results);
+
+/**
+ * @brief  Free query results
+ *
+ * @param  results      linked list of results to be freed
+ */
+void mdns_query_results_free(mdns_result_t *results);
+
+/**
+ * @brief  Query mDNS for service
+ *
+ * @param  service_type service type (_http, _arduino, _ftp etc.)
+ * @param  proto        service protocol (_tcp, _udp, etc.)
+ * @param  timeout      time in milliseconds to wait for answer.
+ * @param  max_results  maximum results to be collected
+ * @param  results      pointer to the results of the query
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    parameter error
+ */
+esp_err_t mdns_query_ptr(const char *service_type, const char *proto, uint32_t timeout, size_t max_results,
+                         mdns_result_t **results);
+
+/**
+ * @brief  Query mDNS for SRV record
+ *
+ * @param  instance_name    service instance name
+ * @param  service_type     service type (_http, _arduino, _ftp etc.)
+ * @param  proto            service protocol (_tcp, _udp, etc.)
+ * @param  timeout          time in milliseconds to wait for answer.
+ * @param  result           pointer to the result of the query
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    parameter error
+ */
+esp_err_t mdns_query_srv(const char *instance_name, const char *service_type, const char *proto, uint32_t timeout,
+                         mdns_result_t **result);
+
+/**
+ * @brief  Query mDNS for TXT record
+ *
+ * @param  instance_name    service instance name
+ * @param  service_type     service type (_http, _arduino, _ftp etc.)
+ * @param  proto            service protocol (_tcp, _udp, etc.)
+ * @param  timeout          time in milliseconds to wait for answer.
+ * @param  result           pointer to the result of the query
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    parameter error
+ */
+esp_err_t mdns_query_txt(const char *instance_name, const char *service_type, const char *proto, uint32_t timeout,
+                         mdns_result_t **result);
+
+/**
+ * @brief Look up delegated services.
+ *
+ * @param  instance         instance name (NULL for uncertain instance)
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  max_results      maximum results to be collected
+ * @param  result           pointer to the result of the search
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    parameter error
+ */
+esp_err_t mdns_lookup_delegated_service(const char *instance, const char *service_type, const char *proto,
+                                        size_t max_results, mdns_result_t **result);
+
+/**
+ * @brief Look up self hosted services.
+ *
+ * @param  instance         instance name (NULL for uncertain instance)
+ * @param  service_type     service type (_http, _ftp, etc)
+ * @param  proto            service protocol (_tcp, _udp)
+ * @param  max_results      maximum results to be collected
+ * @param  result           pointer to the result of the search
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    parameter error
+ */
+esp_err_t mdns_lookup_selfhosted_service(const char *instance, const char *service_type, const char *proto,
+                                         size_t max_results, mdns_result_t **result);
+
+/**
+ * @brief  Query mDNS for A record
+ *
+ * @param  host_name    host name to look for
+ * @param  timeout      time in milliseconds to wait for answer.
+ * @param  addr         pointer to the resulting IP4 address
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    parameter error
+ */
+esp_err_t mdns_query_a(const char *host_name, uint32_t timeout, esp_ip4_addr_t *addr);
+
+#if CONFIG_LWIP_IPV6
+/**
+ * @brief  Query mDNS for A record
+ *
+ * Please note that hostname must not contain domain name, as mDNS uses '.local' domain.
+ *
+ * @param  host_name    host name to look for
+ * @param  timeout      time in milliseconds to wait for answer. If 0, max_results needs to be defined
+ * @param  addr         pointer to the resulting IP6 address
+ *
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NO_MEM         memory error
+ *     - ESP_ERR_INVALID_ARG    parameter error
+ */
+esp_err_t mdns_query_aaaa(const char *host_name, uint32_t timeout, esp_ip6_addr_t *addr);
+#endif
+
+/**
+ * @brief   Register custom esp_netif with mDNS functionality
+ *          mDNS service runs by default on preconfigured interfaces (STA, AP, ETH).
+ *          This API enables running the service on any customized interface,
+ *          either using standard WiFi or Ethernet driver or any kind of user defined driver.
+ *
+ * @param   esp_netif Pointer to esp-netif interface
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running or this netif is already registered
+ *     - ESP_ERR_NO_MEM         not enough memory for this in interface in the netif list (see
+ * CONFIG_MDNS_MAX_INTERFACES)
+ */
+esp_err_t mdns_register_netif(esp_netif_t *esp_netif);
+
+/**
+ * @brief   Unregister esp-netif already registered in mDNS service
+ *
+ * @param   esp_netif Pointer to esp-netif interface
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running
+ *     - ESP_ERR_NOT_FOUND      this esp-netif was not registered in mDNS service
+ */
+esp_err_t mdns_unregister_netif(esp_netif_t *esp_netif);
+
+/**
+ * @brief   Set esp_netif to a desired state, or perform a desired action, such as enable/disable this interface
+ *          or send announcement packets to this netif
+ *
+ *  * This function is used to enable (probe, resolve conflicts and announce), announce, or disable (send bye) mDNS
+ *  services on the specified network interface.
+ *  * This function must be called if users registers a specific interface using mdns_register_netif()
+ *  to enable mDNS services on that interface.
+ *  * This function could be used in IP/connection event handlers to automatically enable/announce mDNS services
+ *  when network properties change and/or disable them on disconnection.
+ *
+ * @param esp_netif  Pointer to esp-netif interface
+ * @param event_action  Disable/Enable/Announce on this interface over IPv4/IPv6 protocol.
+ *                      Actions enumerated in mdns_event_actions_t type.
+ * @return
+ *     - ESP_OK success
+ *     - ESP_ERR_INVALID_STATE  mDNS is not running or this netif is not registered
+ *     - ESP_ERR_NO_MEM         memory error
+ */
+esp_err_t mdns_netif_action(esp_netif_t *esp_netif, mdns_event_actions_t event_action);
+
+/**
+ * @brief   Browse mDNS for a service `_service._proto`.
+ *
+ * @param service  Pointer to the `_service` which will be browsed.
+ * @param proto    Pointer to the `_proto` which will be browsed.
+ * @param notifier The callback which will be called when the browsing service changed.
+ * @return mdns_browse_t pointer to new browse object if initiated successfully.
+ *         NULL otherwise.
+ */
+mdns_browse_t *mdns_browse_new(const char *service, const char *proto, mdns_browse_notify_t notifier);
+
+/**
+ * @brief   Stop the `_service._proto` browse.
+ * @param service  Pointer to the `_service` which will be browsed.
+ * @param proto    Pointer to the `_proto` which will be browsed.
+ * @return
+ *     - ESP_OK                 success.
+ *     - ESP_ERR_FAIL           mDNS is not running or the browsing of `_service._proto` is never started.
+ *     - ESP_ERR_NO_MEM         memory error.
+ */
+esp_err_t mdns_browse_delete(const char *service, const char *proto);
+
+#ifdef __cplusplus
 }
 #endif
+
+#endif /* ESP_MDNS_H_ */

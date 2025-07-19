@@ -1,4 +1,4 @@
-/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,121 +12,126 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/micro/micro_profiler.h"
 
-#include <cinttypes>
-#include <cstdint>
-#include <cstring>
+#ifndef TENSORFLOW_LITE_MICRO_MICRO_PROFILER_H_
+#define TENSORFLOW_LITE_MICRO_MICRO_PROFILER_H_
 
-#include "tensorflow/lite/kernels/internal/compatibility.h"
-#include "tensorflow/lite/micro/micro_log.h"
-#include "tensorflow/lite/micro/micro_time.h"
+#include "tensorflow/lite/micro/compatibility.h"
+#include "tensorflow/lite/micro/micro_profiler_interface.h"
 
 namespace tflite {
 
-uint32_t MicroProfiler::BeginEvent(const char* tag) {
-  if (num_events_ == kMaxEvents) {
-    MicroPrintf(
-        "MicroProfiler errored out because total number of events exceeded the "
-        "maximum of %d.",
-        kMaxEvents);
-    TFLITE_ASSERT_FALSE;
-  }
+// MicroProfiler creates a common way to gain fine-grained insight into runtime
+// performance. Bottleck operators can be identified along with slow code
+// sections. This can be used in conjunction with running the relevant micro
+// benchmark to evaluate end-to-end performance.
+class MicroProfiler : public MicroProfilerInterface {
+ public:
+  MicroProfiler() = default;
+  virtual ~MicroProfiler() = default;
 
-  tags_[num_events_] = tag;
-  start_ticks_[num_events_] = GetCurrentTimeTicks();
-  end_ticks_[num_events_] = start_ticks_[num_events_] - 1;
-  return num_events_++;
-}
+  // Marks the start of a new event and returns an event handle that can be used
+  // to mark the end of the event via EndEvent. The lifetime of the tag
+  // parameter must exceed that of the MicroProfiler.
+  virtual uint32_t BeginEvent(const char *tag) override;
 
-void MicroProfiler::EndEvent(uint32_t event_handle) {
-  TFLITE_DCHECK(event_handle < kMaxEvents);
-  end_ticks_[event_handle] = GetCurrentTimeTicks();
-}
+  // Marks the end of an event associated with event_handle. It is the
+  // responsibility of the caller to ensure than EndEvent is called once and
+  // only once per event_handle.
+  //
+  // If EndEvent is called more than once for the same event_handle, the last
+  // call will be used as the end of event marker. If EndEvent is called 0 times
+  // for a particular event_handle, the duration of that event will be 0 ticks.
+  virtual void EndEvent(uint32_t event_handle) override;
 
-uint32_t MicroProfiler::GetTotalTicks() const {
-  int32_t ticks = 0;
-  for (int i = 0; i < num_events_; ++i) {
-    ticks += end_ticks_[i] - start_ticks_[i];
-  }
-  return ticks;
-}
+  // Clears all the events that have been currently profiled.
+  void ClearEvents();
 
-void MicroProfiler::Log() const {
-#if !defined(TF_LITE_STRIP_ERROR_STRINGS)
-  for (int i = 0; i < num_events_; ++i) {
-    uint32_t ticks = end_ticks_[i] - start_ticks_[i];
-    MicroPrintf("%s took %u ticks (%d ms).", tags_[i], ticks, TicksToMs(ticks));
-  }
-#endif
-}
+  // Returns the sum of the ticks taken across all the events. This number
+  // is only meaningful if all of the events are disjoint (the end time of
+  // event[i] <= start time of event[i+1]).
+  uint32_t GetTotalTicks() const;
 
-void MicroProfiler::LogCsv() const {
-#if !defined(TF_LITE_STRIP_ERROR_STRINGS)
-  MicroPrintf("\"Event\",\"Tag\",\"Ticks\"");
-  for (int i = 0; i < num_events_; ++i) {
-#if defined(HEXAGON) || defined(CMSIS_NN)
-    int ticks = end_ticks_[i] - start_ticks_[i];
-    MicroPrintf("%d,%s,%d", i, tags_[i], ticks);
+  // Prints the profiling information of each of the events in human readable
+  // form.
+  void Log() const;
+
+  // Prints the profiling information of each of the events in CSV (Comma
+  // Separated Value) form.
+  void LogCsv() const;
+
+  // Prints  total ticks for each unique tag in CSV format.
+  // Output will have one row for each unique tag along with the
+  // total ticks summed across all events with that particular tag.
+  void LogTicksPerTagCsv();
+
+ private:
+  // Maximum number of events that this class can keep track of. The
+  // MicroProfiler will abort if AddEvent is called more than kMaxEvents number
+  // of times. Increase this number if you need more events.
+  static constexpr int kMaxEvents = 4096;
+
+  const char *tags_[kMaxEvents];
+  uint32_t start_ticks_[kMaxEvents];
+  uint32_t end_ticks_[kMaxEvents];
+  int num_events_ = 0;
+
+  struct TicksPerTag {
+    const char *tag;
+    uint32_t ticks;
+  };
+  // In practice, the number of tags will be much lower than the number of
+  // events. But it is theoretically possible that each event to be unique and
+  // hence we allow total_ticks_per_tag to have kMaxEvents entries.
+  TicksPerTag total_ticks_per_tag_[kMaxEvents] = {};
+
+  int FindExistingOrNextPosition(const char *tag_name);
+
+  TF_LITE_REMOVE_VIRTUAL_DELETE
+};
+
+#if defined(TF_LITE_STRIP_ERROR_STRINGS)
+// For release builds, the ScopedMicroProfiler is a noop.
+//
+// This is done because the ScipedProfiler is used as part of the
+// MicroInterpreter and we want to ensure zero overhead for the release builds.
+class ScopedMicroProfiler {
+ public:
+  explicit ScopedMicroProfiler(const char *tag, MicroProfilerInterface *profiler) {}
+};
+
 #else
-    uint32_t ticks = end_ticks_[i] - start_ticks_[i];
-    MicroPrintf("%d,%s,%" PRIu32, i, tags_[i], ticks);
-#endif
-  }
-#endif
-}
 
-void MicroProfiler::LogTicksPerTagCsv() {
-#if !defined(TF_LITE_STRIP_ERROR_STRINGS)
-  MicroPrintf(
-      "\"Unique Tag\",\"Total ticks across all events with that tag.\"");
-  int total_ticks = 0;
-  for (int i = 0; i < num_events_; ++i) {
-    uint32_t ticks = end_ticks_[i] - start_ticks_[i];
-    TFLITE_DCHECK(tags_[i] != nullptr);
-    int position = FindExistingOrNextPosition(tags_[i]);
-    TFLITE_DCHECK(position >= 0);
-    total_ticks_per_tag_[position].tag = tags_[i];
-    total_ticks_per_tag_[position].ticks =
-        total_ticks_per_tag_[position].ticks + ticks;
-    total_ticks += ticks;
-  }
-
-  for (int i = 0; i < num_events_; ++i) {
-    TicksPerTag each_tag_entry = total_ticks_per_tag_[i];
-    if (each_tag_entry.tag == nullptr) {
-      break;
-    }
-    MicroPrintf("%s, %d", each_tag_entry.tag, each_tag_entry.ticks);
-  }
-  MicroPrintf("\"total number of ticks\", %d", total_ticks);
-#endif
-}
-
-// This method finds a particular array element in the total_ticks_per_tag array
-// with the matching tag_name passed in the method. If it can find a
-// matching array element that has the same tag_name, then it will return the
-// position of the matching element. But if it unable to find a matching element
-// with the given tag_name, it will return the next available empty position
-// from the array.
-int MicroProfiler::FindExistingOrNextPosition(const char* tag_name) {
-  int pos = 0;
-  for (; pos < num_events_; pos++) {
-    TicksPerTag each_tag_entry = total_ticks_per_tag_[pos];
-    if (each_tag_entry.tag == nullptr ||
-        strcmp(each_tag_entry.tag, tag_name) == 0) {
-      return pos;
+// This class can be used to add events to a MicroProfiler object that span the
+// lifetime of the ScopedMicroProfiler object.
+// Usage example:
+//
+// MicroProfiler profiler();
+// ...
+// {
+//   ScopedMicroProfiler scoped_profiler("custom_tag", profiler);
+//   work_to_profile();
+// }
+class ScopedMicroProfiler {
+ public:
+  explicit ScopedMicroProfiler(const char *tag, MicroProfilerInterface *profiler) : profiler_(profiler) {
+    if (profiler_ != nullptr) {
+      event_handle_ = profiler_->BeginEvent(tag);
     }
   }
-  return pos < num_events_ ? pos : -1;
-}
 
-void MicroProfiler::ClearEvents() {
-  for (int i = 0; i < num_events_; i++) {
-    total_ticks_per_tag_[i].tag = nullptr;
+  ~ScopedMicroProfiler() {
+    if (profiler_ != nullptr) {
+      profiler_->EndEvent(event_handle_);
+    }
   }
 
-  num_events_ = 0;
-}
+ private:
+  uint32_t event_handle_ = 0;
+  MicroProfilerInterface *profiler_ = nullptr;
+};
+#endif  // !defined(TF_LITE_STRIP_ERROR_STRINGS)
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_MICRO_PROFILER_H_

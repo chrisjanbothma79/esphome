@@ -13,41 +13,56 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "signal/src/filter_bank.h"
+#ifndef SIGNAL_SRC_FILTER_BANK_H_
+#define SIGNAL_SRC_FILTER_BANK_H_
+
+#include <stdint.h>
 
 namespace tflite {
 namespace tflm_signal {
+// TODO(b/286250473): remove namespace once de-duped libraries above
 
-void FilterbankAccumulateChannels(const FilterbankConfig* config,
-                                  const uint32_t* input, uint64_t* output) {
-  // With a log mel filterbank, the energy at each frequency gets added to
-  // two adjacent filterbank filters/channels.
-  // For the first filter bank channel, its energy is first multiplied by
-  // some weight 'w', then gets accumulated.
-  // For the subsequent filter bank, its power is first multiplied by 1-'w'
-  // (called unweight here), then gets accumulated.
-  // For this reason, we need to calculate (config->num_channels + 1) output
-  // where element 0 is only used as scratch storage for the unweights of
-  // element 1 (channel 0). The caller should discard element 0.
-  // Writing the code like this doesn't save multiplications, but it lends
-  // itself better to optimization, because input[freq_start + j] only needs
-  // to be loaded once.
-  uint64_t weight_accumulator = 0;
-  uint64_t unweight_accumulator = 0;
-  for (int i = 0; i < config->num_channels + 1; i++) {
-    const int16_t freq_start = config->channel_frequency_starts[i];
-    const int16_t weight_start = config->channel_weight_starts[i];
-    for (int j = 0; j < config->channel_widths[i]; ++j) {
-      weight_accumulator += config->weights[weight_start + j] *
-                            static_cast<uint64_t>(input[freq_start + j]);
-      unweight_accumulator += config->unweights[weight_start + j] *
-                              static_cast<uint64_t>(input[freq_start + j]);
-    }
-    output[i] = weight_accumulator;
-    weight_accumulator = unweight_accumulator;
-    unweight_accumulator = 0;
-  }
-}
+struct FilterbankConfig {
+  // Number of filterbank channels
+  int32_t num_channels;
+
+  // Each of the following three arrays is of size num_channels + 1
+  // An extra channel is needed for scratch. See implementation of
+  // FilterbankAccumulateChannels() for more details
+
+  // For each channel, the index in the input (spectrum) where its band starts
+  const int16_t *channel_frequency_starts;
+  // For each channel, the index in the weights/unweights arrays where
+  // it filter weights start
+  const int16_t *channel_weight_starts;
+  // For each channel, the number of bins in the input (spectrum) that span
+  // its band
+  const int16_t *channel_widths;
+
+  // The weights array holds the triangular filter weights of all the filters
+  // in the bank. The output of each filter in the bank is caluclated by
+  // multiplying the elements in the input spectrum that are in its band
+  // (see above: channel_frequency_starts, channel_widths) by the filter weights
+  // then accumulating. Each element in the unweights array holds the 1 minus
+  // corresponding elements in the weights array and is used to make this
+  // operation more efficient. For more details, see documnetation in
+  // FilterbankAccumulateChannels()
+  const int16_t *weights;
+  const int16_t *unweights;
+  int32_t output_scale;
+
+  int32_t input_correction_bits;
+};
+
+// Accumulate the energy spectrum bins in `input` into filter bank channels
+// contained in `output`.
+// * `input` - Spectral energy array
+// * `output` - of size `config.num_channels` + 1.
+//              Elements [1:num_channels] contain the filter bank channels.
+//              Element 0 is used as scratch and should be ignored
+void FilterbankAccumulateChannels(const FilterbankConfig *config, const uint32_t *input, uint64_t *output);
 
 }  // namespace tflm_signal
 }  // namespace tflite
+
+#endif  // SIGNAL_SRC_FILTER_BANK_H_

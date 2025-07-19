@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -11,59 +11,51 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-==============================================================================*/
+*/
 
-#ifndef TENSORFLOW_LITE_MICRO_RECORDING_MICRO_INTERPRETER_H_
-#define TENSORFLOW_LITE_MICRO_RECORDING_MICRO_INTERPRETER_H_
+#ifndef TENSORFLOW_LITE_MICRO_SPAN_H_
+#define TENSORFLOW_LITE_MICRO_SPAN_H_
 
-#include "tensorflow/lite/micro/micro_interpreter.h"
-#include "tensorflow/lite/micro/micro_profiler_interface.h"
-#include "tensorflow/lite/micro/recording_micro_allocator.h"
+#include <array>
+#include <cstddef>
 
 namespace tflite {
 
-// Utility subclass that enables internal recordings of the MicroInterpreter.
-// This class should be used to audit and analyze memory arena usage for a given
-// model and interpreter.
-//
-// After construction and the first Invoke() or AllocateTensors() call - the
-// memory usage is recorded and available through the GetMicroAllocator()
-// function. See RecordingMicroAlloctor for more details on what is currently
-// recorded from arena allocations.
-//
-// It is recommended for users to increase the tensor arena size by at least 1kb
-// to ensure enough additional memory is available for internal recordings.
-class RecordingMicroInterpreter : public MicroInterpreter {
+// A poor man's std::span, we should consider using the Pigweed span instead.
+template<typename T> class Span {
  public:
-  RecordingMicroInterpreter(const Model* model,
-                            const MicroOpResolver& op_resolver,
-                            uint8_t* tensor_arena, size_t tensor_arena_size,
-                            MicroResourceVariables* resource_variable = nullptr,
-                            MicroProfilerInterface* profiler = nullptr)
-      : MicroInterpreter(
-            model, op_resolver,
-            RecordingMicroAllocator::Create(tensor_arena, tensor_arena_size),
-            resource_variable, profiler),
-        recording_micro_allocator_(
-            static_cast<const RecordingMicroAllocator&>(allocator())) {}
+  constexpr Span(T *data, size_t size) noexcept : data_(data), size_(size) {}
 
-  RecordingMicroInterpreter(const Model* model,
-                            const MicroOpResolver& op_resolver,
-                            RecordingMicroAllocator* allocator,
-                            MicroResourceVariables* resource_variable = nullptr,
-                            MicroProfilerInterface* profiler = nullptr)
-      : MicroInterpreter(model, op_resolver, allocator, resource_variable,
-                         profiler),
-        recording_micro_allocator_(*allocator) {}
+  template<size_t N> constexpr Span(T (&data)[N]) noexcept : data_(data), size_(N) {}
 
-  const RecordingMicroAllocator& GetMicroAllocator() const {
-    return recording_micro_allocator_;
-  }
+  template<size_t N> constexpr Span(std::array<T, N> &array) noexcept : data_(array.data()), size_(N) {}
+
+  constexpr T &operator[](size_t idx) const noexcept { return *(data_ + idx); }
+
+  constexpr T *data() const noexcept { return data_; }
+  constexpr size_t size() const noexcept { return size_; }
 
  private:
-  const RecordingMicroAllocator& recording_micro_allocator_;
+  T *data_;
+  size_t size_;
 };
 
-}  // namespace tflite
+template<typename A, typename B> bool operator==(const Span<A> &a, const Span<B> &b) {
+  if (a.size() != b.size()) {
+    return false;
+  }
 
-#endif  // TENSORFLOW_LITE_MICRO_RECORDING_MICRO_INTERPRETER_H_
+  for (size_t i = 0; i < a.size(); ++i) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+template<typename A, typename B> bool operator!=(const Span<A> &a, const Span<B> &b) { return !(a == b); }
+
+}  // end namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_SPAN_H_

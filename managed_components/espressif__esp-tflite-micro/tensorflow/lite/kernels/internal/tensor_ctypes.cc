@@ -1,4 +1,4 @@
-/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,26 +12,28 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_TENSOR_CTYPES_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_TENSOR_CTYPES_H_
 
 #include <vector>
 
+#include "tensorflow/lite/core/c/common.h"
+#include "tensorflow/lite/core/macros.h"
+#include "tensorflow/lite/kernels/internal/types.h"
+
 namespace tflite {
 
-RuntimeShape GetTensorShape(const TfLiteTensor* tensor) {
-  if (tensor == nullptr) {
-    return RuntimeShape();
-  }
-
-  TfLiteIntArray* dims = tensor->dims;
-  const int dims_size = dims->size;
-  const int32_t* dims_data = reinterpret_cast<const int32_t*>(dims->data);
-  return RuntimeShape(dims_size, dims_data);
+template<typename T> inline T *GetTensorData(TfLiteTensor *tensor) {
+  return tensor != nullptr ? reinterpret_cast<T *>(tensor->data.raw) : nullptr;
 }
 
-RuntimeShape GetTensorShape(std::vector<int32_t> data) {
-  return RuntimeShape(data.size(), data.data());
+template<typename T> inline const T *GetTensorData(const TfLiteTensor *tensor) {
+  return tensor != nullptr ? reinterpret_cast<const T *>(tensor->data.raw) : nullptr;
 }
+
+TFLITE_NOINLINE RuntimeShape GetTensorShape(const TfLiteTensor *tensor);
+RuntimeShape GetTensorShape(std::vector<int32_t> data);
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_TENSOR_CTYPES_H_

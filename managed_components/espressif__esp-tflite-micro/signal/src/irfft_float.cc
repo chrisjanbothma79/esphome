@@ -18,46 +18,26 @@ limitations under the License.
 
 #include "signal/src/complex.h"
 #include "signal/src/irfft.h"
-#include "signal/src/kiss_fft_wrappers/kiss_fft_float.h"
+#include "signal/src/kiss_fft_wrappers/kiss_fft_int16.h"
 
 // TODO(b/286250473): remove namespace once de-duped libraries
 namespace tflite {
 namespace tflm_signal {
 
-struct IrfftFloatState {
-  int32_t fft_length;
-  kiss_fft_float::kiss_fftr_cfg cfg;
-};
-
-size_t IrfftFloatGetNeededMemory(int32_t fft_length) {
-  size_t cfg_size = 0;
-  kiss_fft_float::kiss_fftr_alloc(fft_length, 1, nullptr, &cfg_size);
-  return sizeof(IrfftFloatState) + cfg_size;
+size_t IrfftInt16GetNeededMemory(int32_t fft_length) {
+  size_t state_size = 0;
+  kiss_fft_fixed16::kiss_fftr_alloc(fft_length, 1, nullptr, &state_size);
+  return state_size;
 }
 
-void* IrfftFloatInit(int32_t fft_length, void* state, size_t state_size) {
-  IrfftFloatState* irfft_float_state = static_cast<IrfftFloatState*>(state);
-  irfft_float_state->cfg =
-      reinterpret_cast<kiss_fft_float::kiss_fftr_cfg>(irfft_float_state + 1);
-  irfft_float_state->fft_length = fft_length;
-  size_t cfg_size = state_size - sizeof(IrfftFloatState);
-  return kiss_fft_float::kiss_fftr_alloc(fft_length, 1, irfft_float_state->cfg,
-                                         &cfg_size);
+void *IrfftInt16Init(int32_t fft_length, void *state, size_t state_size) {
+  return kiss_fft_fixed16::kiss_fftr_alloc(fft_length, 1, state, &state_size);
 }
 
-void IrfftFloatApply(void* state, const Complex<float>* input, float* output) {
-  IrfftFloatState* irfft_float_state = static_cast<IrfftFloatState*>(state);
-  kiss_fft_float::kiss_fftri(
-      static_cast<kiss_fft_float::kiss_fftr_cfg>(irfft_float_state->cfg),
-      reinterpret_cast<const kiss_fft_float::kiss_fft_cpx*>(input),
-      reinterpret_cast<kiss_fft_scalar*>(output));
-  // KissFFT scales the IRFFT output by the FFT length.
-  // KissFFT's nfft is the complex FFT length, which is half the real FFT's
-  // length. Compensate.
-  const int fft_length = irfft_float_state->fft_length;
-  for (int i = 0; i < fft_length; i++) {
-    output[i] /= fft_length;
-  }
+void IrfftInt16Apply(void *state, const Complex<int16_t> *input, int16_t *output) {
+  kiss_fft_fixed16::kiss_fftri(static_cast<kiss_fft_fixed16::kiss_fftr_cfg>(state),
+                               reinterpret_cast<const kiss_fft_fixed16::kiss_fft_cpx *>(input),
+                               reinterpret_cast<kiss_fft_scalar *>(output));
 }
 
 }  // namespace tflm_signal

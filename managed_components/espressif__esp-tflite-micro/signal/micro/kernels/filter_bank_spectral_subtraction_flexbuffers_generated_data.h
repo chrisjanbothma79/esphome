@@ -1,4 +1,4 @@
-/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,14 +13,46 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef SIGNAL_MICRO_KERNELS_TEST_DATA_GENERATION_GENERATE_FILTER_BANK_SPECTRAL_SUBTRACTION_FLEXBUFFERS_DATA_H_
-#define SIGNAL_MICRO_KERNELS_TEST_DATA_GENERATION_GENERATE_FILTER_BANK_SPECTRAL_SUBTRACTION_FLEXBUFFERS_DATA_H_
+#include "signal/src/filter_bank_square_root.h"
 
-extern const int g_gen_data_size_filter_bank_spectral_subtraction_32_channel;
-extern const unsigned char
-    g_gen_data_filter_bank_spectral_subtraction_32_channel[];
-extern const int g_gen_data_size_filter_bank_spectral_subtraction_16_channel;
-extern const unsigned char
-    g_gen_data_filter_bank_spectral_subtraction_16_channel[];
+#include <stdint.h>
 
-#endif  // SIGNAL_MICRO_KERNELS_TEST_DATA_GENERATION_GENERATE_FILTER_BANK_SPECTRAL_SUBTRACTION_FLEXBUFFERS_DATA_H_
+#include "signal/micro/kernels/filter_bank_square_root.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/memory_helpers.h"
+#include "tensorflow/lite/micro/micro_utils.h"
+
+namespace tflite {
+namespace {
+
+constexpr int kInputTensor = 0;
+constexpr int kScaleBitsTensor = 1;
+constexpr int kOutputTensor = 0;
+
+TfLiteStatus FilterBankSquareRootEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kInputTensor);
+  const TfLiteEvalTensor *scale_bits = tflite::micro::GetEvalInput(context, node, kScaleBitsTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+
+  const uint64_t *input_data = tflite::micro::GetTensorData<uint64_t>(input);
+  const int32_t *scale_bits_data = tflite::micro::GetTensorData<int32_t>(scale_bits);
+  uint32_t *output_data = tflite::micro::GetTensorData<uint32_t>(output);
+  int32_t num_channels = input->dims->data[0];
+  tflm_signal::FilterbankSqrt(input_data, num_channels, *scale_bits_data, output_data);
+  return kTfLiteOk;
+}
+
+}  // namespace
+
+namespace tflm_signal {
+
+TFLMRegistration *Register_FILTER_BANK_SQUARE_ROOT() {
+  static TFLMRegistration r = tflite::micro::RegisterOp(nullptr, FilterBankSquareRootPrepare, FilterBankSquareRootEval);
+  return &r;
+}
+
+}  // namespace tflm_signal
+
+}  // namespace tflite

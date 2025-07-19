@@ -1,4 +1,4 @@
-/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,78 +12,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
-#ifndef TFLITE_MICRO_TENSORFLOW_LITE_MICRO_MICRO_RESOURCE_H_
-#define TFLITE_MICRO_TENSORFLOW_LITE_MICRO_MICRO_RESOURCE_H_
+#ifndef TENSORFLOW_LITE_MICRO_MICRO_TIME_H_
+#define TENSORFLOW_LITE_MICRO_MICRO_TIME_H_
 
 #include <cstdint>
 
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/micro/micro_allocator.h"
-
 namespace tflite {
 
-class MicroResourceVariables {
- public:
-  // Create
-  static MicroResourceVariables* Create(MicroAllocator* allocator,
-                                        int num_variables);
+// These functions should be implemented by each target platform, and provide an
+// accurate tick count along with how many ticks there are per second.
+uint32_t ticks_per_second();
 
-  // Creates a resource variable if none is available for the given container
-  // and shared name pair. Returns the resource ID corresponding to the
-  // container and shared name pair. If allocation fails, the returned resource
-  // ID will be negative. The the container and shared_name must outlive this
-  // class.
-  int CreateIdIfNoneFound(const char* container, const char* shared_name);
+// Return time in ticks.  The meaning of a tick varies per platform.
+uint32_t GetCurrentTimeTicks();
 
-  // Read the resource buffer associated with the given ID into the given
-  // tensor.
-  TfLiteStatus Read(int id, const TfLiteEvalTensor* tensor);
-
-  // Allocates the resource buffer if none has been allocated, based on the
-  // length of the input tensor. Copies input tensor contents to the resource
-  // buffer.
-  TfLiteStatus Allocate(int id, TfLiteContext* context,
-                        const TfLiteTensor* tensor);
-
-  // Copies input_buffer contents to the resource buffer.
-  // AllocateResourceVariable with a TFLite tensor must have been called first
-  // in order to allocate the resource buffer.
-  TfLiteStatus Assign(int id, size_t count_bytes, const void* input_buffer);
-
-  // Zeros out all resource buffers.
-  TfLiteStatus ResetAll();
-
- private:
-  int FindId(const char* container, const char* shared_name);
-
-  // Micro resource contains the mapping between resource container/name strings
-  // and resouce IDs. Each resource ID corresponds to a resource buffer pointer.
-  // The resouce ID is created during the VAR_HANDLE operator preparation stage.
-  // The resource buffer pointer is created during ASSIGN_VARIABLE preparation
-  // stage based on the size of the TFLiteTensor being assigned.
-  struct MicroResourceVariable {
-    const char* container;
-    const char* shared_name;
-    void* resource_buffer;
-
-    // This is only for verifying read size.
-    size_t bytes;
-    // Initialization default value
-    int8_t default_value;
-  };
-
-  MicroResourceVariables(MicroResourceVariable* variables,
-                         int max_variable_count)
-      : resource_variables_(variables),
-        max_variable_count_(max_variable_count),
-        num_resource_variables_(0) {}
-
-  MicroResourceVariable* resource_variables_;
-  int max_variable_count_;
-  int num_resource_variables_;
-};
+inline uint32_t TicksToMs(int32_t ticks) {
+  uint32_t _ticks_per_second = ticks_per_second();
+  _ticks_per_second = _ticks_per_second > 0 ? _ticks_per_second : 1;  // zero divide prevention
+  return static_cast<uint32_t>(1000.0f * static_cast<float>(ticks) / static_cast<float>(_ticks_per_second));
+}
 
 }  // namespace tflite
 
-#endif  // TFLITE_MICRO_TENSORFLOW_LITE_MICRO_MICRO_RESOURCE_H_
+#endif  // TENSORFLOW_LITE_MICRO_MICRO_TIME_H_

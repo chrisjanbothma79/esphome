@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,26 +12,25 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ELU_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ELU_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_EXP_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_EXP_H_
 
-#include "tensorflow/lite/kernels/internal/cppmath.h"
+#include <cmath>
+
+#include "ruy/profiler/instrumentation.h"  // from @ruy
 #include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
-
 namespace reference_ops {
 
-inline void Elu(const RuntimeShape& input_shape, const float* input_data,
-                const RuntimeShape& output_shape, float* output_data) {
-  const int flat_size = MatchingFlatSize(input_shape, output_shape);
-  for (int i = 0; i < flat_size; ++i) {
-    const float val = input_data[i];
-    output_data[i] = val < 0.0f ? TfLiteExpm1(val) : val;
+template<typename T> inline void Exp(const T *input_data, const size_t num_elements, T *output_data) {
+  ruy::profiler::ScopeLabel label("Exp");
+  for (size_t idx = 0; idx < num_elements; ++idx) {
+    output_data[idx] = std::exp(input_data[idx]);
   }
 }
 
 }  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ELU_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_EXP_H_

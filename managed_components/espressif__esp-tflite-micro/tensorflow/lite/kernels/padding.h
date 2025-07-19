@@ -1,4 +1,4 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,104 +12,87 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_PADDING_H_
-#define TENSORFLOW_LITE_KERNELS_PADDING_H_
+#ifndef TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_IBUFFER_ALLOCATOR_H_
+#define TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_IBUFFER_ALLOCATOR_H_
 
-#include "tensorflow/lite/core/c/builtin_op_data.h"
-#include "tensorflow/lite/kernels/internal/types.h"
+#include <cstddef>
+#include <cstdint>
+
+#include "tensorflow/lite/c/c_api_types.h"
 
 namespace tflite {
+// Interface classes that the TFLM framework relies on to get buffers it needs.
+// There are two types of buffers that the TFLM framework requires: persistent
+// and non-persistent. Persistent buffers, once allocated, are never freed by
+// the TFLM framework. Non-persist buffers can be allocated and deallocated by
+// the TFLM framework. This file defines two interfaces classes that TFLM
+// framework will rely on to manage these buffers.
 
-inline int ComputePadding(int stride, int dilation_rate, int in_size,
-                          int filter_size, int out_size) {
-  int effective_filter_size = (filter_size - 1) * dilation_rate + 1;
-  int padding = ((out_size - 1) * stride + effective_filter_size - in_size) / 2;
-  return padding > 0 ? padding : 0;
-}
+// Interface class for managing persistent buffers.
+class IPersistentBufferAllocator {
+ public:
+  IPersistentBufferAllocator() {}
+  virtual ~IPersistentBufferAllocator() {}
 
-// It's not guaranteed that padding is symmetric. It's important to keep
-// offset for algorithms need all paddings.
-inline int ComputePaddingWithOffset(int stride, int dilation_rate, int in_size,
-                                    int filter_size, int out_size,
-                                    int* offset) {
-  int effective_filter_size = (filter_size - 1) * dilation_rate + 1;
-  int total_padding =
-      ((out_size - 1) * stride + effective_filter_size - in_size);
-  total_padding = total_padding > 0 ? total_padding : 0;
-  *offset = total_padding % 2;
-  return total_padding / 2;
-}
+  // Allocates persistent memory. The persistent buffer is never freed.
+  virtual uint8_t *AllocatePersistentBuffer(size_t size, size_t alignment) = 0;
 
-// Matching GetWindowedOutputSize in TensorFlow.
-inline int ComputeOutSize(TfLitePadding padding, int image_size,
-                          int filter_size, int stride, int dilation_rate = 1) {
-  int effective_filter_size = (filter_size - 1) * dilation_rate + 1;
+  // Returns the size of all persistent allocations in bytes.
+  virtual size_t GetPersistentUsedBytes() const = 0;
+};
 
-  // TODO(b/186448822): This uses 0 since the function has no other way to
-  // report error case
-  if (stride == 0) return 0;
+// Interface class for managing non-persistent buffers.
+// The default non-persistent buffers are temp buffers that are not resizable.
+// Support of at least one resizable buffer is required.
+class INonPersistentBufferAllocator {
+ public:
+  INonPersistentBufferAllocator() {}
+  virtual ~INonPersistentBufferAllocator() {}
 
-  switch (padding) {
-    case kTfLitePaddingSame:
-      return (image_size + stride - 1) / stride;
-    case kTfLitePaddingValid:
-      return (image_size + stride - effective_filter_size) / stride;
-    default:
-      return 0;
-  }
-}
+  // Allocates a temporary buffer. This buffer is not resizable.
+  virtual uint8_t *AllocateTemp(size_t size, size_t alignment) = 0;
 
-inline TfLitePaddingValues ComputePaddingHeightWidth(
-    int stride_height, int stride_width, int dilation_rate_height,
-    int dilation_rate_width, int in_height, int in_width, int filter_height,
-    int filter_width, TfLitePadding padding, int* out_height, int* out_width) {
-  *out_width = ComputeOutSize(padding, in_width, filter_width, stride_width,
-                              dilation_rate_width);
-  *out_height = ComputeOutSize(padding, in_height, filter_height, stride_height,
-                               dilation_rate_height);
+  // Signals that a temporary buffer is no longer needed.
+  virtual void DeallocateTemp(uint8_t *buf) = 0;
 
-  TfLitePaddingValues padding_values;
-  int offset = 0;
-  padding_values.height =
-      ComputePaddingWithOffset(stride_height, dilation_rate_height, in_height,
-                               filter_height, *out_height, &offset);
-  padding_values.height_offset = offset;
-  padding_values.width =
-      ComputePaddingWithOffset(stride_width, dilation_rate_width, in_width,
-                               filter_width, *out_width, &offset);
-  padding_values.width_offset = offset;
-  return padding_values;
-}
+  // Returns true if all temporary buffers are already deallocated.
+  virtual bool IsAllTempDeallocated() = 0;
 
-inline Padding3DValues ComputePadding3DValues(
-    int stride_height, int stride_width, int stride_depth,
-    int dilation_rate_height, int dilation_rate_width, int dilation_rate_depth,
-    int in_height, int in_width, int in_depth, int filter_height,
-    int filter_width, int filter_depth, TfLitePadding padding, int* out_height,
-    int* out_width, int* out_depth) {
-  *out_width = ComputeOutSize(padding, in_width, filter_width, stride_width,
-                              dilation_rate_width);
-  *out_height = ComputeOutSize(padding, in_height, filter_height, stride_height,
-                               dilation_rate_height);
-  *out_depth = ComputeOutSize(padding, in_depth, filter_depth, stride_depth,
-                              dilation_rate_depth);
+  // Signals that all temporary allocations can be reclaimed. TFLM calls this
+  // API when it knows that all temporary buffers that it requested has been
+  // deallocated. The goal of API is to facilitate implementations of
+  // INonPersistentBufferAllocator can reuse buffer with some reasonable
+  // complexity.
+  virtual TfLiteStatus ResetTempAllocations() = 0;
 
-  Padding3DValues padding_values;
-  int offset = 0;
-  padding_values.depth =
-      ComputePaddingWithOffset(stride_depth, dilation_rate_depth, in_depth,
-                               filter_depth, *out_depth, &offset);
-  padding_values.depth_offset = offset;
-  padding_values.height =
-      ComputePaddingWithOffset(stride_height, dilation_rate_height, in_height,
-                               filter_height, *out_height, &offset);
-  padding_values.height_offset = offset;
-  padding_values.width =
-      ComputePaddingWithOffset(stride_width, dilation_rate_width, in_width,
-                               filter_width, *out_width, &offset);
-  padding_values.width_offset = offset;
-  return padding_values;
-}
+  // Returns a buffer that is resizable viable ResizeBuffer().
+  virtual uint8_t *AllocateResizableBuffer(size_t size, size_t alignment) = 0;
+
+  // Resizes a buffer that is previously returned by the
+  // AllocateResizableBuffer.
+  virtual TfLiteStatus ResizeBuffer(uint8_t *resizable_buf, size_t size, size_t alignment) = 0;
+
+  // Frees up the memory occupied by the resizable buffer.
+  virtual TfLiteStatus DeallocateResizableBuffer(uint8_t *resizable_buf) = 0;
+
+  // Returns a pointer pointing to the start of the overlay memory, which is
+  // used for activation tensors and scratch buffers by kernels at Invoke stage.
+  virtual uint8_t *GetOverlayMemoryAddress() const = 0;
+
+  // Reserves the size of the overlay memory. This overlay is reserved for the
+  // kernels at Invoke stage. This is referred to as the overlay because before
+  // Invoket state, the same memory can be used for temp buffers. The layout of
+  // the memory is planned by the memory planner separately at Invoke stage.
+  virtual TfLiteStatus ReserveNonPersistentOverlayMemory(size_t size, size_t alignment) = 0;
+
+  // Returns the size of non-persistent buffer in use.
+  virtual size_t GetNonPersistentUsedBytes() const = 0;
+
+  // Returns the number of bytes available with a given alignment. This number
+  // takes in account any temporary allocations.
+  virtual size_t GetAvailableMemory(size_t alignment) const = 0;
+};
+
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_PADDING_H_
+#endif  // TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_IBUFFER_ALLOCATOR_H_

@@ -1,58 +1,109 @@
-// Copyright 2024 The TensorFlow Authors. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
-#include "tensorflow/lite/micro/hexdump.h"
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-#include <array>
+    http://www.apache.org/licenses/LICENSE-2.0
 
-#include "tensorflow/lite/micro/span.h"
-#include "tensorflow/lite/micro/testing/micro_test.h"
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
 
-constexpr tflite::Span<const char> input{
-    "This is an input string for testing."};
+#include "tensorflow/lite/micro/kernels/activations.h"
 
-const tflite::Span<const std::byte> region{
-    reinterpret_cast<const std::byte*>(input.data()), input.size()};
+#include "tensorflow/lite/c/builtin_op_data.h"
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/common.h"
+#include "tensorflow/lite/kernels/internal/quantization_util.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/internal/types.h"
+#include "tensorflow/lite/kernels/kernel_util.h"
+#include "tensorflow/lite/kernels/op_macros.h"
+#include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_utils.h"
 
-// clang-format off
-constexpr tflite::Span<const char> expected{
-    "00000000: 54 68 69 73 20 69 73 20  61 6E 20 69 6E 70 75 74  This is an input\n"
-    "00000001: 20 73 74 72 69 6E 67 20  66 6F 72 20 74 65 73 74   string for test\n"
-    "00000002: 69 6E 67 2E 00                                    ing..\n"};
-// clang-format on
+namespace tflite {
+namespace {
 
-// String literals have null terminators, but don't expect a null terminator
-// in the hexdump output.
-constexpr tflite::Span<const char> expected_no_null{expected.data(),
-                                                    expected.size() - 1};
-
-TF_LITE_MICRO_TESTS_BEGIN
-
-TF_LITE_MICRO_TEST(TestOutputToBuffer) {
-  // Allocate a buffer with an arbitrary amount of extra room so the test has
-  // the possibility of failing if hexdump mishandles the extra space.
-  std::array<char, expected.size() + 10> buffer;
-
-  tflite::Span<char> output = tflite::hexdump(region, buffer);
-  TF_LITE_MICRO_EXPECT(output == expected_no_null);
+void *ReluInit(TfLiteContext *context, const char *buffer, size_t length) {
+  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
+  return context->AllocatePersistentBuffer(context, sizeof(ReluOpData));
 }
 
-TF_LITE_MICRO_TEST(TestOutputToDebugLog) {
-  // There's no easy way to verify DebugLog output; however, test it anyhow to
-  // catch an outright crash, and so the output appears in the log should
-  // someone wish to examine it.
-  tflite::hexdump(region);
+TfLiteStatus ReluEval(TfLiteContext *context, TfLiteNode *node) {
+  TFLITE_DCHECK(node->user_data != nullptr);
+  const ReluOpData &data = *(static_cast<const ReluOpData *>(node->user_data));
+
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kActivationsInputTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kActivationsOutputTensor);
+
+  switch (input->type) {
+    case kTfLiteFloat32: {
+      ReluFloat(tflite::micro::GetTensorShape(input), tflite::micro::GetTensorData<float>(input),
+                tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<float>(output));
+
+      return kTfLiteOk;
+    }
+    case kTfLiteInt8: {
+      tflite::ReluQuantized(data, tflite::micro::GetTensorShape(input), tflite::micro::GetTensorShape(output),
+                            tflite::micro::GetTensorData<int8_t>(input), tflite::micro::GetTensorData<int8_t>(output));
+      return kTfLiteOk;
+    }
+    default: {
+      MicroPrintf("Only float32 is supported currently, got %s", TfLiteTypeGetName(input->type));
+      return kTfLiteError;
+    }
+  }
 }
 
-TF_LITE_MICRO_TESTS_END
+void *Relu6Init(TfLiteContext *context, const char *buffer, size_t length) {
+  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
+  return context->AllocatePersistentBuffer(context, sizeof(Relu6OpData));
+}
+
+TfLiteStatus Relu6Eval(TfLiteContext *context, TfLiteNode *node) {
+  TFLITE_DCHECK(node->user_data != nullptr);
+
+  const Relu6OpData &data = *(static_cast<const Relu6OpData *>(node->user_data));
+
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kActivationsInputTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kActivationsOutputTensor);
+
+  switch (input->type) {
+    case kTfLiteFloat32: {
+      Relu6Float(tflite::micro::GetTensorShape(input), tflite::micro::GetTensorData<float>(input),
+                 tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<float>(output));
+
+      return kTfLiteOk;
+    }
+    case kTfLiteInt8: {
+      Relu6Quantized<int8_t>(data.zero, data.six, tflite::micro::GetTensorShape(input),
+                             tflite::micro::GetTensorData<int8_t>(input), tflite::micro::GetTensorShape(output),
+                             tflite::micro::GetTensorData<int8_t>(output));
+      return kTfLiteOk;
+    }
+    case kTfLiteInt16: {
+      Relu6Quantized<int16_t>(data.zero, data.six, tflite::micro::GetTensorShape(input),
+                              tflite::micro::GetTensorData<int16_t>(input), tflite::micro::GetTensorShape(output),
+                              tflite::micro::GetTensorData<int16_t>(output));
+      return kTfLiteOk;
+    }
+    default: {
+      MicroPrintf("Only float32 is supported currently, got %s", TfLiteTypeGetName(input->type));
+      return kTfLiteError;
+    }
+  }
+}
+
+}  // namespace
+
+TFLMRegistration Register_RELU() { return tflite::micro::RegisterOp(ReluInit, ReluPrepare, ReluEval); }
+
+TFLMRegistration Register_RELU6() { return tflite::micro::RegisterOp(Relu6Init, Relu6Prepare, Relu6Eval); }
+
+}  // namespace tflite

@@ -13,16 +13,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/floor_div.h"
+#include "tensorflow/lite/kernels/internal/reference/floor_mod.h"
 
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/internal/reference/binary_function.h"
+#include "tensorflow/lite/kernels/internal/reference/process_broadcast_shapes.h"
 #include "tensorflow/lite/kernels/internal/types.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/micro_log.h"
 #include "tensorflow/lite/micro/micro_utils.h"
 
+// OLD-TODO(b/117523611): We should factor out a binary_op and put binary ops
+// there.
 namespace tflite {
 namespace {
 
@@ -31,20 +34,19 @@ constexpr int kInputTensor1 = 0;
 constexpr int kInputTensor2 = 1;
 constexpr int kOutputTensor = 0;
 
-TfLiteStatus CalculateOpData(TfLiteContext* context, TfLiteNode* node) {
-  MicroContext* micro_context = GetMicroContext(context);
+// OLD-TODO(b/117912880): Support quantization.
+
+TfLiteStatus CalculateOpData(TfLiteContext *context, TfLiteNode *node) {
+  MicroContext *micro_context = GetMicroContext(context);
 
   TF_LITE_ENSURE_EQ(context, NumInputs(node), 2);
   TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
 
-  TfLiteTensor* input1 =
-      micro_context->AllocateTempInputTensor(node, kInputTensor1);
+  TfLiteTensor *input1 = micro_context->AllocateTempInputTensor(node, kInputTensor1);
   TF_LITE_ENSURE(context, input1 != nullptr);
-  TfLiteTensor* input2 =
-      micro_context->AllocateTempInputTensor(node, kInputTensor2);
+  TfLiteTensor *input2 = micro_context->AllocateTempInputTensor(node, kInputTensor2);
   TF_LITE_ENSURE(context, input2 != nullptr);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
   TF_LITE_ENSURE(context, output != nullptr);
 
   TF_LITE_ENSURE_TYPES_EQ(context, input1->type, input2->type);
@@ -57,65 +59,43 @@ TfLiteStatus CalculateOpData(TfLiteContext* context, TfLiteNode* node) {
   return kTfLiteOk;
 }
 
-void* FloorDivInit(TfLiteContext* context, const char* buffer, size_t length) {
-  return nullptr;
-}
+void *FloorModInit(TfLiteContext *context, const char *buffer, size_t length) { return nullptr; }
 
-TfLiteStatus FloorDivPrepare(TfLiteContext* context, TfLiteNode* node) {
-  return CalculateOpData(context, node);
-}
+TfLiteStatus FloorModPrepare(TfLiteContext *context, TfLiteNode *node) { return CalculateOpData(context, node); }
 
-template <typename T>
-TfLiteStatus EvalFloorDiv(TfLiteContext* context,
-                          const TfLiteEvalTensor* input1,
-                          const TfLiteEvalTensor* input2,
-                          TfLiteEvalTensor* output) {
-  const T* denominator_data = tflite::micro::GetTensorData<T>(input2);
-
-  // Validate the denominator.
-  for (int i = 0; i < tflite::ElementCount(*input2->dims); ++i) {
-    if (std::equal_to<T>()(denominator_data[i], 0)) {
-      MicroPrintf("Division by 0");
-      return kTfLiteError;
-    }
-  }
-
-  bool requires_broadcast = !tflite::micro::HaveSameShapes(input1, input2);
+template<typename T>
+TfLiteStatus EvalFloorMod(TfLiteContext *context, bool requires_broadcast, const TfLiteEvalTensor *input1,
+                          const TfLiteEvalTensor *input2, TfLiteEvalTensor *output) {
+  const T *denominator_data = tflite::micro::GetTensorData<T>(input2);
 
   if (requires_broadcast) {
     reference_ops::BroadcastBinaryFunction4DSlow<T, T, T>(
-        tflite::micro::GetTensorShape(input1),
-        tflite::micro::GetTensorData<T>(input1),
-        tflite::micro::GetTensorShape(input2), denominator_data,
-        tflite::micro::GetTensorShape(output),
-        tflite::micro::GetTensorData<T>(output), reference_ops::FloorDiv<T>);
+        tflite::micro::GetTensorShape(input1), tflite::micro::GetTensorData<T>(input1),
+        tflite::micro::GetTensorShape(input2), denominator_data, tflite::micro::GetTensorShape(output),
+        tflite::micro::GetTensorData<T>(output), reference_ops::FloorMod<T>);
   } else {
     reference_ops::BinaryFunction<T, T, T>(
-        tflite::micro::GetTensorShape(input1),
-        tflite::micro::GetTensorData<T>(input1),
-        tflite::micro::GetTensorShape(input2), denominator_data,
-        tflite::micro::GetTensorShape(output),
-        tflite::micro::GetTensorData<T>(output), reference_ops::FloorDiv<T>);
+        tflite::micro::GetTensorShape(input1), tflite::micro::GetTensorData<T>(input1),
+        tflite::micro::GetTensorShape(input2), denominator_data, tflite::micro::GetTensorShape(output),
+        tflite::micro::GetTensorData<T>(output), reference_ops::FloorMod<T>);
   }
 
   return kTfLiteOk;
 }
 
-TfLiteStatus FloorDivEval(TfLiteContext* context, TfLiteNode* node) {
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor1);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor2);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+TfLiteStatus FloorModEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *input1 = tflite::micro::GetEvalInput(context, node, kInputTensor1);
+  const TfLiteEvalTensor *input2 = tflite::micro::GetEvalInput(context, node, kInputTensor2);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+
+  bool requires_broadcast = !tflite::micro::HaveSameShapes(input1, input2);
 
   switch (input1->type) {
     case kTfLiteFloat32: {
-      return EvalFloorDiv<float>(context, input1, input2, output);
+      return EvalFloorMod<float>(context, requires_broadcast, input1, input2, output);
     }
     default: {
-      MicroPrintf("Type '%s' is not supported by FLOOR_DIV.",
-                  TfLiteTypeGetName(input1->type));
+      MicroPrintf("Type '%s' is not supported by FLOOR_MOD.", TfLiteTypeGetName(input1->type));
       return kTfLiteError;
     }
   }
@@ -123,8 +103,6 @@ TfLiteStatus FloorDivEval(TfLiteContext* context, TfLiteNode* node) {
 
 }  // namespace
 
-TFLMRegistration Register_FLOOR_DIV() {
-  return tflite::micro::RegisterOp(FloorDivInit, FloorDivPrepare, FloorDivEval);
-}
+TFLMRegistration Register_FLOOR_MOD() { return tflite::micro::RegisterOp(FloorModInit, FloorModPrepare, FloorModEval); }
 
 }  // namespace tflite

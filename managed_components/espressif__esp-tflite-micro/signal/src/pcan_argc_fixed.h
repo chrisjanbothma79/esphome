@@ -13,29 +13,71 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef SIGNAL_MICRO_KERNELS__SRC_PCAN_AGC_FIXED_H
-#define SIGNAL_MICRO_KERNELS__SRC_PCAN_AGC_FIXED_H
-#include <cstdint>
+#ifndef SIGNAL_SRC_RFFT_H_
+#define SIGNAL_SRC_RFFT_H_
 
-#include "msb.h"
-#include "tensorflow/lite/kernels/internal/compatibility.h"
+#include <stddef.h>
+#include <stdint.h>
 
-namespace tflite {
+#include "signal/src/complex.h"
+
+// TODO(b/286250473): remove namespace once de-duped libraries
 namespace tflm_signal {
 
-#define kPcanSnrBits 12
-#define kPcanOutputBits 6
+// RFFT (Real Fast Fourier Transform)
+// FFT for real valued time domain inputs.
 
-int16_t WideDynamicFunction(const uint32_t x, const int16_t* lut);
+// 16-bit Integer input/output
 
-uint32_t PcanShrink(const uint32_t x);
+// Returns the size of the memory that an RFFT of `fft_length` needs
+size_t RfftInt16GetNeededMemory(int32_t fft_length);
 
-void ApplyPcanAutoGainControlFixed(const int16_t* gain_lut, int32_t snr_shift,
-                                   const uint32_t* noise_estimate,
-                                   uint32_t* filterbank_output,
-                                   int num_channels);
+// Initialize the state of an RFFT of `fft_length`
+// `state` points to an opaque state of size `state_size`, which
+//  must be greater or equal to the value returned by
+//  RfftGetNeededMemory(fft_length).
+// Return the value of `state` on success or nullptr on failure
+void *RfftInt16Init(int32_t fft_length, void *state, size_t state_size);
+
+// Applies RFFT to `input` and writes the result to `output`
+// * `input` must be of size `fft_length` elements (see RfftInit)
+// * `output` must be of size (`fft_length` * 2) + 1 elements
+void RfftInt16Apply(void *state, const int16_t *input, Complex<int16_t> *output);
+
+// 32-bit Integer input/output
+
+// Returns the size of the memory that an RFFT of `fft_length` needs
+size_t RfftInt32GetNeededMemory(int32_t fft_length);
+
+// Initialize the state of an RFFT of `fft_length`
+// `state` points to an opaque state of size `state_size`, which
+//  must be greater or equal to the value returned by
+//  RfftGetNeededMemory(fft_length).
+// Return the value of `state` on success or nullptr on failure
+void *RfftInt32Init(int32_t fft_length, void *state, size_t state_size);
+
+// Applies RFFT to `input` and writes the result to `output`
+// * `input` must be of size `fft_length` elements (see RfftInit)
+// * `output` must be of size (`fft_length` * 2) + 1 elements
+void RfftInt32Apply(void *state, const int32_t *input, Complex<int32_t> *output);
+
+// Floating point input/output
+
+// Returns the size of the memory that an RFFT of `fft_length` needs
+size_t RfftFloatGetNeededMemory(int32_t fft_length);
+
+// Initialize the state of an RFFT of `fft_length`
+// `state` points to an opaque state of size `state_size`, which
+//  must be greater or equal to the value returned by
+//  RfftGetNeededMemory(fft_length).
+// Return the value of `state` on success or nullptr on failure
+void *RfftFloatInit(int32_t fft_length, void *state, size_t state_size);
+
+// Applies RFFT to `input` and writes the result to `output`
+// * `input` must be of size `fft_length` elements (see RfftInit)
+// * `output` must be of size (`fft_length` * 2) + 1 elements
+void RfftFloatApply(void *state, const float *input, Complex<float> *output);
 
 }  // namespace tflm_signal
-}  // namespace tflite
 
-#endif  // SIGNAL_MICRO_KERNELS__PCAN_AGC_FIXED_H
+#endif  // SIGNAL_SRC_RFFT_H_

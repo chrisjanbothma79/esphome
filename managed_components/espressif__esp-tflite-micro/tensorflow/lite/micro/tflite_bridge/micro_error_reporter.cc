@@ -1,4 +1,4 @@
-/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,32 +12,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
-#include "tensorflow/lite/micro/tflite_bridge/micro_error_reporter.h"
+#ifndef TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_MICRO_ERROR_REPORTER_H_
+#define TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_MICRO_ERROR_REPORTER_H_
 
 #include <cstdarg>
-#include <cstdint>
-#include <new>
 
-#include "tensorflow/lite/micro/micro_log.h"
-
-namespace {
-uint8_t micro_error_reporter_buffer[sizeof(tflite::MicroErrorReporter)];
-tflite::MicroErrorReporter* error_reporter_ = nullptr;
-
-}  // namespace
+#include "tensorflow/lite/core/api/error_reporter.h"
+#include "tensorflow/lite/micro/compatibility.h"
 
 namespace tflite {
-ErrorReporter* GetMicroErrorReporter() {
-  if (error_reporter_ == nullptr) {
-    error_reporter_ = new (micro_error_reporter_buffer) MicroErrorReporter();
-  }
-  return error_reporter_;
-}
+// Get a pointer to a singleton global error reporter.
+ErrorReporter *GetMicroErrorReporter();
+class MicroErrorReporter : public ErrorReporter {
+ public:
+  ~MicroErrorReporter() override {}
+  int Report(const char *format, va_list args) override;
 
-int MicroErrorReporter::Report(const char* format, va_list args) {
-  VMicroPrintf(format, args);
-  return 0;
-}
+ private:
+  TF_LITE_REMOVE_VIRTUAL_DELETE
+};
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_MICRO_ERROR_REPORTER_H_

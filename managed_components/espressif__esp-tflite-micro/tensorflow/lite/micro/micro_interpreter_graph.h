@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,106 +13,49 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_MICRO_MICRO_INTERPRETER_GRAPH_H_
-#define TENSORFLOW_LITE_MICRO_MICRO_INTERPRETER_GRAPH_H_
+#include "tensorflow/lite/micro/micro_log.h"
 
-#include "tensorflow/lite/micro/micro_allocator.h"
-#include "tensorflow/lite/micro/micro_common.h"
-#include "tensorflow/lite/micro/micro_graph.h"
-#include "tensorflow/lite/micro/micro_resource_variable.h"
-#include "tensorflow/lite/schema/schema_generated.h"
+#include <cstdarg>
+#include <cstdint>
 
-namespace tflite {
+#if !defined(TF_LITE_STRIP_ERROR_STRINGS)
+#include "tensorflow/lite/micro/debug_log.h"
+#endif
 
-// Abstracts the details of interacting with the tflite::Model.
-//
-// Provides methods to access, initialize, prepare, invoke and free any
-// subgraph in the tflite::Graph.
-class MicroInterpreterGraph : public MicroGraph {
- public:
-  // The lifetime of the context, model, allocator and resource_variables must
-  // be at least as long as that of the graph object, since the this class may
-  // need to access them at any time. If resource_variables is a nullptr,
-  // GetResourceVariables will return a nullptr.
-  MicroInterpreterGraph(TfLiteContext* context, const Model* model,
-                        MicroAllocator* allocator,
-                        MicroResourceVariables* resource_variables);
-  virtual ~MicroInterpreterGraph();
+#if !defined(TF_LITE_STRIP_ERROR_STRINGS)
+namespace {
 
-  // Sets up builtin data and calls TFLMRegistration->Init for every
-  // operator in every subgraph in the model.
-  virtual TfLiteStatus InitSubgraphs();
+void VDebugLog(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  DebugLog(format, args);
+  va_end(args);
+}
 
-  // Calls TFLMRegistration->Prepare for every operator in every subgraph
-  // in the model.
-  virtual TfLiteStatus PrepareSubgraphs();
+}  // namespace
 
-  // Calls TFLMRegistration->Reset for every operator in every subgraph in
-  // the model.
-  virtual TfLiteStatus ResetSubgraphs();
+void VMicroPrintf(const char *format, va_list args) {
+  DebugLog(format, args);
+  // TODO(b/290051015): remove "\r\n"
+  VDebugLog("\r\n");
+}
 
-  // Calls TFLMRegistration->Free for every operator in every subgraph in
-  // the model.
-  virtual TfLiteStatus FreeSubgraphs();
+void MicroPrintf(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  VMicroPrintf(format, args);
+  va_end(args);
+}
 
-  // Calls TFLMRegistration->Invoke for every operator in a single subgraph
-  // in the model.
-  virtual TfLiteStatus InvokeSubgraph(int subgraph_idx);
+int MicroSnprintf(char *buffer, size_t buf_size, const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  int result = MicroVsnprintf(buffer, buf_size, format, args);
+  va_end(args);
+  return result;
+}
 
-  // Zeros out all variable tensors in all subgraphs in the model.
-  virtual TfLiteStatus ResetVariableTensors();
-
-  // Number of tensor inputs to a specified subgraph in the model.
-  virtual size_t NumSubgraphInputs(int subgraph_idx);
-
-  // Get the specified input tensor of a specified subgraph in the model.
-  virtual TfLiteEvalTensor* GetSubgraphInput(int subgraph_idx, int input_idx);
-
-  // Number of tensor outputs from a specified subgraph in the model.
-  virtual size_t NumSubgraphOutputs(int subgraph_idx);
-
-  // Get the specified output tensor of a specified subgraph in the model.
-  virtual TfLiteEvalTensor* GetSubgraphOutput(int subgraph_idx, int output_idx);
-
-  // Number of subgraphs in the model.
-  virtual int NumSubgraphs();
-
-  // Hook to pass in subgraph allocations tracked within the interpreter,
-  // allowing MicroInterpreterGraph to init / prepare / invoke subgraphs in the
-  // model.
-  void SetSubgraphAllocations(SubgraphAllocations* subgraph_allocations);
-
-  // Get the current subgraph index. Within an on operator, this is guaranteed
-  // to be the subgraph of that operator.
-  int GetCurrentSubgraphIndex() { return current_subgraph_index_; }
-
-  // Get the current operator index inside a subgraph.
-  // The couple GetCurrentSubgraphIndex GetCurrentSubgraphIndex creates a unique
-  // identifier of the operator inside the subgraph
-  int GetCurrentOperatorIndex() { return current_operator_index_; }
-
-  // Gets the list of allocations for each subgraph. This is the source of truth
-  // for all per-subgraph allocation data.
-  SubgraphAllocations* GetAllocations() { return subgraph_allocations_; }
-
-  // Get the resource variables for this TFLM graph.
-  MicroResourceVariables* GetResourceVariables() { return resource_variables_; }
-
- private:
-  TfLiteContext* context_;
-  const Model* model_;
-  MicroAllocator* allocator_;
-  SubgraphAllocations* subgraph_allocations_ = nullptr;
-  int current_subgraph_index_;
-  uint32_t current_operator_index_;
-  MicroResourceVariables* resource_variables_;
-  const flatbuffers::Vector<flatbuffers::Offset<SubGraph>>* subgraphs_ =
-      nullptr;  // Initialized as nullptr to prevent any possible issues
-                // related to accessing uninitialized memory.
-
-  TF_LITE_REMOVE_VIRTUAL_DELETE
-};
-
-}  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_MICRO_INTERPRETER_GRAPH_H_
+int MicroVsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist) {
+  return DebugVsnprintf(buffer, buf_size, format, vlist);
+}
+#endif  // !defined(TF_LITE_STRIP_ERROR_STRINGS)

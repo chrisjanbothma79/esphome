@@ -14,384 +14,276 @@
  * limitations under the License.
  */
 
-#ifndef FLATBUFFERS_VECTOR_H_
-#define FLATBUFFERS_VECTOR_H_
+#ifndef FLATBUFFERS_VECTOR_DOWNWARD_H_
+#define FLATBUFFERS_VECTOR_DOWNWARD_H_
+
+#include <algorithm>
+#include <cstdint>
 
 #include "flatbuffers/base.h"
-#include "flatbuffers/buffer.h"
-#include "flatbuffers/stl_emulation.h"
+#include "flatbuffers/default_allocator.h"
+#include "flatbuffers/detached_buffer.h"
 
 namespace flatbuffers {
 
-struct String;
-
-// An STL compatible iterator implementation for Vector below, effectively
-// calling Get() for every element.
-template<typename T, typename IT, typename Data = uint8_t *,
-         typename SizeT = uoffset_t>
-struct VectorIterator {
-  typedef std::random_access_iterator_tag iterator_category;
-  typedef IT value_type;
-  typedef ptrdiff_t difference_type;
-  typedef IT *pointer;
-  typedef IT &reference;
-
-  static const SizeT element_stride = IndirectHelper<T>::element_stride;
-
-  VectorIterator(Data data, SizeT i) : data_(data + element_stride * i) {}
-  VectorIterator(const VectorIterator &other) : data_(other.data_) {}
-  VectorIterator() : data_(nullptr) {}
-
-  VectorIterator &operator=(const VectorIterator &other) {
-    data_ = other.data_;
-    return *this;
-  }
-
-  VectorIterator &operator=(VectorIterator &&other) {
-    data_ = other.data_;
-    return *this;
-  }
-
-  bool operator==(const VectorIterator &other) const {
-    return data_ == other.data_;
-  }
-
-  bool operator<(const VectorIterator &other) const {
-    return data_ < other.data_;
-  }
-
-  bool operator!=(const VectorIterator &other) const {
-    return data_ != other.data_;
-  }
-
-  difference_type operator-(const VectorIterator &other) const {
-    return (data_ - other.data_) / element_stride;
-  }
-
-  // Note: return type is incompatible with the standard
-  // `reference operator*()`.
-  IT operator*() const { return IndirectHelper<T>::Read(data_, 0); }
-
-  // Note: return type is incompatible with the standard
-  // `pointer operator->()`.
-  IT operator->() const { return IndirectHelper<T>::Read(data_, 0); }
-
-  VectorIterator &operator++() {
-    data_ += element_stride;
-    return *this;
-  }
-
-  VectorIterator operator++(int) {
-    VectorIterator temp(data_, 0);
-    data_ += element_stride;
-    return temp;
-  }
-
-  VectorIterator operator+(const SizeT &offset) const {
-    return VectorIterator(data_ + offset * element_stride, 0);
-  }
-
-  VectorIterator &operator+=(const SizeT &offset) {
-    data_ += offset * element_stride;
-    return *this;
-  }
-
-  VectorIterator &operator--() {
-    data_ -= element_stride;
-    return *this;
-  }
-
-  VectorIterator operator--(int) {
-    VectorIterator temp(data_, 0);
-    data_ -= element_stride;
-    return temp;
-  }
-
-  VectorIterator operator-(const SizeT &offset) const {
-    return VectorIterator(data_ - offset * element_stride, 0);
-  }
-
-  VectorIterator &operator-=(const SizeT &offset) {
-    data_ -= offset * element_stride;
-    return *this;
-  }
-
- private:
-  Data data_;
-};
-
-template<typename T, typename IT, typename SizeT = uoffset_t>
-using VectorConstIterator = VectorIterator<T, IT, const uint8_t *, SizeT>;
-
-template<typename Iterator>
-struct VectorReverseIterator : public std::reverse_iterator<Iterator> {
-  explicit VectorReverseIterator(Iterator iter)
-      : std::reverse_iterator<Iterator>(iter) {}
-
-  // Note: return type is incompatible with the standard
-  // `reference operator*()`.
-  typename Iterator::value_type operator*() const {
-    auto tmp = std::reverse_iterator<Iterator>::current;
-    return *--tmp;
-  }
-
-  // Note: return type is incompatible with the standard
-  // `pointer operator->()`.
-  typename Iterator::value_type operator->() const {
-    auto tmp = std::reverse_iterator<Iterator>::current;
-    return *--tmp;
-  }
-};
-
-// This is used as a helper type for accessing vectors.
-// Vector::data() assumes the vector elements start after the length field.
-template<typename T, typename SizeT = uoffset_t> class Vector {
+// This is a minimal replication of std::vector<uint8_t> functionality,
+// except growing from higher to lower addresses. i.e. push_back() inserts data
+// in the lowest address in the vector.
+// Since this vector leaves the lower part unused, we support a "scratch-pad"
+// that can be stored there for temporary data, to share the allocated space.
+// Essentially, this supports 2 std::vectors in a single buffer.
+template<typename SizeT = uoffset_t> class vector_downward {
  public:
-  typedef VectorIterator<T, typename IndirectHelper<T>::mutable_return_type,
-                         uint8_t *, SizeT>
-      iterator;
-  typedef VectorConstIterator<T, typename IndirectHelper<T>::return_type, SizeT>
-      const_iterator;
-  typedef VectorReverseIterator<iterator> reverse_iterator;
-  typedef VectorReverseIterator<const_iterator> const_reverse_iterator;
+  explicit vector_downward(size_t initial_size, Allocator *allocator, bool own_allocator, size_t buffer_minalign,
+                           const SizeT max_size = FLATBUFFERS_MAX_BUFFER_SIZE)
+      : allocator_(allocator),
+        own_allocator_(own_allocator),
+        initial_size_(initial_size),
+        max_size_(max_size),
+        buffer_minalign_(buffer_minalign),
+        reserved_(0),
+        size_(0),
+        buf_(nullptr),
+        cur_(nullptr),
+        scratch_(nullptr) {}
 
-  typedef typename flatbuffers::bool_constant<flatbuffers::is_scalar<T>::value>
-      scalar_tag;
-
-  static FLATBUFFERS_CONSTEXPR bool is_span_observable =
-      scalar_tag::value && (FLATBUFFERS_LITTLEENDIAN || sizeof(T) == 1);
-
-  SizeT size() const { return EndianScalar(length_); }
-
-  // Deprecated: use size(). Here for backwards compatibility.
-  FLATBUFFERS_ATTRIBUTE([[deprecated("use size() instead")]])
-  SizeT Length() const { return size(); }
-
-  typedef SizeT size_type;
-  typedef typename IndirectHelper<T>::return_type return_type;
-  typedef typename IndirectHelper<T>::mutable_return_type mutable_return_type;
-  typedef return_type value_type;
-
-  return_type Get(SizeT i) const {
-    FLATBUFFERS_ASSERT(i < size());
-    return IndirectHelper<T>::Read(Data(), i);
+  vector_downward(vector_downward &&other) noexcept
+      // clang-format on
+      : allocator_(other.allocator_),
+        own_allocator_(other.own_allocator_),
+        initial_size_(other.initial_size_),
+        max_size_(other.max_size_),
+        buffer_minalign_(other.buffer_minalign_),
+        reserved_(other.reserved_),
+        size_(other.size_),
+        buf_(other.buf_),
+        cur_(other.cur_),
+        scratch_(other.scratch_) {
+    // No change in other.allocator_
+    // No change in other.initial_size_
+    // No change in other.buffer_minalign_
+    other.own_allocator_ = false;
+    other.reserved_ = 0;
+    other.buf_ = nullptr;
+    other.cur_ = nullptr;
+    other.scratch_ = nullptr;
   }
 
-  return_type operator[](SizeT i) const { return Get(i); }
-
-  // If this is a Vector of enums, T will be its storage type, not the enum
-  // type. This function makes it convenient to retrieve value with enum
-  // type E.
-  template<typename E> E GetEnum(SizeT i) const {
-    return static_cast<E>(Get(i));
+  vector_downward &operator=(vector_downward &&other) noexcept {
+    // Move construct a temporary and swap idiom
+    vector_downward temp(std::move(other));
+    swap(temp);
+    return *this;
   }
 
-  // If this a vector of unions, this does the cast for you. There's no check
-  // to make sure this is the right type!
-  template<typename U> const U *GetAs(SizeT i) const {
-    return reinterpret_cast<const U *>(Get(i));
+  ~vector_downward() {
+    clear_buffer();
+    clear_allocator();
   }
 
-  // If this a vector of unions, this does the cast for you. There's no check
-  // to make sure this is actually a string!
-  const String *GetAsString(SizeT i) const {
-    return reinterpret_cast<const String *>(Get(i));
+  void reset() {
+    clear_buffer();
+    clear();
   }
 
-  const void *GetStructFromOffset(size_t o) const {
-    return reinterpret_cast<const void *>(Data() + o);
-  }
-
-  iterator begin() { return iterator(Data(), 0); }
-  const_iterator begin() const { return const_iterator(Data(), 0); }
-
-  iterator end() { return iterator(Data(), size()); }
-  const_iterator end() const { return const_iterator(Data(), size()); }
-
-  reverse_iterator rbegin() { return reverse_iterator(end()); }
-  const_reverse_iterator rbegin() const {
-    return const_reverse_iterator(end());
-  }
-
-  reverse_iterator rend() { return reverse_iterator(begin()); }
-  const_reverse_iterator rend() const {
-    return const_reverse_iterator(begin());
-  }
-
-  const_iterator cbegin() const { return begin(); }
-
-  const_iterator cend() const { return end(); }
-
-  const_reverse_iterator crbegin() const { return rbegin(); }
-
-  const_reverse_iterator crend() const { return rend(); }
-
-  // Change elements if you have a non-const pointer to this object.
-  // Scalars only. See reflection.h, and the documentation.
-  void Mutate(SizeT i, const T &val) {
-    FLATBUFFERS_ASSERT(i < size());
-    WriteScalar(data() + i, val);
-  }
-
-  // Change an element of a vector of tables (or strings).
-  // "val" points to the new table/string, as you can obtain from
-  // e.g. reflection::AddFlatBuffer().
-  void MutateOffset(SizeT i, const uint8_t *val) {
-    FLATBUFFERS_ASSERT(i < size());
-    static_assert(sizeof(T) == sizeof(SizeT), "Unrelated types");
-    WriteScalar(data() + i,
-                static_cast<SizeT>(val - (Data() + i * sizeof(SizeT))));
-  }
-
-  // Get a mutable pointer to tables/strings inside this vector.
-  mutable_return_type GetMutableObject(SizeT i) const {
-    FLATBUFFERS_ASSERT(i < size());
-    return const_cast<mutable_return_type>(IndirectHelper<T>::Read(Data(), i));
-  }
-
-  // The raw data in little endian format. Use with care.
-  const uint8_t *Data() const {
-    return reinterpret_cast<const uint8_t *>(&length_ + 1);
-  }
-
-  uint8_t *Data() { return reinterpret_cast<uint8_t *>(&length_ + 1); }
-
-  // Similarly, but typed, much like std::vector::data
-  const T *data() const { return reinterpret_cast<const T *>(Data()); }
-  T *data() { return reinterpret_cast<T *>(Data()); }
-
-  template<typename K> return_type LookupByKey(K key) const {
-    void *search_result = std::bsearch(
-        &key, Data(), size(), IndirectHelper<T>::element_stride, KeyCompare<K>);
-
-    if (!search_result) {
-      return nullptr;  // Key not found.
+  void clear() {
+    if (buf_) {
+      cur_ = buf_ + reserved_;
+    } else {
+      reserved_ = 0;
+      cur_ = nullptr;
     }
-
-    const uint8_t *element = reinterpret_cast<const uint8_t *>(search_result);
-
-    return IndirectHelper<T>::Read(element, 0);
+    size_ = 0;
+    clear_scratch();
   }
 
-  template<typename K> mutable_return_type MutableLookupByKey(K key) {
-    return const_cast<mutable_return_type>(LookupByKey(key));
+  void clear_scratch() { scratch_ = buf_; }
+
+  void clear_allocator() {
+    if (own_allocator_ && allocator_) {
+      delete allocator_;
+    }
+    allocator_ = nullptr;
+    own_allocator_ = false;
   }
 
- protected:
-  // This class is only used to access pre-existing data. Don't ever
-  // try to construct these manually.
-  Vector();
+  void clear_buffer() {
+    if (buf_)
+      Deallocate(allocator_, buf_, reserved_);
+    buf_ = nullptr;
+  }
 
-  SizeT length_;
+  // Relinquish the pointer to the caller.
+  uint8_t *release_raw(size_t &allocated_bytes, size_t &offset) {
+    auto *buf = buf_;
+    allocated_bytes = reserved_;
+    offset = vector_downward::offset();
+
+    // release_raw only relinquishes the buffer ownership.
+    // Does not deallocate or reset the allocator. Destructor will do that.
+    buf_ = nullptr;
+    clear();
+    return buf;
+  }
+
+  // Relinquish the pointer to the caller.
+  DetachedBuffer release() {
+    // allocator ownership (if any) is transferred to DetachedBuffer.
+    DetachedBuffer fb(allocator_, own_allocator_, buf_, reserved_, cur_, size());
+    if (own_allocator_) {
+      allocator_ = nullptr;
+      own_allocator_ = false;
+    }
+    buf_ = nullptr;
+    clear();
+    return fb;
+  }
+
+  size_t ensure_space(size_t len) {
+    FLATBUFFERS_ASSERT(cur_ >= scratch_ && scratch_ >= buf_);
+    // If the length is larger than the unused part of the buffer, we need to
+    // grow.
+    if (len > unused_buffer_size()) {
+      reallocate(len);
+    }
+    FLATBUFFERS_ASSERT(size() < max_size_);
+    return len;
+  }
+
+  inline uint8_t *make_space(size_t len) {
+    if (len) {
+      ensure_space(len);
+      cur_ -= len;
+      size_ += static_cast<SizeT>(len);
+    }
+    return cur_;
+  }
+
+  // Returns nullptr if using the DefaultAllocator.
+  Allocator *get_custom_allocator() { return allocator_; }
+
+  // The current offset into the buffer.
+  size_t offset() const { return cur_ - buf_; }
+
+  // The total size of the vector (both the buffer and scratch parts).
+  inline SizeT size() const { return size_; }
+
+  // The size of the buffer part of the vector that is currently unused.
+  SizeT unused_buffer_size() const { return static_cast<SizeT>(cur_ - scratch_); }
+
+  // The size of the scratch part of the vector.
+  SizeT scratch_size() const { return static_cast<SizeT>(scratch_ - buf_); }
+
+  size_t capacity() const { return reserved_; }
+
+  uint8_t *data() const {
+    FLATBUFFERS_ASSERT(cur_);
+    return cur_;
+  }
+
+  uint8_t *scratch_data() const {
+    FLATBUFFERS_ASSERT(buf_);
+    return buf_;
+  }
+
+  uint8_t *scratch_end() const {
+    FLATBUFFERS_ASSERT(scratch_);
+    return scratch_;
+  }
+
+  uint8_t *data_at(size_t offset) const { return buf_ + reserved_ - offset; }
+
+  void push(const uint8_t *bytes, size_t num) {
+    if (num > 0) {
+      memcpy(make_space(num), bytes, num);
+    }
+  }
+
+  // Specialized version of push() that avoids memcpy call for small data.
+  template<typename T> void push_small(const T &little_endian_t) {
+    make_space(sizeof(T));
+    *reinterpret_cast<T *>(cur_) = little_endian_t;
+  }
+
+  template<typename T> void scratch_push_small(const T &t) {
+    ensure_space(sizeof(T));
+    *reinterpret_cast<T *>(scratch_) = t;
+    scratch_ += sizeof(T);
+  }
+
+  // fill() is most frequently called with small byte counts (<= 4),
+  // which is why we're using loops rather than calling memset.
+  void fill(size_t zero_pad_bytes) {
+    make_space(zero_pad_bytes);
+    for (size_t i = 0; i < zero_pad_bytes; i++)
+      cur_[i] = 0;
+  }
+
+  // Version for when we know the size is larger.
+  // Precondition: zero_pad_bytes > 0
+  void fill_big(size_t zero_pad_bytes) { memset(make_space(zero_pad_bytes), 0, zero_pad_bytes); }
+
+  void pop(size_t bytes_to_remove) {
+    cur_ += bytes_to_remove;
+    size_ -= static_cast<SizeT>(bytes_to_remove);
+  }
+
+  void scratch_pop(size_t bytes_to_remove) { scratch_ -= bytes_to_remove; }
+
+  void swap(vector_downward &other) {
+    using std::swap;
+    swap(allocator_, other.allocator_);
+    swap(own_allocator_, other.own_allocator_);
+    swap(initial_size_, other.initial_size_);
+    swap(buffer_minalign_, other.buffer_minalign_);
+    swap(reserved_, other.reserved_);
+    swap(size_, other.size_);
+    swap(max_size_, other.max_size_);
+    swap(buf_, other.buf_);
+    swap(cur_, other.cur_);
+    swap(scratch_, other.scratch_);
+  }
+
+  void swap_allocator(vector_downward &other) {
+    using std::swap;
+    swap(allocator_, other.allocator_);
+    swap(own_allocator_, other.own_allocator_);
+  }
 
  private:
-  // This class is a pointer. Copying will therefore create an invalid object.
-  // Private and unimplemented copy constructor.
-  Vector(const Vector &);
-  Vector &operator=(const Vector &);
+  // You shouldn't really be copying instances of this class.
+  FLATBUFFERS_DELETE_FUNC(vector_downward(const vector_downward &));
+  FLATBUFFERS_DELETE_FUNC(vector_downward &operator=(const vector_downward &));
 
-  template<typename K> static int KeyCompare(const void *ap, const void *bp) {
-    const K *key = reinterpret_cast<const K *>(ap);
-    const uint8_t *data = reinterpret_cast<const uint8_t *>(bp);
-    auto table = IndirectHelper<T>::Read(data, 0);
+  Allocator *allocator_;
+  bool own_allocator_;
+  size_t initial_size_;
 
-    // std::bsearch compares with the operands transposed, so we negate the
-    // result here.
-    return -table->KeyCompareWithValue(*key);
+  // The maximum size the vector can be.
+  SizeT max_size_;
+  size_t buffer_minalign_;
+  size_t reserved_;
+  SizeT size_;
+  uint8_t *buf_;
+  uint8_t *cur_;      // Points at location between empty (below) and used (above).
+  uint8_t *scratch_;  // Points to the end of the scratchpad in use.
+
+  void reallocate(size_t len) {
+    auto old_reserved = reserved_;
+    auto old_size = size();
+    auto old_scratch_size = scratch_size();
+    reserved_ += (std::max)(len, old_reserved ? old_reserved / 2 : initial_size_);
+    reserved_ = (reserved_ + buffer_minalign_ - 1) & ~(buffer_minalign_ - 1);
+    if (buf_) {
+      buf_ = ReallocateDownward(allocator_, buf_, old_reserved, reserved_, old_size, old_scratch_size);
+    } else {
+      buf_ = Allocate(allocator_, reserved_);
+    }
+    cur_ = buf_ + reserved_ - old_size;
+    scratch_ = buf_ + old_scratch_size;
   }
 };
-
-template<typename T> using Vector64 = Vector<T, uoffset64_t>;
-
-template<class U>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<U> make_span(Vector<U> &vec)
-    FLATBUFFERS_NOEXCEPT {
-  static_assert(Vector<U>::is_span_observable,
-                "wrong type U, only LE-scalar, or byte types are allowed");
-  return span<U>(vec.data(), vec.size());
-}
-
-template<class U>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<const U> make_span(
-    const Vector<U> &vec) FLATBUFFERS_NOEXCEPT {
-  static_assert(Vector<U>::is_span_observable,
-                "wrong type U, only LE-scalar, or byte types are allowed");
-  return span<const U>(vec.data(), vec.size());
-}
-
-template<class U>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<uint8_t> make_bytes_span(
-    Vector<U> &vec) FLATBUFFERS_NOEXCEPT {
-  static_assert(Vector<U>::scalar_tag::value,
-                "wrong type U, only LE-scalar, or byte types are allowed");
-  return span<uint8_t>(vec.Data(), vec.size() * sizeof(U));
-}
-
-template<class U>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<const uint8_t> make_bytes_span(
-    const Vector<U> &vec) FLATBUFFERS_NOEXCEPT {
-  static_assert(Vector<U>::scalar_tag::value,
-                "wrong type U, only LE-scalar, or byte types are allowed");
-  return span<const uint8_t>(vec.Data(), vec.size() * sizeof(U));
-}
-
-// Convenient helper functions to get a span of any vector, regardless
-// of whether it is null or not (the field is not set).
-template<class U>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<U> make_span(Vector<U> *ptr)
-    FLATBUFFERS_NOEXCEPT {
-  static_assert(Vector<U>::is_span_observable,
-                "wrong type U, only LE-scalar, or byte types are allowed");
-  return ptr ? make_span(*ptr) : span<U>();
-}
-
-template<class U>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<const U> make_span(
-    const Vector<U> *ptr) FLATBUFFERS_NOEXCEPT {
-  static_assert(Vector<U>::is_span_observable,
-                "wrong type U, only LE-scalar, or byte types are allowed");
-  return ptr ? make_span(*ptr) : span<const U>();
-}
-
-// Represent a vector much like the template above, but in this case we
-// don't know what the element types are (used with reflection.h).
-class VectorOfAny {
- public:
-  uoffset_t size() const { return EndianScalar(length_); }
-
-  const uint8_t *Data() const {
-    return reinterpret_cast<const uint8_t *>(&length_ + 1);
-  }
-  uint8_t *Data() { return reinterpret_cast<uint8_t *>(&length_ + 1); }
-
- protected:
-  VectorOfAny();
-
-  uoffset_t length_;
-
- private:
-  VectorOfAny(const VectorOfAny &);
-  VectorOfAny &operator=(const VectorOfAny &);
-};
-
-template<typename T, typename U>
-Vector<Offset<T>> *VectorCast(Vector<Offset<U>> *ptr) {
-  static_assert(std::is_base_of<T, U>::value, "Unrelated types");
-  return reinterpret_cast<Vector<Offset<T>> *>(ptr);
-}
-
-template<typename T, typename U>
-const Vector<Offset<T>> *VectorCast(const Vector<Offset<U>> *ptr) {
-  static_assert(std::is_base_of<T, U>::value, "Unrelated types");
-  return reinterpret_cast<const Vector<Offset<T>> *>(ptr);
-}
-
-// Convenient helper function to get the length of any vector, regardless
-// of whether it is null or not (the field is not set).
-template<typename T> static inline size_t VectorLength(const Vector<T> *v) {
-  return v ? v->size() : 0;
-}
 
 }  // namespace flatbuffers
 
-#endif  // FLATBUFFERS_VERIFIER_H_
+#endif  // FLATBUFFERS_VECTOR_DOWNWARD_H_

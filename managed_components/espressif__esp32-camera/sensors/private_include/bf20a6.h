@@ -1,27 +1,11 @@
-
-#ifndef __BF20A6_H__
-#define __BF20A6_H__
-
-#include "sensor.h"
-
-/**
- * @brief Detect sensor pid
- *
- * @param slv_addr SCCB address
- * @param id Detection result
- * @return
- *     0:       Can't detect this sensor
- *     Nonzero: This sensor has been detected
+/*
+ * BF20A6 register definitions.
  */
-int bf20a6_detect(int slv_addr, sensor_id_t *id);
+#ifndef __BF20A6_REG_REGS_H__
+#define __BF20A6_REG_REGS_H__
 
-/**
- * @brief initialize sensor function pointers
- *
- * @param sensor pointer of sensor
- * @return
- *      Always 0
- */
-int bf20a6_init(sensor_t *sensor);
+#define SENSOR_ID_HIGH 0XFC
+#define SENSOR_ID_LOW 0XFD
+#define RESET_RELATED 0XF2
 
-#endif // __BF20A6_H__
+#endif  //__BF20A6_REG_REGS_H__

@@ -12,24 +12,42 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_MICRO_KERNELS_LOGICAL_H_
-#define TENSORFLOW_LITE_MICRO_KERNELS_LOGICAL_H_
-
-#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/reference/binary_function.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/op_macros.h"
+#include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/kernels/logical.h"
 
 namespace tflite {
+
 // Input/output tensor index.
-extern const int kLogicalInputTensor1;
-extern const int kLogicalInputTensor2;
-extern const int kLogicalOutputTensor;
+const int kLogicalInputTensor1 = 0;
+const int kLogicalInputTensor2 = 1;
+const int kLogicalOutputTensor = 0;
 
-TfLiteStatus LogicalImpl(TfLiteContext* context, TfLiteNode* node,
-                         bool (*func)(bool, bool));
+TfLiteStatus LogicalImpl(TfLiteContext *context, TfLiteNode *node, bool (*func)(bool, bool)) {
+  const TfLiteEvalTensor *input1 = tflite::micro::GetEvalInput(context, node, kLogicalInputTensor1);
+  const TfLiteEvalTensor *input2 = tflite::micro::GetEvalInput(context, node, kLogicalInputTensor2);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kLogicalOutputTensor);
 
-bool LogicalOr(bool x, bool y);
-bool LogicalAnd(bool x, bool y);
+  if (tflite::micro::HaveSameShapes(input1, input2)) {
+    reference_ops::BinaryFunction<bool, bool, bool>(
+        tflite::micro::GetTensorShape(input1), tflite::micro::GetTensorData<bool>(input1),
+        tflite::micro::GetTensorShape(input2), tflite::micro::GetTensorData<bool>(input2),
+        tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<bool>(output), func);
+  } else {
+    reference_ops::BroadcastBinaryFunction4DSlow<bool, bool, bool>(
+        tflite::micro::GetTensorShape(input1), tflite::micro::GetTensorData<bool>(input1),
+        tflite::micro::GetTensorShape(input2), tflite::micro::GetTensorData<bool>(input2),
+        tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<bool>(output), func);
+  }
+
+  return kTfLiteOk;
+}
+
+bool LogicalOr(bool x, bool y) { return x || y; }
+
+bool LogicalAnd(bool x, bool y) { return x && y; }
 
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_KERNELS_LOGICAL_H_

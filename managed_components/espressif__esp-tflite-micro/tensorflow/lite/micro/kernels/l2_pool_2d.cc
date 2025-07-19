@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,131 +12,113 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include <stddef.h>
-#include <stdint.h>
 
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/reference/pooling.h"
-#include "tensorflow/lite/kernels/internal/types.h"
+#include "tensorflow/lite/kernels/internal/reference/integer_ops/l2normalization.h"
+#include "tensorflow/lite/kernels/internal/reference/l2normalization.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/kernels/padding.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
+
 namespace {
 
-// Input/output tensor index.
+// This file has two implementation of L2Norm.
+enum KernelType {
+  kReference,
+  kGenericOptimized,
+};
+
 constexpr int kInputTensor = 0;
 constexpr int kOutputTensor = 0;
 
-// required rank for input/output tensor shape
-constexpr int kTensorShapeRank = 4;
+TfLiteStatus L2NormPrepare(TfLiteContext *context, TfLiteNode *node) {
+  TFLITE_DCHECK(node->user_data != nullptr);
+  TFLITE_DCHECK(node->builtin_data != nullptr);
 
-// input/output tensor shape rank associations
-enum { kBatchRank = 0, kHeightRank, kWidthRank, kChannelRank };
-
-TfLiteStatus L2Prepare(TfLiteContext* context, TfLiteNode* node) {
-  MicroContext* micro_context = GetMicroContext(context);
-
-  auto* params = static_cast<TfLitePoolParams*>(node->builtin_data);
+  auto *params = reinterpret_cast<TfLiteL2NormParams *>(node->builtin_data);
+  L2NormalizationParams *data = static_cast<L2NormalizationParams *>(node->user_data);
 
   TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
   TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
-  TF_LITE_ENSURE(context, output != nullptr);
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
+
+  MicroContext *micro_context = GetMicroContext(context);
+
+  TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, kInputTensor);
   TF_LITE_ENSURE(context, input != nullptr);
-  TF_LITE_ENSURE_EQ(context, NumDimensions(input), kTensorShapeRank);
-  TF_LITE_ENSURE_EQ(context, NumDimensions(output), kTensorShapeRank);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TF_LITE_ENSURE(context, output != nullptr);
+  TF_LITE_ENSURE(context, NumDimensions(input) <= 4);
+
+  TF_LITE_ENSURE(context, output->type == kTfLiteFloat32 || output->type == kTfLiteInt8);
   TF_LITE_ENSURE_TYPES_EQ(context, input->type, output->type);
 
-  int batches = SizeOfDimension(input, kBatchRank);
-  int height = SizeOfDimension(input, kHeightRank);
-  int width = SizeOfDimension(input, kWidthRank);
-  int channels_out = SizeOfDimension(input, kChannelRank);
+  if (output->type == kTfLiteInt8) {
+    data->input_zero_point = input->params.zero_point;
+  } else if (output->type == kTfLiteFloat32) {
+    data->input_zero_point = 0;
+  }
 
-  // Matching GetWindowedOutputSize in TensorFlow.
-  auto padding = params->padding;
-  int out_width, out_height;
+  // Our implementations don't currently support activations.
+  TF_LITE_ENSURE_EQ(context, params->activation, kTfLiteActNone);
 
-  params->computed.padding = ComputePaddingHeightWidth(
-      params->stride_height, params->stride_width, 1, 1, height, width,
-      params->filter_height, params->filter_width, padding, &out_height,
-      &out_width);
-
-  // We currently don't have a quantized implementation of L2Pool
-  TF_LITE_ENSURE_TYPES_EQ(context, input->type, kTfLiteFloat32);
-
-  // We must update the output tensor dimensions.
-  // The dims storage is expected to be the same area in memory
-  // for both TfLiteTensor and TfLiteEvalTensor.  This is important
-  // because TfLiteTensor in the MicroInterpreter is a temporary
-  // allocation.  For the KernelRunner interpreter, TfLiteEvalTensor
-  // is a temporary allocation.  We must therefore relocate the dims
-  // from the FlatBuffer to the persistent storage arena.
-  TfLiteEvalTensor* output_eval =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-  TF_LITE_ENSURE_OK(context, tflite::micro::CreateWritableTensorDimsWithCopy(
-                                 context, output, output_eval));
-  output->dims->data[kBatchRank] = batches;
-  output->dims->data[kHeightRank] = out_height;
-  output->dims->data[kWidthRank] = out_width;
-  output->dims->data[kChannelRank] = channels_out;
-
-  micro_context->DeallocateTempTfLiteTensor(output);
   micro_context->DeallocateTempTfLiteTensor(input);
-
+  micro_context->DeallocateTempTfLiteTensor(output);
   return kTfLiteOk;
 }
 
-void L2EvalFloat(const TfLitePoolParams& params, const TfLiteEvalTensor& input,
-                 tflite::PoolParams* op_params, TfLiteEvalTensor* output) {
-  float activation_min, activation_max;
-  CalculateActivationRange(params.activation, &activation_min, &activation_max);
-
-  op_params->float_activation_min = activation_min;
-  op_params->float_activation_max = activation_max;
-  reference_ops::L2Pool(*op_params, tflite::micro::GetTensorShape(&input),
-                        tflite::micro::GetTensorData<float>(&input),
-                        tflite::micro::GetTensorShape(output),
-                        tflite::micro::GetTensorData<float>(output));
+void *L2NormInit(TfLiteContext *context, const char *buffer, size_t length) {
+  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
+  return context->AllocatePersistentBuffer(context, sizeof(L2NormalizationParams));
 }
 
-TfLiteStatus L2Eval(TfLiteContext* context, TfLiteNode* node) {
-  auto* params = static_cast<const TfLitePoolParams*>(node->builtin_data);
+TfLiteStatus L2NormEval(TfLiteContext *context, TfLiteNode *node) {
+  TFLITE_DCHECK(node->user_data != nullptr);
+  const L2NormalizationParams &data = *(static_cast<const L2NormalizationParams *>(node->user_data));
 
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kInputTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
 
-  tflite::PoolParams op_params;
-  op_params.stride_height = params->stride_height;
-  op_params.stride_width = params->stride_width;
-  op_params.filter_height = params->filter_height;
-  op_params.filter_width = params->filter_width;
-  op_params.padding_values.height = params->computed.padding.height;
-  op_params.padding_values.width = params->computed.padding.width;
-
-  switch (input->type) {  // Already know in/out types are same.
-    case kTfLiteFloat32:
-      L2EvalFloat(*params, *input, &op_params, output);
-      break;
-    default:
-      MicroPrintf("L2_POOL_2D only supports float32 currently, got %s.",
-                  TfLiteTypeGetName(input->type));
-      return kTfLiteError;
+  // TODO(b/143912164): instead of hardcode the epsilon here, we should read it
+  // from tensorflow, i.e., adding a params.
+  // We don't compute epsilon for quantized kernel:
+  //
+  // epsilon_float = (epsilon_quant - zp) * scale
+  // so
+  // espsilon_quant = epsilon_float / scale + zp
+  // We know epsilon_float is just a very small number to avoid division by
+  // zero error, and scale is > 1, so the integer value of epsilon for quant
+  // is just dominated by the zero point.
+  // Also, GetInvSqrtQuantizedMultiplierExp handles the scenario where the sum
+  // of input value squared is zero case well.
+  // So we don't even need to do handle the epsilon for quantized kernel case.
+  const float epsilon = 1e-6f;
+  if (output->type == kTfLiteFloat32) {
+    reference_ops::L2Normalization(data, tflite::micro::GetTensorShape(input),
+                                   tflite::micro::GetTensorData<float>(input), tflite::micro::GetTensorShape(output),
+                                   tflite::micro::GetTensorData<float>(output), epsilon);
+  } else if (output->type == kTfLiteInt8) {
+    const auto input_shape = tflite::micro::GetTensorShape(input);
+    const auto output_shape = tflite::micro::GetTensorShape(output);
+    const int trailing_dim = input_shape.DimensionsCount() - 1;
+    const int depth = MatchingDim(input_shape, trailing_dim, output_shape, trailing_dim);
+    const int outer_size = MatchingFlatSizeSkipDim(input_shape, trailing_dim, output_shape);
+    reference_integer_ops::L2Normalization(data.input_zero_point, outer_size, depth,
+                                           tflite::micro::GetTensorData<int8_t>(input),
+                                           tflite::micro::GetTensorData<int8_t>(output));
+  } else {
+    MicroPrintf("Output type is %s, requires float.", TfLiteTypeGetName(output->type));
+    return kTfLiteError;
   }
+
   return kTfLiteOk;
 }
 
 }  // namespace
 
-TFLMRegistration Register_L2_POOL_2D() {
-  return tflite::micro::RegisterOp(nullptr, L2Prepare, L2Eval);
-}
+TFLMRegistration Register_L2NORM_REF() { return tflite::micro::RegisterOp(L2NormInit, L2NormPrepare, L2NormEval); }
+
+TFLMRegistration Register_L2_NORMALIZATION() { return Register_L2NORM_REF(); }
 
 }  // namespace tflite

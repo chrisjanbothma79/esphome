@@ -1,4 +1,4 @@
-/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,26 +12,27 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CEIL_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CEIL_H_
 
-#include <cmath>
+#include "tensorflow/lite/kernels/internal/reference/comparisons.h"
 
-#include "tensorflow/lite/kernels/internal/types.h"
+#include "tensorflow/lite/kernels/internal/common.h"
+#include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/kernels/internal/runtime_shape.h"
 
 namespace tflite {
-
 namespace reference_ops {
 
-inline void Ceil(const RuntimeShape& input_shape, const float* input_data,
-                 const RuntimeShape& output_shape, float* output_data) {
-  const int flat_size = MatchingFlatSize(input_shape, output_shape);
-
-  for (int i = 0; i < flat_size; ++i) {
-    output_data[i] = std::ceil(input_data[i]);
-  }
+BroadcastComparison4DSlowCommon BroadcastComparison4DSlowPreprocess(const RuntimeShape &unextended_input1_shape,
+                                                                    const RuntimeShape &unextended_input2_shape,
+                                                                    const RuntimeShape &unextended_output_shape) {
+  TFLITE_DCHECK_LE(unextended_input1_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_LE(unextended_input2_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_LE(unextended_output_shape.DimensionsCount(), 4);
+  NdArrayDesc<4> desc1;
+  NdArrayDesc<4> desc2;
+  NdArrayDescsForElementwiseBroadcast(unextended_input1_shape, unextended_input2_shape, &desc1, &desc2);
+  return {RuntimeShape::ExtendedShape(4, unextended_output_shape), desc1, desc2};
 }
 
 }  // namespace reference_ops
 }  // namespace tflite
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CEIL_H_

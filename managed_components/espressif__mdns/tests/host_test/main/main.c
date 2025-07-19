@@ -1,126 +1,93 @@
 /*
- * SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
 #include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "esp32_mock.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_console.h"
-#include "mdns.h"
-#include "mdns_console.h"
 
-static const char *TAG = "mdns-test";
+void *g_queue;
+int g_queue_send_shall_fail = 0;
+int g_size = 0;
 
-static void mdns_test_app(esp_netif_t *interface);
+const char *WIFI_EVENT = "wifi_event";
+const char *ETH_EVENT = "eth_event";
 
-#ifdef CONFIG_TEST_CONSOLE
-static EventGroupHandle_t s_exit_signal = NULL;
-
-static int exit_console(int argc, char **argv)
-{
-    xEventGroupSetBits(s_exit_signal, 1);
-    return 0;
+esp_err_t esp_event_handler_register(const char *event_base, int32_t event_id, void *event_handler,
+                                     void *event_handler_arg) {
+  return ESP_OK;
 }
 
-#else
-static void query_mdns_host(const char *host_name)
-{
-    ESP_LOGI(TAG, "Query A: %s.local", host_name);
+esp_err_t esp_event_handler_unregister(const char *event_base, int32_t event_id, void *event_handler) { return ESP_OK; }
 
-    struct esp_ip4_addr addr;
-    addr.addr = 0;
+esp_err_t esp_timer_delete(esp_timer_handle_t timer) { return ESP_OK; }
 
-    esp_err_t err = mdns_query_a(host_name, 2000,  &addr);
-    if (err) {
-        if (err == ESP_ERR_NOT_FOUND) {
-            ESP_LOGW(TAG, "%x: Host was not found!", (err));
-            return;
-        }
-        ESP_LOGE(TAG, "Query Failed: %x", (err));
-        return;
-    }
+esp_err_t esp_timer_stop(esp_timer_handle_t timer) { return ESP_OK; }
 
-    ESP_LOGI(TAG, "Query A: %s.local resolved to: " IPSTR, host_name, IP2STR(&addr));
+esp_err_t esp_timer_start_periodic(esp_timer_handle_t timer, uint64_t period) { return ESP_OK; }
+
+esp_err_t esp_timer_create(const esp_timer_create_args_t *create_args, esp_timer_handle_t *out_handle) {
+  return ESP_OK;
 }
-#endif // TEST_CONSOLE
 
-#ifndef CONFIG_IDF_TARGET_LINUX
-#include "protocol_examples_common.h"
-#include "esp_event.h"
-#include "nvs_flash.h"
-
-/**
- * @brief This is an entry point for the real target device,
- * need to init few components and connect to a network interface
- */
-void app_main(void)
-{
-    ESP_ERROR_CHECK(nvs_flash_init());
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    ESP_ERROR_CHECK(example_connect());
-
-    mdns_test_app(EXAMPLE_INTERFACE);
-
-    ESP_ERROR_CHECK(example_disconnect());
+uint32_t xTaskGetTickCount(void) {
+  static uint32_t tick = 0;
+  return tick++;
 }
-#else
 
-/**
- * @brief This is an entry point for the linux target (simulator on host)
- * need to create a dummy WiFi station and use it as mdns network interface
- */
-int main(int argc, char *argv[])
-{
-    setvbuf(stdout, NULL, _IONBF, 0);
-    const esp_netif_inherent_config_t base_cg = { .if_key = "WIFI_STA_DEF", .if_desc = CONFIG_TEST_NETIF_NAME };
-    esp_netif_config_t cfg = { .base = &base_cg  };
-    esp_netif_t *sta = esp_netif_new(&cfg);
-
-    mdns_test_app(sta);
-
-    esp_netif_destroy(sta);
-    return 0;
+/// Queue mock
+QueueHandle_t xQueueCreate(uint32_t uxQueueLength, uint32_t uxItemSize) {
+  g_size = uxItemSize;
+  g_queue = malloc((uxQueueLength) * (uxItemSize));
+  return g_queue;
 }
-#endif
 
-static void mdns_test_app(esp_netif_t *interface)
-{
-    ESP_ERROR_CHECK(mdns_init());
-    ESP_ERROR_CHECK(mdns_hostname_set(CONFIG_TEST_HOSTNAME));
-    ESP_LOGI(TAG, "mdns hostname set to: [%s]", CONFIG_TEST_HOSTNAME);
-    ESP_ERROR_CHECK(mdns_register_netif(interface));
-    ESP_ERROR_CHECK(mdns_netif_action(interface, MDNS_EVENT_ENABLE_IP4 /*| MDNS_EVENT_ENABLE_IP6 */ | MDNS_EVENT_IP4_REVERSE_LOOKUP | MDNS_EVENT_IP6_REVERSE_LOOKUP));
+void vQueueDelete(QueueHandle_t xQueue) { free(xQueue); }
 
-#ifdef CONFIG_TEST_CONSOLE
-    esp_console_repl_t *repl = NULL;
-    esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
-    esp_console_dev_uart_config_t uart_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
-    s_exit_signal = xEventGroupCreate();
-
-    repl_config.prompt = "mdns>";
-    // init console REPL environment
-    ESP_ERROR_CHECK(esp_console_new_repl_uart(&uart_config, &repl_config, &repl));
-
-    const esp_console_cmd_t cmd_exit = {
-        .command = "exit",
-        .help = "exit mDNS console application",
-        .hint = NULL,
-        .func = exit_console,
-        .argtable = NULL
-    };
-    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd_exit));
-    mdns_console_register();
-    ESP_ERROR_CHECK(esp_console_start_repl(repl));
-    xEventGroupWaitBits(s_exit_signal, 1, pdTRUE, pdFALSE, portMAX_DELAY);
-    repl->del(repl);
-#else
-    vTaskDelay(pdMS_TO_TICKS(10000));
-    query_mdns_host("david-work");
-    vTaskDelay(pdMS_TO_TICKS(1000));
-#endif
-    mdns_free();
-    ESP_LOGI(TAG, "Exit");
+uint32_t xQueueSend(QueueHandle_t xQueue, const void *pvItemToQueue, TickType_t xTicksToWait) {
+  if (g_queue_send_shall_fail) {
+    return pdFALSE;
+  } else {
+    memcpy(xQueue, pvItemToQueue, g_size);
+    return pdPASS;
+  }
 }
+
+uint32_t xQueueReceive(QueueHandle_t xQueue, void *pvBuffer, TickType_t xTicksToWait) { return pdFALSE; }
+
+void GetLastItem(void *pvBuffer) { memcpy(pvBuffer, g_queue, g_size); }
+
+void ForceTaskDelete(void) { g_queue_send_shall_fail = 1; }
+
+TaskHandle_t xTaskGetCurrentTaskHandle(void) { return NULL; }
+
+void xTaskNotifyGive(TaskHandle_t task) { return; }
+
+BaseType_t xTaskNotifyWait(uint32_t bits_entry_clear, uint32_t bits_exit_clear, uint32_t *value, TickType_t wait_time) {
+  return pdTRUE;
+}
+
+void esp_log_write(esp_log_level_t level, const char *tag, const char *format, ...) {}
+
+void esp_log(esp_log_config_t config, const char *tag, const char *format, ...) {}
+
+uint32_t esp_log_timestamp(void) { return 0; }
+
+void *mdns_mem_malloc(size_t size) { return malloc(size); }
+
+void *mdns_mem_calloc(size_t num, size_t size) { return calloc(num, size); }
+
+void mdns_mem_free(void *ptr) { free(ptr); }
+
+char *mdns_mem_strdup(const char *s) { return strdup(s); }
+
+char *mdns_mem_strndup(const char *s, size_t n) { return strndup(s, n); }
+
+void *mdns_mem_task_malloc(size_t size) { return malloc(size); }
+
+void mdns_mem_task_free(void *ptr) { free(ptr); }

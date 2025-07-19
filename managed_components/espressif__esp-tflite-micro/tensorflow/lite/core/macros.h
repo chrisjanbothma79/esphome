@@ -1,4 +1,4 @@
-/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,57 +12,80 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-// This provides utility macros and functions that are inherently platform
-// specific or shared across runtime & converter.
-#ifndef TENSORFLOW_LITE_CORE_MACROS_H_
-#define TENSORFLOW_LITE_CORE_MACROS_H_
 
-#ifdef __has_builtin
-#define TFLITE_HAS_BUILTIN(x) __has_builtin(x)
-#else
-#define TFLITE_HAS_BUILTIN(x) 0
-#endif
+#include "tensorflow/lite/kernels/internal/common.h"
 
-#if (!defined(__NVCC__)) && (TFLITE_HAS_BUILTIN(__builtin_expect) || \
-                             (defined(__GNUC__) && __GNUC__ >= 3))
-#define TFLITE_EXPECT_FALSE(cond) __builtin_expect(cond, false)
-#define TFLITE_EXPECT_TRUE(cond) __builtin_expect(!!(cond), true)
-#else
-#define TFLITE_EXPECT_FALSE(cond) (cond)
-#define TFLITE_EXPECT_TRUE(cond) (cond)
-#endif
+namespace tflite {
 
-#ifdef _WIN32
-#define TFLITE_NOINLINE __declspec(noinline)
-#else
-#ifdef __has_attribute
-#if __has_attribute(noinline)
-#define TFLITE_NOINLINE __attribute__((noinline))
-#else
-#define TFLITE_NOINLINE
-#endif  // __has_attribute(noinline)
-#else
-#define TFLITE_NOINLINE
-#endif  // __has_attribute
-#endif  // _WIN32
+// Single-rounding MultiplyByQuantizedMultiplier
+#if TFLITE_SINGLE_ROUNDING
+int32_t MultiplyByQuantizedMultiplier(int32_t x, int32_t quantized_multiplier, int shift) {
+  TFLITE_DCHECK(quantized_multiplier >= 0);
+  TFLITE_DCHECK(shift >= -31 && shift <= 30);
 
-// Normally we'd use ABSL_HAVE_ATTRIBUTE_WEAK and ABSL_ATTRIBUTE_WEAK, but
-// we avoid the absl dependency for binary size reasons.
-#ifdef __has_attribute
-#define TFLITE_HAS_ATTRIBUTE(x) __has_attribute(x)
-#else
-#define TFLITE_HAS_ATTRIBUTE(x) 0
-#endif
+  const int64_t total_shift = 31 - shift;
+  const int64_t round = static_cast<int64_t>(1) << (total_shift - 1);
+  int64_t result = x * static_cast<int64_t>(quantized_multiplier) + round;
+  result = result >> total_shift;
 
-#if (TFLITE_HAS_ATTRIBUTE(weak) ||                  \
-     (defined(__GNUC__) && !defined(__clang__))) && \
-    !(defined(__llvm__) && defined(_WIN32)) && !defined(__MINGW32__)
-#undef TFLITE_ATTRIBUTE_WEAK
-#define TFLITE_ATTRIBUTE_WEAK __attribute__((weak))
-#define TFLITE_HAS_ATTRIBUTE_WEAK 1
-#else
-#define TFLITE_ATTRIBUTE_WEAK
-#define TFLITE_HAS_ATTRIBUTE_WEAK 0
-#endif
+  TFLITE_DCHECK(result >= std::numeric_limits<int32_t>::min() && result <= std::numeric_limits<int32_t>::max());
+  return static_cast<int32_t>(result);
+}
 
-#endif  // TENSORFLOW_LITE_CORE_MACROS_H_
+int32_t MultiplyByQuantizedMultiplier(int64_t x, int32_t quantized_multiplier, int shift) {
+  // Inputs:
+  // - quantized_multiplier has fixed point at bit 31
+  // - shift is -31 to +7 (negative for right shift)
+  //
+  // Assumptions: The following input ranges are assumed
+  // - quantize_scale>=0  (the usual range is (1<<30) to (1>>31)-1)
+  // - scaling is chosen so final scaled result fits in int32_t
+  // - input x is in the range -(1<<47) <= x < (1<<47)
+  TFLITE_DCHECK(quantized_multiplier >= 0);
+  TFLITE_DCHECK(shift >= -31 && shift < 8);
+  TFLITE_DCHECK(x >= -(static_cast<int64_t>(1) << 47) && x < (static_cast<int64_t>(1) << 47));
+
+  const int32_t reduced_multiplier =
+      (quantized_multiplier < 0x7FFF0000) ? ((quantized_multiplier + (1 << 15)) >> 16) : 0x7FFF;
+  const int64_t total_shift = 15 - shift;
+  const int64_t round = static_cast<int64_t>(1) << (total_shift - 1);
+  int64_t result = x * static_cast<int64_t>(reduced_multiplier) + round;
+  result = result >> total_shift;
+
+  TFLITE_DCHECK(result >= std::numeric_limits<int32_t>::min() && result <= std::numeric_limits<int32_t>::max());
+  return static_cast<int32_t>(result);
+}
+// Double-rounding MultiplyByQuantizedMultiplier
+#else
+int32_t MultiplyByQuantizedMultiplier(int32_t x, int32_t quantized_multiplier, int shift) {
+  using gemmlowp::RoundingDivideByPOT;
+  using gemmlowp::SaturatingRoundingDoublingHighMul;
+  int left_shift = shift > 0 ? shift : 0;
+  int right_shift = shift > 0 ? 0 : -shift;
+  return RoundingDivideByPOT(SaturatingRoundingDoublingHighMul(x * (1 << left_shift), quantized_multiplier),
+                             right_shift);
+}
+
+int32_t MultiplyByQuantizedMultiplier(int64_t x, int32_t quantized_multiplier, int shift) {
+  // Inputs:
+  // - quantized_multiplier has fixed point at bit 31
+  // - shift is -31 to +7 (negative for right shift)
+  //
+  // Assumptions: The following input ranges are assumed
+  // - quantize_scale>=0  (the usual range is (1<<30) to (1>>31)-1)
+  // - scaling is chosen so final scaled result fits in int32_t
+  // - input x is in the range -(1<<47) <= x < (1<<47)
+  assert(quantized_multiplier >= 0);
+  assert(shift >= -31 && shift < 8);
+  assert(x >= -(static_cast<int64_t>(1) << 47) && x < (static_cast<int64_t>(1) << 47));
+
+  int32_t reduced_multiplier =
+      (quantized_multiplier < 0x7FFF0000) ? ((quantized_multiplier + (1 << 15)) >> 16) : 0x7FFF;
+  int total_shift = 15 - shift;
+  x = (x * (int64_t) reduced_multiplier) + ((int64_t) 1 << (total_shift - 1));
+  int32_t result = x >> total_shift;
+  return result;
+}
+#endif  // TFLITE_SINGLE_ROUNDING
+
+}  // namespace tflite

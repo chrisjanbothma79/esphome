@@ -1,4 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,139 +12,96 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_MICRO_KERNELS_LSTM_SHARED_H_
-#define TENSORFLOW_LITE_MICRO_KERNELS_LSTM_SHARED_H_
+
+#include "tensorflow/lite/kernels/internal/reference/maximum_minimum.h"
 
 #include "tensorflow/lite/c/builtin_op_data.h"
-#include "tensorflow/lite/kernels/internal/types.h"
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/common.h"
+#include "tensorflow/lite/kernels/internal/quantization_util.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/kernel_util.h"
+#include "tensorflow/lite/kernels/op_macros.h"
+#include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
 
-// Input Tensors of size {n_batch, n_input}
-constexpr int kLstmInputTensor = 0;
+namespace {
 
-// Input weight tensors of size: {n_cell, n_input}
-constexpr int kLstmInputToInputWeightsTensor = 1;  // Optional
-constexpr int kLstmInputToForgetWeightsTensor = 2;
-constexpr int kLstmInputToCellWeightsTensor = 3;
-constexpr int kLstmInputToOutputWeightsTensor = 4;
-
-// Recurrent weight tensors of size {n_cell, n_output}
-constexpr int kLstmRecurrentToInputWeightsTensor = 5;  // Optional
-constexpr int kLstmRecurrentToForgetWeightsTensor = 6;
-constexpr int kLstmRecurrentToCellWeightsTensor = 7;
-constexpr int kLstmRecurrentToOutputWeightsTensor = 8;
-
-// Peephole weights tensors of size {n_cell}, representing a diagonal matrix.
-constexpr int kLstmCellToInputWeightsTensor = 9;    // Optional
-constexpr int kLstmCellToForgetWeightsTensor = 10;  // Optional
-constexpr int kLstmCellToOutputWeightsTensor = 11;  // Optional
-
-// Gates bias tensors of size {n_cell}
-constexpr int kLstmInputGateBiasTensor = 12;  // Optional
-constexpr int kLstmForgetGateBiasTensor = 13;
-constexpr int kLstmCellGateBiasTensor = 14;
-constexpr int kLstmOutputGateBiasTensor = 15;
-
-// Projection weight tensor of size {n_output, n_cell}
-constexpr int kLstmProjectionWeightsTensor = 16;  // Optional
-// Projection bias tensor of size {n_output}
-constexpr int kLstmProjectionBiasTensor = 17;  // Optional
-
-// These state tensors are defined as variable tensors, and will be modified by
-// this op.
-constexpr int kLstmOutputStateTensor = 18;
-constexpr int kLstmCellStateTensor = 19;
-
-// Layer norm coefficient tensors of size {n_cell}, representing a diagonal
-// matrix.
-constexpr int kLstmInputLayerNormCoefficientsTensor = 20;   // Optional
-constexpr int kLstmForgetLayerNormCoefficientsTensor = 21;  // Optional
-constexpr int kLstmCellLayerNormCoefficientsTensor = 22;    // Optional
-constexpr int kLstmOutputLayerNormCoefficientsTensor = 23;  // Optional
-
-// Output tensors.
-constexpr int kLstmOutputTensor = 0;
-
-// Parameters for the two fully conncted computation inside each gate
-struct GateParameters {
-  FullyConnectedParams input_fc_params;
-  FullyConnectedParams recurrent_fc_params;
+// This file has a reference implementation of TFMaximum/TFMinimum.
+enum KernelType {
+  kReference,
 };
 
-// Paramaters for the element wise multiplications between gate outputs
-struct InterGateParameters {
-  ArithmeticParams forget_cell_mul_params;
-  ArithmeticParams input_mul_params;
-  ArithmeticParams output_mul_params;
-};
+constexpr int kInputTensor1 = 0;
+constexpr int kInputTensor2 = 1;
+constexpr int kOutputTensor = 0;
 
-// Size information about the LSTM kernel, which is deduced from tensors stored
-// in the flat buffer file.
-struct LstmSizeInfo {
-  bool time_major;
-  int batch_size;
-  int time_steps;
-  int input_dimension;
-  int state_dimension;
-};
-
-// Contains information about the cell state tensor
-struct CellStateInfo {
-  float cell_clip;
-  // clipping range for cell state only 16 bits cell is supported (could be
-  // generalized through templatation)
-  int16_t quantized_cell_clip;
-  // 2^-cell_state_scale_power = cell state scale, required by integer tanh
-  // computation
-  int32_t cell_state_scale_power;
-};
-
-// Contains required computation information for LSTM kernel evaluation.
-// Specifically, it includes shape and quantization settings for the LSTM
-// internal operations. Formatted to support operations defined in the
-// tensorflow/lite/kernels/internal/reference/integer_ops
-// Should be constructed during the preparation phase
-struct OpDataLSTM {
-  LstmSizeInfo size_info;
-  CellStateInfo cell_state_info;
-  TfLiteFusedActivation cell_gate_nonlinear_type;
-  GateParameters forget_gate_parameters;
-  GateParameters input_gate_parameters;
-  GateParameters cell_gate_parameters;
-  GateParameters output_gate_parameters;
-  InterGateParameters inter_gate_parameters;
-  int buffer_indices[4];  // TFLM only
-};
-
-// Provide an interface to access the internal tensors and buffers used for LSTM
-// invocation. Constructed during the invocation phase
-struct LSTMKernelContents {
- public:
-  // Internal tensors, fixed (const). see lstm_shared.h for tensor names
-  const TfLiteEvalTensor* GetInternalTensor(const int tensor_index) const {
-    return internal_tensors[tensor_index];
+struct OpContext {
+  OpContext(TfLiteContext *context, TfLiteNode *node) {
+    input1 = tflite::micro::GetEvalInput(context, node, kInputTensor1);
+    input2 = tflite::micro::GetEvalInput(context, node, kInputTensor2);
+    output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
   }
-  // Variable tensors (will be changed, can not be const)
-  TfLiteEvalTensor* HiddenStateTensor() {
-    return internal_tensors[kLstmOutputStateTensor];
-  }
-  TfLiteEvalTensor* CellStateTensor() {
-    return internal_tensors[kLstmCellStateTensor];
-  }
-  // Node internal tensors with indexes defined at the beginning of the file
-  TfLiteEvalTensor* internal_tensors[24];
-  TfLiteEvalTensor* output_tensor;
+  const TfLiteEvalTensor *input1;
+  const TfLiteEvalTensor *input2;
+  TfLiteEvalTensor *output;
 };
 
-template <typename CellType>
-struct LSTMBuffers {
-  // TFLM buffers requires buffer index from LstmOpData.
-  CellType* buffer0;
-  CellType* buffer1;
-  CellType* buffer2;
-  CellType* buffer3;
+struct MaximumOp {
+  template<typename data_type> static data_type op(data_type el1, data_type el2) { return el1 > el2 ? el1 : el2; }
 };
+
+struct MinimumOp {
+  template<typename data_type> static data_type op(data_type el1, data_type el2) { return el1 < el2 ? el1 : el2; }
+};
+
+template<typename data_type, typename op_type>
+void TFLiteOperation(TfLiteContext *context, TfLiteNode *node, const OpContext &op_context) {
+  reference_ops::MaximumMinimumBroadcastSlow(
+      tflite::micro::GetTensorShape(op_context.input1), tflite::micro::GetTensorData<data_type>(op_context.input1),
+      tflite::micro::GetTensorShape(op_context.input2), tflite::micro::GetTensorData<data_type>(op_context.input2),
+      tflite::micro::GetTensorShape(op_context.output), tflite::micro::GetTensorData<data_type>(op_context.output),
+      op_type::template op<data_type>);
+}
+
+template<KernelType kernel_type, typename OpType> TfLiteStatus Eval(TfLiteContext *context, TfLiteNode *node) {
+  OpContext op_context(context, node);
+
+  if (kernel_type == kReference) {
+    switch (op_context.output->type) {
+      case kTfLiteFloat32:
+        TFLiteOperation<float, OpType>(context, node, op_context);
+        break;
+      case kTfLiteInt8:
+        TFLiteOperation<int8_t, OpType>(context, node, op_context);
+        break;
+      case kTfLiteInt16:
+        TFLiteOperation<int16_t, OpType>(context, node, op_context);
+        break;
+      case kTfLiteInt32:
+        TFLiteOperation<int32_t, OpType>(context, node, op_context);
+        break;
+      case kTfLiteInt64:
+        TFLiteOperation<int64_t, OpType>(context, node, op_context);
+        break;
+      default:
+        MicroPrintf("Type %s (%d) is not supported by Maximum/Minimum.", TfLiteTypeGetName(op_context.output->type),
+                    op_context.output->type);
+        return kTfLiteError;
+    }
+  } else {
+    MicroPrintf("Kernel type not supported by Maximum/Minimum.");
+    return kTfLiteError;
+  }
+  return kTfLiteOk;
+}
+
+}  // namespace
+
+TFLMRegistration Register_MAXIMUM() { return tflite::micro::RegisterOp(nullptr, nullptr, Eval<kReference, MaximumOp>); }
+
+TFLMRegistration Register_MINIMUM() { return tflite::micro::RegisterOp(nullptr, nullptr, Eval<kReference, MinimumOp>); }
 
 }  // namespace tflite
-#endif  // TENSORFLOW_LITE_MICRO_KERNELS_LSTM_SHARED_H_

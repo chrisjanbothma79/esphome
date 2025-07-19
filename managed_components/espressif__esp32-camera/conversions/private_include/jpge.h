@@ -1,142 +1,387 @@
-// jpge.h - C++ class for JPEG compression.
-// Public domain, Rich Geldreich <richgel99@gmail.com>
-// Alex Evans: Added RGBA support, linear memory allocator.
-#ifndef JPEG_ENCODER_H
-#define JPEG_ENCODER_H
+// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#include <stddef.h>
+#include <string.h>
+#include "img_converters.h"
+#include "soc/efuse_reg.h"
+#include "esp_heap_caps.h"
+#include "yuv.h"
+#include "sdkconfig.h"
+#include "esp_jpg_decode.h"
 
-namespace jpge
-{
-    typedef unsigned char  uint8;
-    typedef signed short   int16;
-    typedef signed int     int32;
-    typedef unsigned short uint16;
-    typedef unsigned int   uint32;
-    typedef unsigned int   uint;
+#include "esp_system.h"
 
-    // JPEG chroma subsampling factors. Y_ONLY (grayscale images) and H2V2 (color images) are the most common.
-    enum subsampling_t { Y_ONLY = 0, H1V1 = 1, H2V1 = 2, H2V2 = 3 };
+#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
+#include "esp32-hal-log.h"
+#define TAG ""
+#else
+#include "esp_log.h"
+static const char *TAG = "to_bmp";
+#endif
 
-    // JPEG compression parameters structure.
-    struct params {
-            inline params() : m_quality(85), m_subsampling(H2V2) { }
+static const int BMP_HEADER_LEN = 54;
 
-            inline bool check() const {
-                if ((m_quality < 1) || (m_quality > 100)) {
-                    return false;
-                }
-                if ((uint)m_subsampling > (uint)H2V2) {
-                    return false;
-                }
-                return true;
-            }
+typedef struct {
+  uint32_t filesize;
+  uint32_t reserved;
+  uint32_t fileoffset_to_pixelarray;
+  uint32_t dibheadersize;
+  int32_t width;
+  int32_t height;
+  uint16_t planes;
+  uint16_t bitsperpixel;
+  uint32_t compression;
+  uint32_t imagesize;
+  uint32_t ypixelpermeter;
+  uint32_t xpixelpermeter;
+  uint32_t numcolorspallette;
+  uint32_t mostimpcolor;
+} bmp_header_t;
 
-            // Quality: 1-100, higher is better. Typical values are around 50-95.
-            int m_quality;
+typedef struct {
+  uint16_t width;
+  uint16_t height;
+  uint16_t data_offset;
+  const uint8_t *input;
+  uint8_t *output;
+} rgb_jpg_decoder;
 
-            // m_subsampling:
-            // 0 = Y (grayscale) only
-            // 1 = H1V1 subsampling (YCbCr 1x1x1, 3 blocks per MCU)
-            // 2 = H2V1 subsampling (YCbCr 2x1x1, 4 blocks per MCU)
-            // 3 = H2V2 subsampling (YCbCr 4x1x1, 6 blocks per MCU-- very common)
-            subsampling_t m_subsampling;
-    };
-    
-    // Output stream abstract class - used by the jpeg_encoder class to write to the output stream.
-    // put_buf() is generally called with len==JPGE_OUT_BUF_SIZE bytes, but for headers it'll be called with smaller amounts.
-    class output_stream {
-        public:
-            virtual ~output_stream() { };
-            virtual bool put_buf(const void* Pbuf, int len) = 0;
-            virtual uint get_size() const = 0;
-    };
-    
-    // Lower level jpeg_encoder class - useful if more control is needed than the above helper functions.
-    class jpeg_encoder {
-        public:
-            jpeg_encoder();
-            ~jpeg_encoder();
+static void *_malloc(size_t size) {
+  // check if SPIRAM is enabled and allocate on SPIRAM if allocatable
+#if (CONFIG_SPIRAM_SUPPORT && (CONFIG_SPIRAM_USE_CAPS_ALLOC || CONFIG_SPIRAM_USE_MALLOC))
+  return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+#endif
+  // try allocating in internal memory
+  return malloc(size);
+}
 
-            // Initializes the compressor.
-            // pStream: The stream object to use for writing compressed data.
-            // params - Compression parameters structure, defined above.
-            // width, height  - Image dimensions.
-            // channels - May be 1, or 3. 1 indicates grayscale, 3 indicates RGB source data.
-            // Returns false on out of memory or if a stream write fails.
-            bool init(output_stream *pStream, int width, int height, int src_channels, const params &comp_params = params());
+// output buffer and image width
+static bool _rgb_write(void *arg, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data) {
+  rgb_jpg_decoder *jpeg = (rgb_jpg_decoder *) arg;
+  if (!data) {
+    if (x == 0 && y == 0) {
+      // write start
+      jpeg->width = w;
+      jpeg->height = h;
+      // if output is null, this is BMP
+      if (!jpeg->output) {
+        jpeg->output = (uint8_t *) _malloc((w * h * 3) + jpeg->data_offset);
+        if (!jpeg->output) {
+          return false;
+        }
+      }
+    } else {
+      // write end
+    }
+    return true;
+  }
 
-            // Call this method with each source scanline.
-            // width * src_channels bytes per scanline is expected (RGB or Y format).
-            // You must call with NULL after all scanlines are processed to finish compression.
-            // Returns false on out of memory or if a stream write fails.
-            bool process_scanline(const void* pScanline);
+  size_t jw = jpeg->width * 3;
+  size_t t = y * jw;
+  size_t b = t + (h * jw);
+  size_t l = x * 3;
+  uint8_t *out = jpeg->output + jpeg->data_offset;
+  uint8_t *o = out;
+  size_t iy, ix;
 
-            // Deinitializes the compressor, freeing any allocated memory. May be called at any time.
-            void deinit();
+  w = w * 3;
 
-        private:
-            jpeg_encoder(const jpeg_encoder &);
-            jpeg_encoder &operator =(const jpeg_encoder &);
+  for (iy = t; iy < b; iy += jw) {
+    o = out + iy + l;
+    for (ix = 0; ix < w; ix += 3) {
+      o[ix] = data[ix + 2];
+      o[ix + 1] = data[ix + 1];
+      o[ix + 2] = data[ix];
+    }
+    data += w;
+  }
+  return true;
+}
 
-            typedef int32 sample_array_t;
-            enum { JPGE_OUT_BUF_SIZE = 512 };
+static bool _rgb565_write(void *arg, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data) {
+  rgb_jpg_decoder *jpeg = (rgb_jpg_decoder *) arg;
+  if (!data) {
+    if (x == 0 && y == 0) {
+      // write start
+      jpeg->width = w;
+      jpeg->height = h;
+      // if output is null, this is BMP
+      if (!jpeg->output) {
+        jpeg->output = (uint8_t *) _malloc((w * h * 3) + jpeg->data_offset);
+        if (!jpeg->output) {
+          return false;
+        }
+      }
+    } else {
+      // write end
+    }
+    return true;
+  }
 
-            output_stream *m_pStream;
-            params m_params;
-            uint8 m_num_components;
-            uint8 m_comp_h_samp[3], m_comp_v_samp[3];
-            int m_image_x, m_image_y, m_image_bpp, m_image_bpl;
-            int m_image_x_mcu, m_image_y_mcu;
-            int m_image_bpl_xlt, m_image_bpl_mcu;
-            int m_mcus_per_row;
-            int m_mcu_x, m_mcu_y;
-            uint8 *m_mcu_lines[16];
-            uint8 m_mcu_y_ofs;
-            sample_array_t m_sample_array[64];
-            int16 m_coefficient_array[64];
+  size_t jw = jpeg->width * 3;
+  size_t jw2 = jpeg->width * 2;
+  size_t t = y * jw;
+  size_t t2 = y * jw2;
+  size_t b = t + (h * jw);
+  size_t l = x * 2;
+  uint8_t *out = jpeg->output + jpeg->data_offset;
+  uint8_t *o = out;
+  size_t iy, iy2, ix, ix2;
 
-            int m_last_dc_val[3];
-            uint8 m_out_buf[JPGE_OUT_BUF_SIZE];
-            uint8 *m_pOut_buf;
-            uint m_out_buf_left;
-            uint32 m_bit_buffer;
-            uint m_bits_in;
-            uint8 m_pass_num;
-            bool m_all_stream_writes_succeeded;
+  w = w * 3;
 
-            bool jpg_open(int p_x_res, int p_y_res, int src_channels);
+  for (iy = t, iy2 = t2; iy < b; iy += jw, iy2 += jw2) {
+    o = out + iy2 + l;
+    for (ix2 = ix = 0; ix < w; ix += 3, ix2 += 2) {
+      uint16_t r = data[ix];
+      uint16_t g = data[ix + 1];
+      uint16_t b = data[ix + 2];
+      uint16_t c = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+      o[ix2 + 1] = c >> 8;
+      o[ix2] = c & 0xff;
+    }
+    data += w;
+  }
+  return true;
+}
 
-            void flush_output_buffer();
-            void put_bits(uint bits, uint len);
+// input buffer
+static unsigned int _jpg_read(void *arg, size_t index, uint8_t *buf, size_t len) {
+  rgb_jpg_decoder *jpeg = (rgb_jpg_decoder *) arg;
+  if (buf) {
+    memcpy(buf, jpeg->input + index, len);
+  }
+  return len;
+}
 
-            void emit_byte(uint8 i);
-            void emit_word(uint i);
-            void emit_marker(int marker);
+static bool jpg2rgb888(const uint8_t *src, size_t src_len, uint8_t *out, jpg_scale_t scale) {
+  rgb_jpg_decoder jpeg;
+  jpeg.width = 0;
+  jpeg.height = 0;
+  jpeg.input = src;
+  jpeg.output = out;
+  jpeg.data_offset = 0;
 
-            void emit_jfif_app0();
-            void emit_dqt();
-            void emit_sof();
-            void emit_dht(uint8 *bits, uint8 *val, int index, bool ac_flag);
-            void emit_dhts();
-            void emit_sos();
+  if (esp_jpg_decode(src_len, scale, _jpg_read, _rgb_write, (void *) &jpeg) != ESP_OK) {
+    return false;
+  }
+  return true;
+}
 
-            void compute_quant_table(int32 *dst, const int16 *src);
-            void load_quantized_coefficients(int component_num);
+bool jpg2rgb565(const uint8_t *src, size_t src_len, uint8_t *out, jpg_scale_t scale) {
+  rgb_jpg_decoder jpeg;
+  jpeg.width = 0;
+  jpeg.height = 0;
+  jpeg.input = src;
+  jpeg.output = out;
+  jpeg.data_offset = 0;
 
-            void load_block_8_8_grey(int x);
-            void load_block_8_8(int x, int y, int c);
-            void load_block_16_8(int x, int c);
-            void load_block_16_8_8(int x, int c);
+  if (esp_jpg_decode(src_len, scale, _jpg_read, _rgb565_write, (void *) &jpeg) != ESP_OK) {
+    return false;
+  }
+  return true;
+}
 
-            void code_coefficients_pass_two(int component_num);
-            void code_block(int component_num);
+bool jpg2bmp(const uint8_t *src, size_t src_len, uint8_t **out, size_t *out_len) {
+  rgb_jpg_decoder jpeg;
+  jpeg.width = 0;
+  jpeg.height = 0;
+  jpeg.input = src;
+  jpeg.output = NULL;
+  jpeg.data_offset = BMP_HEADER_LEN;
 
-            void process_mcu_row();
-            bool process_end_of_image();
-            void load_mcu(const void* src);
-            void clear();
-            void init();
-    };
-    
-} // namespace jpge
+  if (esp_jpg_decode(src_len, JPG_SCALE_NONE, _jpg_read, _rgb_write, (void *) &jpeg) != ESP_OK) {
+    return false;
+  }
 
-#endif // JPEG_ENCODER
+  size_t output_size = jpeg.width * jpeg.height * 3;
+
+  jpeg.output[0] = 'B';
+  jpeg.output[1] = 'M';
+  bmp_header_t *bitmap = (bmp_header_t *) &jpeg.output[2];
+  bitmap->reserved = 0;
+  bitmap->filesize = output_size + BMP_HEADER_LEN;
+  bitmap->fileoffset_to_pixelarray = BMP_HEADER_LEN;
+  bitmap->dibheadersize = 40;
+  bitmap->width = jpeg.width;
+  bitmap->height = -jpeg.height;  // set negative for top to bottom
+  bitmap->planes = 1;
+  bitmap->bitsperpixel = 24;
+  bitmap->compression = 0;
+  bitmap->imagesize = output_size;
+  bitmap->ypixelpermeter = 0x0B13;  // 2835 , 72 DPI
+  bitmap->xpixelpermeter = 0x0B13;  // 2835 , 72 DPI
+  bitmap->numcolorspallette = 0;
+  bitmap->mostimpcolor = 0;
+
+  *out = jpeg.output;
+  *out_len = output_size + BMP_HEADER_LEN;
+
+  return true;
+}
+
+bool fmt2rgb888(const uint8_t *src_buf, size_t src_len, pixformat_t format, uint8_t *rgb_buf) {
+  int pix_count = 0;
+  if (format == PIXFORMAT_JPEG) {
+    return jpg2rgb888(src_buf, src_len, rgb_buf, JPG_SCALE_NONE);
+  } else if (format == PIXFORMAT_RGB888) {
+    memcpy(rgb_buf, src_buf, src_len);
+  } else if (format == PIXFORMAT_RGB565) {
+    int i;
+    uint8_t hb, lb;
+    pix_count = src_len / 2;
+    for (i = 0; i < pix_count; i++) {
+      hb = *src_buf++;
+      lb = *src_buf++;
+      *rgb_buf++ = (lb & 0x1F) << 3;
+      *rgb_buf++ = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
+      *rgb_buf++ = hb & 0xF8;
+    }
+  } else if (format == PIXFORMAT_GRAYSCALE) {
+    int i;
+    uint8_t b;
+    pix_count = src_len;
+    for (i = 0; i < pix_count; i++) {
+      b = *src_buf++;
+      *rgb_buf++ = b;
+      *rgb_buf++ = b;
+      *rgb_buf++ = b;
+    }
+  } else if (format == PIXFORMAT_YUV422) {
+    pix_count = src_len / 2;
+    int i, maxi = pix_count / 2;
+    uint8_t y0, y1, u, v;
+    uint8_t r, g, b;
+    for (i = 0; i < maxi; i++) {
+      y0 = *src_buf++;
+      u = *src_buf++;
+      y1 = *src_buf++;
+      v = *src_buf++;
+
+      yuv2rgb(y0, u, v, &r, &g, &b);
+      *rgb_buf++ = b;
+      *rgb_buf++ = g;
+      *rgb_buf++ = r;
+
+      yuv2rgb(y1, u, v, &r, &g, &b);
+      *rgb_buf++ = b;
+      *rgb_buf++ = g;
+      *rgb_buf++ = r;
+    }
+  }
+  return true;
+}
+
+bool fmt2bmp(uint8_t *src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t **out,
+             size_t *out_len) {
+  if (format == PIXFORMAT_JPEG) {
+    return jpg2bmp(src, src_len, out, out_len);
+  }
+
+  *out = NULL;
+  *out_len = 0;
+
+  int pix_count = width * height;
+
+  // With BMP, 8-bit greyscale requires a palette.
+  // For a 640x480 image though, that's a savings
+  // over going RGB-24.
+  int bpp = (format == PIXFORMAT_GRAYSCALE) ? 1 : 3;
+  int palette_size = (format == PIXFORMAT_GRAYSCALE) ? 4 * 256 : 0;
+  size_t out_size = (pix_count * bpp) + BMP_HEADER_LEN + palette_size;
+  uint8_t *out_buf = (uint8_t *) _malloc(out_size);
+  if (!out_buf) {
+    ESP_LOGE(TAG, "_malloc failed! %u", out_size);
+    return false;
+  }
+
+  out_buf[0] = 'B';
+  out_buf[1] = 'M';
+  bmp_header_t *bitmap = (bmp_header_t *) &out_buf[2];
+  bitmap->reserved = 0;
+  bitmap->filesize = out_size;
+  bitmap->fileoffset_to_pixelarray = BMP_HEADER_LEN + palette_size;
+  bitmap->dibheadersize = 40;
+  bitmap->width = width;
+  bitmap->height = -height;  // set negative for top to bottom
+  bitmap->planes = 1;
+  bitmap->bitsperpixel = bpp * 8;
+  bitmap->compression = 0;
+  bitmap->imagesize = pix_count * bpp;
+  bitmap->ypixelpermeter = 0x0B13;  // 2835 , 72 DPI
+  bitmap->xpixelpermeter = 0x0B13;  // 2835 , 72 DPI
+  bitmap->numcolorspallette = 0;
+  bitmap->mostimpcolor = 0;
+
+  uint8_t *palette_buf = out_buf + BMP_HEADER_LEN;
+  uint8_t *pix_buf = palette_buf + palette_size;
+  uint8_t *src_buf = src;
+
+  if (palette_size > 0) {
+    // Grayscale palette
+    for (int i = 0; i < 256; ++i) {
+      for (int j = 0; j < 3; ++j) {
+        *palette_buf = i;
+        palette_buf++;
+      }
+      // Reserved / alpha channel.
+      *palette_buf = 0;
+      palette_buf++;
+    }
+  }
+
+  // convert data to RGB888
+  if (format == PIXFORMAT_RGB888) {
+    memcpy(pix_buf, src_buf, pix_count * 3);
+  } else if (format == PIXFORMAT_RGB565) {
+    int i;
+    uint8_t hb, lb;
+    for (i = 0; i < pix_count; i++) {
+      hb = *src_buf++;
+      lb = *src_buf++;
+      *pix_buf++ = (lb & 0x1F) << 3;
+      *pix_buf++ = (hb & 0x07) << 5 | (lb & 0xE0) >> 3;
+      *pix_buf++ = hb & 0xF8;
+    }
+  } else if (format == PIXFORMAT_GRAYSCALE) {
+    memcpy(pix_buf, src_buf, pix_count);
+  } else if (format == PIXFORMAT_YUV422) {
+    int i, maxi = pix_count / 2;
+    uint8_t y0, y1, u, v;
+    uint8_t r, g, b;
+    for (i = 0; i < maxi; i++) {
+      y0 = *src_buf++;
+      u = *src_buf++;
+      y1 = *src_buf++;
+      v = *src_buf++;
+
+      yuv2rgb(y0, u, v, &r, &g, &b);
+      *pix_buf++ = b;
+      *pix_buf++ = g;
+      *pix_buf++ = r;
+
+      yuv2rgb(y1, u, v, &r, &g, &b);
+      *pix_buf++ = b;
+      *pix_buf++ = g;
+      *pix_buf++ = r;
+    }
+  }
+  *out = out_buf;
+  *out_len = out_size;
+  return true;
+}
+
+bool frame2bmp(camera_fb_t *fb, uint8_t **out, size_t *out_len) {
+  return fmt2bmp(fb->buf, fb->len, fb->width, fb->height, fb->format, out, out_len);
+}

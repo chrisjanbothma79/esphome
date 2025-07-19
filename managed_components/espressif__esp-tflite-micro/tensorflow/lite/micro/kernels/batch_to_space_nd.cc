@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,102 +12,71 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#include "tensorflow/lite/kernels/internal/reference/broadcast_args.h"
 
-#include "tensorflow/lite/kernels/internal/reference/batch_to_space_nd.h"
+#include <stdint.h>
 
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
-#include "tensorflow/lite/micro/micro_utils.h"
+#include "tensorflow/lite/micro/micro_context.h"
 
 namespace tflite {
-
 namespace {
-
-constexpr int kInputTensor = 0;
-constexpr int kBlockShapeTensor = 1;
-constexpr int kCropsTensor = 2;
+constexpr int kShape1Tensor = 0;
+constexpr int kShape2Tensor = 1;
 constexpr int kOutputTensor = 0;
 
-// Currently, only 3D NHC and 4D NHWC input/output op_context are supported.
-// In case of 3D input, it will be extended to 3D NHWC by adding W=1.
-// The 4D array need to have exactly 2 spatial dimensions.
-// TODO(b/149952582): Support arbitrary dimension in SpaceToBatchND.
-const int kInputOutputMinDimensionNum = 3;
-const int kInputOutputMaxDimensionNum = 4;
-
-TfLiteStatus BatchToSpaceNDPrepare(TfLiteContext* context, TfLiteNode* node) {
-  TF_LITE_ENSURE_EQ(context, NumInputs(node), 3);
+TfLiteStatus BroadcastArgsPrepare(TfLiteContext *context, TfLiteNode *node) {
+  TF_LITE_ENSURE(context, NumInputs(node) == 2);
   TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
 
-  MicroContext* micro_context = GetMicroContext(context);
+  MicroContext *micro_context = GetMicroContext(context);
+  TfLiteTensor *shape1 = micro_context->AllocateTempInputTensor(node, kShape1Tensor);
+  TfLiteTensor *shape2 = micro_context->AllocateTempInputTensor(node, kShape2Tensor);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
 
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
-  TF_LITE_ENSURE(context, input != nullptr && output != nullptr);
+  TF_LITE_ENSURE(context, shape1->type == kTfLiteInt32 || shape1->type == kTfLiteInt64);
+  TF_LITE_ENSURE_EQ(context, shape1->type, shape2->type);
+  TF_LITE_ENSURE_EQ(context, shape1->type, output->type);
 
-  TF_LITE_ENSURE(context, NumDimensions(input) >= kInputOutputMinDimensionNum);
-  TF_LITE_ENSURE(context, NumDimensions(output) >= kInputOutputMinDimensionNum);
-  TF_LITE_ENSURE(context, NumDimensions(input) <= kInputOutputMaxDimensionNum);
-  TF_LITE_ENSURE(context, NumDimensions(output) <= kInputOutputMaxDimensionNum);
-  TF_LITE_ENSURE_TYPES_EQ(context, input->type, output->type);
+  // Ensures the shapes are 1D tensor.
+  TF_LITE_ENSURE_EQ(context, NumDimensions(shape1), 1);
+  TF_LITE_ENSURE_EQ(context, NumDimensions(shape2), 1);
 
-  micro_context->DeallocateTempTfLiteTensor(input);
+  // Ensure the shape of the output tensor is compatible
+  TF_LITE_ENSURE_EQ(context, NumDimensions(output), 1);
+
+  micro_context->DeallocateTempTfLiteTensor(shape1);
+  micro_context->DeallocateTempTfLiteTensor(shape2);
   micro_context->DeallocateTempTfLiteTensor(output);
 
   return kTfLiteOk;
 }
 
-TfLiteStatus BatchToSpaceNDEval(TfLiteContext* context, TfLiteNode* node) {
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  const TfLiteEvalTensor* block_shape =
-      tflite::micro::GetEvalInput(context, node, kBlockShapeTensor);
-  const TfLiteEvalTensor* crops =
-      tflite::micro::GetEvalInput(context, node, kCropsTensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+TfLiteStatus BroadcastArgsEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *shape1 = micro::GetEvalInput(context, node, kShape1Tensor);
+  const TfLiteEvalTensor *shape2 = micro::GetEvalInput(context, node, kShape2Tensor);
+  TfLiteEvalTensor *output = micro::GetEvalOutput(context, node, kOutputTensor);
 
-  switch (input->type) {  // Already know in/out types are same.
-    case kTfLiteFloat32:
-      reference_ops::BatchToSpaceND(
-          tflite::micro::GetTensorShape(input),
-          tflite::micro::GetTensorData<float>(input),
-          tflite::micro::GetTensorShape(block_shape),
-          tflite::micro::GetTensorData<int32_t>(block_shape),
-          tflite::micro::GetTensorShape(crops),
-          tflite::micro::GetTensorData<int32_t>(crops),
-          tflite::micro::GetTensorShape(output),
-          tflite::micro::GetTensorData<float>(output));
-      break;
-    case kTfLiteInt8:
-      reference_ops::BatchToSpaceND(
-          tflite::micro::GetTensorShape(input),
-          tflite::micro::GetTensorData<int8_t>(input),
-          tflite::micro::GetTensorShape(block_shape),
-          tflite::micro::GetTensorData<int32_t>(block_shape),
-          tflite::micro::GetTensorShape(crops),
-          tflite::micro::GetTensorData<int32_t>(crops),
-          tflite::micro::GetTensorShape(output),
-          tflite::micro::GetTensorData<int8_t>(output));
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.", TfLiteTypeGetName(input->type),
-                  input->type);
-      return kTfLiteError;
+  if (output->type == kTfLiteInt32) {
+    reference_ops::BroadcastArgs(micro::GetTensorShape(shape1), micro::GetTensorData<int32_t>(shape1),
+                                 micro::GetTensorShape(shape2), micro::GetTensorData<int32_t>(shape2),
+                                 micro::GetTensorShape(output), micro::GetTensorData<int32_t>(output));
+  } else {
+    reference_ops::BroadcastArgs(micro::GetTensorShape(shape1), micro::GetTensorData<int64_t>(shape1),
+                                 micro::GetTensorShape(shape2), micro::GetTensorData<int64_t>(shape2),
+                                 micro::GetTensorShape(output), micro::GetTensorData<int64_t>(output));
   }
+
   return kTfLiteOk;
 }
 
-}  // namespace.
+}  // namespace
 
-TFLMRegistration Register_BATCH_TO_SPACE_ND() {
-  return tflite::micro::RegisterOp(nullptr, BatchToSpaceNDPrepare,
-                                   BatchToSpaceNDEval);
+TFLMRegistration Register_BROADCAST_ARGS() {
+  return tflite::micro::RegisterOp(nullptr, BroadcastArgsPrepare, BroadcastArgsEval);
 }
 
 }  // namespace tflite

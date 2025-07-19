@@ -1,4 +1,1 @@
-idf_component_register(SRC_DIRS .
-                       PRIV_INCLUDE_DIRS .
-                       PRIV_REQUIRES test_utils esp32-camera nvs_flash 
-                       EMBED_TXTFILES pictures/testimg.jpeg pictures/test_outside.jpeg pictures/test_inside.jpeg)
+3ec0af5f6bce310512e90f482388d21cc7c0e99668172d2f895356165fc6f7c5

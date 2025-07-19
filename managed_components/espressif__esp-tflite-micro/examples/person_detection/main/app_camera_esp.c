@@ -13,86 +13,68 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "app_camera_esp.h"
-#include "sdkconfig.h"
+/*
+ * SPDX-FileCopyrightText: 2019-2023 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-#if (CONFIG_TFLITE_USE_BSP)
+#include "detection_responder.h"
+#include "tensorflow/lite/micro/micro_log.h"
+
+#include "esp_main.h"
+#if DISPLAY_SUPPORT
+#include "image_provider.h"
 #include "bsp/esp-bsp.h"
-#endif
 
-static const char *TAG = "app_camera";
+// Camera definition is always initialized to match the trained detection model: 96x96 pix
+// That is too small for LCD displays, so we extrapolate the image to 192x192 pix
+#define IMG_WD (96 * 2)
+#define IMG_HT (96 * 2)
 
-int app_camera_init() {
-#if ESP_CAMERA_SUPPORTED
-#if CONFIG_CAMERA_MODULE_ESP_EYE || CONFIG_CAMERA_MODULE_ESP32_CAM_BOARD
-  /* IO13, IO14 is designed for JTAG by default,
-   * to use it as generalized input,
-   * firstly declare it as pullup input */
-  gpio_config_t conf;
-  conf.mode = GPIO_MODE_INPUT;
-  conf.pull_up_en = GPIO_PULLUP_ENABLE;
-  conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-  conf.intr_type = GPIO_INTR_DISABLE;
-  conf.pin_bit_mask = 1LL << 13;
-  gpio_config(&conf);
-  conf.pin_bit_mask = 1LL << 14;
-  gpio_config(&conf);
-#endif // CONFIG_CAMERA_MODULE_ESP_EYE || CONFIG_CAMERA_MODULE_ESP32_CAM_BOARD
+static lv_obj_t *camera_canvas = NULL;
+static lv_obj_t *person_indicator = NULL;
+static lv_obj_t *label = NULL;
 
-#if (CONFIG_TFLITE_USE_BSP)
-  bsp_i2c_init();
-  camera_config_t config = BSP_CAMERA_DEFAULT_CONFIG;
+static void create_gui(void) {
+  bsp_display_start();
+  bsp_display_backlight_on();  // Set display brightness to 100%
+  bsp_display_lock(0);
+  camera_canvas = lv_canvas_create(lv_scr_act());
+  assert(camera_canvas);
+  lv_obj_align(camera_canvas, LV_ALIGN_TOP_MID, 0, 0);
 
-#else // CONFIG_TFLITE_USE_BSP
-  camera_config_t config;
-  config.ledc_channel = LEDC_CHANNEL_0;
-  config.ledc_timer = LEDC_TIMER_0;
-  config.pin_d0 = CAMERA_PIN_D0;
-  config.pin_d1 = CAMERA_PIN_D1;
-  config.pin_d2 = CAMERA_PIN_D2;
-  config.pin_d3 = CAMERA_PIN_D3;
-  config.pin_d4 = CAMERA_PIN_D4;
-  config.pin_d5 = CAMERA_PIN_D5;
-  config.pin_d6 = CAMERA_PIN_D6;
-  config.pin_d7 = CAMERA_PIN_D7;
-  config.pin_xclk = CAMERA_PIN_XCLK;
-  config.pin_pclk = CAMERA_PIN_PCLK;
-  config.pin_vsync = CAMERA_PIN_VSYNC;
-  config.pin_href = CAMERA_PIN_HREF;
-  config.pin_sscb_sda = CAMERA_PIN_SIOD;
-  config.pin_sscb_scl = CAMERA_PIN_SIOC;
-  config.pin_pwdn = CAMERA_PIN_PWDN;
-  config.pin_reset = CAMERA_PIN_RESET;
-  config.xclk_freq_hz = XCLK_FREQ_HZ;
-  config.jpeg_quality = 10;
-  config.fb_count = 2;
-  config.fb_location = CAMERA_FB_IN_PSRAM;
-#endif // CONFIG_TFLITE_USE_BSP
+  person_indicator = lv_led_create(lv_scr_act());
+  assert(person_indicator);
+  lv_obj_align(person_indicator, LV_ALIGN_BOTTOM_MID, -70, 0);
+  lv_led_set_color(person_indicator, lv_palette_main(LV_PALETTE_GREEN));
 
-  // Pixel format and frame size are specific configurations options for this application.
-  // Frame size must be 96x96 pixels to match the trained model.
-  // Pixel format defaults to grayscale to match the trained model.
-  // With display support enabled, the pixel format is RGB565 to match the display. The frame is converted to grayscale before it is passed to the trained model.
-  config.pixel_format = CAMERA_PIXEL_FORMAT;
-  config.frame_size = CAMERA_FRAME_SIZE;
+  label = lv_label_create(lv_scr_act());
+  assert(label);
+  lv_label_set_text_static(label, "Person detected");
+  lv_obj_align_to(label, person_indicator, LV_ALIGN_OUT_RIGHT_MID, 20, 0);
+  bsp_display_unlock();
+}
+#endif  // DISPLAY_SUPPORT
 
-  // camera init
-  esp_err_t err = esp_camera_init(&config);
-  if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Camera init failed with error 0x%x", err);
-    return -1;
+void RespondToDetection(float person_score, float no_person_score) {
+  int person_score_int = (person_score) *100 + 0.5;
+  (void) no_person_score;  // unused
+#if DISPLAY_SUPPORT
+  if (!camera_canvas) {
+    create_gui();
   }
-  sensor_t *s = esp_camera_sensor_get();
-  s->set_vflip(s, 1); //flip it back
-  //initial sensors are flipped vertically and colors are a bit saturated
-  if (s->id.PID == OV3660_PID)
-  {
-      s->set_brightness(s, 1);  //up the blightness just a bit
-      s->set_saturation(s, -2); //lower the saturation
+
+  uint16_t *buf = (uint16_t *) image_provider_get_display_buf();
+
+  bsp_display_lock(0);
+  if (person_score_int < 60) {  // treat score less than 60% as no person
+    lv_led_off(person_indicator);
+  } else {
+    lv_led_on(person_indicator);
   }
-  return 0;
-#else // ESP_CAMERA_SUPPORTED
-  ESP_LOGE(TAG, "Camera is not supported for this device!");
-  return -1;
-#endif // ESP_CAMERA_SUPPORTED
+  lv_canvas_set_buffer(camera_canvas, buf, IMG_WD, IMG_HT, LV_IMG_CF_TRUE_COLOR);
+  bsp_display_unlock();
+#endif  // DISPLAY_SUPPORT
+  MicroPrintf("person score:%d%%, no person score %d%%", person_score_int, 100 - person_score_int);
 }

@@ -1,4 +1,4 @@
-/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,90 +13,64 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_MICRO_FAKE_MICRO_CONTEXT_H_
-#define TENSORFLOW_LITE_MICRO_FAKE_MICRO_CONTEXT_H_
-
-#include "tensorflow/lite/micro/micro_context.h"
-#include "tensorflow/lite/micro/micro_graph.h"
+#include "tensorflow/lite/micro/flatbuffer_utils.h"
 
 namespace tflite {
-// A fake of MicroContext for kernel util tests.
-// TODO(b/272759060): FakeMicroContext currently inherits from MicroContext.
-// Which allow tests to use functions from MicroContext that weren't added to
-// FakeMicroContext in tests. This should be looked into further.
 
-class FakeMicroContext : public MicroContext {
- public:
-  ~FakeMicroContext() = default;
+FlexbufferWrapper::FlexbufferWrapper(const uint8_t *buffer, size_t size)
+    : flexbuffers::Vector(flexbuffers::GetRoot(buffer, size).AsVector()) {}
 
-  FakeMicroContext(TfLiteTensor* tensors, SingleArenaBufferAllocator* allocator,
-                   MicroGraph* micro_graph
-#ifdef USE_TFLM_COMPRESSION
-                   ,
-                   const CompressedTensorList* compressed_tensors = nullptr
-#endif  // USE_TFLM_COMPRESSION
-  );
+int64_t FlexbufferWrapper::ElementAsInt64(size_t i) const {
+  const uint8_t *elem = data_ + i * byte_width_;
+  return ::flexbuffers::ReadInt64(elem, byte_width_);
+}
 
-  void* AllocatePersistentBuffer(size_t bytes) override;
-  TfLiteStatus RequestScratchBufferInArena(size_t bytes,
-                                           int* buffer_index) override;
-  void* GetScratchBuffer(int buffer_index) override;
+uint64_t FlexbufferWrapper::ElementAsUInt64(size_t i) const {
+  const uint8_t *elem = data_ + i * byte_width_;
+  return ::flexbuffers::ReadUInt64(elem, byte_width_);
+}
 
-  TfLiteTensor* AllocateTempTfLiteTensor(int tensor_index) override;
-  void DeallocateTempTfLiteTensor(TfLiteTensor* tensor) override;
-  bool IsAllTempTfLiteTensorDeallocated();
+int32_t FlexbufferWrapper::ElementAsInt32(size_t i) const { return static_cast<int32_t>(ElementAsInt64(i)); }
 
-  uint8_t* AllocateTempBuffer(size_t size, size_t alignment) override;
-  void DeallocateTempBuffer(uint8_t* buffer) override;
+bool FlexbufferWrapper::ElementAsBool(size_t i) const { return static_cast<bool>(ElementAsUInt64(i)); }
 
-  TfLiteEvalTensor* GetEvalTensor(int tensor_index) override;
+double FlexbufferWrapper::ElementAsDouble(size_t i) const {
+  const uint8_t *elem = data_ + i * byte_width_;
+  return ::flexbuffers::ReadDouble(elem, byte_width_);
+}
 
-  TfLiteStatus set_external_context(void* external_context_payload) override;
-  void* external_context() override;
-  MicroGraph& graph() override;
+float FlexbufferWrapper::ElementAsFloat(size_t i) const {
+  return static_cast<float>(FlexbufferWrapper::ElementAsDouble(i));
+}
 
-#ifdef USE_TFLM_COMPRESSION
+// TODO(b/192589496): Ops must always be there. Remove this function when fixed
+uint32_t NumSubgraphOperators(const SubGraph *subgraph) {
+  if (subgraph->operators() != nullptr) {
+    return subgraph->operators()->size();
+  } else {
+    return 0;
+  }
+}
+// TODO(b/192589496): Ops must always be there. Remove this function when fixed
+uint32_t NumSubgraphOperators(const Model *model, int subgraph_idx) {
+  const SubGraph *subgraph = model->subgraphs()->Get(subgraph_idx);
+  return NumSubgraphOperators(subgraph);
+}
 
-  // Available during Prepare & Eval. Returns false if tensor is not
-  // compressed.
-  bool IsTensorCompressed(const TfLiteNode* node, int tensor_idx) override;
+TfLiteIntArray *FlatBufferVectorToTfLiteTypeArray(const flatbuffers::Vector<int32_t> *flatbuffer_array) {
+  // On little-endian machines, TfLiteIntArray happens to have the same memory
+  // layout as flatbuffers:Vector<int32_t>, so we can reinterpret_cast the
+  // flatbuffer vector and avoid a copy and malloc.
+  // TODO(b/188459715): audit this usage of const_cast.
+  return const_cast<TfLiteIntArray *>(reinterpret_cast<const TfLiteIntArray *>(flatbuffer_array));
+}
 
-  // Only available during Prepare. The kernel is responsible for storing the
-  // scratch buffer handle.
-  int AllocateDecompressionScratchBuffer(const TfLiteNode* node,
-                                         int tensor_idx) override;
-
-  // Available during Prepare & Eval. Returns nullptr if tensor is not
-  // compressed.
-  const CompressionTensorData* GetTensorCompressionData(
-      const TfLiteNode* node, int tensor_idx) override;
-
-#endif  // USE_TFLM_COMPRESSION
-
- private:
-  static constexpr int kNumScratchBuffers_ = 12;
-
-  MicroGraph& graph_;
-  int scratch_buffer_count_ = 0;
-  uint8_t* scratch_buffers_[kNumScratchBuffers_];
-
-  TfLiteTensor* tensors_;
-  int allocated_temp_count_ = 0;
-
-  SingleArenaBufferAllocator* allocator_;
-
-#ifdef USE_TFLM_COMPRESSION
-
-  //
-  // Compression
-  //
-  const CompressedTensorList* compressed_tensors_;
-
-#endif  // USE_TFLM_COMPRESSION
-
-  TF_LITE_REMOVE_VIRTUAL_DELETE
-};
+TfLiteFloatArray *FlatBufferVectorToTfLiteTypeArray(const flatbuffers::Vector<float> *flatbuffer_array) {
+  // On little-endian machines, TfLiteFloatArray happens to have the same memory
+  // layout as flatbuffers:Vector<float>, so we can reinterpret_cast the
+  // flatbuffer vector and avoid a copy and malloc.
+  // TODO(b/188459715): audit this usage of const_cast.
+  return const_cast<TfLiteFloatArray *>(reinterpret_cast<const TfLiteFloatArray *>(flatbuffer_array));
+}
 
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_FAKE_MICRO_CONTEXT_H_

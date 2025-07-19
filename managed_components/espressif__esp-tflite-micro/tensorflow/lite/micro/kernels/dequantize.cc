@@ -13,72 +13,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/dequantize.h"
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_DEQUANTIZE_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_DEQUANTIZE_H_
 
 #include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/reference/quantize.h"
-#include "tensorflow/lite/kernels/internal/reference/requantize.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/dequantize.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
 
-void* DequantizeInit(TfLiteContext* context, const char* buffer,
-                     size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(DequantizeOpData));
-}
+struct DequantizeOpData {
+  tflite::DequantizationParams quantization_params;
+  // The scaling factor from input to output (aka the 'real multiplier') can
+  // be represented as a fixed point multiplier plus a left shift.
+  int32_t output_multiplier;
+  int output_shift;
+  int32_t output_zero_point;
+};
 
-TfLiteStatus DequantizeEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  DequantizeOpData* data = static_cast<DequantizeOpData*>(node->user_data);
-
-  const TfLiteEvalTensor* input = tflite::micro::GetEvalInput(context, node, 0);
-  TfLiteEvalTensor* output = tflite::micro::GetEvalOutput(context, node, 0);
-
-  // Output type ensured to be kTfLiteFloat32 at the Prepare stage
-  TFLITE_DCHECK(output->type == kTfLiteFloat32);
-
-  switch (input->type) {
-    case kTfLiteInt8:
-      reference_ops::Dequantize(data->quantization_params,
-                                tflite::micro::GetTensorShape(input),
-                                tflite::micro::GetTensorData<int8_t>(input),
-                                tflite::micro::GetTensorShape(output),
-                                tflite::micro::GetTensorData<float>(output));
-      break;
-    case kTfLiteInt16:
-      reference_ops::Dequantize(data->quantization_params,
-                                tflite::micro::GetTensorShape(input),
-                                tflite::micro::GetTensorData<int16_t>(input),
-                                tflite::micro::GetTensorShape(output),
-                                tflite::micro::GetTensorData<float>(output));
-      break;
-    case kTfLiteUInt8:
-      reference_ops::Dequantize(data->quantization_params,
-                                tflite::micro::GetTensorShape(input),
-                                tflite::micro::GetTensorData<uint8_t>(input),
-                                tflite::micro::GetTensorShape(output),
-                                tflite::micro::GetTensorData<float>(output));
-      break;
-    default:
-      MicroPrintf("Input %s, output %s not supported.",
-                  TfLiteTypeGetName(input->type),
-                  TfLiteTypeGetName(output->type));
-      return kTfLiteError;
-  }
-
-  return kTfLiteOk;
-}
-
-TFLMRegistration Register_DEQUANTIZE() {
-  return tflite::micro::RegisterOp(DequantizeInit, DequantizePrepare,
-                                   DequantizeEval);
-}
+TfLiteStatus DequantizePrepare(TfLiteContext *context, TfLiteNode *node);
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_DEQUANTIZE_H_

@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,157 +12,264 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_RUNTIME_SHAPE_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_RUNTIME_SHAPE_H_
 
-#include <cstring>
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_STRIDED_SLICE_LOGIC_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_STRIDED_SLICE_LOGIC_H_
+
+#include <limits>
+#include <vector>
 
 #include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
+namespace strided_slice {
 
-template <int N>
-struct Dims {
-  int sizes[N];
-  int strides[N];
-};
-
-class RuntimeShape {
- public:
-  RuntimeShape& operator=(RuntimeShape const&) = delete;
-
-  // RuntimeShape in TFLM supports up to 6 dimensions.
-  // The name kMaxSmallSize comes from the same file of the upstream
-  // tensorflow lite repo and need to be kept the same for max reuse.
-  static constexpr int kMaxSmallSize = 6;
-
-  RuntimeShape() : size_(0) {}
-
-  explicit RuntimeShape(int dimensions_count) : size_(dimensions_count) {
-    TFLITE_DCHECK_LE(dimensions_count, kMaxSmallSize);
-  }
-
-  RuntimeShape(int shape_size, int32_t value) : size_(shape_size) {
-    TFLITE_DCHECK_LE(shape_size, kMaxSmallSize);
-    for (int i = 0; i < shape_size; ++i) {
-      SetDim(i, value);
-    }
-  }
-
-  RuntimeShape(int dimensions_count, const int32_t* dims_data)
-      : size_(dimensions_count) {
-    // check of dimensions_count handled by ReplaceWith()
-    ReplaceWith(dimensions_count, dims_data);
-  }
-
-  bool operator==(const RuntimeShape& comp) const {
-    return this->size_ == comp.size_ &&
-           std::memcmp(DimsData(), comp.DimsData(), size_ * sizeof(int32_t)) ==
-               0;
-  }
-
-  ~RuntimeShape() {}
-
-  int32_t DimensionsCount() const { return size_; }
-  int32_t Dims(int i) const {
-    TFLITE_DCHECK_GE(i, 0);
-    TFLITE_DCHECK_LT(i, size_);
-    return dims_[i];
-  }
-  void SetDim(int i, int32_t val) {
-    TFLITE_DCHECK_GE(i, 0);
-    TFLITE_DCHECK_LT(i, size_);
-    dims_[i] = val;
-  }
-
-  static RuntimeShape ExtendedShape(int new_shape_size,
-                                    const RuntimeShape& shape) {
-    TFLITE_DCHECK_LE(new_shape_size, kMaxSmallSize);
-    return RuntimeShape(new_shape_size, shape, 1);
-  }
-  int32_t* DimsData() { return dims_; }
-  const int32_t* DimsData() const { return dims_; }
-  const int32_t* DimsDataUpTo5D() const { return dims_; }
-
-  void ReplaceWith(int dimensions_count, const int32_t* dims_data) {
-    TFLITE_DCHECK_LE(dimensions_count, kMaxSmallSize);
-    size_ = dimensions_count;
-    int32_t* dst_dims = DimsData();
-    std::memcpy(dst_dims, dims_data, dimensions_count * sizeof(int32_t));
-  }
-
-  // Returns the total count of elements, that is the size when flattened into a
-  // vector.
-  int FlatSize() const {
-    int buffer_size = 1;
-    const int* dims_data = reinterpret_cast<const int*>(DimsData());
-    for (int i = 0; i < size_; i++) {
-      buffer_size *= dims_data[i];
-    }
-    return buffer_size;
-  }
-
- private:
-  // For use only by ExtendedShape(), written to guarantee (return-value) copy
-  // elision in C++17.
-  // This creates a shape padded to the desired size with the specified value.
-  RuntimeShape(int new_shape_size, const RuntimeShape& shape, int pad_value)
-      : size_(new_shape_size) {
-    // If the following check fails, it is likely because a 4D-only kernel is
-    // being used with an array of larger dimension count.
-    TFLITE_CHECK_GE(new_shape_size, shape.DimensionsCount());
-    const int size_increase = new_shape_size - shape.DimensionsCount();
-    for (int i = 0; i < size_increase; ++i) {
-      SetDim(i, pad_value);
-    }
-    std::memcpy(DimsData() + size_increase, shape.DimsData(),
-                sizeof(int32_t) * shape.DimensionsCount());
-  }
-
-  int32_t size_;
-  union {
-    int32_t dims_[kMaxSmallSize];
-  };
-};
-
-// Since tensors with '0' in their shape are valid in TF, these offset functions
-// allow that as long as the corresponding index is also 0. It is upto the
-// calling ops to ensure that they perform verification checks on tensor shapes
-// if they don't support a particular behavior.
-
-inline int Offset(const RuntimeShape& shape, int i0, int i1, int i2, int i3) {
-  TFLITE_DCHECK_EQ(shape.DimensionsCount(), 4);
-  const int* dims_data = reinterpret_cast<const int*>(shape.DimsData());
-  TFLITE_DCHECK((dims_data[0] == 0 && i0 == 0) ||
-                (i0 >= 0 && i0 < dims_data[0]));
-  TFLITE_DCHECK((dims_data[1] == 0 && i1 == 0) ||
-                (i1 >= 0 && i1 < dims_data[1]));
-  TFLITE_DCHECK((dims_data[2] == 0 && i2 == 0) ||
-                (i2 >= 0 && i2 < dims_data[2]));
-  TFLITE_DCHECK((dims_data[3] == 0 && i3 == 0) ||
-                (i3 >= 0 && i3 < dims_data[3]));
-  return ((i0 * dims_data[1] + i1) * dims_data[2] + i2) * dims_data[3] + i3;
+// Use until std::clamp() is available from C++17.
+inline int Clamp(const int v, const int lo, const int hi) {
+  TFLITE_DCHECK(!(hi < lo));
+  if (hi < v)
+    return hi;
+  if (v < lo)
+    return lo;
+  return v;
 }
 
-inline int Offset(const RuntimeShape& shape, int i0, int i1, int i2, int i3,
-                  int i4) {
-  TFLITE_DCHECK_EQ(shape.DimensionsCount(), 5);
-  const int* dims_data = reinterpret_cast<const int*>(shape.DimsData());
-  TFLITE_DCHECK((dims_data[0] == 0 && i0 == 0) ||
-                (i0 >= 0 && i0 < dims_data[0]));
-  TFLITE_DCHECK((dims_data[1] == 0 && i1 == 0) ||
-                (i1 >= 0 && i1 < dims_data[1]));
-  TFLITE_DCHECK((dims_data[2] == 0 && i2 == 0) ||
-                (i2 >= 0 && i2 < dims_data[2]));
-  TFLITE_DCHECK((dims_data[3] == 0 && i3 == 0) ||
-                (i3 >= 0 && i3 < dims_data[3]));
-  TFLITE_DCHECK((dims_data[4] == 0 && i4 == 0) ||
-                (i4 >= 0 && i4 < dims_data[4]));
-  return (((i0 * dims_data[1] + i1) * dims_data[2] + i2) * dims_data[3] + i3) *
-             dims_data[4] +
-         i4;
+inline void StridedSlicePadIndices(tflite::StridedSliceParams *p, int dim_count) {
+  // Add indices and mask bits to fully include extra dimensions
+  TFLITE_CHECK_LE(dim_count, 5);
+  TFLITE_CHECK_GE(dim_count, p->start_indices_count);
+  TFLITE_CHECK_EQ(p->start_indices_count, p->stop_indices_count);
+  TFLITE_CHECK_EQ(p->stop_indices_count, p->strides_count);
+
+  const int pad_count = dim_count - p->start_indices_count;
+
+  // Pad indices at start, so move arrays by pad_count.
+  for (int i = p->start_indices_count - 1; i >= 0; --i) {
+    p->strides[i + pad_count] = p->strides[i];
+    p->start_indices[i + pad_count] = p->start_indices[i];
+    p->stop_indices[i + pad_count] = p->stop_indices[i];
+  }
+  for (int i = 0; i < pad_count; ++i) {
+    p->start_indices[i] = 0;
+    p->stop_indices[i] = 1;
+    p->strides[i] = 1;
+  }
+
+  // Pad masks with 0s or 1s as required.
+  p->shrink_axis_mask <<= pad_count;
+  p->ellipsis_mask <<= pad_count;
+  p->new_axis_mask <<= pad_count;
+  p->begin_mask <<= pad_count;
+  p->end_mask <<= pad_count;
+  p->begin_mask |= (1 << pad_count) - 1;
+  p->end_mask |= (1 << pad_count) - 1;
+
+  p->start_indices_count = dim_count;
+  p->stop_indices_count = dim_count;
+  p->strides_count = dim_count;
 }
+
+// Return the index for the first element along that axis. This index will be a
+// positive integer between [0, axis_size] (or [-1, axis_size -1] if stride < 0)
+// that can be used to index directly into the data.
+inline int StridedSliceStartForAxis(const tflite::StridedSliceParams &params, const RuntimeShape &input_shape,
+                                    int32_t axis) {
+  const int32_t axis_size = input_shape.Dims(axis);
+  int32_t start = params.start_indices[axis];
+  const int32_t stride = params.strides[axis];
+  const int32_t begin_mask = (params.begin_mask & 1 << axis);
+  if (start < 0) {
+    start += axis_size;
+  }
+  if (stride > 0) {
+    start = Clamp(start, 0, axis_size);
+  } else {
+    start = Clamp(start, -1, axis_size - 1);
+  }
+  if (begin_mask) {
+    if (stride > 0) {
+      start = 0;
+    } else {
+      start = axis_size - 1;
+    }
+  }
+  return start;
+}
+
+inline int StridedSliceEndForAxis(const tflite::StridedSliceParams &params, const RuntimeShape &input_shape, int axis,
+                                  int start) {
+  const auto shrink_axis_mask = params.shrink_axis_mask;
+  const bool shrink_axis = shrink_axis_mask & (1 << axis);
+  const int axis_size = input_shape.Dims(axis);
+  const bool offset = params.offset;
+  if (shrink_axis) {
+    if (start >= axis_size) {
+      return start;
+    } else {
+      return start + 1;
+    }
+  }
+  const auto *indices = params.stop_indices;
+  int end = indices[axis];
+  if (offset) {
+    end += start;
+  }
+  const int32_t stride = params.strides[axis];
+  const int32_t end_mask = (params.end_mask & 1 << axis);
+  if (end < 0) {
+    end += axis_size;
+  }
+  if (stride > 0) {
+    end = Clamp(end, 0, axis_size);
+  } else {
+    end = Clamp(end, -1, axis_size - 1);
+  }
+  if (end_mask) {
+    if (stride > 0) {
+      end = axis_size;
+    } else {
+      end = -1;
+    }
+  }
+  return end;
+}
+
+// Return the index for the first element along that axis. This index will be a
+// positive integer between [0, axis_size] (or [-1, axis_size -1] if stride < 0)
+// that can be used to index directly into the data.
+inline int StartForAxis(const tflite::StridedSliceParams &params, const RuntimeShape &input_shape, int axis) {
+  const auto begin_mask = params.begin_mask;
+  const auto *start_indices = params.start_indices;
+  const auto *strides = params.strides;
+  const int axis_size = input_shape.Dims(axis);
+  if (axis_size == 0) {
+    return 0;
+  }
+  // Begin with the specified index.
+  int start = start_indices[axis];
+
+  // begin_mask override
+  if (begin_mask & 1 << axis) {
+    if (strides[axis] > 0) {
+      // Forward iteration - use the first element. These values will get
+      // clamped below (Note: We could have set them to 0 and axis_size-1, but
+      // use lowest() and max() to maintain symmetry with StopForAxis())
+      start = std::numeric_limits<int>::lowest();
+    } else {
+      // Backward iteration - use the last element.
+      start = std::numeric_limits<int>::max();
+    }
+  }
+
+  // Handle negative indices
+  if (start < 0) {
+    start += axis_size;
+  }
+
+  // Clamping
+  if (strides[axis] > 0) {
+    // Forward iteration
+    start = Clamp(start, 0, axis_size);
+  } else {
+    // Backward iteration
+    start = Clamp(start, -1, axis_size - 1);
+  }
+
+  return start;
+}
+
+// Return the "real" index for the end of iteration along that axis. This is an
+// "end" in the traditional C sense, in that it points to one past the last
+// element. ie. So if you were iterating through all elements of a 1D array of
+// size 4, this function would return 4 as the stop, because it is one past the
+// "real" indices of 0, 1, 2 & 3.
+inline int StopForAxis(const tflite::StridedSliceParams &params, const RuntimeShape &input_shape, int axis,
+                       int start_for_axis) {
+  const auto end_mask = params.end_mask;
+  const auto shrink_axis_mask = params.shrink_axis_mask;
+  const auto *stop_indices = params.stop_indices;
+  const auto *strides = params.strides;
+  const int axis_size = input_shape.Dims(axis);
+  if (axis_size == 0) {
+    return 0;
+  }
+
+  // Begin with the specified index
+  const bool shrink_axis = shrink_axis_mask & (1 << axis);
+  int stop = stop_indices[axis];
+
+  // When shrinking an axis, the end position does not matter (and can be
+  // incorrect when negative indexing is used, see Issue #19260). Always use
+  // start_for_axis + 1 to generate a length 1 slice, since start_for_axis has
+  // already been adjusted for negative indices.
+  if (shrink_axis) {
+    return start_for_axis + 1;
+  }
+
+  // end_mask override
+  if (end_mask & (1 << axis)) {
+    if (strides[axis] > 0) {
+      // Forward iteration - use the last element. These values will get
+      // clamped below
+      stop = std::numeric_limits<int>::max();
+    } else {
+      // Backward iteration - use the first element.
+      stop = std::numeric_limits<int>::lowest();
+    }
+  }
+
+  // Handle negative indices
+  if (stop < 0) {
+    stop += axis_size;
+  }
+
+  // Clamping
+  // Because the end index points one past the last element, we need slightly
+  // different clamping ranges depending on the direction.
+  if (strides[axis] > 0) {
+    // Forward iteration
+    stop = Clamp(stop, 0, axis_size);
+  } else {
+    // Backward iteration
+    stop = Clamp(stop, -1, axis_size - 1);
+  }
+
+  return stop;
+}
+
+inline bool LoopCondition(int index, int stop, int stride) {
+  // True when we have reached the end of an axis and should loop.
+  return stride > 0 ? index >= stop : index <= stop;
+}
+
+inline tflite::StridedSliceParams BuildStridedSliceParams(int begin_mask, int end_mask, int shrink_axis_mask,
+                                                          const std::vector<int> &start_indices,
+                                                          const std::vector<int> &stop_indices,
+                                                          const std::vector<int> &strides) {
+  tflite::StridedSliceParams op_params{};
+  const int dims_count = start_indices.size();
+
+  op_params.start_indices_count = dims_count;
+  op_params.stop_indices_count = dims_count;
+  op_params.strides_count = dims_count;
+  for (int i = 0; i < dims_count; ++i) {
+    op_params.start_indices[i] = start_indices[i];
+    op_params.stop_indices[i] = stop_indices[i];
+    op_params.strides[i] = strides[i];
+  }
+
+  op_params.begin_mask = begin_mask;
+  op_params.ellipsis_mask = 0;
+  op_params.end_mask = end_mask;
+  op_params.new_axis_mask = 0;
+  op_params.shrink_axis_mask = shrink_axis_mask;
+
+  return op_params;
+}
+
+}  // namespace strided_slice
 
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_RUNTIME_SHAPE_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_STRIDED_SLICE_LOGIC_H_

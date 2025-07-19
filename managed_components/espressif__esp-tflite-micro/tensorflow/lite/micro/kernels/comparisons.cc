@@ -1,4 +1,4 @@
-/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,11 +12,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/kernels/internal/reference/comparisons.h"
+#include "tensorflow/lite/kernels/internal/reference/concatenation.h"
 
+#include <cstdint>
+
+#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/internal/types.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/micro_log.h"
@@ -25,582 +28,225 @@ namespace tflite {
 
 namespace {
 
-struct OpData {
-  ComparisonParams params;
-};
-
-constexpr int kInputTensor1 = 0;
-constexpr int kInputTensor2 = 1;
+constexpr int kMaxInputNum = 10;  // Maximum number of input tensors
 constexpr int kOutputTensor = 0;
 
-TfLiteStatus EqualEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpData* data = static_cast<const OpData*>(node->user_data);
+struct OpData {
+  ConcatenationParams params;
 
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor1);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor2);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+#ifdef USE_TFLM_COMPRESSION
 
-  RuntimeShape input1_shape = tflite::micro::GetTensorShape(input1);
-  RuntimeShape input2_shape = tflite::micro::GetTensorShape(input2);
-  RuntimeShape output_shape = tflite::micro::GetTensorShape(output);
-  bool* output_data = tflite::micro::GetTensorData<bool>(output);
+  // scratch buffers for compressed tensors
+  int scratch_indices[kMaxInputNum];
 
-  bool requires_broadcast = !tflite::micro::HaveSameShapes(input1, input2);
-  switch (input1->type) {
-    case kTfLiteBool:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<bool>(input1), input2_shape,
-                tflite::micro::GetTensorData<bool>(input2), output_shape,
-                output_data)
-          : reference_ops::EqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<bool>(input1), input2_shape,
-                tflite::micro::GetTensorData<bool>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteFloat32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data)
-          : reference_ops::EqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data)
-          : reference_ops::EqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt64:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data)
-          : reference_ops::EqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt8:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowEqualWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data)
-          : reference_ops::EqualWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data);
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
-      return kTfLiteError;
+#endif  // USE_TFLM_COMPRESSION
+};
+
+// Handles negative axis index, coerces to positive index value.
+inline int CalculatePositiveAxis(int axis, const TfLiteTensor *output_tensor) {
+  if (axis >= 0) {
+    return axis;
+  } else {
+    return NumDimensions(output_tensor) + axis;
   }
-  return kTfLiteOk;
 }
 
-// TODO(renjieliu): Refactor the logic to avoid duplications.
-TfLiteStatus NotEqualEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpData* data = static_cast<const OpData*>(node->user_data);
+// The following functions are helpers to get tensor data in the format that the
+// reference op implementation expects. They provide the same functionality as
+// class VectorOfTensors and class VectorOfQuantizedTensors in TFLite.
 
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor1);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor2);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-
-  RuntimeShape input1_shape = tflite::micro::GetTensorShape(input1);
-  RuntimeShape input2_shape = tflite::micro::GetTensorShape(input2);
-  RuntimeShape output_shape = tflite::micro::GetTensorShape(output);
-  bool* output_data = tflite::micro::GetTensorData<bool>(output);
-
-  bool requires_broadcast = !tflite::micro::HaveSameShapes(input1, input2);
-  switch (input1->type) {
-    case kTfLiteBool:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowNotEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<bool>(input1), input2_shape,
-                tflite::micro::GetTensorData<bool>(input2), output_shape,
-                output_data)
-          : reference_ops::NotEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<bool>(input1), input2_shape,
-                tflite::micro::GetTensorData<bool>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteFloat32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowNotEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data)
-          : reference_ops::NotEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowNotEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data)
-          : reference_ops::NotEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt64:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowNotEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data)
-          : reference_ops::NotEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt8:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowNotEqualWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data)
-          : reference_ops::NotEqualWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data);
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
-      return kTfLiteError;
+// Gets shapes from a list of tensors.
+inline void GetAllInputTensorShapes(const TfLiteContext *context, const TfLiteNode *node,
+                                    RuntimeShape all_shapes[kMaxInputNum]) {
+  for (int i = 0; i < node->inputs->size; ++i) {
+    const TfLiteEvalTensor *t = tflite::micro::GetEvalInput(context, node, i);
+    RuntimeShape shape = tflite::micro::GetTensorShape(t);
+    all_shapes[i].ReplaceWith(shape.DimensionsCount(), shape.DimsData());
   }
-  return kTfLiteOk;
 }
 
-TfLiteStatus GreaterEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpData* data = static_cast<const OpData*>(node->user_data);
-
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor1);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor2);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-
-  RuntimeShape input1_shape = tflite::micro::GetTensorShape(input1);
-  RuntimeShape input2_shape = tflite::micro::GetTensorShape(input2);
-  RuntimeShape output_shape = tflite::micro::GetTensorShape(output);
-  bool* output_data = tflite::micro::GetTensorData<bool>(output);
-
-  bool requires_broadcast = !tflite::micro::HaveSameShapes(input1, input2);
-  switch (input1->type) {
-    case kTfLiteFloat32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowGreaterNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data)
-          : reference_ops::GreaterNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowGreaterNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data)
-          : reference_ops::GreaterNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt64:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowGreaterNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data)
-          : reference_ops::GreaterNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt8:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowGreaterWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data)
-          : reference_ops::GreaterWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data);
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
-      return kTfLiteError;
+// Get shape pointers from a list of shapes.
+inline void GetShapesPointers(const RuntimeShape *shapes, size_t num, const RuntimeShape *pointers[]) {
+  for (size_t i = 0; i < num; ++i) {
+    pointers[i] = &shapes[i];
   }
-  return kTfLiteOk;
 }
 
-TfLiteStatus GreaterEqualEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpData* data = static_cast<const OpData*>(node->user_data);
+// Gets data pointers from a list of tensors.
+template<typename T>
+inline void GetAllInputTensorData(const TfLiteContext *context, const TfLiteNode *node,
+                                  const T *all_data[kMaxInputNum]) {
+#ifdef USE_TFLM_COMPRESSION
+  const OpData *data = static_cast<const OpData *>(node->user_data);
+  MicroContext *micro_context = GetMicroContext(context);
+#endif  // USE_TFLM_COMPRESSION
 
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor1);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor2);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-
-  RuntimeShape input1_shape = tflite::micro::GetTensorShape(input1);
-  RuntimeShape input2_shape = tflite::micro::GetTensorShape(input2);
-  RuntimeShape output_shape = tflite::micro::GetTensorShape(output);
-  bool* output_data = tflite::micro::GetTensorData<bool>(output);
-
-  bool requires_broadcast = !tflite::micro::HaveSameShapes(input1, input2);
-  switch (input1->type) {
-    case kTfLiteFloat32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowGreaterEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data)
-          : reference_ops::GreaterEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowGreaterEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data)
-          : reference_ops::GreaterEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt64:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowGreaterEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data)
-          : reference_ops::GreaterEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt8:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowGreaterEqualWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data)
-          : reference_ops::GreaterEqualWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data);
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
-      return kTfLiteError;
+  for (int i = 0; i < node->inputs->size; ++i) {
+    const TfLiteEvalTensor *t = tflite::micro::GetEvalInput(context, node, i);
+#ifdef USE_TFLM_COMPRESSION
+    const CompressionTensorData *comp_td = micro_context->GetTensorCompressionData(node, i);
+    all_data[i] = tflite::micro::GetTensorData<T>(micro_context, t, comp_td, data->scratch_indices[i]);
+#else   // USE_TFLM_COMPRESSION
+    all_data[i] = tflite::micro::GetTensorData<T>(t);
+#endif  // USE_TFLM_COMPRESSION
   }
-  return kTfLiteOk;
 }
 
-TfLiteStatus LessEval(TfLiteContext* context, TfLiteNode* node) {
+template<typename data_type> void EvalUnquantized(TfLiteContext *context, TfLiteNode *node) {
+  // Collect the shapes and data pointer of input tensors
+  RuntimeShape inputs_shape[kMaxInputNum];
+  const RuntimeShape *inputs_shape_ptr[kMaxInputNum];
+  const data_type *inputs_data[kMaxInputNum];
+  TFLITE_DCHECK(context != nullptr);
+  TFLITE_DCHECK(node != nullptr);
   TFLITE_DCHECK(node->user_data != nullptr);
-  const OpData* data = static_cast<const OpData*>(node->user_data);
+  const OpData *data = static_cast<const OpData *>(node->user_data);
+  GetAllInputTensorShapes(context, node, inputs_shape);
+  GetShapesPointers(inputs_shape, node->inputs->size, inputs_shape_ptr);
+  GetAllInputTensorData(context, node, inputs_data);
 
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor1);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor2);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
 
-  RuntimeShape input1_shape = tflite::micro::GetTensorShape(input1);
-  RuntimeShape input2_shape = tflite::micro::GetTensorShape(input2);
-  RuntimeShape output_shape = tflite::micro::GetTensorShape(output);
-  bool* output_data = tflite::micro::GetTensorData<bool>(output);
-
-  bool requires_broadcast = !tflite::micro::HaveSameShapes(input1, input2);
-  switch (input1->type) {
-    case kTfLiteFloat32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowLessNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data)
-          : reference_ops::LessNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowLessNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data)
-          : reference_ops::LessNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt64:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowLessNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data)
-          : reference_ops::LessNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt8:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowLessWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data)
-          : reference_ops::LessWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data);
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
-      return kTfLiteError;
-  }
-  return kTfLiteOk;
+  reference_ops::Concatenation(data->params, inputs_shape_ptr, inputs_data, tflite::micro::GetTensorShape(output),
+                               tflite::micro::GetTensorData<data_type>(output));
 }
 
-TfLiteStatus LessEqualEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpData* data = static_cast<const OpData*>(node->user_data);
-
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor1);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kInputTensor2);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-
-  RuntimeShape input1_shape = tflite::micro::GetTensorShape(input1);
-  RuntimeShape input2_shape = tflite::micro::GetTensorShape(input2);
-  RuntimeShape output_shape = tflite::micro::GetTensorShape(output);
-  bool* output_data = tflite::micro::GetTensorData<bool>(output);
-
-  bool requires_broadcast = !tflite::micro::HaveSameShapes(input1, input2);
-  switch (input1->type) {
-    case kTfLiteFloat32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowLessEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data)
-          : reference_ops::LessEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<float>(input1), input2_shape,
-                tflite::micro::GetTensorData<float>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt32:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowLessEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data)
-          : reference_ops::LessEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int32_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int32_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt64:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowLessEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data)
-          : reference_ops::LessEqualNoScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int64_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int64_t>(input2), output_shape,
-                output_data);
-      break;
-    case kTfLiteInt8:
-      requires_broadcast
-          ? reference_ops::Broadcast4DSlowLessEqualWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data)
-          : reference_ops::LessEqualWithScaling(
-                data->params, input1_shape,
-                tflite::micro::GetTensorData<int8_t>(input1), input2_shape,
-                tflite::micro::GetTensorData<int8_t>(input2), output_shape,
-                output_data);
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
-      return kTfLiteError;
-  }
-  return kTfLiteOk;
-}
-
-void* Init(TfLiteContext* context, const char* buffer, size_t length) {
+void *ConcatenationInit(TfLiteContext *context, const char *buffer, size_t length) {
   TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
   return context->AllocatePersistentBuffer(context, sizeof(OpData));
 }
 
-TfLiteStatus ComparisonsPrepare(TfLiteContext* context, TfLiteNode* node) {
+TfLiteStatus ConcatenationPrepare(TfLiteContext *context, TfLiteNode *node) {
+  // This function only checks the types. Additional shape validations are
+  // performed in the reference implementation called during Eval().
+  const TfLiteConcatenationParams *params = reinterpret_cast<TfLiteConcatenationParams *>(node->builtin_data);
+
+  MicroContext *micro_context = GetMicroContext(context);
+
+  TfLiteTensor *input_tensor = micro_context->AllocateTempInputTensor(node, 0);
+  TF_LITE_ENSURE(context, input_tensor != nullptr);
+  TfLiteType input_type = input_tensor->type;
+  TfLiteTensor *output_tensor = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TF_LITE_ENSURE(context, output_tensor != nullptr);
+  TfLiteType output_type = output_tensor->type;
+
+  micro_context->DeallocateTempTfLiteTensor(input_tensor);
+
+  // Check activation and input type
+  TF_LITE_ENSURE_EQ(context, params->activation, kTfLiteActNone);
+  TF_LITE_ENSURE(context, input_type == kTfLiteFloat32 || input_type == kTfLiteInt8 || input_type == kTfLiteInt16 ||
+                              input_type == kTfLiteInt32 || input_type == kTfLiteInt64 || input_type == kTfLiteBool);
+
+  // Output type must match input type
+  TF_LITE_ENSURE_TYPES_EQ(context, output_type, input_type);
+
+  // This implementation does not support large number of input tensors
+  const int num_inputs = NumInputs(node);
+  TF_LITE_ENSURE(context, num_inputs <= kMaxInputNum);
+
+  // Calculate OpData.
   TFLITE_DCHECK(node->user_data != nullptr);
-  OpData* data = static_cast<OpData*>(node->user_data);
+  OpData *data = static_cast<OpData *>(node->user_data);
 
-  MicroContext* micro_context = GetMicroContext(context);
+  // Shapes with dimensions > kMaxSmallSize are not yet supported with static
+  // allocation.
+  for (int i = 0; i < num_inputs; ++i) {
+    TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, i);
+    TF_LITE_ENSURE(context, input != nullptr);
+    TF_LITE_ENSURE_TYPES_EQ(context, input->type, input_type);
+    int num_dimensions = NumDimensions(input);
 
-  TfLiteTensor* input1 =
-      micro_context->AllocateTempInputTensor(node, kInputTensor1);
-  TF_LITE_ENSURE(context, input1 != nullptr);
-  TfLiteTensor* input2 =
-      micro_context->AllocateTempInputTensor(node, kInputTensor2);
-  TF_LITE_ENSURE(context, input2 != nullptr);
+    if (num_dimensions > RuntimeShape::kMaxSmallSize) {
+      MicroPrintf("Op Concatenation does not currently support num dimensions > %d "
+                  "Tensor has %d dimensions.",
+                  RuntimeShape::kMaxSmallSize, num_dimensions);
+      return kTfLiteError;
+    }
 
-  if (input1->type == kTfLiteInt8) {
-    auto input1_offset = -input1->params.zero_point;
-    auto input2_offset = -input2->params.zero_point;
-    const int kLeftShift = 8;
+    if (input_type == kTfLiteInt8) {
+      // Make sure there is no re-scaling needed for Int8 quantized kernel. This
+      // is a restriction we introduced to Int8 kernels.
+      TF_LITE_ENSURE_EQ(context, static_cast<double>(input->params.scale),
+                        static_cast<double>(output_tensor->params.scale));
+      TF_LITE_ENSURE_EQ(context, input->params.zero_point, output_tensor->params.zero_point);
+    } else if (input_type == kTfLiteInt16) {
+      // Make sure that all Int16 inputs have a null zero-point.
+      TF_LITE_ENSURE_EQ(context, input->params.zero_point, 0);
+    }
 
-    int32_t input1_multiplier;
-    int input1_shift;
-    QuantizeMultiplierSmallerThanOneExp(
-        static_cast<double>(input1->params.scale), &input1_multiplier,
-        &input1_shift);
-    int32_t input2_multiplier;
-    int input2_shift;
-    QuantizeMultiplierSmallerThanOneExp(
-        static_cast<double>(input2->params.scale), &input2_multiplier,
-        &input2_shift);
+#ifdef USE_TFLM_COMPRESSION
 
-    data->params.left_shift = kLeftShift;
-    data->params.input1_offset = input1_offset;
-    data->params.input1_multiplier = input1_multiplier;
-    data->params.input1_shift = input1_shift;
-    data->params.input2_offset = input2_offset;
-    data->params.input2_multiplier = input2_multiplier;
-    data->params.input2_shift = input2_shift;
+    // Compression scratch buffers.
+    // These will only be allocated if the tensor is compressed.
+    data->scratch_indices[i] = micro_context->AllocateDecompressionScratchBuffer(node, i);
+
+#endif  // USE_TFLM_COMPRESSION
+
+    micro_context->DeallocateTempTfLiteTensor(input);
   }
 
-  micro_context->DeallocateTempTfLiteTensor(input1);
-  micro_context->DeallocateTempTfLiteTensor(input2);
+  if (input_type == kTfLiteInt16) {
+    TF_LITE_ENSURE_EQ(context, output_tensor->params.zero_point, 0);
+  }
+
+  switch (output_type) {  // Already know in/outtypes are same.
+    case kTfLiteBool:
+    case kTfLiteFloat32:
+    case kTfLiteInt8:
+    case kTfLiteInt16:
+    case kTfLiteInt32:
+    case kTfLiteInt64: {
+      data->params.axis = CalculatePositiveAxis(params->axis, output_tensor);
+      data->params.inputs_count = node->inputs->size;
+      break;
+    }
+    default:
+      MicroPrintf("Op Concatenation does not currently support type '%s'.", TfLiteTypeGetName(output_type));
+      return kTfLiteError;
+  }
+
+  micro_context->DeallocateTempTfLiteTensor(output_tensor);
+
+  return kTfLiteOk;
+}
+
+TfLiteStatus ConcatenationEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *output_tensor = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  TF_LITE_ENSURE(context, output_tensor != nullptr);
+  TfLiteType output_type = output_tensor->type;
+
+  switch (output_type) {  // Already know in/outtypes are same.
+    case kTfLiteFloat32:
+      EvalUnquantized<float>(context, node);
+      break;
+    case kTfLiteInt32:
+      EvalUnquantized<int32_t>(context, node);
+      break;
+    case kTfLiteInt8:
+      EvalUnquantized<int8_t>(context, node);
+      break;
+    case kTfLiteInt64:
+      EvalUnquantized<int64_t>(context, node);
+      break;
+    case kTfLiteInt16:
+      EvalUnquantized<int16_t>(context, node);
+      break;
+    case kTfLiteBool:
+      EvalUnquantized<bool>(context, node);
+      break;
+
+    default:
+      MicroPrintf("Op Concatenation does not currently support Type '%s'.", TfLiteTypeGetName(output_type));
+      return kTfLiteError;
+  }
 
   return kTfLiteOk;
 }
 
 }  // namespace
 
-TFLMRegistration Register_EQUAL() {
-  return tflite::micro::RegisterOp(Init, ComparisonsPrepare, EqualEval);
-}
-
-TFLMRegistration Register_NOT_EQUAL() {
-  return tflite::micro::RegisterOp(Init, ComparisonsPrepare, NotEqualEval);
-}
-
-TFLMRegistration Register_GREATER() {
-  return tflite::micro::RegisterOp(Init, ComparisonsPrepare, GreaterEval);
-}
-
-TFLMRegistration Register_GREATER_EQUAL() {
-  return tflite::micro::RegisterOp(Init, ComparisonsPrepare, GreaterEqualEval);
-}
-
-TFLMRegistration Register_LESS() {
-  return tflite::micro::RegisterOp(Init, ComparisonsPrepare, LessEval);
-}
-
-TFLMRegistration Register_LESS_EQUAL() {
-  return tflite::micro::RegisterOp(Init, ComparisonsPrepare, LessEqualEval);
+TFLMRegistration Register_CONCATENATION() {
+  return tflite::micro::RegisterOp(ConcatenationInit, ConcatenationPrepare, ConcatenationEval);
 }
 
 }  // namespace tflite

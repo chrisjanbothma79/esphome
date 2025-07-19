@@ -13,28 +13,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "signal/src/filter_bank_log.h"
+#ifndef SIGNAL_SRC_FILTER_BANK_LOG_H_
+#define SIGNAL_SRC_FILTER_BANK_LOG_H_
 
-#include "signal/src/log.h"
+#include <stdint.h>
 
 namespace tflite {
 namespace tflm_signal {
+// TODO(b/286250473): remove namespace once de-duped libraries above
 
-void FilterbankLog(const uint32_t* input, int num_channels,
-                   int32_t output_scale, uint32_t correction_bits,
-                   int16_t* output) {
-  for (int i = 0; i < num_channels; ++i) {
-    const uint32_t scaled = input[i] << correction_bits;
-    if (scaled > 1) {
-      const uint32_t log_value = Log32(scaled, output_scale);
-      output[i] = ((log_value < static_cast<uint32_t>(INT16_MAX))
-                       ? log_value
-                       : static_cast<uint32_t>(INT16_MAX));
-    } else {
-      output[i] = 0;
-    }
-  }
-}
+// Apply natural log to each element in array `input` of size `num_channels`
+// with pre-shift and post scaling.
+// The operation is roughly equivalent to:
+// `output` = min(Log(`input` << `correction_bits`) * `output_scale`, INT16_MAX)
+//  Where:
+//    If (input << `correction_bits`) is 1 or 0, the function returns 0
+void FilterbankLog(const uint32_t *input, int num_channels, int32_t output_scale, uint32_t correction_bits,
+                   int16_t *output);
 
 }  // namespace tflm_signal
 }  // namespace tflite
+
+#endif  // SIGNAL_SRC_FILTER_BANK_LOG_H_

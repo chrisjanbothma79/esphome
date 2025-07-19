@@ -12,40 +12,33 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "signal/src/overlap_add.h"
+#ifndef SIGNAL_SRC_OVERLAP_ADD_H_
+#define SIGNAL_SRC_OVERLAP_ADD_H_
 
-#include <stdio.h>
-#include <string.h>
+#include <stddef.h>
+#include <stdint.h>
 
 namespace tflm_signal {
+// Adds (with saturation) the contents of `input` to the contents of `buffer`,
+// both of size `input_size`, then copies the first `output_size` elements of
+// `buffer` to `output`, shifts the last `input_size`-`output_size` elements of
+// `buffer` to the beginning of `buffer` and fills the trailing `output_size`
+// samples in `buffer` with zeros.
+// input: {input[0] ... input[input_size-1]}
+// buffer: {buffer[0] ... buffer[input_size-1]}
+// After invocation:
+// output: {saturate(input[0] + buffer[0]),
+//          ... ,
+//          saturate(input[output_size-1] + buffer[output_size-1])}
+// buffer: {saturate(input[output_size] + buffer[output_size]),
+//          ...
+//          saturate(  input[input_size-output_size-1]
+//                   + buffer[input_size-output_size-1]),
+//          zeros(output_size)}
+void OverlapAdd(const int16_t *input, int16_t *buffer, int input_size, int16_t *output, int output_size);
 
-void OverlapAdd(const int16_t* input, int16_t* buffer, int input_size,
-                int16_t* output, int output_size) {
-  for (int i = 0; i < input_size; ++i) {
-    int32_t overlap_added_sample = input[i] + buffer[i];
-    if (overlap_added_sample < INT16_MIN) {
-      buffer[i] = INT16_MIN;
-    } else if (overlap_added_sample > INT16_MAX) {
-      buffer[i] = INT16_MAX;
-    } else {
-      buffer[i] = (int16_t)overlap_added_sample;
-    }
-  }
-  memcpy(output, buffer, output_size * sizeof(output[0]));
-  memmove(buffer, &buffer[output_size],
-          (input_size - output_size) * sizeof(buffer[0]));
-  memset(&buffer[input_size - output_size], 0, output_size * sizeof(buffer[0]));
-}
+// The same as the int16_t variant above, but without saturation
+void OverlapAdd(const float *input, float *buffer, int input_size, float *output, int output_size);
 
-void OverlapAdd(const float* input, float* buffer, int input_size,
-                float* output, int output_size) {
-  for (int i = 0; i < input_size; ++i) {
-    buffer[i] += input[i];
-  }
-  memcpy(output, buffer, output_size * sizeof(output[0]));
-  memmove(buffer, &buffer[output_size],
-          (input_size - output_size) * sizeof(buffer[0]));
-  memset(&buffer[input_size - output_size], 0, output_size * sizeof(buffer[0]));
-}
-
-}  // namespace tflm_signal
+}  //  namespace tflm_signal
+#endif  // SIGNAL_SRC_OVERLAP_ADD_H_

@@ -12,158 +12,241 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_POOLING_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_POOLING_H_
 
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_PAD_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_PAD_H_
+#include <algorithm>
 
-#include <vector>
-
+#include "tensorflow/lite/kernels/internal/common.h"
+#include "tensorflow/lite/kernels/internal/cppmath.h"
+#include "tensorflow/lite/kernels/internal/quantization_util.h"
 #include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
-
 namespace reference_ops {
 
-// TFLite Pad supports activation tensors with up to 5 dimensions.
-constexpr int PadKernelMaxDimensionCount() { return 5; }
-
-// There are two versions of pad: Pad and PadV2.  In PadV2 there is a second
-// scalar input that provides the padding value.  Therefore pad_value_ptr can be
-// equivalent to a simple input1_data.  For Pad, it should point to a zero
-// value.
-//
-// Note that two typenames are required, so that T=P=int32_t is considered a
-// specialization distinct from P=int32_t.
-template <typename T, typename P>
-inline void PadImpl(const tflite::PadParams& op_params,
-                    const RuntimeShape& input_shape, const T* input_data,
-                    const P* pad_value_ptr, const RuntimeShape& output_shape,
-                    T* output_data) {
-  const RuntimeShape ext_input_shape =
-      RuntimeShape::ExtendedShape(PadKernelMaxDimensionCount(), input_shape);
-  const RuntimeShape ext_output_shape =
-      RuntimeShape::ExtendedShape(PadKernelMaxDimensionCount(), output_shape);
-  TFLITE_DCHECK_LE(op_params.left_padding_count, PadKernelMaxDimensionCount());
-  TFLITE_DCHECK_LE(op_params.right_padding_count, PadKernelMaxDimensionCount());
-
-  // Runtime calls are currently fixed at 5 dimensions. Copy inputs so we can
-  // pad them to 5 dims (yes, we are "padding the padding").
-  int left_padding_copy[PadKernelMaxDimensionCount()];
-  for (int i = 0; i < PadKernelMaxDimensionCount(); i++) {
-    left_padding_copy[i] = 0;
-  }
-  for (int i = 0; i < op_params.left_padding_count; ++i) {
-    left_padding_copy[i + PadKernelMaxDimensionCount() -
-                      op_params.left_padding_count] = op_params.left_padding[i];
-  }
-  int right_padding_copy[PadKernelMaxDimensionCount()];
-  for (int i = 0; i < PadKernelMaxDimensionCount(); i++) {
-    right_padding_copy[i] = 0;
-  }
-  for (int i = 0; i < op_params.right_padding_count; ++i) {
-    right_padding_copy[i + PadKernelMaxDimensionCount() -
-                       op_params.right_padding_count] =
-        op_params.right_padding[i];
-  }
-
-  const int output_batch = ext_output_shape.Dims(0);
-  const int output_plane = ext_output_shape.Dims(1);
-  const int output_height = ext_output_shape.Dims(2);
-  const int output_width = ext_output_shape.Dims(3);
-  const int output_depth = ext_output_shape.Dims(4);
-
-  const int left_b_padding = left_padding_copy[0];
-  const int left_p_padding = left_padding_copy[1];
-  const int left_h_padding = left_padding_copy[2];
-  const int left_w_padding = left_padding_copy[3];
-  const int left_d_padding = left_padding_copy[4];
-
-  const int right_b_padding = right_padding_copy[0];
-  const int right_p_padding = right_padding_copy[1];
-  const int right_h_padding = right_padding_copy[2];
-  const int right_w_padding = right_padding_copy[3];
-  const int right_d_padding = right_padding_copy[4];
-
-  const T pad_value = *pad_value_ptr;
-
-  const T* in_ptr = input_data;
-  T* out_ptr = output_data;
-  for (int out_b = 0; out_b < output_batch; ++out_b) {
-    for (int out_p = 0; out_p < output_plane; ++out_p) {
-      for (int out_h = 0; out_h < output_height; ++out_h) {
-        for (int out_w = 0; out_w < output_width; ++out_w) {
-          for (int out_d = 0; out_d < output_depth; ++out_d) {
-            if (out_b < left_b_padding ||
-                out_b >= output_batch - right_b_padding ||
-                out_p < left_p_padding ||
-                out_p >= output_plane - right_p_padding ||
-                out_h < left_h_padding ||
-                out_h >= output_height - right_h_padding ||
-                out_w < left_w_padding ||
-                out_w >= output_width - right_w_padding ||
-                out_d < left_d_padding ||
-                out_d >= output_depth - right_d_padding) {
-              *out_ptr++ = pad_value;
-            } else {
-              *out_ptr++ = *in_ptr++;
+inline bool AveragePool(const PoolParams &params, const RuntimeShape &input_shape, const float *input_data,
+                        const RuntimeShape &output_shape, float *output_data) {
+  TFLITE_DCHECK_EQ(input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(output_shape.DimensionsCount(), 4);
+  const int batches = MatchingDim(input_shape, 0, output_shape, 0);
+  const int depth = MatchingDim(input_shape, 3, output_shape, 3);
+  const int input_height = input_shape.Dims(1);
+  const int input_width = input_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_width = output_shape.Dims(2);
+  const int stride_height = params.stride_height;
+  const int stride_width = params.stride_width;
+  for (int batch = 0; batch < batches; ++batch) {
+    for (int out_y = 0; out_y < output_height; ++out_y) {
+      for (int out_x = 0; out_x < output_width; ++out_x) {
+        for (int channel = 0; channel < depth; ++channel) {
+          const int in_x_origin = (out_x * stride_width) - params.padding_values.width;
+          const int in_y_origin = (out_y * stride_height) - params.padding_values.height;
+          // Compute the boundaries of the filter region clamped so as to
+          // ensure that the filter window fits in the input array.
+          const int filter_x_start = std::max(0, -in_x_origin);
+          const int filter_x_end = std::min(params.filter_width, input_width - in_x_origin);
+          const int filter_y_start = std::max(0, -in_y_origin);
+          const int filter_y_end = std::min(params.filter_height, input_height - in_y_origin);
+          float total = 0.f;
+          float filter_count = 0;
+          for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
+            for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
+              const int in_x = in_x_origin + filter_x;
+              const int in_y = in_y_origin + filter_y;
+              total += input_data[Offset(input_shape, batch, in_y, in_x, channel)];
+              filter_count++;
             }
           }
+          if (filter_count == 0)
+            return false;
+          const float average = total / filter_count;
+          output_data[Offset(output_shape, batch, out_y, out_x, channel)] =
+              ActivationFunctionWithMinMax(average, params.float_activation_min, params.float_activation_max);
+        }
+      }
+    }
+  }
+  return true;
+}
+
+inline bool AveragePool(const PoolParams &params, const RuntimeShape &input_shape, const uint8_t *input_data,
+                        const RuntimeShape &output_shape, uint8_t *output_data) {
+  TFLITE_DCHECK_LE(params.quantized_activation_min, params.quantized_activation_max);
+  TFLITE_DCHECK_EQ(input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(output_shape.DimensionsCount(), 4);
+  const int batches = MatchingDim(input_shape, 0, output_shape, 0);
+  const int depth = MatchingDim(input_shape, 3, output_shape, 3);
+  const int input_height = input_shape.Dims(1);
+  const int input_width = input_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_width = output_shape.Dims(2);
+  const int stride_height = params.stride_height;
+  const int stride_width = params.stride_width;
+  for (int batch = 0; batch < batches; ++batch) {
+    for (int out_y = 0; out_y < output_height; ++out_y) {
+      for (int out_x = 0; out_x < output_width; ++out_x) {
+        for (int channel = 0; channel < depth; ++channel) {
+          const int in_x_origin = (out_x * stride_width) - params.padding_values.width;
+          const int in_y_origin = (out_y * stride_height) - params.padding_values.height;
+          // Compute the boundaries of the filter region clamped so as to
+          // ensure that the filter window fits in the input array.
+          const int filter_x_start = std::max(0, -in_x_origin);
+          const int filter_x_end = std::min(params.filter_width, input_width - in_x_origin);
+          const int filter_y_start = std::max(0, -in_y_origin);
+          const int filter_y_end = std::min(params.filter_height, input_height - in_y_origin);
+          int32_t acc = 0;
+          int filter_count = 0;
+          for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
+            for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
+              const int in_x = in_x_origin + filter_x;
+              const int in_y = in_y_origin + filter_y;
+              acc += input_data[Offset(input_shape, batch, in_y, in_x, channel)];
+              filter_count++;
+            }
+          }
+          if (filter_count == 0)
+            return false;
+          acc = (acc + filter_count / 2) / filter_count;
+          acc = std::max(acc, params.quantized_activation_min);
+          acc = std::min(acc, params.quantized_activation_max);
+          output_data[Offset(output_shape, batch, out_y, out_x, channel)] = static_cast<uint8_t>(acc);
+        }
+      }
+    }
+  }
+  return true;
+}
+
+inline void L2Pool(const PoolParams &params, const RuntimeShape &input_shape, const float *input_data,
+                   const RuntimeShape &output_shape, float *output_data) {
+  TFLITE_DCHECK_EQ(input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(output_shape.DimensionsCount(), 4);
+  const int batches = MatchingDim(input_shape, 0, output_shape, 0);
+  const int depth = MatchingDim(input_shape, 3, output_shape, 3);
+  const int input_height = input_shape.Dims(1);
+  const int input_width = input_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_width = output_shape.Dims(2);
+  const int stride_height = params.stride_height;
+  const int stride_width = params.stride_width;
+  for (int batch = 0; batch < batches; ++batch) {
+    for (int out_y = 0; out_y < output_height; ++out_y) {
+      for (int out_x = 0; out_x < output_width; ++out_x) {
+        for (int channel = 0; channel < depth; ++channel) {
+          const int in_x_origin = (out_x * stride_width) - params.padding_values.width;
+          const int in_y_origin = (out_y * stride_height) - params.padding_values.height;
+          // Compute the boundaries of the filter region clamped so as to
+          // ensure that the filter window fits in the input array.
+          const int filter_x_start = std::max(0, -in_x_origin);
+          const int filter_x_end = std::min(params.filter_width, input_width - in_x_origin);
+          const int filter_y_start = std::max(0, -in_y_origin);
+          const int filter_y_end = std::min(params.filter_height, input_height - in_y_origin);
+          float sum_squares = 0.f;
+          int filter_count = 0;
+          for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
+            for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
+              const int in_x = in_x_origin + filter_x;
+              const int in_y = in_y_origin + filter_y;
+              const float val = input_data[Offset(input_shape, batch, in_y, in_x, channel)];
+              sum_squares += val * val;
+              filter_count++;
+            }
+          }
+          const float l2pool_result = std::sqrt(sum_squares / filter_count);
+          output_data[Offset(output_shape, batch, out_y, out_x, channel)] =
+              ActivationFunctionWithMinMax(l2pool_result, params.float_activation_min, params.float_activation_max);
         }
       }
     }
   }
 }
 
-template <typename T, typename P>
-inline void Pad(const tflite::PadParams& op_params,
-                const RuntimeShape& input_shape, const T* input_data,
-                const P* pad_value_ptr, const RuntimeShape& output_shape,
-                T* output_data) {
-  PadImpl(op_params, input_shape, input_data, pad_value_ptr, output_shape,
-          output_data);
+inline void MaxPool(const PoolParams &params, const RuntimeShape &input_shape, const float *input_data,
+                    const RuntimeShape &output_shape, float *output_data) {
+  TFLITE_DCHECK_EQ(input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(output_shape.DimensionsCount(), 4);
+  const int batches = MatchingDim(input_shape, 0, output_shape, 0);
+  const int depth = MatchingDim(input_shape, 3, output_shape, 3);
+  const int input_height = input_shape.Dims(1);
+  const int input_width = input_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_width = output_shape.Dims(2);
+  const int stride_height = params.stride_height;
+  const int stride_width = params.stride_width;
+  for (int batch = 0; batch < batches; ++batch) {
+    for (int out_y = 0; out_y < output_height; ++out_y) {
+      for (int out_x = 0; out_x < output_width; ++out_x) {
+        for (int channel = 0; channel < depth; ++channel) {
+          const int in_x_origin = (out_x * stride_width) - params.padding_values.width;
+          const int in_y_origin = (out_y * stride_height) - params.padding_values.height;
+          // Compute the boundaries of the filter region clamped so as to
+          // ensure that the filter window fits in the input array.
+          const int filter_x_start = std::max(0, -in_x_origin);
+          const int filter_x_end = std::min(params.filter_width, input_width - in_x_origin);
+          const int filter_y_start = std::max(0, -in_y_origin);
+          const int filter_y_end = std::min(params.filter_height, input_height - in_y_origin);
+          float max = std::numeric_limits<float>::lowest();
+          for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
+            for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
+              const int in_x = in_x_origin + filter_x;
+              const int in_y = in_y_origin + filter_y;
+              max = std::max(max, input_data[Offset(input_shape, batch, in_y, in_x, channel)]);
+            }
+          }
+          output_data[Offset(output_shape, batch, out_y, out_x, channel)] =
+              ActivationFunctionWithMinMax(max, params.float_activation_min, params.float_activation_max);
+        }
+      }
+    }
+  }
 }
 
-// The second (pad-value) input can be int32_t when, say, the first is uint8_t.
-template <typename T>
-inline void Pad(const tflite::PadParams& op_params,
-                const RuntimeShape& input_shape, const T* input_data,
-                const int32_t* pad_value_ptr, const RuntimeShape& output_shape,
-                T* output_data) {
-  const T converted_pad_value = static_cast<T>(*pad_value_ptr);
-  PadImpl(op_params, input_shape, input_data, &converted_pad_value,
-          output_shape, output_data);
+inline void MaxPool(const PoolParams &params, const RuntimeShape &input_shape, const uint8_t *input_data,
+                    const RuntimeShape &output_shape, uint8_t *output_data) {
+  TFLITE_DCHECK_LE(params.quantized_activation_min, params.quantized_activation_max);
+  TFLITE_DCHECK_GE(params.quantized_activation_min, 0);
+  TFLITE_DCHECK_LE(params.quantized_activation_max, 255);
+  TFLITE_DCHECK_EQ(input_shape.DimensionsCount(), 4);
+  TFLITE_DCHECK_EQ(output_shape.DimensionsCount(), 4);
+  const int batches = MatchingDim(input_shape, 0, output_shape, 0);
+  const int depth = MatchingDim(input_shape, 3, output_shape, 3);
+  const int input_height = input_shape.Dims(1);
+  const int input_width = input_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_width = output_shape.Dims(2);
+  const int stride_height = params.stride_height;
+  const int stride_width = params.stride_width;
+  for (int batch = 0; batch < batches; ++batch) {
+    for (int out_y = 0; out_y < output_height; ++out_y) {
+      for (int out_x = 0; out_x < output_width; ++out_x) {
+        for (int channel = 0; channel < depth; ++channel) {
+          const int in_x_origin = (out_x * stride_width) - params.padding_values.width;
+          const int in_y_origin = (out_y * stride_height) - params.padding_values.height;
+          // Compute the boundaries of the filter region clamped so as to
+          // ensure that the filter window fits in the input array.
+          const int filter_x_start = std::max(0, -in_x_origin);
+          const int filter_x_end = std::min(params.filter_width, input_width - in_x_origin);
+          const int filter_y_start = std::max(0, -in_y_origin);
+          const int filter_y_end = std::min(params.filter_height, input_height - in_y_origin);
+          uint8_t max = 0;
+          for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
+            for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
+              const int in_x = in_x_origin + filter_x;
+              const int in_y = in_y_origin + filter_y;
+              max = std::max(max, input_data[Offset(input_shape, batch, in_y, in_x, channel)]);
+            }
+          }
+          max = std::max<uint8_t>(max, params.quantized_activation_min);
+          max = std::min<uint8_t>(max, params.quantized_activation_max);
+          output_data[Offset(output_shape, batch, out_y, out_x, channel)] = static_cast<uint8_t>(max);
+        }
+      }
+    }
+  }
 }
-
-// This version avoids conflicting template matching.
-template <>
-inline void Pad(const tflite::PadParams& op_params,
-                const RuntimeShape& input_shape, const int32_t* input_data,
-                const int32_t* pad_value_ptr, const RuntimeShape& output_shape,
-                int32_t* output_data) {
-  PadImpl(op_params, input_shape, input_data, pad_value_ptr, output_shape,
-          output_data);
-}
-
-template <typename T, typename P>
-inline void PadImageStyle(const tflite::PadParams& op_params,
-                          const RuntimeShape& input_shape, const T* input_data,
-                          const P* pad_value_ptr,
-                          const RuntimeShape& output_shape, T* output_data) {
-  Pad(op_params, input_shape, input_data, pad_value_ptr, output_shape,
-      output_data);
-}
-
-template <typename P>
-inline void PadImageStyle(const tflite::PadParams& op_params,
-                          const RuntimeShape& input_shape,
-                          const float* input_data, const P* pad_value_ptr,
-                          const RuntimeShape& output_shape,
-                          float* output_data) {
-  Pad(op_params, input_shape, input_data, pad_value_ptr, output_shape,
-      output_data);
-}
-
 }  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_PAD_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_POOLING_H_

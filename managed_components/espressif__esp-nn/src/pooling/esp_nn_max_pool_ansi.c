@@ -1,4 +1,4 @@
-// Copyright 2020-2021 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2022 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,55 +12,69 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdint.h>
+#include "softmax_common.h"
 
-#include <common_functions.h>
+int32_t esp_nn_get_softmax_scratch_size_ansi(const int32_t width, const int32_t height) {
+  (void) width;
+  (void) height;
+  return 0;
+}
 
-void esp_nn_max_pool_s8_ansi(const int8_t *input,
-                             const uint16_t input_wd,
-                             const uint16_t input_ht,
-                             int8_t *output,
-                             const uint16_t output_wd,
-                             const uint16_t output_ht,
-                             const uint16_t stride_wd,
-                             const uint16_t stride_ht,
-                             const uint16_t filter_wd,
-                             const uint16_t filter_ht,
-                             const uint16_t pad_wd,
-                             const uint16_t pad_ht,
-                             const int32_t activation_min,
-                             const int32_t activation_max,
-                             const uint16_t channels)
-{
-    int32_t base_y = -pad_ht;
-    for (int32_t out_y = 0; out_y < output_ht; out_y++, base_y += stride_ht) {
-        int32_t base_x = -pad_wd;
-        for (int32_t out_x = 0; out_x < output_wd; out_x++, base_x += stride_wd) {
-            /* Make sure filter does not cross the input box */
-            int32_t filter_y_start = max(0, -base_y);
-            int32_t filter_x_start = max(0, -base_x);
-            int32_t filter_y_end = min(filter_ht, input_ht - base_y);
-            int32_t filter_x_end = min(filter_wd, input_wd - base_x);
+void esp_nn_set_softmax_scratch_buf_ansi(void *buffer) {
+  (void) buffer;
+  return;
+}
 
-            for (int32_t ch_idx = 0; ch_idx < channels; ch_idx++) {
-                int8_t result = INT8_MIN;
+void esp_nn_softmax_s8_ansi(const int8_t *input_data, const int32_t height, const int32_t width, const int32_t mult,
+                            const int32_t shift, const int32_t diff_min, int8_t *output_data) {
+  // The representation chosen for the input to the exp() function is Q5.26.
+  // We need to leave extra space since values that we skip might be as large as
+  // -32 before multiplying by input mult, and therefore as large as
+  // -16 afterwards.  Note that exp(-8) is definitely not insignificant to
+  // accumulation, but exp(-16) definitely is.
+#define ACCUM_BITS 12
+#define DIFF_BITS 5
 
-                for (int32_t filter_y = filter_y_start; filter_y < filter_y_end; filter_y++) {
-                    for (int32_t filter_x = filter_x_start; filter_x < filter_x_end; filter_x++) {
-                        int32_t in_x_idx = base_x + filter_x;
-                        int32_t in_y_idx = base_y + filter_y;
-                        int32_t input_index = (in_y_idx * input_wd + in_x_idx) * channels + ch_idx;
-                        result = max(input[input_index], result);
-                    }
-                }
+  const int32_t mask = (1 << shift);
+  int32_t col = 0;
+  const int8_t *in_ptr = input_data;
+  int8_t *out_ptr = output_data;
 
-                /* Activation function */
-                result = max(result, activation_min);
-                result = min(result, activation_max);
-
-                int32_t output_index = (out_y * output_wd + out_x) * channels + ch_idx;
-                output[output_index] = result;
-            }
-        }
+  for (int row_idx = 0; row_idx < height; row_idx++) {
+    int8_t max_in_row = in_ptr[0];
+    for (col = 1; col < width; col++) {
+      max_in_row = max(max_in_row, in_ptr[col]);
     }
+
+    int32_t input_diff = 0;
+    int32_t sum_of_exps = 0;
+
+    for (col = 0; col < width; col++) {
+      input_diff = in_ptr[col] - max_in_row;
+      if (input_diff >= diff_min) {
+        const int32_t input_diff_rescaled = SAT_HIGH_MUL(input_diff * mask, mult);
+        const int32_t exp_raw = esp_nn_exp_on_negative_values(input_diff_rescaled);
+        sum_of_exps += DIV_POW2(exp_raw, ACCUM_BITS);
+      }
+    }
+
+    const int32_t headroom_plus1 = esp_nn_clz32((uint32_t) sum_of_exps);
+    const int32_t shifted_scale = ONE_OVER_ONE_X((sum_of_exps << headroom_plus1) - (1 << 31));
+    const int32_t bits_over_unit = ACCUM_BITS - headroom_plus1 + 31 - sizeof(int8_t) * 8;
+
+    for (col = 0; col < width; col++) {
+      input_diff = in_ptr[col] - max_in_row;
+      if (input_diff >= diff_min) {
+        const int32_t input_diff_rescaled = SAT_HIGH_MUL(input_diff * mask, mult);
+        const int32_t exp_raw = esp_nn_exp_on_negative_values(input_diff_rescaled);
+        const int32_t shifted_output = SAT_HIGH_MUL(shifted_scale, exp_raw);
+        const int32_t result = DIV_POW2(shifted_output, bits_over_unit) - 128;
+        out_ptr[col] = (int8_t) esp_nn_saturate8(result);
+      } else {
+        out_ptr[col] = -128;
+      }
+    }
+    in_ptr += width;
+    out_ptr += width;
+  }
 }

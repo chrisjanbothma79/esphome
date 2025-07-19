@@ -12,27 +12,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_EXP_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_EXP_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FILL_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FILL_H_
 
 #include <cmath>
 
-#include "ruy/profiler/instrumentation.h"  // from @ruy
 #include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
 namespace reference_ops {
 
-template <typename T>
-inline void Exp(const T* input_data, const size_t num_elements,
-                T* output_data) {
-  ruy::profiler::ScopeLabel label("Exp");
-  for (size_t idx = 0; idx < num_elements; ++idx) {
-    output_data[idx] = std::exp(input_data[idx]);
+template<typename T>
+void Fill(const RuntimeShape &value_shape, const T *value_data, const RuntimeShape &output_shape, T *output_data) {
+  TFLITE_DCHECK_EQ(value_shape.DimensionsCount(), 0);
+  const int flat_size = output_shape.FlatSize();
+  for (int i = 0; i < flat_size; ++i) {
+    output_data[i] = *value_data;
   }
 }
 
 }  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_EXP_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FILL_H_

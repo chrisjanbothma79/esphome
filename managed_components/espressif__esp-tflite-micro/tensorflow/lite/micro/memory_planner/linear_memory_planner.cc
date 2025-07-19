@@ -13,44 +13,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/memory_planner/linear_memory_planner.h"
+#ifndef TENSORFLOW_LITE_MICRO_MEMORY_PLANNER_LINEAR_MEMORY_PLANNER_H_
+#define TENSORFLOW_LITE_MICRO_MEMORY_PLANNER_LINEAR_MEMORY_PLANNER_H_
 
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/compatibility.h"
+#include "tensorflow/lite/micro/memory_planner/micro_memory_planner.h"
 
 namespace tflite {
 
-// C++11 requires defining a constexpr static class member in a .cc file
-constexpr int tflite::LinearMemoryPlanner::kMaxBufferCount;
+// The simplest possible memory planner that just lays out all buffers at
+// increasing offsets without trying to reuse memory.
+class LinearMemoryPlanner : public MicroMemoryPlanner {
+ public:
+  LinearMemoryPlanner();
+  ~LinearMemoryPlanner() override;
 
-LinearMemoryPlanner::LinearMemoryPlanner()
-    : current_buffer_count_(0), next_free_offset_(0) {}
-LinearMemoryPlanner::~LinearMemoryPlanner() {}
+  TfLiteStatus AddBuffer(int size, int first_time_used, int last_time_used) override;
 
-TfLiteStatus LinearMemoryPlanner::AddBuffer(int size, int first_time_used,
-                                            int last_time_used) {
-  if (current_buffer_count_ >= kMaxBufferCount) {
-    MicroPrintf("Too many buffers (max is %d)", kMaxBufferCount);
-    return kTfLiteError;
-  }
-  buffer_offsets_[current_buffer_count_] = next_free_offset_;
-  next_free_offset_ += size;
-  ++current_buffer_count_;
-  return kTfLiteOk;
-}
+  size_t GetMaximumMemorySize() override;
+  int GetBufferCount() override;
+  TfLiteStatus GetOffsetForBuffer(int buffer_index, int *offset) override;
 
-size_t LinearMemoryPlanner::GetMaximumMemorySize() { return next_free_offset_; }
+  // Returns True because the LinearMemoryPlanner preserves all tensors after
+  // invocation.
+  bool preserves_all_tensors() const override { return true; }
 
-int LinearMemoryPlanner::GetBufferCount() { return current_buffer_count_; }
+ private:
+  static constexpr int kMaxBufferCount = 1024;
+  size_t buffer_offsets_[kMaxBufferCount];
+  int current_buffer_count_;
+  size_t next_free_offset_;
 
-TfLiteStatus LinearMemoryPlanner::GetOffsetForBuffer(int buffer_index,
-                                                     int* offset) {
-  if ((buffer_index < 0) || (buffer_index >= current_buffer_count_)) {
-    MicroPrintf("buffer index %d is outside range 0 to %d", buffer_index,
-                current_buffer_count_);
-    return kTfLiteError;
-  }
-  *offset = buffer_offsets_[buffer_index];
-  return kTfLiteOk;
-}
+  TF_LITE_REMOVE_VIRTUAL_DELETE
+};
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_MEMORY_PLANNER_LINEAR_MEMORY_PLANNER_H_

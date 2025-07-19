@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google Inc. All rights reserved.
+ * Copyright 2023 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,40 +14,72 @@
  * limitations under the License.
  */
 
-#ifndef FLATBUFFERS_BUFFER_REF_H_
-#define FLATBUFFERS_BUFFER_REF_H_
+#ifndef FLATBUFFERS_CODE_GENERATOR_H_
+#define FLATBUFFERS_CODE_GENERATOR_H_
 
-#include "flatbuffers/base.h"
-#include "flatbuffers/verifier.h"
+#include <string>
+
+#include "flatbuffers/idl.h"
 
 namespace flatbuffers {
 
-// Convenient way to bundle a buffer and its length, to pass it around
-// typed by its root.
-// A BufferRef does not own its buffer.
-struct BufferRefBase {};  // for std::is_base_of
+struct CodeGenOptions {
+  std::string output_path;
+};
 
-template<typename T> struct BufferRef : BufferRefBase {
-  BufferRef() : buf(nullptr), len(0), must_free(false) {}
-  BufferRef(uint8_t *_buf, uoffset_t _len)
-      : buf(_buf), len(_len), must_free(false) {}
+// A code generator interface for producing converting flatbuffer schema into
+// code.
+class CodeGenerator {
+ public:
+  virtual ~CodeGenerator() = default;
 
-  ~BufferRef() {
-    if (must_free) free(buf);
+  enum Status { OK = 0, ERROR = 1, FAILED_VERIFICATION = 2, NOT_IMPLEMENTED = 3 };
+
+  std::string status_detail;
+
+  // Generate code from the provided `parser`.
+  //
+  // DEPRECATED: prefer using the other overload of GenerateCode for bfbs.
+  virtual Status GenerateCode(const Parser &parser, const std::string &path, const std::string &filename) = 0;
+
+  // Generate code from the provided `parser` and place it in the output.
+  virtual Status GenerateCodeString(const Parser &parser, const std::string &filename, std::string &output) {
+    (void) parser;
+    (void) filename;
+    (void) output;
+    return Status::NOT_IMPLEMENTED;
   }
 
-  const T *GetRoot() const { return flatbuffers::GetRoot<T>(buf); }
+  // Generate code from the provided `buffer` of given `length`. The buffer is a
+  // serialized reflection.fbs.
+  virtual Status GenerateCode(const uint8_t *buffer, int64_t length, const CodeGenOptions &options) = 0;
 
-  bool Verify() {
-    Verifier verifier(buf, len);
-    return verifier.VerifyBuffer<T>(nullptr);
-  }
+  virtual Status GenerateMakeRule(const Parser &parser, const std::string &path, const std::string &filename,
+                                  std::string &output) = 0;
 
-  uint8_t *buf;
-  uoffset_t len;
-  bool must_free;
+  virtual Status GenerateGrpcCode(const Parser &parser, const std::string &path, const std::string &filename) = 0;
+
+  virtual Status GenerateRootFile(const Parser &parser, const std::string &path) = 0;
+
+  virtual bool IsSchemaOnly() const = 0;
+
+  virtual bool SupportsBfbsGeneration() const = 0;
+
+  virtual bool SupportsRootFileGeneration() const = 0;
+
+  virtual IDLOptions::Language Language() const = 0;
+
+  virtual std::string LanguageName() const = 0;
+
+ protected:
+  CodeGenerator() = default;
+
+ private:
+  // Copying is not supported.
+  CodeGenerator(const CodeGenerator &) = delete;
+  CodeGenerator &operator=(const CodeGenerator &) = delete;
 };
 
 }  // namespace flatbuffers
 
-#endif  // FLATBUFFERS_BUFFER_REF_H_
+#endif  // FLATBUFFERS_CODE_GENERATOR_H_

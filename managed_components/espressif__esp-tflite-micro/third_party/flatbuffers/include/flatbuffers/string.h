@@ -14,51 +14,36 @@
  * limitations under the License.
  */
 
-#ifndef FLATBUFFERS_STRING_H_
-#define FLATBUFFERS_STRING_H_
+#ifndef FLATBUFFERS_STRUCT_H_
+#define FLATBUFFERS_STRUCT_H_
 
 #include "flatbuffers/base.h"
-#include "flatbuffers/vector.h"
 
 namespace flatbuffers {
 
-struct String : public Vector<char> {
-  const char *c_str() const { return reinterpret_cast<const char *>(Data()); }
-  std::string str() const { return std::string(c_str(), size()); }
+// "structs" are flat structures that do not have an offset table, thus
+// always have all members present and do not support forwards/backwards
+// compatible extensions.
 
-  // clang-format off
-  #ifdef FLATBUFFERS_HAS_STRING_VIEW
-  flatbuffers::string_view string_view() const {
-    return flatbuffers::string_view(c_str(), size());
-  }
-  #endif // FLATBUFFERS_HAS_STRING_VIEW
-  // clang-format on
+class Struct FLATBUFFERS_FINAL_CLASS {
+ public:
+  template<typename T> T GetField(uoffset_t o) const { return ReadScalar<T>(&data_[o]); }
 
-  bool operator<(const String &o) const {
-    return StringLessThan(this->data(), this->size(), o.data(), o.size());
-  }
+  template<typename T> T GetStruct(uoffset_t o) const { return reinterpret_cast<T>(&data_[o]); }
+
+  const uint8_t *GetAddressOf(uoffset_t o) const { return &data_[o]; }
+  uint8_t *GetAddressOf(uoffset_t o) { return &data_[o]; }
+
+ private:
+  // private constructor & copy constructor: you obtain instances of this
+  // class by pointing to existing data only
+  Struct();
+  Struct(const Struct &);
+  Struct &operator=(const Struct &);
+
+  uint8_t data_[1];
 };
-
-// Convenience function to get std::string from a String returning an empty
-// string on null pointer.
-static inline std::string GetString(const String *str) {
-  return str ? str->str() : "";
-}
-
-// Convenience function to get char* from a String returning an empty string on
-// null pointer.
-static inline const char *GetCstring(const String *str) {
-  return str ? str->c_str() : "";
-}
-
-#ifdef FLATBUFFERS_HAS_STRING_VIEW
-// Convenience function to get string_view from a String returning an empty
-// string_view on null pointer.
-static inline flatbuffers::string_view GetStringView(const String *str) {
-  return str ? str->string_view() : flatbuffers::string_view();
-}
-#endif  // FLATBUFFERS_HAS_STRING_VIEW
 
 }  // namespace flatbuffers
 
-#endif  // FLATBUFFERS_STRING_H_
+#endif  // FLATBUFFERS_STRUCT_H_

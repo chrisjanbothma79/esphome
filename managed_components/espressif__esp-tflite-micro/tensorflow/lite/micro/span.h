@@ -1,69 +1,77 @@
-/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+// Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-#ifndef TENSORFLOW_LITE_MICRO_SPAN_H_
-#define TENSORFLOW_LITE_MICRO_SPAN_H_
+#ifndef TENSORFLOW_LITE_MICRO_STATIC_VECTOR_H_
+#define TENSORFLOW_LITE_MICRO_STATIC_VECTOR_H_
 
 #include <array>
+#include <cassert>
 #include <cstddef>
+
+#include "tensorflow/lite/kernels/op_macros.h"  // for TF_LITE_ASSERT
 
 namespace tflite {
 
-// A poor man's std::span, we should consider using the Pigweed span instead.
-template <typename T>
-class Span {
- public:
-  constexpr Span(T* data, size_t size) noexcept : data_(data), size_(size) {}
-
-  template <size_t N>
-  constexpr Span(T (&data)[N]) noexcept : data_(data), size_(N) {}
-
-  template <size_t N>
-  constexpr Span(std::array<T, N>& array) noexcept
-      : data_(array.data()), size_(N) {}
-
-  constexpr T& operator[](size_t idx) const noexcept { return *(data_ + idx); }
-
-  constexpr T* data() const noexcept { return data_; }
-  constexpr size_t size() const noexcept { return size_; }
+template<typename T, std::size_t MaxSize> class StaticVector {
+  // A staticlly-allocated vector. Add to the interface as needed.
 
  private:
-  T* data_;
-  size_t size_;
-};
+  std::array<T, MaxSize> array_;
+  std::size_t size_{0};
 
-template <typename A, typename B>
-bool operator==(const Span<A>& a, const Span<B>& b) {
-  if (a.size() != b.size()) {
-    return false;
-  }
+ public:
+  using iterator = typename decltype(array_)::iterator;
+  using const_iterator = typename decltype(array_)::const_iterator;
+  using pointer = typename decltype(array_)::pointer;
+  using reference = typename decltype(array_)::reference;
+  using const_reference = typename decltype(array_)::const_reference;
 
-  for (size_t i = 0; i < a.size(); ++i) {
-    if (a[i] != b[i]) {
-      return false;
+  StaticVector() {}
+
+  StaticVector(std::initializer_list<T> values) {
+    for (const T &v : values) {
+      push_back(v);
     }
   }
 
-  return true;
-}
+  static constexpr std::size_t max_size() { return MaxSize; }
+  std::size_t size() const { return size_; }
+  bool full() const { return size() == max_size(); }
+  iterator begin() { return array_.begin(); }
+  const_iterator begin() const { return array_.begin(); }
+  iterator end() { return begin() + size(); }
+  const_iterator end() const { return begin() + size(); }
+  pointer data() { return array_.data(); }
+  reference operator[](int i) { return array_[i]; }
+  const_reference operator[](int i) const { return array_[i]; }
+  void clear() { size_ = 0; }
 
-template <typename A, typename B>
-bool operator!=(const Span<A>& a, const Span<B>& b) {
-  return !(a == b);
-}
+  template<std::size_t N> bool operator==(const StaticVector<T, N> &other) const {
+    return std::equal(begin(), end(), other.begin(), other.end());
+  }
+
+  template<std::size_t N> bool operator!=(const StaticVector<T, N> &other) const { return !(*this == other); }
+
+  void push_back(const T &t) {
+    TF_LITE_ASSERT(!full());
+    *end() = t;
+    ++size_;
+  }
+};
+
+template<typename T, typename... U> StaticVector(T, U...) -> StaticVector<T, 1 + sizeof...(U)>;
 
 }  // end namespace tflite
 
-#endif  // TENSORFLOW_LITE_MICRO_SPAN_H_
+#endif  // TENSORFLOW_LITE_MICRO_STATIC_VECTOR_H_

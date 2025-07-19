@@ -1,4 +1,4 @@
-/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,51 +12,42 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/compiler/mlir/lite/schema/schema_utils.h"
+/// \file
+///
+/// This provides a few C++ helpers that are useful for manipulating C
+/// structures in C++.
+#ifndef TENSORFLOW_LITE_CONTEXT_UTIL_H_
+#define TENSORFLOW_LITE_CONTEXT_UTIL_H_
 
-#include <algorithm>
+#include <stddef.h>
 
-#include "tensorflow/compiler/mlir/lite/kernels/internal/compatibility_macros.h"
+#include "tensorflow/lite/core/c/common.h"
 
 namespace tflite {
 
-// The following GetBuiltinCode methods are the utility methods for reading
-// builtin operator code, ensuring compatibility issues between v3 and v3a
-// schema. Always the maximum value of the two fields always will be the correct
-// value as follows:
-//
-// - Supporting schema version v3 models
-//
-// The `builtin_code` field is not available in the v3 models. Flatbuffer
-// library will feed zero value, which is the default value in the v3a schema.
-// The actual builtin operator code value will exist in the
-// `deprecated_builtin_code` field. At the same time, it implies that
-// `deprecated_builtin_code` >= `builtin_code` and the maximum value of the two
-// fields will be same with `deprecated_builtin_code'.
-//
-// - Supporting builtin operator codes beyonds 127
-//
-// New builtin operators, whose operator code is larger than 127, can not be
-// assigned to the `deprecated_builtin_code` field. In such cases, the
-// value of the `builtin_code` field should be used for the builtin operator
-// code. In the case, the maximum value of the two fields will be the value of
-// the `builtin_code` as the right value.
+/// Provides a range iterable wrapper for TfLiteIntArray* (C lists) that TfLite
+/// C api uses.
+// Can't use the google array_view, since we can't depend on even
+// absl for embedded device reasons.
+class TfLiteIntArrayView {
+ public:
+  /// Construct a view of a TfLiteIntArray*. Note, `int_array` should be
+  /// non-null and this view does not take ownership of it.
+  explicit TfLiteIntArrayView(const TfLiteIntArray *int_array) : int_array_(int_array) {}
 
-BuiltinOperator GetBuiltinCode(const OperatorCode* op_code) {
-  // Caller should guarantee that the given argument value is not a nullptr.
-  TFLITE_DCHECK(op_code != nullptr);
+  TfLiteIntArrayView(const TfLiteIntArrayView &) = default;
+  TfLiteIntArrayView &operator=(const TfLiteIntArrayView &rhs) = default;
 
-  return std::max(
-      op_code->builtin_code(),
-      static_cast<BuiltinOperator>(op_code->deprecated_builtin_code()));
-}
+  typedef const int *const_iterator;
+  const_iterator begin() const { return int_array_->data; }
+  const_iterator end() const { return &int_array_->data[int_array_->size]; }
+  size_t size() const { return end() - begin(); }
+  int operator[](size_t pos) const { return int_array_->data[pos]; }
 
-BuiltinOperator GetBuiltinCode(const OperatorCodeT* op_code) {
-  // Caller should guarantee that the given argument value is not a nullptr.
-  TFLITE_DCHECK(op_code != nullptr);
-
-  return std::max(op_code->builtin_code, static_cast<BuiltinOperator>(
-                                             op_code->deprecated_builtin_code));
-}
+ private:
+  const TfLiteIntArray *int_array_;
+};
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_CONTEXT_UTIL_H_

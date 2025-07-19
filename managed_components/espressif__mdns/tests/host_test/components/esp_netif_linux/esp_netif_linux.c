@@ -1,197 +1,117 @@
 /*
- * SPDX-FileCopyrightText: 2021-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
-#include<stdio.h>
-#include <stdlib.h>
-
-#include "esp_netif.h"
-#include "esp_err.h"
-#include <string.h> //strlen
-#include <sys/socket.h>
-#include <arpa/inet.h>  //inet_addr
-#include <sys/types.h>
-#include <ifaddrs.h>
-#include <net/if.h>
-#include "esp_netif_types.h"
+#include <stdio.h>
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_console.h"
+#include "mdns.h"
+#include "mdns_console.h"
 
-#define MAX_NETIFS  4
+static const char *TAG = "mdns-test";
 
-static const char *TAG = "esp_netif_linux";
+static void mdns_test_app(esp_netif_t *interface);
 
-static esp_netif_t *s_netif_list[MAX_NETIFS] = { 0 };
+#ifdef CONFIG_TEST_CONSOLE
+static EventGroupHandle_t s_exit_signal = NULL;
 
-struct esp_netif_obj {
-    const char *if_key;
-    const char *if_desc;
-};
-
-esp_netif_t *esp_netif_get_handle_from_ifkey(const char *if_key)
-{
-    for (int i = 0; i < MAX_NETIFS; ++i) {
-        if (s_netif_list[i] && strcmp(s_netif_list[i]->if_key, if_key) == 0) {
-            return s_netif_list[i];
-        }
-    }
-    return NULL;
+static int exit_console(int argc, char **argv) {
+  xEventGroupSetBits(s_exit_signal, 1);
+  return 0;
 }
 
-esp_err_t esp_netif_get_ip_info(esp_netif_t *esp_netif, esp_netif_ip_info_t *ip_info)
-{
-    if (esp_netif == NULL) {
-        return ESP_ERR_INVALID_STATE;
-    }
-    struct ifaddrs *addrs, *tmp;
-    getifaddrs(&addrs);
-    tmp = addrs;
+#else
+static void query_mdns_host(const char *host_name) {
+  ESP_LOGI(TAG, "Query A: %s.local", host_name);
 
-    while (tmp) {
-        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
-            char addr[20];
-            struct sockaddr_in *pAddr = (struct sockaddr_in *) tmp->ifa_addr;
-            inet_ntop(AF_INET, &pAddr->sin_addr, addr, sizeof(addr));
-            if (strcmp(esp_netif->if_desc, tmp->ifa_name) == 0) {
-                ESP_LOGD(TAG, "AF_INET4: %s: %s\n", tmp->ifa_name, addr);
-                memcpy(&ip_info->ip.addr, &pAddr->sin_addr, 4);
-            }
-        }
-        tmp = tmp->ifa_next;
+  struct esp_ip4_addr addr;
+  addr.addr = 0;
+
+  esp_err_t err = mdns_query_a(host_name, 2000, &addr);
+  if (err) {
+    if (err == ESP_ERR_NOT_FOUND) {
+      ESP_LOGW(TAG, "%x: Host was not found!", (err));
+      return;
     }
-    freeifaddrs(addrs);
-    return ESP_OK;
+    ESP_LOGE(TAG, "Query Failed: %x", (err));
+    return;
+  }
+
+  ESP_LOGI(TAG, "Query A: %s.local resolved to: " IPSTR, host_name, IP2STR(&addr));
 }
+#endif  // TEST_CONSOLE
 
-esp_err_t esp_netif_dhcpc_get_status(esp_netif_t *esp_netif, esp_netif_dhcp_status_t *status)
-{
-    return ESP_OK;
+#ifndef CONFIG_IDF_TARGET_LINUX
+#include "protocol_examples_common.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
+
+/**
+ * @brief This is an entry point for the real target device,
+ * need to init few components and connect to a network interface
+ */
+void app_main(void) {
+  ESP_ERROR_CHECK(nvs_flash_init());
+  ESP_ERROR_CHECK(esp_netif_init());
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
+  ESP_ERROR_CHECK(example_connect());
+
+  mdns_test_app(EXAMPLE_INTERFACE);
+
+  ESP_ERROR_CHECK(example_disconnect());
 }
+#else
 
-int esp_netif_get_all_ip6(esp_netif_t *esp_netif, esp_ip6_addr_t if_ip6[])
-{
-    if (esp_netif == NULL) {
-        return 0;
-    }
-    struct ifaddrs *addrs, *tmp;
-    int addr_count = 0;
-    getifaddrs(&addrs);
-    tmp = addrs;
+/**
+ * @brief This is an entry point for the linux target (simulator on host)
+ * need to create a dummy WiFi station and use it as mdns network interface
+ */
+int main(int argc, char *argv[]) {
+  setvbuf(stdout, NULL, _IONBF, 0);
+  const esp_netif_inherent_config_t base_cg = {.if_key = "WIFI_STA_DEF", .if_desc = CONFIG_TEST_NETIF_NAME};
+  esp_netif_config_t cfg = {.base = &base_cg};
+  esp_netif_t *sta = esp_netif_new(&cfg);
 
-    while (tmp) {
-        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET6) {
-            struct sockaddr_in6 *pAddr = (struct sockaddr_in6 *)tmp->ifa_addr;
-            if (strcmp(esp_netif->if_desc, tmp->ifa_name) == 0) {
-                memcpy(&if_ip6[addr_count++], &pAddr->sin6_addr, 4 * 4);
-            }
-        }
-        tmp = tmp->ifa_next;
-    }
+  mdns_test_app(sta);
 
-    freeifaddrs(addrs);
-    return addr_count;
+  esp_netif_destroy(sta);
+  return 0;
 }
+#endif
 
-esp_err_t esp_netif_get_ip6_linklocal(esp_netif_t *esp_netif, esp_ip6_addr_t *if_ip6)
-{
-    if (esp_netif == NULL) {
-        return ESP_ERR_INVALID_STATE;
-    }
-    struct ifaddrs *addrs, *tmp;
-    getifaddrs(&addrs);
-    tmp = addrs;
+static void mdns_test_app(esp_netif_t *interface) {
+  ESP_ERROR_CHECK(mdns_init());
+  ESP_ERROR_CHECK(mdns_hostname_set(CONFIG_TEST_HOSTNAME));
+  ESP_LOGI(TAG, "mdns hostname set to: [%s]", CONFIG_TEST_HOSTNAME);
+  ESP_ERROR_CHECK(mdns_register_netif(interface));
+  ESP_ERROR_CHECK(mdns_netif_action(interface, MDNS_EVENT_ENABLE_IP4 /*| MDNS_EVENT_ENABLE_IP6 */ |
+                                                   MDNS_EVENT_IP4_REVERSE_LOOKUP | MDNS_EVENT_IP6_REVERSE_LOOKUP));
 
-    while (tmp) {
-        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET6) {
-            char addr[64];
-            struct sockaddr_in6 *pAddr = (struct sockaddr_in6 *)tmp->ifa_addr;
-            inet_ntop(AF_INET6, &pAddr->sin6_addr, addr, sizeof(addr));
-            if (strcmp(esp_netif->if_desc, tmp->ifa_name) == 0) {
-                ESP_LOGD(TAG, "AF_INET6: %s: %s\n", tmp->ifa_name, addr);
-                memcpy(if_ip6->addr, &pAddr->sin6_addr, 4 * 4);
-                break;
-            }
-        }
-        tmp = tmp->ifa_next;
-    }
+#ifdef CONFIG_TEST_CONSOLE
+  esp_console_repl_t *repl = NULL;
+  esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
+  esp_console_dev_uart_config_t uart_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+  s_exit_signal = xEventGroupCreate();
 
-    freeifaddrs(addrs);
-    return ESP_OK;
-}
+  repl_config.prompt = "mdns>";
+  // init console REPL environment
+  ESP_ERROR_CHECK(esp_console_new_repl_uart(&uart_config, &repl_config, &repl));
 
-
-int esp_netif_get_netif_impl_index(esp_netif_t *esp_netif)
-{
-    if (esp_netif == NULL) {
-        return -1;
-    }
-    uint32_t interfaceIndex = if_nametoindex(esp_netif->if_desc);
-    return interfaceIndex;
-}
-
-esp_err_t esp_netif_get_netif_impl_name(esp_netif_t *esp_netif, char *name)
-{
-    if (esp_netif == NULL) {
-        return ESP_ERR_INVALID_STATE;
-    }
-    strcpy(name, esp_netif->if_desc);
-    return ESP_OK;
-}
-
-const char *esp_netif_get_desc(esp_netif_t *esp_netif)
-{
-    if (esp_netif == NULL) {
-        return NULL;
-    }
-    return esp_netif->if_desc;
-}
-
-esp_netif_t *esp_netif_new(const esp_netif_config_t *config)
-{
-    if (esp_netif_get_handle_from_ifkey(config->base->if_key)) {
-        return NULL;
-    }
-    esp_netif_t *netif = calloc(1, sizeof(struct esp_netif_obj));
-    if (netif) {
-        netif->if_desc = config->base->if_desc;
-        netif->if_key = config->base->if_key;
-    }
-
-    for (int i = 0; i < MAX_NETIFS; ++i) {
-        if (s_netif_list[i] == NULL) {
-            s_netif_list[i] = netif;
-            break;
-        }
-    }
-
-    return netif;
-}
-
-void esp_netif_destroy(esp_netif_t *esp_netif)
-{
-    for (int i = 0; i < MAX_NETIFS; ++i) {
-        if (s_netif_list[i] == esp_netif) {
-            s_netif_list[i] = NULL;
-            break;
-        }
-    }
-    free(esp_netif);
-}
-
-const char *esp_netif_get_ifkey(esp_netif_t *esp_netif)
-{
-    return esp_netif->if_key;
-}
-
-esp_err_t esp_netif_str_to_ip4(const char *src, esp_ip4_addr_t *dst)
-{
-    if (src == NULL || dst == NULL) {
-        return ESP_ERR_INVALID_ARG;
-    }
-    struct in_addr addr;
-    if (inet_pton(AF_INET, src, &addr) != 1) {
-        return ESP_FAIL;
-    }
-    dst->addr = addr.s_addr;
-    return ESP_OK;
+  const esp_console_cmd_t cmd_exit = {
+      .command = "exit", .help = "exit mDNS console application", .hint = NULL, .func = exit_console, .argtable = NULL};
+  ESP_ERROR_CHECK(esp_console_cmd_register(&cmd_exit));
+  mdns_console_register();
+  ESP_ERROR_CHECK(esp_console_start_repl(repl));
+  xEventGroupWaitBits(s_exit_signal, 1, pdTRUE, pdFALSE, portMAX_DELAY);
+  repl->del(repl);
+#else
+  vTaskDelay(pdMS_TO_TICKS(10000));
+  query_mdns_host("david-work");
+  vTaskDelay(pdMS_TO_TICKS(1000));
+#endif
+  mdns_free();
+  ESP_LOGI(TAG, "Exit");
 }

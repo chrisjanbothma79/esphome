@@ -13,73 +13,49 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/arena_allocator/recording_single_arena_buffer_allocator.h"
+#ifndef TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_RECORDING_SINGLE_ARENA_BUFFER_ALLOCATOR_H_
+#define TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_RECORDING_SINGLE_ARENA_BUFFER_ALLOCATOR_H_
 
-#include <new>
-
-#include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/micro/arena_allocator/single_arena_buffer_allocator.h"
+#include "tensorflow/lite/micro/compatibility.h"
 
 namespace tflite {
 
-RecordingSingleArenaBufferAllocator::RecordingSingleArenaBufferAllocator(
-    uint8_t* buffer_head, size_t buffer_size)
-    : SingleArenaBufferAllocator(buffer_head, buffer_size),
-      requested_head_bytes_(0),
-      requested_tail_bytes_(0),
-      used_bytes_(0),
-      alloc_count_(0) {}
+// Utility class used to log allocations of a SingleArenaBufferAllocator. Should
+// only be used in debug/evaluation settings or unit tests to evaluate
+// allocation usage.
+class RecordingSingleArenaBufferAllocator : public SingleArenaBufferAllocator {
+ public:
+  RecordingSingleArenaBufferAllocator(uint8_t *buffer_head, size_t buffer_size);
+  // TODO(b/157615197): Cleanup constructors/destructor and use factory
+  // functions.
+  ~RecordingSingleArenaBufferAllocator() override;
 
-RecordingSingleArenaBufferAllocator::~RecordingSingleArenaBufferAllocator() {}
+  static RecordingSingleArenaBufferAllocator *Create(uint8_t *buffer_head, size_t buffer_size);
 
-RecordingSingleArenaBufferAllocator*
-RecordingSingleArenaBufferAllocator::Create(uint8_t* buffer_head,
-                                            size_t buffer_size) {
-  TFLITE_DCHECK(buffer_head != nullptr);
-  RecordingSingleArenaBufferAllocator tmp =
-      RecordingSingleArenaBufferAllocator(buffer_head, buffer_size);
+  // Returns the number of bytes requested from the head or tail.
+  size_t GetRequestedBytes() const;
 
-  uint8_t* allocator_buffer = tmp.AllocatePersistentBuffer(
-      sizeof(RecordingSingleArenaBufferAllocator),
-      alignof(RecordingSingleArenaBufferAllocator));
-  // Use the default copy constructor to populate internal states.
-  return new (allocator_buffer) RecordingSingleArenaBufferAllocator(tmp);
-}
+  // Returns the number of bytes actually allocated from the head or tail. This
+  // value will be >= to the number of requested bytes due to padding and
+  // alignment.
+  size_t GetUsedBytes() const;
 
-size_t RecordingSingleArenaBufferAllocator::GetRequestedBytes() const {
-  return requested_head_bytes_ + requested_tail_bytes_;
-}
+  // Returns the number of alloc calls from the head or tail.
+  size_t GetAllocatedCount() const;
 
-size_t RecordingSingleArenaBufferAllocator::GetUsedBytes() const {
-  return used_bytes_;
-}
+  TfLiteStatus ResizeBuffer(uint8_t *resizable_buf, size_t size, size_t alignment) override;
+  uint8_t *AllocatePersistentBuffer(size_t size, size_t alignment) override;
 
-size_t RecordingSingleArenaBufferAllocator::GetAllocatedCount() const {
-  return alloc_count_;
-}
+ private:
+  size_t requested_head_bytes_;
+  size_t requested_tail_bytes_;
+  size_t used_bytes_;
+  size_t alloc_count_;
 
-TfLiteStatus RecordingSingleArenaBufferAllocator::ResizeBuffer(
-    uint8_t* resizable_buf, size_t size, size_t alignment) {
-  const uint8_t* previous_head = head();
-  TfLiteStatus status =
-      SingleArenaBufferAllocator::ResizeBuffer(resizable_buf, size, alignment);
-  if (status == kTfLiteOk) {
-    used_bytes_ += head() - previous_head;
-    requested_head_bytes_ = size;
-  }
-  return status;
-}
-
-uint8_t* RecordingSingleArenaBufferAllocator::AllocatePersistentBuffer(
-    size_t size, size_t alignment) {
-  const uint8_t* previous_tail = tail();
-  uint8_t* result =
-      SingleArenaBufferAllocator::AllocatePersistentBuffer(size, alignment);
-  if (result != nullptr) {
-    used_bytes_ += previous_tail - tail();
-    requested_tail_bytes_ += size;
-    alloc_count_++;
-  }
-  return result;
-}
+  TF_LITE_REMOVE_VIRTUAL_DELETE
+};
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_RECORDING_SINGLE_ARENA_BUFFER_ALLOCATOR_H_

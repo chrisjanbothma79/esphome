@@ -12,23 +12,31 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/micro/tflite_bridge/flatbuffer_conversions_bridge.h"
+#ifndef TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_FLATBUFFER_CONVERSIONS_BRIDGE_H_
+#define TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_FLATBUFFER_CONVERSIONS_BRIDGE_H_
 
 #include "tensorflow/lite/c/c_api_types.h"
-#include "tensorflow/lite/core/api/error_reporter.h"
 #include "tensorflow/lite/core/api/flatbuffer_conversions.h"
-#include "tensorflow/lite/micro/tflite_bridge/micro_error_reporter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
 namespace tflite {
-TfLiteStatus ConvertTensorType(TensorType tensor_type, TfLiteType* type) {
-  return ConvertTensorType(tensor_type, type, tflite::GetMicroErrorReporter());
-}
 
-TfLiteStatus CallBuiltinParseFunction(TfLiteBridgeBuiltinParseFunction parser,
-                                      const Operator* op,
-                                      BuiltinDataAllocator* allocator,
-                                      void** builtin_data) {
-  return parser(op, tflite::GetMicroErrorReporter(), allocator, builtin_data);
-}
+// Forward declaration of the ErrorReporter class to hide it from the TFLM code.
+class ErrorReporter;
+
+using TfLiteBridgeBuiltinDataAllocator = BuiltinDataAllocator;
+
+using TfLiteBridgeBuiltinParseFunction = TfLiteStatus (*)(const Operator *op, ErrorReporter *error_reporter,
+                                                          BuiltinDataAllocator *allocator, void **builtin_data);
+
+// Converts the tensor data type used in the flatbuffer to the representation
+// used by the runtime.
+TfLiteStatus ConvertTensorType(TensorType tensor_type, TfLiteType *type);
+
+// CallBuiltinParseFunction is a wrapper function to wrap the parser function
+// calls to Call parser(op, allocator, builtin_data)
+TfLiteStatus CallBuiltinParseFunction(TfLiteBridgeBuiltinParseFunction parser, const Operator *op,
+                                      BuiltinDataAllocator *allocator, void **builtin_data);
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_FLATBUFFER_CONVERSIONS_BRIDGE_H_

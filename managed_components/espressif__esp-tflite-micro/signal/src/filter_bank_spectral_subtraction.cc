@@ -13,52 +13,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "signal/src/filter_bank_spectral_subtraction.h"
+#ifndef SIGNAL_SRC_FILTER_BANK_SPECTRAL_SUBTRACTION_H_
+#define SIGNAL_SRC_FILTER_BANK_SPECTRAL_SUBTRACTION_H_
+
+#include <stdint.h>
 
 namespace tflite {
 namespace tflm_signal {
+// TODO(b/286250473): remove namespace once de-duped libraries above
 
-void FilterbankSpectralSubtraction(const SpectralSubtractionConfig* config,
-                                   const uint32_t* input, uint32_t* output,
-                                   uint32_t* noise_estimate) {
-  const bool data_clamping = config->clamping;
-  const int smoothing_bits = config->smoothing_bits;
-  const int num_channels = config->num_channels;
+struct SpectralSubtractionConfig {
+  // Number of filterbank channels in input and output
+  int32_t num_channels;
+  // The constant used for the lowpass filter for finding the noise.
+  // Higher values correspond to more aggressively adapting estimates
+  // of the noise.
+  // Scale is 1 << spectral_subtraction_bits
+  uint32_t smoothing;
+  // One minus smoothing constant for low pass filter.
+  // Scale is 1 << spectral_subtraction_bits
+  uint32_t one_minus_smoothing;
+  // The maximum cap to subtract away from the signal (ie, if this is
+  // 0.2, then the result of spectral subtraction will not go below
+  // 0.2 * signal).
+  //  Scale is 1 << spectral_subtraction_bits
+  uint32_t min_signal_remaining;
+  // If positive, specifies the filter coefficient for odd-index
+  // channels, while 'smoothing' is used as the coefficient for even-
+  // index channels. Otherwise, the same filter coefficient is
+  // used on all channels.
+  //  Scale is 1 << spectral_subtraction_bits
+  uint32_t alternate_smoothing;
+  // Alternate One minus smoothing constant for low pass filter.
+  // Scale is 1 << spectral_subtraction_bits
+  uint32_t alternate_one_minus_smoothing;
+  // Extra fractional bits for the noise_estimate smoothing filter.
+  uint32_t smoothing_bits;
+  // Scaling bits for some members of this struct
+  uint32_t spectral_subtraction_bits;
+  // If true, when the filterbank level drops below the output,
+  // the noise estimate will be forced down to the new noise level.
+  // If false, the noise estimate will remain above the current
+  // filterbank output (but the subtraction will still keep the
+  // output non negative).
+  bool clamping;
+};
 
-  for (int i = 0; i < num_channels; ++i) {
-    uint32_t smoothing;
-    uint32_t one_minus_smoothing;
-    if ((i & 1) == 0) {
-      smoothing = config->smoothing;
-      one_minus_smoothing = config->one_minus_smoothing;
-    } else {  // Use alternate smoothing coefficient on odd-index channels.
-      smoothing = config->alternate_smoothing;
-      one_minus_smoothing = config->alternate_one_minus_smoothing;
-    }
-
-    // Scale up signal[i] for smoothing filter computation.
-    const uint32_t signal_scaled_up = input[i] << smoothing_bits;
-    noise_estimate[i] =
-        ((static_cast<uint64_t>(signal_scaled_up) * smoothing) +
-         (static_cast<uint64_t>(noise_estimate[i]) * one_minus_smoothing)) >>
-        config->spectral_subtraction_bits;
-
-    uint32_t estimate_scaled_up = noise_estimate[i];
-    // Make sure that we can't get a negative value for the signal - estimate.
-    if (estimate_scaled_up > signal_scaled_up) {
-      estimate_scaled_up = signal_scaled_up;
-      if (data_clamping) {
-        noise_estimate[i] = estimate_scaled_up;
-      }
-    }
-    const uint32_t floor =
-        (static_cast<uint64_t>(input[i]) * config->min_signal_remaining) >>
-        config->spectral_subtraction_bits;
-    const uint32_t subtracted =
-        (signal_scaled_up - estimate_scaled_up) >> smoothing_bits;
-    output[i] = subtracted > floor ? subtracted : floor;
-  }
-}
+// Apply spectral subtraction to each element in `input`, then write the result
+// to `output` and `noise_estimate`. `input`, `output` and `noise estimate`
+// must all be of size `config.num_channels`. `config` holds the
+//  parameters of the spectral subtraction algorithm.
+void FilterbankSpectralSubtraction(const SpectralSubtractionConfig *config, const uint32_t *input, uint32_t *output,
+                                   uint32_t *noise_estimate);
 
 }  // namespace tflm_signal
 }  // namespace tflite
+
+#endif  // SIGNAL_SRC_FILTER_BANK_SPECTRAL_SUBTRACTION_H_

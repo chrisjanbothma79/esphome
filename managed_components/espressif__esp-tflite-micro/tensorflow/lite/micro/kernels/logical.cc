@@ -12,33 +12,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/micro/kernels/logical.h"
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_LOGICAL_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_LOGICAL_H_
 
+#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/reference/binary_function.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
-#include "tensorflow/lite/kernels/op_macros.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
 
 namespace tflite {
-namespace {
+// Input/output tensor index.
+extern const int kLogicalInputTensor1;
+extern const int kLogicalInputTensor2;
+extern const int kLogicalOutputTensor;
 
-TfLiteStatus LogicalOrEval(TfLiteContext* context, TfLiteNode* node) {
-  return LogicalImpl(context, node, LogicalOr);
-}
+TfLiteStatus LogicalImpl(TfLiteContext *context, TfLiteNode *node, bool (*func)(bool, bool));
 
-TfLiteStatus LogicalAndEval(TfLiteContext* context, TfLiteNode* node) {
-  return LogicalImpl(context, node, LogicalAnd);
-}
-
-}  // namespace
-
-TFLMRegistration Register_LOGICAL_OR() {
-  return tflite::micro::RegisterOp(nullptr, nullptr, LogicalOrEval);
-}
-
-TFLMRegistration Register_LOGICAL_AND() {
-  return tflite::micro::RegisterOp(nullptr, nullptr, LogicalAndEval);
-}
+bool LogicalOr(bool x, bool y);
+bool LogicalAnd(bool x, bool y);
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_LOGICAL_H_

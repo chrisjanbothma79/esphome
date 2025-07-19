@@ -18,28 +18,26 @@ limitations under the License.
 
 #include "signal/src/complex.h"
 #include "signal/src/irfft.h"
-#include "signal/src/kiss_fft_wrappers/kiss_fft_int16.h"
+#include "signal/src/kiss_fft_wrappers/kiss_fft_int32.h"
 
 // TODO(b/286250473): remove namespace once de-duped libraries
 namespace tflite {
 namespace tflm_signal {
 
-size_t IrfftInt16GetNeededMemory(int32_t fft_length) {
+size_t IrfftInt32GetNeededMemory(int32_t fft_length) {
   size_t state_size = 0;
-  kiss_fft_fixed16::kiss_fftr_alloc(fft_length, 1, nullptr, &state_size);
+  kiss_fft_fixed32::kiss_fftr_alloc(fft_length, 1, nullptr, &state_size);
   return state_size;
 }
 
-void* IrfftInt16Init(int32_t fft_length, void* state, size_t state_size) {
-  return kiss_fft_fixed16::kiss_fftr_alloc(fft_length, 1, state, &state_size);
+void *IrfftInt32Init(int32_t fft_length, void *state, size_t state_size) {
+  return kiss_fft_fixed32::kiss_fftr_alloc(fft_length, 1, state, &state_size);
 }
 
-void IrfftInt16Apply(void* state, const Complex<int16_t>* input,
-                     int16_t* output) {
-  kiss_fft_fixed16::kiss_fftri(
-      static_cast<kiss_fft_fixed16::kiss_fftr_cfg>(state),
-      reinterpret_cast<const kiss_fft_fixed16::kiss_fft_cpx*>(input),
-      reinterpret_cast<kiss_fft_scalar*>(output));
+void IrfftInt32Apply(void *state, const Complex<int32_t> *input, int32_t *output) {
+  kiss_fft_fixed32::kiss_fftri(static_cast<kiss_fft_fixed32::kiss_fftr_cfg>(state),
+                               reinterpret_cast<const kiss_fft_fixed32::kiss_fft_cpx *>(input),
+                               reinterpret_cast<kiss_fft_scalar *>(output));
 }
 
 }  // namespace tflm_signal

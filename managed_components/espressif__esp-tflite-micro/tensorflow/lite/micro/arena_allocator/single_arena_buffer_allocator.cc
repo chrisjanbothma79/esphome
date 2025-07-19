@@ -13,187 +13,125 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/arena_allocator/single_arena_buffer_allocator.h"
+#ifndef TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_SINGLE_ARENA_BUFFER_ALLOCATOR_H_
+#define TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_SINGLE_ARENA_BUFFER_ALLOCATOR_H_
 
 #include <cstddef>
 #include <cstdint>
-#include <new>
 
-#include "tensorflow/lite/c/c_api_types.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/compatibility.h"
-#include "tensorflow/lite/kernels/op_macros.h"
-#include "tensorflow/lite/micro/memory_helpers.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/arena_allocator/ibuffer_allocator.h"
+#include "tensorflow/lite/micro/compatibility.h"
 
 namespace tflite {
 
-SingleArenaBufferAllocator::SingleArenaBufferAllocator(uint8_t* buffer_head,
-                                                       uint8_t* buffer_tail)
-    : buffer_head_(buffer_head),
-      buffer_tail_(buffer_tail),
-      head_(buffer_head),
-      tail_(buffer_tail),
-      temp_(buffer_head_) {}
+// TODO(petewarden): This allocator never frees up or reuses  any memory, even
+// though we have enough information about lifetimes of the tensors to do so.
+// This makes it pretty wasteful, so we should use a more intelligent method.
+class SingleArenaBufferAllocator : public INonPersistentBufferAllocator, public IPersistentBufferAllocator {
+ public:
+  // TODO(b/157615197): Cleanup constructors/destructor and use factory
+  // functions.
+  SingleArenaBufferAllocator(uint8_t *buffer_head, uint8_t *buffer_tail);
+  SingleArenaBufferAllocator(uint8_t *buffer, size_t buffer_size);
+  virtual ~SingleArenaBufferAllocator();
 
-SingleArenaBufferAllocator::SingleArenaBufferAllocator(uint8_t* buffer,
-                                                       size_t buffer_size)
-    : SingleArenaBufferAllocator(buffer, buffer + buffer_size) {}
+  // Creates a new SingleArenaBufferAllocator from a given buffer head and size.
+  static SingleArenaBufferAllocator *Create(uint8_t *buffer_head, size_t buffer_size);
 
-/* static */
-SingleArenaBufferAllocator* SingleArenaBufferAllocator::Create(
-    uint8_t* buffer_head, size_t buffer_size) {
-  TFLITE_DCHECK(buffer_head != nullptr);
-  SingleArenaBufferAllocator tmp =
-      SingleArenaBufferAllocator(buffer_head, buffer_size);
+  // Resizes a buffer that is previously returned by the
+  // AllocateResizableBuffer. In current implementation, it Adjusts the head
+  // (lowest address and moving upwards) memory allocation to a given size.
+  // Calls to this method will also invalidate all temporary allocation values
+  // (it sets the location of temp space at the end of the head section). This
+  // call will fail if a chain of allocations through AllocateTemp() have not
+  // been cleaned up with a call to ResetTempAllocations().
+  virtual TfLiteStatus ResizeBuffer(uint8_t *resizable_buf, size_t size, size_t alignment) override;
 
-  // Allocate enough bytes from the buffer to create a
-  // SingleArenaBufferAllocator. The new instance will use the current adjusted
-  // tail buffer from the tmp allocator instance.
-  uint8_t* allocator_buffer = tmp.AllocatePersistentBuffer(
-      sizeof(SingleArenaBufferAllocator), alignof(SingleArenaBufferAllocator));
-  // Use the default copy constructor to populate internal states.
-  return new (allocator_buffer) SingleArenaBufferAllocator(tmp);
-}
+  // Returns a buffer that is resizable viable ResizeBuffer(). Only one
+  // resizable buffer is currently supported.
+  virtual uint8_t *AllocateResizableBuffer(size_t size, size_t alignment) override;
 
-SingleArenaBufferAllocator::~SingleArenaBufferAllocator() {}
+  // Frees up the memory occupied by the resizable buffer
+  virtual TfLiteStatus DeallocateResizableBuffer(uint8_t *resizable_buf) override;
 
-uint8_t* SingleArenaBufferAllocator::AllocateResizableBuffer(size_t size,
-                                                             size_t alignment) {
-  // Only supports one resizable buffer, which starts at the buffer head.
-  uint8_t* expect_resizable_buf = AlignPointerUp(buffer_head_, alignment);
-  if (ResizeBuffer(expect_resizable_buf, size, alignment) == kTfLiteOk) {
-    return expect_resizable_buf;
-  }
-  return nullptr;
-}
+  // Reserves the non-persistent memory that is planned by the memory planner.
+  virtual TfLiteStatus ReserveNonPersistentOverlayMemory(size_t size, size_t alignment) override;
 
-TfLiteStatus SingleArenaBufferAllocator::DeallocateResizableBuffer(
-    uint8_t* resizable_buf) {
-  return ResizeBuffer(resizable_buf, 0, 1);
-}
+  // Allocates persistent memory starting at the tail of the arena (highest
+  // address and moving downwards).
+  virtual uint8_t *AllocatePersistentBuffer(size_t size, size_t alignment) override;
 
-TfLiteStatus SingleArenaBufferAllocator::ReserveNonPersistentOverlayMemory(
-    size_t size, size_t alignment) {
-  uint8_t* expect_resizable_buf = AlignPointerUp(buffer_head_, alignment);
-  return ResizeBuffer(expect_resizable_buf, size, alignment);
-}
+  // Allocates a temporary buffer from the head of the arena (lowest address and
+  // moving upwards) but does not update the actual head allocation size or
+  // position. The returned buffer is guaranteed until either
+  // ResetTempAllocations() is called or another call to AllocateFromHead().
+  // Repeat calls to this function will create a chain of temp allocations. All
+  // calls to AllocateTemp() must end with a call to ResetTempAllocations(). If
+  // AllocateFromHead() is called before a call to ResetTempAllocations(), it
+  // will fail with an error message.
+  virtual uint8_t *AllocateTemp(size_t size, size_t alignment) override;
 
-TfLiteStatus SingleArenaBufferAllocator::ResizeBuffer(uint8_t* resizable_buf,
-                                                      size_t size,
-                                                      size_t alignment) {
-  // Only supports one resizable buffer, which starts at the buffer head.
-  uint8_t* expect_resizable_buf = AlignPointerUp(buffer_head_, alignment);
-  if (head_ != temp_ || resizable_buf != expect_resizable_buf) {
-    MicroPrintf(
-        "Internal error: either buffer is not resizable or "
-        "ResetTempAllocations() is not called before ResizeBuffer().");
-    return kTfLiteError;
-  }
+  // Signals that a temporary buffer is no longer needed. This is currently for
+  // book-keeping purpose and the memory region are not immediately available
+  // for re-use. The deallocated memory region are only reclaimed after
+  // ResetTempAllocations is called as it is right now.
+  virtual void DeallocateTemp(uint8_t *buf) override;
 
-  uint8_t* const aligned_result = AlignPointerUp(buffer_head_, alignment);
-  const size_t available_memory = tail_ - aligned_result;
-  if (available_memory < size) {
-    MicroPrintf(
-        "Failed to resize buffer. Requested: %u, available %u, missing: %u",
-        size, available_memory, size - available_memory);
-    return kTfLiteError;
-  }
-  head_ = aligned_result + size;
-  temp_ = head_;
+  // Returns true if all temporary buffers are already deallocated.
+  virtual bool IsAllTempDeallocated() override;
 
-  return kTfLiteOk;
-}
+  // Resets a chain of temporary allocations back to the current head of the
+  // arena (lowest address).
+  virtual TfLiteStatus ResetTempAllocations() override;
 
-uint8_t* SingleArenaBufferAllocator::AllocatePersistentBuffer(
-    size_t size, size_t alignment) {
-  uint8_t* const aligned_result = AlignPointerDown(tail_ - size, alignment);
-  if (aligned_result < head_) {
-#ifndef TF_LITE_STRIP_ERROR_STRINGS
-    const size_t missing_memory = head_ - aligned_result;
-    MicroPrintf(
-        "Failed to allocate tail memory. Requested: %u, "
-        "available %u, missing: %u",
-        size, size - missing_memory, missing_memory);
-#endif
-    return nullptr;
-  }
-  tail_ = aligned_result;
-  return aligned_result;
-}
+  // Returns a pointer to the buffer currently assigned to the head section.
+  // This buffer is set by calling SetHeadSize().
+  uint8_t *GetOverlayMemoryAddress() const override;
 
-uint8_t* SingleArenaBufferAllocator::AllocateTemp(size_t size,
-                                                  size_t alignment) {
-  uint8_t* const aligned_result = AlignPointerUp(temp_, alignment);
-  const size_t available_memory = tail_ - aligned_result;
-  if (available_memory < size) {
-    MicroPrintf(
-        "Failed to allocate temp memory. Requested: %u, "
-        "available %u, missing: %u",
-        size, available_memory, size - available_memory);
-    return nullptr;
-  }
-  temp_ = aligned_result + size;
-  temp_buffer_ptr_check_sum_ ^= (reinterpret_cast<intptr_t>(aligned_result));
-  temp_buffer_count_++;
-  return aligned_result;
-}
+  // Returns the size of the head section in bytes.
+  size_t GetNonPersistentUsedBytes() const override;
 
-void SingleArenaBufferAllocator::DeallocateTemp(uint8_t* temp_buf) {
-  temp_buffer_ptr_check_sum_ ^= (reinterpret_cast<intptr_t>(temp_buf));
-  temp_buffer_count_--;
-}
+  // Returns the size of all allocations in the tail section in bytes.
+  size_t GetPersistentUsedBytes() const override;
 
-bool SingleArenaBufferAllocator::IsAllTempDeallocated() {
-  if (temp_buffer_count_ != 0 || temp_buffer_ptr_check_sum_ != 0) {
-    MicroPrintf(
-        "Number of allocated temp buffers: %d. Checksum passing status: %d",
-        temp_buffer_count_, !temp_buffer_ptr_check_sum_);
-    return false;
-  }
-  return true;
-}
+  // Returns the number of bytes available with a given alignment. This number
+  // takes in account any temporary allocations.
+  size_t GetAvailableMemory(size_t alignment) const override;
 
-TfLiteStatus SingleArenaBufferAllocator::ResetTempAllocations() {
-  // TODO(b/209453859): enable error check based on IsAllTempDeallocated after
-  // all AllocateTemp have been paird with DeallocateTemp
-  if (!IsAllTempDeallocated()) {
-    MicroPrintf(
-        "All temp buffers must be freed before calling ResetTempAllocations()");
-    return kTfLiteError;
-  }
-  temp_ = head_;
-  return kTfLiteOk;
-}
+  // Returns the number of used bytes in the allocator. This number takes in
+  // account any temporary allocations.
+  size_t GetUsedBytes() const;
 
-uint8_t* SingleArenaBufferAllocator::GetOverlayMemoryAddress() const {
-  return buffer_head_;
-}
+  TF_LITE_REMOVE_VIRTUAL_DELETE
 
-size_t SingleArenaBufferAllocator::GetNonPersistentUsedBytes() const {
-  return std::max(head_ - buffer_head_, temp_ - buffer_head_);
-}
+ protected:
+  // Returns a pointer to the current end of the head buffer.
+  uint8_t *head() const;
 
-size_t SingleArenaBufferAllocator::GetPersistentUsedBytes() const {
-  return buffer_tail_ - tail_;
-}
+  // Returns a pointer to the current end of the tail buffer.
+  uint8_t *tail() const;
 
-size_t SingleArenaBufferAllocator::GetAvailableMemory(size_t alignment) const {
-  uint8_t* const aligned_temp = AlignPointerUp(temp_, alignment);
-  uint8_t* const aligned_tail = AlignPointerDown(tail_, alignment);
-  return aligned_tail - aligned_temp;
-}
+ private:
+  size_t GetBufferSize() const;
+  uint8_t *buffer_head_;
+  uint8_t *buffer_tail_;
+  uint8_t *head_;
+  uint8_t *tail_;
+  uint8_t *temp_;
 
-size_t SingleArenaBufferAllocator::GetUsedBytes() const {
-  return GetPersistentUsedBytes() + GetNonPersistentUsedBytes();
-}
-
-size_t SingleArenaBufferAllocator::GetBufferSize() const {
-  return buffer_tail_ - buffer_head_;
-}
-
-uint8_t* SingleArenaBufferAllocator::head() const { return head_; }
-
-uint8_t* SingleArenaBufferAllocator::tail() const { return tail_; }
+  // The combination of the checksum of outstanding temporary buffer pointers
+  // AND the count of outstanding temporary buffer provide a low cost mechanism
+  // to audit temporary buffers' allocation and deallocation.
+  //
+  // XOR Check sum for outstanding temp buffers.
+  // If all temp buffers are deallocated OR no temp buffers are allocated,
+  // temp_buffer_ptr_check_sum_ == nullptr.
+  intptr_t temp_buffer_ptr_check_sum_ = 0;
+  // Count of outstanding temp buffers.
+  int temp_buffer_count_ = 0;
+};
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_SINGLE_ARENA_BUFFER_ALLOCATOR_H_

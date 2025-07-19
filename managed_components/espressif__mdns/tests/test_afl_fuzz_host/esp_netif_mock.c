@@ -1,55 +1,20 @@
 /*
- * SPDX-FileCopyrightText: 2020-2022 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2023 Espressif Systems (Shanghai) CO LTD
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
-
-#include <stdio.h>
-#include <string.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <unistd.h>
+#pragma once
 #include "esp32_mock.h"
+#include "mdns.h"
+#include "mdns_private.h"
 
-typedef struct esp_netif_s esp_netif_t;
-typedef struct esp_netif_ip_info esp_netif_ip_info_t;
-typedef struct esp_netif_dhcp_status esp_netif_dhcp_status_t;
+static inline void *_mdns_get_packet_data(mdns_rx_packet_t *packet) { return packet->pb->payload; }
 
+static inline size_t _mdns_get_packet_len(mdns_rx_packet_t *packet) { return packet->pb->len; }
 
-const char *IP_EVENT = "IP_EVENT";
-
-
-esp_err_t esp_netif_add_to_list(esp_netif_t *netif)
-{
-    return ESP_OK;
+static inline void _mdns_packet_free(mdns_rx_packet_t *packet) {
+  free(packet->pb);
+  free(packet);
 }
 
-esp_err_t esp_netif_remove_from_list(esp_netif_t *netif)
-{
-    return ESP_ERR_NOT_FOUND;
-}
-
-esp_netif_t *esp_netif_next(esp_netif_t *netif)
-{
-    return NULL;
-}
-
-esp_netif_t *esp_netif_next_unsafe(esp_netif_t *netif)
-{
-    return NULL;
-}
-
-esp_netif_t *esp_netif_get_handle_from_ifkey(const char *if_key)
-{
-    return NULL;
-}
-
-esp_err_t esp_netif_get_ip_info(esp_netif_t *esp_netif, esp_netif_ip_info_t *ip_info)
-{
-    return ESP_ERR_NOT_SUPPORTED;
-}
-
-esp_err_t esp_netif_dhcpc_get_status(esp_netif_t *esp_netif, esp_netif_dhcp_status_t *status)
-{
-    return ESP_ERR_NOT_SUPPORTED;
-}
+static inline bool mdns_is_netif_ready(mdns_if_t tcpip_if, mdns_ip_protocol_t ip_protocol) { return true; }

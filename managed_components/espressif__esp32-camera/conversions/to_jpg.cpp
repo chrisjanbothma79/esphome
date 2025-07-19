@@ -11,225 +11,287 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <stddef.h>
-#include <string.h>
-#include "esp_attr.h"
-#include "soc/efuse_reg.h"
-#include "esp_heap_caps.h"
-#include "esp_camera.h"
-#include "img_converters.h"
-#include "jpge.h"
 #include "yuv.h"
+#include "esp_attr.h"
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#define TAG ""
-#else
-#include "esp_log.h"
-static const char* TAG = "to_jpg";
-#endif
+typedef struct {
+  int16_t vY;
+  int16_t vVr;
+  int16_t vVg;
+  int16_t vUg;
+  int16_t vUb;
+} yuv_table_row;
 
-static void *_malloc(size_t size)
-{
-    void * res = malloc(size);
-    if(res) {
-        return res;
-    }
-
-    // check if SPIRAM is enabled and is allocatable
-#if (CONFIG_SPIRAM_SUPPORT && (CONFIG_SPIRAM_USE_CAPS_ALLOC || CONFIG_SPIRAM_USE_MALLOC))
-    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-#endif
-    return NULL;
-}
-
-static IRAM_ATTR void convert_line_format(uint8_t * src, pixformat_t format, uint8_t * dst, size_t width, size_t in_channels, size_t line)
-{
-    int i=0, o=0, l=0;
-    if(format == PIXFORMAT_GRAYSCALE) {
-        memcpy(dst, src + line * width, width);
-    } else if(format == PIXFORMAT_RGB888) {
-        l = width * 3;
-        src += l * line;
-        for(i=0; i<l; i+=3) {
-            dst[o++] = src[i+2];
-            dst[o++] = src[i+1];
-            dst[o++] = src[i];
-        }
-    } else if(format == PIXFORMAT_RGB565) {
-        l = width * 2;
-        src += l * line;
-        for(i=0; i<l; i+=2) {
-            dst[o++] = src[i] & 0xF8;
-            dst[o++] = (src[i] & 0x07) << 5 | (src[i+1] & 0xE0) >> 3;
-            dst[o++] = (src[i+1] & 0x1F) << 3;
-        }
-    } else if(format == PIXFORMAT_YUV422) {
-        uint8_t y0, y1, u, v;
-        uint8_t r, g, b;
-        l = width * 2;
-        src += l * line;
-        for(i=0; i<l; i+=4) {
-            y0 = src[i];
-            u = src[i+1];
-            y1 = src[i+2];
-            v = src[i+3];
-
-            yuv2rgb(y0, u, v, &r, &g, &b);
-            dst[o++] = r;
-            dst[o++] = g;
-            dst[o++] = b;
-
-            yuv2rgb(y1, u, v, &r, &g, &b);
-            dst[o++] = r;
-            dst[o++] = g;
-            dst[o++] = b;
-        }
-    }
-}
-
-bool convert_image(uint8_t *src, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, jpge::output_stream *dst_stream)
-{
-    int num_channels = 3;
-    jpge::subsampling_t subsampling = jpge::H2V2;
-
-    if(format == PIXFORMAT_GRAYSCALE) {
-        num_channels = 1;
-        subsampling = jpge::Y_ONLY;
-    }
-
-    if(!quality) {
-        quality = 1;
-    } else if(quality > 100) {
-        quality = 100;
-    }
-
-    jpge::params comp_params = jpge::params();
-    comp_params.m_subsampling = subsampling;
-    comp_params.m_quality = quality;
-
-    jpge::jpeg_encoder dst_image;
-
-    if (!dst_image.init(dst_stream, width, height, num_channels, comp_params)) {
-        ESP_LOGE(TAG, "JPG encoder init failed");
-        return false;
-    }
-
-    uint8_t* line = (uint8_t*)_malloc(width * num_channels);
-    if(!line) {
-        ESP_LOGE(TAG, "Scan line malloc failed");
-        return false;
-    }
-
-    for (int i = 0; i < height; i++) {
-        convert_line_format(src, format, line, width, num_channels, i);
-        if (!dst_image.process_scanline(line)) {
-            ESP_LOGE(TAG, "JPG process line %u failed", i);
-            free(line);
-            return false;
-        }
-    }
-    free(line);
-
-    if (!dst_image.process_scanline(NULL)) {
-        ESP_LOGE(TAG, "JPG image finish failed");
-        return false;
-    }
-    dst_image.deinit();
-    return true;
-}
-
-class callback_stream : public jpge::output_stream {
-protected:
-    jpg_out_cb ocb;
-    void * oarg;
-    size_t index;
-
-public:
-    callback_stream(jpg_out_cb cb, void * arg) : ocb(cb), oarg(arg), index(0) { }
-    virtual ~callback_stream() { }
-    virtual bool put_buf(const void* data, int len)
-    {
-        index += ocb(oarg, index, data, len);
-        return true;
-    }
-    virtual size_t get_size() const
-    {
-        return index;
-    }
+static const yuv_table_row yuv_table[256] = {
+    //  Y    Vr    Vg    Ug    Ub     // #
+    {-18, -204, 50, 104, -258},  // 0
+    {-17, -202, 49, 103, -256},  // 1
+    {-16, -201, 49, 102, -254},  // 2
+    {-15, -199, 48, 101, -252},  // 3
+    {-13, -197, 48, 100, -250},  // 4
+    {-12, -196, 48, 99, -248},   // 5
+    {-11, -194, 47, 99, -246},   // 6
+    {-10, -193, 47, 98, -244},   // 7
+    {-9, -191, 46, 97, -242},    // 8
+    {-8, -189, 46, 96, -240},    // 9
+    {-6, -188, 46, 95, -238},    // 10
+    {-5, -186, 45, 95, -236},    // 11
+    {-4, -185, 45, 94, -234},    // 12
+    {-3, -183, 44, 93, -232},    // 13
+    {-2, -181, 44, 92, -230},    // 14
+    {-1, -180, 44, 91, -228},    // 15
+    {0, -178, 43, 91, -226},     // 16
+    {1, -177, 43, 90, -223},     // 17
+    {2, -175, 43, 89, -221},     // 18
+    {3, -173, 42, 88, -219},     // 19
+    {4, -172, 42, 87, -217},     // 20
+    {5, -170, 41, 86, -215},     // 21
+    {6, -169, 41, 86, -213},     // 22
+    {8, -167, 41, 85, -211},     // 23
+    {9, -165, 40, 84, -209},     // 24
+    {10, -164, 40, 83, -207},    // 25
+    {11, -162, 39, 82, -205},    // 26
+    {12, -161, 39, 82, -203},    // 27
+    {13, -159, 39, 81, -201},    // 28
+    {15, -158, 38, 80, -199},    // 29
+    {16, -156, 38, 79, -197},    // 30
+    {17, -154, 37, 78, -195},    // 31
+    {18, -153, 37, 78, -193},    // 32
+    {19, -151, 37, 77, -191},    // 33
+    {20, -150, 36, 76, -189},    // 34
+    {22, -148, 36, 75, -187},    // 35
+    {23, -146, 35, 74, -185},    // 36
+    {24, -145, 35, 73, -183},    // 37
+    {25, -143, 35, 73, -181},    // 38
+    {26, -142, 34, 72, -179},    // 39
+    {27, -140, 34, 71, -177},    // 40
+    {29, -138, 34, 70, -175},    // 41
+    {30, -137, 33, 69, -173},    // 42
+    {31, -135, 33, 69, -171},    // 43
+    {32, -134, 32, 68, -169},    // 44
+    {33, -132, 32, 67, -167},    // 45
+    {34, -130, 32, 66, -165},    // 46
+    {36, -129, 31, 65, -163},    // 47
+    {37, -127, 31, 65, -161},    // 48
+    {38, -126, 30, 64, -159},    // 49
+    {39, -124, 30, 63, -157},    // 50
+    {40, -122, 30, 62, -155},    // 51
+    {41, -121, 29, 61, -153},    // 52
+    {43, -119, 29, 60, -151},    // 53
+    {44, -118, 28, 60, -149},    // 54
+    {45, -116, 28, 59, -147},    // 55
+    {46, -114, 28, 58, -145},    // 56
+    {47, -113, 27, 57, -143},    // 57
+    {48, -111, 27, 56, -141},    // 58
+    {50, -110, 26, 56, -139},    // 59
+    {51, -108, 26, 55, -137},    // 60
+    {52, -106, 26, 54, -135},    // 61
+    {53, -105, 25, 53, -133},    // 62
+    {54, -103, 25, 52, -131},    // 63
+    {55, -102, 25, 52, -129},    // 64
+    {57, -100, 24, 51, -127},    // 65
+    {58, -98, 24, 50, -125},     // 66
+    {59, -97, 23, 49, -123},     // 67
+    {60, -95, 23, 48, -121},     // 68
+    {61, -94, 23, 47, -119},     // 69
+    {62, -92, 22, 47, -117},     // 70
+    {64, -90, 22, 46, -115},     // 71
+    {65, -89, 21, 45, -113},     // 72
+    {66, -87, 21, 44, -110},     // 73
+    {67, -86, 21, 43, -108},     // 74
+    {68, -84, 20, 43, -106},     // 75
+    {69, -82, 20, 42, -104},     // 76
+    {71, -81, 19, 41, -102},     // 77
+    {72, -79, 19, 40, -100},     // 78
+    {73, -78, 19, 39, -98},      // 79
+    {74, -76, 18, 39, -96},      // 80
+    {75, -75, 18, 38, -94},      // 81
+    {76, -73, 17, 37, -92},      // 82
+    {77, -71, 17, 36, -90},      // 83
+    {79, -70, 17, 35, -88},      // 84
+    {80, -68, 16, 34, -86},      // 85
+    {81, -67, 16, 34, -84},      // 86
+    {82, -65, 16, 33, -82},      // 87
+    {83, -63, 15, 32, -80},      // 88
+    {84, -62, 15, 31, -78},      // 89
+    {86, -60, 14, 30, -76},      // 90
+    {87, -59, 14, 30, -74},      // 91
+    {88, -57, 14, 29, -72},      // 92
+    {89, -55, 13, 28, -70},      // 93
+    {90, -54, 13, 27, -68},      // 94
+    {91, -52, 12, 26, -66},      // 95
+    {93, -51, 12, 26, -64},      // 96
+    {94, -49, 12, 25, -62},      // 97
+    {95, -47, 11, 24, -60},      // 98
+    {96, -46, 11, 23, -58},      // 99
+    {97, -44, 10, 22, -56},      // 100
+    {98, -43, 10, 21, -54},      // 101
+    {100, -41, 10, 21, -52},     // 102
+    {101, -39, 9, 20, -50},      // 103
+    {102, -38, 9, 19, -48},      // 104
+    {103, -36, 8, 18, -46},      // 105
+    {104, -35, 8, 17, -44},      // 106
+    {105, -33, 8, 17, -42},      // 107
+    {107, -31, 7, 16, -40},      // 108
+    {108, -30, 7, 15, -38},      // 109
+    {109, -28, 7, 14, -36},      // 110
+    {110, -27, 6, 13, -34},      // 111
+    {111, -25, 6, 13, -32},      // 112
+    {112, -23, 5, 12, -30},      // 113
+    {114, -22, 5, 11, -28},      // 114
+    {115, -20, 5, 10, -26},      // 115
+    {116, -19, 4, 9, -24},       // 116
+    {117, -17, 4, 8, -22},       // 117
+    {118, -15, 3, 8, -20},       // 118
+    {119, -14, 3, 7, -18},       // 119
+    {121, -12, 3, 6, -16},       // 120
+    {122, -11, 2, 5, -14},       // 121
+    {123, -9, 2, 4, -12},        // 122
+    {124, -7, 1, 4, -10},        // 123
+    {125, -6, 1, 3, -8},         // 124
+    {126, -4, 1, 2, -6},         // 125
+    {128, -3, 0, 1, -4},         // 126
+    {129, -1, 0, 0, -2},         // 127
+    {130, 0, 0, 0, 0},           // 128
+    {131, 1, 0, 0, 2},           // 129
+    {132, 3, 0, -1, 4},          // 130
+    {133, 4, -1, -2, 6},         // 131
+    {135, 6, -1, -3, 8},         // 132
+    {136, 7, -1, -4, 10},        // 133
+    {137, 9, -2, -4, 12},        // 134
+    {138, 11, -2, -5, 14},       // 135
+    {139, 12, -3, -6, 16},       // 136
+    {140, 14, -3, -7, 18},       // 137
+    {142, 15, -3, -8, 20},       // 138
+    {143, 17, -4, -8, 22},       // 139
+    {144, 19, -4, -9, 24},       // 140
+    {145, 20, -5, -10, 26},      // 141
+    {146, 22, -5, -11, 28},      // 142
+    {147, 23, -5, -12, 30},      // 143
+    {148, 25, -6, -13, 32},      // 144
+    {150, 27, -6, -13, 34},      // 145
+    {151, 28, -7, -14, 36},      // 146
+    {152, 30, -7, -15, 38},      // 147
+    {153, 31, -7, -16, 40},      // 148
+    {154, 33, -8, -17, 42},      // 149
+    {155, 35, -8, -17, 44},      // 150
+    {157, 36, -8, -18, 46},      // 151
+    {158, 38, -9, -19, 48},      // 152
+    {159, 39, -9, -20, 50},      // 153
+    {160, 41, -10, -21, 52},     // 154
+    {161, 43, -10, -21, 54},     // 155
+    {162, 44, -10, -22, 56},     // 156
+    {164, 46, -11, -23, 58},     // 157
+    {165, 47, -11, -24, 60},     // 158
+    {166, 49, -12, -25, 62},     // 159
+    {167, 51, -12, -26, 64},     // 160
+    {168, 52, -12, -26, 66},     // 161
+    {169, 54, -13, -27, 68},     // 162
+    {171, 55, -13, -28, 70},     // 163
+    {172, 57, -14, -29, 72},     // 164
+    {173, 59, -14, -30, 74},     // 165
+    {174, 60, -14, -30, 76},     // 166
+    {175, 62, -15, -31, 78},     // 167
+    {176, 63, -15, -32, 80},     // 168
+    {178, 65, -16, -33, 82},     // 169
+    {179, 67, -16, -34, 84},     // 170
+    {180, 68, -16, -34, 86},     // 171
+    {181, 70, -17, -35, 88},     // 172
+    {182, 71, -17, -36, 90},     // 173
+    {183, 73, -17, -37, 92},     // 174
+    {185, 75, -18, -38, 94},     // 175
+    {186, 76, -18, -39, 96},     // 176
+    {187, 78, -19, -39, 98},     // 177
+    {188, 79, -19, -40, 100},    // 178
+    {189, 81, -19, -41, 102},    // 179
+    {190, 82, -20, -42, 104},    // 180
+    {192, 84, -20, -43, 106},    // 181
+    {193, 86, -21, -43, 108},    // 182
+    {194, 87, -21, -44, 110},    // 183
+    {195, 89, -21, -45, 113},    // 184
+    {196, 90, -22, -46, 115},    // 185
+    {197, 92, -22, -47, 117},    // 186
+    {199, 94, -23, -47, 119},    // 187
+    {200, 95, -23, -48, 121},    // 188
+    {201, 97, -23, -49, 123},    // 189
+    {202, 98, -24, -50, 125},    // 190
+    {203, 100, -24, -51, 127},   // 191
+    {204, 102, -25, -52, 129},   // 192
+    {206, 103, -25, -52, 131},   // 193
+    {207, 105, -25, -53, 133},   // 194
+    {208, 106, -26, -54, 135},   // 195
+    {209, 108, -26, -55, 137},   // 196
+    {210, 110, -26, -56, 139},   // 197
+    {211, 111, -27, -56, 141},   // 198
+    {213, 113, -27, -57, 143},   // 199
+    {214, 114, -28, -58, 145},   // 200
+    {215, 116, -28, -59, 147},   // 201
+    {216, 118, -28, -60, 149},   // 202
+    {217, 119, -29, -60, 151},   // 203
+    {218, 121, -29, -61, 153},   // 204
+    {219, 122, -30, -62, 155},   // 205
+    {221, 124, -30, -63, 157},   // 206
+    {222, 126, -30, -64, 159},   // 207
+    {223, 127, -31, -65, 161},   // 208
+    {224, 129, -31, -65, 163},   // 209
+    {225, 130, -32, -66, 165},   // 210
+    {226, 132, -32, -67, 167},   // 211
+    {228, 134, -32, -68, 169},   // 212
+    {229, 135, -33, -69, 171},   // 213
+    {230, 137, -33, -69, 173},   // 214
+    {231, 138, -34, -70, 175},   // 215
+    {232, 140, -34, -71, 177},   // 216
+    {233, 142, -34, -72, 179},   // 217
+    {235, 143, -35, -73, 181},   // 218
+    {236, 145, -35, -73, 183},   // 219
+    {237, 146, -35, -74, 185},   // 220
+    {238, 148, -36, -75, 187},   // 221
+    {239, 150, -36, -76, 189},   // 222
+    {240, 151, -37, -77, 191},   // 223
+    {242, 153, -37, -78, 193},   // 224
+    {243, 154, -37, -78, 195},   // 225
+    {244, 156, -38, -79, 197},   // 226
+    {245, 158, -38, -80, 199},   // 227
+    {246, 159, -39, -81, 201},   // 228
+    {247, 161, -39, -82, 203},   // 229
+    {249, 162, -39, -82, 205},   // 230
+    {250, 164, -40, -83, 207},   // 231
+    {251, 165, -40, -84, 209},   // 232
+    {252, 167, -41, -85, 211},   // 233
+    {253, 169, -41, -86, 213},   // 234
+    {254, 170, -41, -86, 215},   // 235
+    {256, 172, -42, -87, 217},   // 236
+    {257, 173, -42, -88, 219},   // 237
+    {258, 175, -43, -89, 221},   // 238
+    {259, 177, -43, -90, 223},   // 239
+    {260, 178, -43, -91, 226},   // 240
+    {261, 180, -44, -91, 228},   // 241
+    {263, 181, -44, -92, 230},   // 242
+    {264, 183, -44, -93, 232},   // 243
+    {265, 185, -45, -94, 234},   // 244
+    {266, 186, -45, -95, 236},   // 245
+    {267, 188, -46, -95, 238},   // 246
+    {268, 189, -46, -96, 240},   // 247
+    {270, 191, -46, -97, 242},   // 248
+    {271, 193, -47, -98, 244},   // 249
+    {272, 194, -47, -99, 246},   // 250
+    {273, 196, -48, -99, 248},   // 251
+    {274, 197, -48, -100, 250},  // 252
+    {275, 199, -48, -101, 252},  // 253
+    {277, 201, -49, -102, 254},  // 254
+    {278, 202, -49, -103, 256}   // 255
 };
 
-bool fmt2jpg_cb(uint8_t *src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, jpg_out_cb cb, void * arg)
-{
-    callback_stream dst_stream(cb, arg);
-    return convert_image(src, width, height, format, quality, &dst_stream);
-}
+#define YUYV_CONSTRAIN(v) ((v) < 0) ? 0 : (((v) > 255) ? 255 : (v))
 
-bool frame2jpg_cb(camera_fb_t * fb, uint8_t quality, jpg_out_cb cb, void * arg)
-{
-    return fmt2jpg_cb(fb->buf, fb->len, fb->width, fb->height, fb->format, quality, cb, arg);
-}
+void IRAM_ATTR yuv2rgb(uint8_t y, uint8_t u, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b) {
+  int16_t ri, gi, bi;
 
+  ri = yuv_table[y].vY + yuv_table[v].vVr;
+  gi = yuv_table[y].vY + yuv_table[u].vUg + yuv_table[v].vVg;
+  bi = yuv_table[y].vY + yuv_table[u].vUb;
 
-
-class memory_stream : public jpge::output_stream {
-protected:
-    uint8_t *out_buf;
-    size_t max_len, index;
-
-public:
-    memory_stream(void *pBuf, uint buf_size) : out_buf(static_cast<uint8_t*>(pBuf)), max_len(buf_size), index(0) { }
-
-    virtual ~memory_stream() { }
-
-    virtual bool put_buf(const void* pBuf, int len)
-    {
-        if (!pBuf) {
-            //end of image
-            return true;
-        }
-        if ((size_t)len > (max_len - index)) {
-            //ESP_LOGW(TAG, "JPG output overflow: %d bytes (%d,%d,%d)", len - (max_len - index), len, index, max_len);
-            len = max_len - index;
-        }
-        if (len) {
-            memcpy(out_buf + index, pBuf, len);
-            index += len;
-        }
-        return true;
-    }
-
-    virtual size_t get_size() const
-    {
-        return index;
-    }
-};
-
-bool fmt2jpg(uint8_t *src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, uint8_t ** out, size_t * out_len)
-{
-    //todo: allocate proper buffer for holding JPEG data
-    //this should be enough for CIF frame size
-    int jpg_buf_len = 128*1024;
-
-
-    uint8_t * jpg_buf = (uint8_t *)_malloc(jpg_buf_len);
-    if(jpg_buf == NULL) {
-        ESP_LOGE(TAG, "JPG buffer malloc failed");
-        return false;
-    }
-    memory_stream dst_stream(jpg_buf, jpg_buf_len);
-
-    if(!convert_image(src, width, height, format, quality, &dst_stream)) {
-        free(jpg_buf);
-        return false;
-    }
-
-    *out = jpg_buf;
-    *out_len = dst_stream.get_size();
-    return true;
-}
-
-bool frame2jpg(camera_fb_t * fb, uint8_t quality, uint8_t ** out, size_t * out_len)
-{
-    return fmt2jpg(fb->buf, fb->len, fb->width, fb->height, fb->format, quality, out, out_len);
+  *r = YUYV_CONSTRAIN(ri);
+  *g = YUYV_CONSTRAIN(gi);
+  *b = YUYV_CONSTRAIN(bi);
 }

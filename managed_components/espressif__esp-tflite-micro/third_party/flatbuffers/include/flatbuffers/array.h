@@ -14,243 +14,171 @@
  * limitations under the License.
  */
 
-#ifndef FLATBUFFERS_ARRAY_H_
-#define FLATBUFFERS_ARRAY_H_
+#ifndef FLATBUFFERS_BUFFER_H_
+#define FLATBUFFERS_BUFFER_H_
 
-#include <cstdint>
-#include <memory>
+#include <algorithm>
 
 #include "flatbuffers/base.h"
-#include "flatbuffers/stl_emulation.h"
-#include "flatbuffers/vector.h"
 
 namespace flatbuffers {
 
-// This is used as a helper type for accessing arrays.
-template<typename T, uint16_t length> class Array {
-  // Array<T> can carry only POD data types (scalars or structs).
-  typedef typename flatbuffers::bool_constant<flatbuffers::is_scalar<T>::value>
-      scalar_tag;
-  typedef
-      typename flatbuffers::conditional<scalar_tag::value, T, const T *>::type
-          IndirectHelperType;
+// Wrapper for uoffset_t to allow safe template specialization.
+// Value is allowed to be 0 to indicate a null object (see e.g. AddOffset).
+template<typename T = void> struct Offset {
+  // The type of offset to use.
+  typedef uoffset_t offset_type;
 
- public:
-  typedef uint16_t size_type;
-  typedef typename IndirectHelper<IndirectHelperType>::return_type return_type;
-  typedef VectorConstIterator<T, return_type, uoffset_t> const_iterator;
-  typedef VectorReverseIterator<const_iterator> const_reverse_iterator;
-
-  // If T is a LE-scalar or a struct (!scalar_tag::value).
-  static FLATBUFFERS_CONSTEXPR bool is_span_observable =
-      (scalar_tag::value && (FLATBUFFERS_LITTLEENDIAN || sizeof(T) == 1)) ||
-      !scalar_tag::value;
-
-  FLATBUFFERS_CONSTEXPR uint16_t size() const { return length; }
-
-  return_type Get(uoffset_t i) const {
-    FLATBUFFERS_ASSERT(i < size());
-    return IndirectHelper<IndirectHelperType>::Read(Data(), i);
-  }
-
-  return_type operator[](uoffset_t i) const { return Get(i); }
-
-  // If this is a Vector of enums, T will be its storage type, not the enum
-  // type. This function makes it convenient to retrieve value with enum
-  // type E.
-  template<typename E> E GetEnum(uoffset_t i) const {
-    return static_cast<E>(Get(i));
-  }
-
-  const_iterator begin() const { return const_iterator(Data(), 0); }
-  const_iterator end() const { return const_iterator(Data(), size()); }
-
-  const_reverse_iterator rbegin() const {
-    return const_reverse_iterator(end());
-  }
-  const_reverse_iterator rend() const {
-    return const_reverse_iterator(begin());
-  }
-
-  const_iterator cbegin() const { return begin(); }
-  const_iterator cend() const { return end(); }
-
-  const_reverse_iterator crbegin() const { return rbegin(); }
-  const_reverse_iterator crend() const { return rend(); }
-
-  // Get a mutable pointer to elements inside this array.
-  // This method used to mutate arrays of structs followed by a @p Mutate
-  // operation. For primitive types use @p Mutate directly.
-  // @warning Assignments and reads to/from the dereferenced pointer are not
-  //  automatically converted to the correct endianness.
-  typename flatbuffers::conditional<scalar_tag::value, void, T *>::type
-  GetMutablePointer(uoffset_t i) const {
-    FLATBUFFERS_ASSERT(i < size());
-    return const_cast<T *>(&data()[i]);
-  }
-
-  // Change elements if you have a non-const pointer to this object.
-  void Mutate(uoffset_t i, const T &val) { MutateImpl(scalar_tag(), i, val); }
-
-  // The raw data in little endian format. Use with care.
-  const uint8_t *Data() const { return data_; }
-
-  uint8_t *Data() { return data_; }
-
-  // Similarly, but typed, much like std::vector::data
-  const T *data() const { return reinterpret_cast<const T *>(Data()); }
-  T *data() { return reinterpret_cast<T *>(Data()); }
-
-  // Copy data from a span with endian conversion.
-  // If this Array and the span overlap, the behavior is undefined.
-  void CopyFromSpan(flatbuffers::span<const T, length> src) {
-    const auto p1 = reinterpret_cast<const uint8_t *>(src.data());
-    const auto p2 = Data();
-    FLATBUFFERS_ASSERT(!(p1 >= p2 && p1 < (p2 + length)) &&
-                       !(p2 >= p1 && p2 < (p1 + length)));
-    (void)p1;
-    (void)p2;
-    CopyFromSpanImpl(flatbuffers::bool_constant<is_span_observable>(), src);
-  }
-
- protected:
-  void MutateImpl(flatbuffers::true_type, uoffset_t i, const T &val) {
-    FLATBUFFERS_ASSERT(i < size());
-    WriteScalar(data() + i, val);
-  }
-
-  void MutateImpl(flatbuffers::false_type, uoffset_t i, const T &val) {
-    *(GetMutablePointer(i)) = val;
-  }
-
-  void CopyFromSpanImpl(flatbuffers::true_type,
-                        flatbuffers::span<const T, length> src) {
-    // Use std::memcpy() instead of std::copy() to avoid performance degradation
-    // due to aliasing if T is char or unsigned char.
-    // The size is known at compile time, so memcpy would be inlined.
-    std::memcpy(data(), src.data(), length * sizeof(T));
-  }
-
-  // Copy data from flatbuffers::span with endian conversion.
-  void CopyFromSpanImpl(flatbuffers::false_type,
-                        flatbuffers::span<const T, length> src) {
-    for (size_type k = 0; k < length; k++) { Mutate(k, src[k]); }
-  }
-
-  // This class is only used to access pre-existing data. Don't ever
-  // try to construct these manually.
-  // 'constexpr' allows us to use 'size()' at compile time.
-  // @note Must not use 'FLATBUFFERS_CONSTEXPR' here, as const is not allowed on
-  //  a constructor.
-#if defined(__cpp_constexpr)
-  constexpr Array();
-#else
-  Array();
-#endif
-
-  uint8_t data_[length * sizeof(T)];
-
- private:
-  // This class is a pointer. Copying will therefore create an invalid object.
-  // Private and unimplemented copy constructor.
-  Array(const Array &);
-  Array &operator=(const Array &);
+  offset_type o;
+  Offset() : o(0) {}
+  Offset(const offset_type _o) : o(_o) {}
+  Offset<> Union() const { return o; }
+  bool IsNull() const { return !o; }
 };
 
-// Specialization for Array[struct] with access using Offset<void> pointer.
-// This specialization used by idl_gen_text.cpp.
-template<typename T, uint16_t length, template<typename> class OffsetT>
-class Array<OffsetT<T>, length> {
-  static_assert(flatbuffers::is_same<T, void>::value, "unexpected type T");
+// Wrapper for uoffset64_t Offsets.
+template<typename T = void> struct Offset64 {
+  // The type of offset to use.
+  typedef uoffset64_t offset_type;
 
- public:
-  typedef const void *return_type;
-  typedef uint16_t size_type;
+  offset_type o;
+  Offset64() : o(0) {}
+  Offset64(const offset_type offset) : o(offset) {}
+  Offset64<> Union() const { return o; }
+  bool IsNull() const { return !o; }
+};
 
-  const uint8_t *Data() const { return data_; }
+// Litmus check for ensuring the Offsets are the expected size.
+static_assert(sizeof(Offset<>) == 4, "Offset has wrong size");
+static_assert(sizeof(Offset64<>) == 8, "Offset64 has wrong size");
 
-  // Make idl_gen_text.cpp::PrintContainer happy.
-  return_type operator[](uoffset_t) const {
-    FLATBUFFERS_ASSERT(false);
+inline void EndianCheck() {
+  int endiantest = 1;
+  // If this fails, see FLATBUFFERS_LITTLEENDIAN above.
+  FLATBUFFERS_ASSERT(*reinterpret_cast<char *>(&endiantest) == FLATBUFFERS_LITTLEENDIAN);
+  (void) endiantest;
+}
+
+template<typename T> FLATBUFFERS_CONSTEXPR size_t AlignOf() {
+// clang-format off
+  #ifdef _MSC_VER
+    return __alignof(T);
+  #else
+    #ifndef alignof
+      return __alignof__(T);
+    #else
+      return alignof(T);
+    #endif
+  #endif
+  // clang-format on
+}
+
+// Lexicographically compare two strings (possibly containing nulls), and
+// return true if the first is less than the second.
+static inline bool StringLessThan(const char *a_data, uoffset_t a_size, const char *b_data, uoffset_t b_size) {
+  const auto cmp = memcmp(a_data, b_data, (std::min)(a_size, b_size));
+  return cmp == 0 ? a_size < b_size : cmp < 0;
+}
+
+// When we read serialized data from memory, in the case of most scalars,
+// we want to just read T, but in the case of Offset, we want to actually
+// perform the indirection and return a pointer.
+// The template specialization below does just that.
+// It is wrapped in a struct since function templates can't overload on the
+// return type like this.
+// The typedef is for the convenience of callers of this function
+// (avoiding the need for a trailing return decltype)
+template<typename T> struct IndirectHelper {
+  typedef T return_type;
+  typedef T mutable_return_type;
+  static const size_t element_stride = sizeof(T);
+
+  static return_type Read(const uint8_t *p, const size_t i) {
+    return EndianScalar((reinterpret_cast<const T *>(p))[i]);
+  }
+  static mutable_return_type Read(uint8_t *p, const size_t i) {
+    return reinterpret_cast<mutable_return_type>(Read(const_cast<const uint8_t *>(p), i));
+  }
+};
+
+// For vector of Offsets.
+template<typename T, template<typename> class OffsetT> struct IndirectHelper<OffsetT<T>> {
+  typedef const T *return_type;
+  typedef T *mutable_return_type;
+  typedef typename OffsetT<T>::offset_type offset_type;
+  static const offset_type element_stride = sizeof(offset_type);
+
+  static return_type Read(const uint8_t *const p, const offset_type i) {
+    // Offsets are relative to themselves, so first update the pointer to
+    // point to the offset location.
+    const uint8_t *const offset_location = p + i * element_stride;
+
+    // Then read the scalar value of the offset (which may be 32 or 64-bits) and
+    // then determine the relative location from the offset location.
+    return reinterpret_cast<return_type>(offset_location + ReadScalar<offset_type>(offset_location));
+  }
+  static mutable_return_type Read(uint8_t *const p, const offset_type i) {
+    // Offsets are relative to themselves, so first update the pointer to
+    // point to the offset location.
+    uint8_t *const offset_location = p + i * element_stride;
+
+    // Then read the scalar value of the offset (which may be 32 or 64-bits) and
+    // then determine the relative location from the offset location.
+    return reinterpret_cast<mutable_return_type>(offset_location + ReadScalar<offset_type>(offset_location));
+  }
+};
+
+// For vector of structs.
+template<typename T> struct IndirectHelper<const T *> {
+  typedef const T *return_type;
+  typedef T *mutable_return_type;
+  static const size_t element_stride = sizeof(T);
+
+  static return_type Read(const uint8_t *const p, const size_t i) {
+    // Structs are stored inline, relative to the first struct pointer.
+    return reinterpret_cast<return_type>(p + i * element_stride);
+  }
+  static mutable_return_type Read(uint8_t *const p, const size_t i) {
+    // Structs are stored inline, relative to the first struct pointer.
+    return reinterpret_cast<mutable_return_type>(p + i * element_stride);
+  }
+};
+
+/// @brief Get a pointer to the file_identifier section of the buffer.
+/// @return Returns a const char pointer to the start of the file_identifier
+/// characters in the buffer.  The returned char * has length
+/// 'flatbuffers::FlatBufferBuilder::kFileIdentifierLength'.
+/// This function is UNDEFINED for FlatBuffers whose schema does not include
+/// a file_identifier (likely points at padding or the start of a the root
+/// vtable).
+inline const char *GetBufferIdentifier(const void *buf, bool size_prefixed = false) {
+  return reinterpret_cast<const char *>(buf) + ((size_prefixed) ? 2 * sizeof(uoffset_t) : sizeof(uoffset_t));
+}
+
+// Helper to see if the identifier in a buffer has the expected value.
+inline bool BufferHasIdentifier(const void *buf, const char *identifier, bool size_prefixed = false) {
+  return strncmp(GetBufferIdentifier(buf, size_prefixed), identifier, flatbuffers::kFileIdentifierLength) == 0;
+}
+
+/// @cond FLATBUFFERS_INTERNAL
+// Helpers to get a typed pointer to the root object contained in the buffer.
+template<typename T> T *GetMutableRoot(void *buf) {
+  if (!buf)
     return nullptr;
-  }
-
- private:
-  // This class is only used to access pre-existing data.
-  Array();
-  Array(const Array &);
-  Array &operator=(const Array &);
-
-  uint8_t data_[1];
-};
-
-template<class U, uint16_t N>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<U, N> make_span(Array<U, N> &arr)
-    FLATBUFFERS_NOEXCEPT {
-  static_assert(
-      Array<U, N>::is_span_observable,
-      "wrong type U, only plain struct, LE-scalar, or byte types are allowed");
-  return span<U, N>(arr.data(), N);
+  EndianCheck();
+  return reinterpret_cast<T *>(reinterpret_cast<uint8_t *>(buf) + EndianScalar(*reinterpret_cast<uoffset_t *>(buf)));
 }
 
-template<class U, uint16_t N>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<const U, N> make_span(
-    const Array<U, N> &arr) FLATBUFFERS_NOEXCEPT {
-  static_assert(
-      Array<U, N>::is_span_observable,
-      "wrong type U, only plain struct, LE-scalar, or byte types are allowed");
-  return span<const U, N>(arr.data(), N);
+template<typename T, typename SizeT = uoffset_t> T *GetMutableSizePrefixedRoot(void *buf) {
+  return GetMutableRoot<T>(reinterpret_cast<uint8_t *>(buf) + sizeof(SizeT));
 }
 
-template<class U, uint16_t N>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<uint8_t, sizeof(U) * N>
-make_bytes_span(Array<U, N> &arr) FLATBUFFERS_NOEXCEPT {
-  static_assert(Array<U, N>::is_span_observable,
-                "internal error, Array<T> might hold only scalars or structs");
-  return span<uint8_t, sizeof(U) * N>(arr.Data(), sizeof(U) * N);
-}
+template<typename T> const T *GetRoot(const void *buf) { return GetMutableRoot<T>(const_cast<void *>(buf)); }
 
-template<class U, uint16_t N>
-FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<const uint8_t, sizeof(U) * N>
-make_bytes_span(const Array<U, N> &arr) FLATBUFFERS_NOEXCEPT {
-  static_assert(Array<U, N>::is_span_observable,
-                "internal error, Array<T> might hold only scalars or structs");
-  return span<const uint8_t, sizeof(U) * N>(arr.Data(), sizeof(U) * N);
-}
-
-// Cast a raw T[length] to a raw flatbuffers::Array<T, length>
-// without endian conversion. Use with care.
-// TODO: move these Cast-methods to `internal` namespace.
-template<typename T, uint16_t length>
-Array<T, length> &CastToArray(T (&arr)[length]) {
-  return *reinterpret_cast<Array<T, length> *>(arr);
-}
-
-template<typename T, uint16_t length>
-const Array<T, length> &CastToArray(const T (&arr)[length]) {
-  return *reinterpret_cast<const Array<T, length> *>(arr);
-}
-
-template<typename E, typename T, uint16_t length>
-Array<E, length> &CastToArrayOfEnum(T (&arr)[length]) {
-  static_assert(sizeof(E) == sizeof(T), "invalid enum type E");
-  return *reinterpret_cast<Array<E, length> *>(arr);
-}
-
-template<typename E, typename T, uint16_t length>
-const Array<E, length> &CastToArrayOfEnum(const T (&arr)[length]) {
-  static_assert(sizeof(E) == sizeof(T), "invalid enum type E");
-  return *reinterpret_cast<const Array<E, length> *>(arr);
-}
-
-template<typename T, uint16_t length>
-bool operator==(const Array<T, length> &lhs,
-                const Array<T, length> &rhs) noexcept {
-  return std::addressof(lhs) == std::addressof(rhs) ||
-         (lhs.size() == rhs.size() &&
-          std::memcmp(lhs.Data(), rhs.Data(), rhs.size() * sizeof(T)) == 0);
+template<typename T, typename SizeT = uoffset_t> const T *GetSizePrefixedRoot(const void *buf) {
+  return GetRoot<T>(reinterpret_cast<const uint8_t *>(buf) + sizeof(SizeT));
 }
 
 }  // namespace flatbuffers
 
-#endif  // FLATBUFFERS_ARRAY_H_
+#endif  // FLATBUFFERS_BUFFER_H_

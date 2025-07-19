@@ -1,4 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,26 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef SIGNAL_ENERGY_H_
-#define SIGNAL_ENERGY_H_
+#include "signal/src/fft_auto_scale.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
-#include "signal/src/complex.h"
+#include "signal/src/max_abs.h"
+#include "signal/src/msb.h"
 
+// TODO(b/286250473): remove namespace once de-duped libraries
 namespace tflite {
 namespace tflm_signal {
-// TODO(b/286250473): remove namespace once de-duped libraries above
 
-// Calculates the power spectrum from a DFT output between start and end indices
-//
-// * `start_index` and `end_index` must valid indices into `input`
-// * `output` must be the same size as `input`. Only the values at indices
-//   `start_index` and `end_index` inclusive should be considered valid.
-void SpectrumToEnergy(const Complex<int16_t>* input, int start_index,
-                      int end_index, uint32_t* output);
-
+int FftAutoScale(const int16_t *input, int size, int16_t *output) {
+  const int16_t max = MaxAbs16(input, size);
+  int scale_bits = (sizeof(int16_t) * 8) - MostSignificantBit32(max) - 1;
+  if (scale_bits <= 0) {
+    scale_bits = 0;
+  }
+  for (int i = 0; i < size; i++) {
+    // (input[i] << scale_bits) is undefined if input[i] is negative.
+    // Multiply explicitly to make the code portable.
+    output[i] = input[i] * (1 << scale_bits);
+  }
+  return scale_bits;
+}
 }  // namespace tflm_signal
 }  // namespace tflite
-
-#endif  // SIGNAL_ENERGY_H_

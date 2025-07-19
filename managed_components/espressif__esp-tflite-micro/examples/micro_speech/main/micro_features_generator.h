@@ -1,4 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,25 +13,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_FEATURES_MICRO_FEATURES_GENERATOR_H_
-#define TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_FEATURES_MICRO_FEATURES_GENERATOR_H_
+#ifndef TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_MODEL_SETTINGS_H_
+#define TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_MODEL_SETTINGS_H_
 
-#include "tensorflow/lite/c/common.h"
-#include "micro_model_settings.h"
+// The following values are derived from values used during model training.
+// If you change the way you preprocess the input, update all these constants.
+constexpr int kMaxAudioSampleSize = 512;
+constexpr int kAudioSampleFrequency = 16000;
+constexpr int kFeatureSize = 40;
+constexpr int kFeatureCount = 49;
+constexpr int kFeatureElementCount = (kFeatureSize * kFeatureCount);
+constexpr int kFeatureStrideMs = 20;
+constexpr int kFeatureDurationMs = 30;
 
-using Features = int8_t[kFeatureCount][kFeatureSize];
+// Variables for the model's output categories.
+constexpr int kCategoryCount = 4;
+constexpr const char *kCategoryLabels[kCategoryCount] = {
+    "silence",
+    "unknown",
+    "yes",
+    "no",
+};
 
-// Sets up any resources needed for the feature generation pipeline.
-TfLiteStatus InitializeMicroFeatures();
-
-// Converts audio sample data into a more compact form that's appropriate for
-// feeding into a neural network.
-// TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
-//                                    int output_size, int8_t* output,
-//                                    size_t* num_samples_read);
-
-TfLiteStatus GenerateFeatures(const int16_t* audio_data,
-                              const size_t audio_data_size,
-                              Features* features_output);
-
-#endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_FEATURES_MICRO_FEATURES_GENERATOR_H_
+#endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_MICRO_MODEL_SETTINGS_H_

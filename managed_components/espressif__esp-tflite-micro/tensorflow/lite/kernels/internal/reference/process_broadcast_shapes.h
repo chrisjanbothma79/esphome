@@ -12,129 +12,68 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_PROCESS_BROADCAST_SHAPES_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_PROCESS_BROADCAST_SHAPES_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_QUANTIZE_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_QUANTIZE_H_
 
 #include <algorithm>
+#include <limits>
+#include <vector>
 
+#include "tensorflow/lite/kernels/internal/common.h"
+#include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/kernels/internal/cppmath.h"
 #include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
 
 namespace reference_ops {
 
-// Consolidates dimensions in broadcast inputs, checks for five-fold pattern.
-//
-// For example, if sequence of dimensions of one input is
-// ..., 1, 3, 1, 7, 9, 5,... and the other is ..., 2, 3, 1, 7, 1, 1, ...
-// we can consolidate these as
-// ..., 1, 3*7, 9*5, ... and 2, 3*7, 1.
-//
-// The category is updated in the less-frequent case of shapes that are
-// not suited to a fivefold-loop broadcast.
-//
-// Falls back to generic pattern when it does not know how to process properly.
-//
-// Returns true iff there is some sort of broadcast, which includes five-fold
-// patterns and falling back to generic broadcast.
-inline bool ProcessBroadcastShapes(const RuntimeShape& shape0,
-                                   const RuntimeShape& shape1,
-                                   tflite::ArithmeticParams* params) {
-  const int dims_count =
-      std::max(shape0.DimensionsCount(), shape1.DimensionsCount());
+template<typename InputT, typename OutputT>
+inline void AffineQuantize(const tflite::QuantizationParams &op_params, const RuntimeShape &input_shape,
+                           const InputT *input_data, const RuntimeShape &output_shape, OutputT *output_data) {
+  const int32_t zero_point = op_params.zero_point;
+  const double scale = op_params.scale;
+  const int flat_size = MatchingFlatSize(input_shape, output_shape);
+  static constexpr int32_t min_val = std::numeric_limits<OutputT>::min();
+  static constexpr int32_t max_val = std::numeric_limits<OutputT>::max();
 
-  params->broadcast_category = BroadcastableOpCategory::kGenericBroadcast;
-  RuntimeShape scalar_shape(dims_count, 1);
+  for (int i = 0; i < flat_size; i++) {
+    const InputT val = input_data[i];
+    int32_t unclamped = static_cast<int32_t>(TfLiteRound(val / static_cast<float>(scale))) + zero_point;
+    int32_t clamped = std::min(std::max(unclamped, min_val), max_val);
+    output_data[i] = clamped;
+  }
+}
 
-  auto extended_shape0 = RuntimeShape::ExtendedShape(dims_count, shape0);
-  auto extended_shape1 = RuntimeShape::ExtendedShape(dims_count, shape1);
+// Quantizes per-channel.
+template<typename InputT, typename OutputT>
+inline void PerChannelQuantize(const tflite::PerChannelQuantizationParams &op_params, const RuntimeShape &input_shape,
+                               const InputT *input_data, const RuntimeShape &output_shape, OutputT *output_data) {
+  // Ensure flat size is same.
+  MatchingFlatSize(input_shape, output_shape);
 
-  // Check for "exact" match, implicitly accepting any scalar shapes.
-  if (extended_shape0 == extended_shape1) {
-    params->broadcast_category = BroadcastableOpCategory::kNonBroadcast;
-    return false;
-  }
+  const int32_t *zero_point = op_params.zero_point;
+  const float *scale = op_params.scale;
+  const int32_t quantized_dimension = op_params.quantized_dimension;
+  const int32_t num_dims = input_shape.DimensionsCount();
+  const int32_t *dims_data = input_shape.DimsData();
+  std::vector<int> current_dim(num_dims, 0);
+  static constexpr int32_t min_val = std::numeric_limits<OutputT>::min();
+  static constexpr int32_t max_val = std::numeric_limits<OutputT>::max();
 
-  for (int i = dims_count - 1; i >= 0; --i) {
-    if (extended_shape0.Dims(i) == extended_shape1.Dims(i)) {
-      continue;
-    } else if (extended_shape0.Dims(i) == 1) {
-      params->broadcast_category =
-          BroadcastableOpCategory::kFirstInputBroadcastsFast;
-      break;
-    } else if (extended_shape1.Dims(i) == 1) {
-      params->broadcast_category =
-          BroadcastableOpCategory::kSecondInputBroadcastsFast;
-      break;
-    } else {
-      // This case is erroneous: there is a dimension that does not match and
-      // is not a broadcast from one shape to the other.
-      params->broadcast_category = BroadcastableOpCategory::kGenericBroadcast;
-      return true;
-    }
-  }
-
-  if (params->broadcast_category !=
-          BroadcastableOpCategory::kFirstInputBroadcastsFast &&
-      params->broadcast_category !=
-          BroadcastableOpCategory::kSecondInputBroadcastsFast) {
-    // This is unreachable because at least one else clause in the above loop
-    // must be reached.
-    TFLITE_DCHECK(false);
-    params->broadcast_category = BroadcastableOpCategory::kNonBroadcast;
-    return false;
-  }
-
-  // From this point it is assumed contractually that corresponding dimensions
-  // in shape0 and shape1 are either (a) equal or (b) one or other equals 1.
-  const bool swap_inputs = params->broadcast_category ==
-                           BroadcastableOpCategory::kSecondInputBroadcastsFast;
-  const RuntimeShape* shape_a =
-      swap_inputs ? &extended_shape1 : &extended_shape0;
-  const RuntimeShape* shape_b =
-      swap_inputs ? &extended_shape0 : &extended_shape1;
-
-  int i = dims_count - 1;
-  params->broadcast_shape[0] = 1;
-  params->broadcast_shape[1] = 1;
-  params->broadcast_shape[2] = 1;
-  params->broadcast_shape[3] = 1;
-  params->broadcast_shape[4] = 1;
-  // y_0 is greedy: include dims if both or neither equal 1: in other words,
-  // test for equality rather than (shape_a->Dims(i) != 1).
-  while (i >= 0 && shape_a->Dims(i) == shape_b->Dims(i)) {
-    params->broadcast_shape[4] *= shape_b->Dims(i);
-    --i;
-  }
-  // Here either input_a or input_b has dim of 1 (if i >= 0).  If it is input_b
-  // that has the unit dimension, the next two loops are not entered.
-  while (i >= 0 && shape_a->Dims(i) == 1) {
-    params->broadcast_shape[3] *= shape_b->Dims(i);
-    --i;
-  }
-  while (i >= 0 && shape_a->Dims(i) == shape_b->Dims(i)) {
-    params->broadcast_shape[2] *= shape_a->Dims(i);
-    --i;
-  }
-  // Here either input_a or input_b has dim of 1 (if i >= 0).
-  while (i >= 0 && shape_b->Dims(i) == 1) {
-    params->broadcast_shape[1] *= shape_a->Dims(i);
-    --i;
-  }
-  while (i >= 0 && shape_a->Dims(i) == shape_b->Dims(i)) {
-    params->broadcast_shape[0] *= shape_b->Dims(i);
-    --i;
-  }
-
-  // Rarer case is when the broadcast dimensions cannot be handled by a fivefold
-  // loop.
-  if (i >= 0) {
-    params->broadcast_category = BroadcastableOpCategory::kGenericBroadcast;
-  }
-  return true;
+  do {
+    size_t offset =
+        ReducedOutputOffset(num_dims, reinterpret_cast<const int *>(dims_data), current_dim.data(), 0, nullptr);
+    const InputT val = input_data[offset];
+    const int channel = current_dim[quantized_dimension];
+    int32_t unclamped =
+        static_cast<int32_t>(TfLiteRound(val / static_cast<float>(scale[channel]))) + zero_point[channel];
+    int32_t clamped = std::min(std::max(unclamped, min_val), max_val);
+    output_data[offset] = static_cast<OutputT>(clamped);
+  } while (NextIndex(num_dims, reinterpret_cast<const int *>(dims_data), current_dim.data()));
 }
 
 }  // namespace reference_ops
-}  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_PROCESS_BROADCAST_SHAPES_H_
+}  // namespace tflite
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_QUANTIZE_H_

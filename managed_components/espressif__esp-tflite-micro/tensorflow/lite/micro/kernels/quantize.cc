@@ -1,4 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,31 +12,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
-#include "tensorflow/lite/micro/kernels/quantize.h"
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_QUANTIZE_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_QUANTIZE_H_
 
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_utils.h"
+#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
-namespace {
 
-void* InitQuantizeReference(TfLiteContext* context, const char* buffer,
-                            size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context,
-                                           sizeof(OpDataQuantizeReference));
-}
+struct OpDataQuantizeReference {
+  tflite::QuantizationParams quantization_params;
+  // The scaling factor from input to output (aka the 'real multiplier') can
+  // be represented as a fixed point multiplier plus a left shift.
+  int32_t requantize_output_multiplier;
+  int requantize_output_shift;
 
-}  // namespace
+  int32_t input_zero_point;
+};
 
-TFLMRegistration Register_QUANTIZE() {
-  return tflite::micro::RegisterOp(
-      InitQuantizeReference, PrepareQuantizeReference, EvalQuantizeReference);
-}
-
+TfLiteStatus EvalQuantizeReference(TfLiteContext *context, TfLiteNode *node);
+TfLiteStatus PrepareQuantizeReference(TfLiteContext *context, TfLiteNode *node);
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_QUANTIZE_H_

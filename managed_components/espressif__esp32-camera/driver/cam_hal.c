@@ -1,4 +1,4 @@
-// Copyright 2010-2020 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,527 +11,474 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <stdalign.h>
-#include "esp_heap_caps.h"
-#include "ll_cam.h"
+#include "time.h"
+#include "sys/time.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+#include "esp_system.h"
+#include "nvs_flash.h"
+#include "nvs.h"
+#include "sensor.h"
+#include "sccb.h"
 #include "cam_hal.h"
+#include "esp_camera.h"
+#include "xclk.h"
+#if CONFIG_OV2640_SUPPORT
+#include "ov2640.h"
+#endif
+#if CONFIG_OV7725_SUPPORT
+#include "ov7725.h"
+#endif
+#if CONFIG_OV3660_SUPPORT
+#include "ov3660.h"
+#endif
+#if CONFIG_OV5640_SUPPORT
+#include "ov5640.h"
+#endif
+#if CONFIG_NT99141_SUPPORT
+#include "nt99141.h"
+#endif
+#if CONFIG_OV7670_SUPPORT
+#include "ov7670.h"
+#endif
+#if CONFIG_GC2145_SUPPORT
+#include "gc2145.h"
+#endif
+#if CONFIG_GC032A_SUPPORT
+#include "gc032a.h"
+#endif
+#if CONFIG_GC0308_SUPPORT
+#include "gc0308.h"
+#endif
+#if CONFIG_BF3005_SUPPORT
+#include "bf3005.h"
+#endif
+#if CONFIG_BF20A6_SUPPORT
+#include "bf20a6.h"
+#endif
+#if CONFIG_SC101IOT_SUPPORT
+#include "sc101iot.h"
+#endif
+#if CONFIG_SC030IOT_SUPPORT
+#include "sc030iot.h"
+#endif
+#if CONFIG_SC031GS_SUPPORT
+#include "sc031gs.h"
+#endif
+#if CONFIG_MEGA_CCM_SUPPORT
+#include "mega_ccm.h"
+#endif
 
-#if (ESP_IDF_VERSION_MAJOR == 3) && (ESP_IDF_VERSION_MINOR == 3)
-#include "rom/ets_sys.h"
+#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
+#include "esp32-hal-log.h"
+#define TAG ""
 #else
-#include "esp_timer.h"
-#if CONFIG_IDF_TARGET_ESP32
-#include "esp32/rom/ets_sys.h"  // will be removed in idf v5.0
-#elif CONFIG_IDF_TARGET_ESP32S2
-#include "esp32s2/rom/ets_sys.h"
-#elif CONFIG_IDF_TARGET_ESP32S3
-#include "esp32s3/rom/ets_sys.h"
+#include "esp_log.h"
+static const char *TAG = "camera";
 #endif
-#endif // ESP_IDF_VERSION_MAJOR
-#define ESP_CAMERA_ETS_PRINTF ets_printf
 
-#if CONFIG_CAMERA_TASK_STACK_SIZE
-#define CAM_TASK_STACK             CONFIG_CAMERA_TASK_STACK_SIZE
+typedef struct {
+  sensor_t sensor;
+  camera_fb_t fb;
+} camera_state_t;
+
+static const char *CAMERA_SENSOR_NVS_KEY = "sensor";
+static const char *CAMERA_PIXFORMAT_NVS_KEY = "pixformat";
+static camera_state_t *s_state = NULL;
+
+#if CONFIG_IDF_TARGET_ESP32S3  // LCD_CAM module of ESP32-S3 will generate xclk
+#define CAMERA_ENABLE_OUT_CLOCK(v)
+#define CAMERA_DISABLE_OUT_CLOCK()
 #else
-#define CAM_TASK_STACK             (2*1024)
+#define CAMERA_ENABLE_OUT_CLOCK(v) camera_enable_out_clock((v))
+#define CAMERA_DISABLE_OUT_CLOCK() camera_disable_out_clock()
 #endif
 
-static const char *TAG = "cam_hal";
-static cam_obj_t *cam_obj = NULL;
+typedef struct {
+  int (*detect)(int slv_addr, sensor_id_t *id);
+  int (*init)(sensor_t *sensor);
+} sensor_func_t;
 
-static const uint32_t JPEG_SOI_MARKER = 0xFFD8FF;  // written in little-endian for esp32
-static const uint16_t JPEG_EOI_MARKER = 0xD9FF;  // written in little-endian for esp32
-
-static int cam_verify_jpeg_soi(const uint8_t *inbuf, uint32_t length)
-{
-    for (uint32_t i = 0; i < length; i++) {
-        if (memcmp(&inbuf[i], &JPEG_SOI_MARKER, 3) == 0) {
-            //ESP_LOGW(TAG, "SOI: %d", (int) i);
-            return i;
-        }
-    }
-    ESP_LOGW(TAG, "NO-SOI");
-    return -1;
-}
-
-static int cam_verify_jpeg_eoi(const uint8_t *inbuf, uint32_t length)
-{
-    int offset = -1;
-    uint8_t *dptr = (uint8_t *)inbuf + length - 2;
-    while (dptr > inbuf) {
-        if (memcmp(dptr, &JPEG_EOI_MARKER, 2) == 0) {
-            offset = dptr - inbuf;
-            //ESP_LOGW(TAG, "EOI: %d", length - (offset + 2));
-            return offset;
-        }
-        dptr--;
-    }
-    return -1;
-}
-
-static bool cam_get_next_frame(int * frame_pos)
-{
-    if(!cam_obj->frames[*frame_pos].en){
-        for (int x = 0; x < cam_obj->frame_cnt; x++) {
-            if (cam_obj->frames[x].en) {
-                *frame_pos = x;
-                return true;
-            }
-        }
-    } else {
-        return true;
-    }
-    return false;
-}
-
-static bool cam_start_frame(int * frame_pos)
-{
-    if (cam_get_next_frame(frame_pos)) {
-        if(ll_cam_start(cam_obj, *frame_pos)){
-            // Vsync the frame manually
-            ll_cam_do_vsync(cam_obj);
-            uint64_t us = (uint64_t)esp_timer_get_time();
-            cam_obj->frames[*frame_pos].fb.timestamp.tv_sec = us / 1000000UL;
-            cam_obj->frames[*frame_pos].fb.timestamp.tv_usec = us % 1000000UL;
-            return true;
-        }
-    }
-    return false;
-}
-
-void IRAM_ATTR ll_cam_send_event(cam_obj_t *cam, cam_event_t cam_event, BaseType_t * HPTaskAwoken)
-{
-    if (xQueueSendFromISR(cam->event_queue, (void *)&cam_event, HPTaskAwoken) != pdTRUE) {
-        ll_cam_stop(cam);
-        cam->state = CAM_STATE_IDLE;
-        ESP_CAMERA_ETS_PRINTF(DRAM_STR("cam_hal: EV-%s-OVF\r\n"), cam_event==CAM_IN_SUC_EOF_EVENT ? DRAM_STR("EOF") : DRAM_STR("VSYNC"));
-    }
-}
-
-//Copy fram from DMA dma_buffer to fram dma_buffer
-static void cam_task(void *arg)
-{
-    int cnt = 0;
-    int frame_pos = 0;
-    cam_obj->state = CAM_STATE_IDLE;
-    cam_event_t cam_event = 0;
-
-    xQueueReset(cam_obj->event_queue);
-
-    while (1) {
-        xQueueReceive(cam_obj->event_queue, (void *)&cam_event, portMAX_DELAY);
-        DBG_PIN_SET(1);
-        switch (cam_obj->state) {
-
-            case CAM_STATE_IDLE: {
-                if (cam_event == CAM_VSYNC_EVENT) {
-                    //DBG_PIN_SET(1);
-                    if(cam_start_frame(&frame_pos)){
-                        cam_obj->frames[frame_pos].fb.len = 0;
-                        cam_obj->state = CAM_STATE_READ_BUF;
-                    }
-                    cnt = 0;
-                }
-            }
-            break;
-
-            case CAM_STATE_READ_BUF: {
-                camera_fb_t * frame_buffer_event = &cam_obj->frames[frame_pos].fb;
-                size_t pixels_per_dma = (cam_obj->dma_half_buffer_size * cam_obj->fb_bytes_per_pixel) / (cam_obj->dma_bytes_per_item * cam_obj->in_bytes_per_pixel);
-
-                if (cam_event == CAM_IN_SUC_EOF_EVENT) {
-                    if(!cam_obj->psram_mode){
-                        if (cam_obj->fb_size < (frame_buffer_event->len + pixels_per_dma)) {
-                            ESP_LOGW(TAG, "FB-OVF");
-                            ll_cam_stop(cam_obj);
-                            DBG_PIN_SET(0);
-                            continue;
-                        }
-                        frame_buffer_event->len += ll_cam_memcpy(cam_obj,
-                            &frame_buffer_event->buf[frame_buffer_event->len],
-                            &cam_obj->dma_buffer[(cnt % cam_obj->dma_half_buffer_cnt) * cam_obj->dma_half_buffer_size],
-                            cam_obj->dma_half_buffer_size);
-                    }
-                    //Check for JPEG SOI in the first buffer. stop if not found
-                    if (cam_obj->jpeg_mode && cnt == 0 && cam_verify_jpeg_soi(frame_buffer_event->buf, frame_buffer_event->len) != 0) {
-                        ll_cam_stop(cam_obj);
-                        cam_obj->state = CAM_STATE_IDLE;
-                    }
-                    cnt++;
-
-                } else if (cam_event == CAM_VSYNC_EVENT) {
-                    //DBG_PIN_SET(1);
-                    ll_cam_stop(cam_obj);
-
-                    if (cnt || !cam_obj->jpeg_mode || cam_obj->psram_mode) {
-                        if (cam_obj->jpeg_mode) {
-                            if (!cam_obj->psram_mode) {
-                                if (cam_obj->fb_size < (frame_buffer_event->len + pixels_per_dma)) {
-                                    ESP_LOGW(TAG, "FB-OVF");
-                                    cnt--;
-                                } else {
-                                    frame_buffer_event->len += ll_cam_memcpy(cam_obj,
-                                        &frame_buffer_event->buf[frame_buffer_event->len],
-                                        &cam_obj->dma_buffer[(cnt % cam_obj->dma_half_buffer_cnt) * cam_obj->dma_half_buffer_size],
-                                        cam_obj->dma_half_buffer_size);
-                                }
-                            }
-                            cnt++;
-                        }
-
-                        cam_obj->frames[frame_pos].en = 0;
-
-                        if (cam_obj->psram_mode) {
-                            if (cam_obj->jpeg_mode) {
-                                frame_buffer_event->len = cnt * cam_obj->dma_half_buffer_size;
-                            } else {
-                                frame_buffer_event->len = cam_obj->recv_size;
-                            }
-                        } else if (!cam_obj->jpeg_mode) {
-                            if (frame_buffer_event->len != cam_obj->fb_size) {
-                                cam_obj->frames[frame_pos].en = 1;
-                                ESP_LOGE(TAG, "FB-SIZE: %u != %u", frame_buffer_event->len, (unsigned) cam_obj->fb_size);
-                            }
-                        }
-                        //send frame
-                        if(!cam_obj->frames[frame_pos].en && xQueueSend(cam_obj->frame_buffer_queue, (void *)&frame_buffer_event, 0) != pdTRUE) {
-                            //pop frame buffer from the queue
-                            camera_fb_t * fb2 = NULL;
-                            if(xQueueReceive(cam_obj->frame_buffer_queue, &fb2, 0) == pdTRUE) {
-                                //push the new frame to the end of the queue
-                                if (xQueueSend(cam_obj->frame_buffer_queue, (void *)&frame_buffer_event, 0) != pdTRUE) {
-                                    cam_obj->frames[frame_pos].en = 1;
-                                    ESP_LOGE(TAG, "FBQ-SND");
-                                }
-                                //free the popped buffer
-                                cam_give(fb2);
-                            } else {
-                                //queue is full and we could not pop a frame from it
-                                cam_obj->frames[frame_pos].en = 1;
-                                ESP_LOGE(TAG, "FBQ-RCV");
-                            }
-                        }
-                    }
-
-                    if(!cam_start_frame(&frame_pos)){
-                        cam_obj->state = CAM_STATE_IDLE;
-                    } else {
-                        cam_obj->frames[frame_pos].fb.len = 0;
-                    }
-                    cnt = 0;
-                }
-            }
-            break;
-        }
-        DBG_PIN_SET(0);
-    }
-}
-
-static lldesc_t * allocate_dma_descriptors(uint32_t count, uint16_t size, uint8_t * buffer)
-{
-    lldesc_t *dma = (lldesc_t *)heap_caps_malloc(count * sizeof(lldesc_t), MALLOC_CAP_DMA);
-    if (dma == NULL) {
-        return dma;
-    }
-
-    for (int x = 0; x < count; x++) {
-        dma[x].size = size;
-        dma[x].length = 0;
-        dma[x].sosf = 0;
-        dma[x].eof = 0;
-        dma[x].owner = 1;
-        dma[x].buf = (buffer + size * x);
-        dma[x].empty = (uint32_t)&dma[(x + 1) % count];
-    }
-    return dma;
-}
-
-static esp_err_t cam_dma_config(const camera_config_t *config)
-{
-    bool ret = ll_cam_dma_sizes(cam_obj);
-    if (0 == ret) {
-        return ESP_FAIL;
-    }
-
-    cam_obj->dma_node_cnt = (cam_obj->dma_buffer_size) / cam_obj->dma_node_buffer_size; // Number of DMA nodes
-    cam_obj->frame_copy_cnt = cam_obj->recv_size / cam_obj->dma_half_buffer_size; // Number of interrupted copies, ping-pong copy
-
-    ESP_LOGI(TAG, "buffer_size: %d, half_buffer_size: %d, node_buffer_size: %d, node_cnt: %d, total_cnt: %d",
-             (int) cam_obj->dma_buffer_size, (int) cam_obj->dma_half_buffer_size, (int) cam_obj->dma_node_buffer_size,
-             (int) cam_obj->dma_node_cnt, (int) cam_obj->frame_copy_cnt);
-
-    cam_obj->dma_buffer = NULL;
-    cam_obj->dma = NULL;
-
-    cam_obj->frames = (cam_frame_t *)heap_caps_aligned_calloc(alignof(cam_frame_t), 1, cam_obj->frame_cnt * sizeof(cam_frame_t), MALLOC_CAP_DEFAULT);
-    CAM_CHECK(cam_obj->frames != NULL, "frames malloc failed", ESP_FAIL);
-
-    uint8_t dma_align = 0;
-    size_t fb_size = cam_obj->fb_size;
-    if (cam_obj->psram_mode) {
-        dma_align = ll_cam_get_dma_align(cam_obj);
-        if (cam_obj->fb_size < cam_obj->recv_size) {
-            fb_size = cam_obj->recv_size;
-        }
-    }
-
-    /* Allocate memory for frame buffer */
-    size_t alloc_size = fb_size * sizeof(uint8_t) + dma_align;
-    uint32_t _caps = MALLOC_CAP_8BIT;
-    if (CAMERA_FB_IN_DRAM == config->fb_location) {
-        _caps |= MALLOC_CAP_INTERNAL;
-    } else {
-        _caps |= MALLOC_CAP_SPIRAM;
-    }
-    for (int x = 0; x < cam_obj->frame_cnt; x++) {
-        cam_obj->frames[x].dma = NULL;
-        cam_obj->frames[x].fb_offset = 0;
-        cam_obj->frames[x].en = 0;
-        ESP_LOGI(TAG, "Allocating %d Byte frame buffer in %s", alloc_size, _caps & MALLOC_CAP_SPIRAM ? "PSRAM" : "OnBoard RAM");
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 3, 0)
-        // In IDF v4.2 and earlier, memory returned by heap_caps_aligned_alloc must be freed using heap_caps_aligned_free.
-        // And heap_caps_aligned_free is deprecated on v4.3.
-        cam_obj->frames[x].fb.buf = (uint8_t *)heap_caps_aligned_alloc(16, alloc_size, _caps);
-#else
-        cam_obj->frames[x].fb.buf = (uint8_t *)heap_caps_malloc(alloc_size, _caps);
+static const sensor_func_t g_sensors[] = {
+#if CONFIG_OV7725_SUPPORT
+    {ov7725_detect, ov7725_init},
 #endif
-        CAM_CHECK(cam_obj->frames[x].fb.buf != NULL, "frame buffer malloc failed", ESP_FAIL);
-        if (cam_obj->psram_mode) {
-            //align PSRAM buffer. TODO: save the offset so proper address can be freed later
-            cam_obj->frames[x].fb_offset = dma_align - ((uint32_t)cam_obj->frames[x].fb.buf & (dma_align - 1));
-            cam_obj->frames[x].fb.buf += cam_obj->frames[x].fb_offset;
-            ESP_LOGI(TAG, "Frame[%d]: Offset: %u, Addr: 0x%08X", x, cam_obj->frames[x].fb_offset, (unsigned) cam_obj->frames[x].fb.buf);
-            cam_obj->frames[x].dma = allocate_dma_descriptors(cam_obj->dma_node_cnt, cam_obj->dma_node_buffer_size, cam_obj->frames[x].fb.buf);
-            CAM_CHECK(cam_obj->frames[x].dma != NULL, "frame dma malloc failed", ESP_FAIL);
-        }
-        cam_obj->frames[x].en = 1;
-    }
-
-    if (!cam_obj->psram_mode) {
-        cam_obj->dma_buffer = (uint8_t *)heap_caps_malloc(cam_obj->dma_buffer_size * sizeof(uint8_t), MALLOC_CAP_DMA);
-        if(NULL == cam_obj->dma_buffer) {
-            ESP_LOGE(TAG,"%s(%d): DMA buffer %d Byte malloc failed, the current largest free block:%d Byte", __FUNCTION__, __LINE__,
-                     (int) cam_obj->dma_buffer_size, (int) heap_caps_get_largest_free_block(MALLOC_CAP_DMA));
-            return ESP_FAIL;
-        }
-
-        cam_obj->dma = allocate_dma_descriptors(cam_obj->dma_node_cnt, cam_obj->dma_node_buffer_size, cam_obj->dma_buffer);
-        CAM_CHECK(cam_obj->dma != NULL, "dma malloc failed", ESP_FAIL);
-    }
-
-    return ESP_OK;
-}
-
-esp_err_t cam_init(const camera_config_t *config)
-{
-    CAM_CHECK(NULL != config, "config pointer is invalid", ESP_ERR_INVALID_ARG);
-
-    esp_err_t ret = ESP_OK;
-    cam_obj = (cam_obj_t *)heap_caps_calloc(1, sizeof(cam_obj_t), MALLOC_CAP_DMA);
-    CAM_CHECK(NULL != cam_obj, "lcd_cam object malloc error", ESP_ERR_NO_MEM);
-
-    cam_obj->swap_data = 0;
-    cam_obj->vsync_pin = config->pin_vsync;
-    cam_obj->vsync_invert = true;
-
-    ll_cam_set_pin(cam_obj, config);
-    ret = ll_cam_config(cam_obj, config);
-    CAM_CHECK_GOTO(ret == ESP_OK, "ll_cam initialize failed", err);
-
-#if CAMERA_DBG_PIN_ENABLE
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[DBG_PIN_NUM], PIN_FUNC_GPIO);
-    gpio_set_direction(DBG_PIN_NUM, GPIO_MODE_OUTPUT);
-    gpio_set_pull_mode(DBG_PIN_NUM, GPIO_FLOATING);
+#if CONFIG_OV7670_SUPPORT
+    {ov7670_detect, ov7670_init},
 #endif
+#if CONFIG_OV2640_SUPPORT
+    {ov2640_detect, ov2640_init},
+#endif
+#if CONFIG_OV3660_SUPPORT
+    {ov3660_detect, ov3660_init},
+#endif
+#if CONFIG_OV5640_SUPPORT
+    {ov5640_detect, ov5640_init},
+#endif
+#if CONFIG_NT99141_SUPPORT
+    {nt99141_detect, nt99141_init},
+#endif
+#if CONFIG_GC2145_SUPPORT
+    {gc2145_detect, gc2145_init},
+#endif
+#if CONFIG_GC032A_SUPPORT
+    {gc032a_detect, gc032a_init},
+#endif
+#if CONFIG_GC0308_SUPPORT
+    {gc0308_detect, gc0308_init},
+#endif
+#if CONFIG_BF3005_SUPPORT
+    {bf3005_detect, bf3005_init},
+#endif
+#if CONFIG_BF20A6_SUPPORT
+    {bf20a6_detect, bf20a6_init},
+#endif
+#if CONFIG_SC101IOT_SUPPORT
+    {sc101iot_detect, sc101iot_init},
+#endif
+#if CONFIG_SC030IOT_SUPPORT
+    {sc030iot_detect, sc030iot_init},
+#endif
+#if CONFIG_SC031GS_SUPPORT
+    {sc031gs_detect, sc031gs_init},
+#endif
+#if CONFIG_MEGA_CCM_SUPPORT
+    {mega_ccm_detect, mega_ccm_init},
+#endif
+};
 
-    ESP_LOGI(TAG, "cam init ok");
-    return ESP_OK;
+static esp_err_t camera_probe(const camera_config_t *config, camera_model_t *out_camera_model) {
+  esp_err_t ret = ESP_OK;
+  *out_camera_model = CAMERA_NONE;
+  if (s_state != NULL) {
+    return ESP_ERR_INVALID_STATE;
+  }
 
+  s_state = (camera_state_t *) calloc(1, sizeof(camera_state_t));
+  if (!s_state) {
+    return ESP_ERR_NO_MEM;
+  }
+
+  if (config->pin_xclk >= 0) {
+    ESP_LOGD(TAG, "Enabling XCLK output");
+    CAMERA_ENABLE_OUT_CLOCK(config);
+  }
+
+  if (config->pin_sccb_sda != -1) {
+    ESP_LOGD(TAG, "Initializing SCCB");
+    ret = SCCB_Init(config->pin_sccb_sda, config->pin_sccb_scl);
+  } else {
+    ESP_LOGD(TAG, "Using existing I2C port");
+    ret = SCCB_Use_Port(config->sccb_i2c_port);
+  }
+
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "sccb init err");
+    goto err;
+  }
+
+  if (config->pin_pwdn >= 0) {
+    ESP_LOGD(TAG, "Resetting camera by power down line");
+    gpio_config_t conf = {0};
+    conf.pin_bit_mask = 1LL << config->pin_pwdn;
+    conf.mode = GPIO_MODE_OUTPUT;
+    gpio_config(&conf);
+
+    // carefull, logic is inverted compared to reset pin
+    gpio_set_level(config->pin_pwdn, 1);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    gpio_set_level(config->pin_pwdn, 0);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+
+  if (config->pin_reset >= 0) {
+    ESP_LOGD(TAG, "Resetting camera");
+    gpio_config_t conf = {0};
+    conf.pin_bit_mask = 1LL << config->pin_reset;
+    conf.mode = GPIO_MODE_OUTPUT;
+    gpio_config(&conf);
+
+    gpio_set_level(config->pin_reset, 0);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    gpio_set_level(config->pin_reset, 1);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+
+  ESP_LOGD(TAG, "Searching for camera address");
+  vTaskDelay(10 / portTICK_PERIOD_MS);
+
+  uint8_t slv_addr = SCCB_Probe();
+
+  if (slv_addr == 0) {
+    ret = ESP_ERR_NOT_FOUND;
+    goto err;
+  }
+
+  ESP_LOGI(TAG, "Detected camera at address=0x%02x", slv_addr);
+  s_state->sensor.slv_addr = slv_addr;
+  s_state->sensor.xclk_freq_hz = config->xclk_freq_hz;
+
+  /**
+   * Read sensor ID and then initialize sensor
+   * Attention: Some sensors have the same SCCB address. Therefore, several attempts may be made in the detection
+   * process
+   */
+  sensor_id_t *id = &s_state->sensor.id;
+  for (size_t i = 0; i < sizeof(g_sensors) / sizeof(sensor_func_t); i++) {
+    if (g_sensors[i].detect(slv_addr, id)) {
+      camera_sensor_info_t *info = esp_camera_sensor_get_info(id);
+      if (NULL != info) {
+        *out_camera_model = info->model;
+        ESP_LOGI(TAG, "Detected %s camera", info->name);
+        g_sensors[i].init(&s_state->sensor);
+        break;
+      }
+    }
+  }
+
+  if (CAMERA_NONE == *out_camera_model) {  // If no supported sensors are detected
+    ESP_LOGE(TAG, "Detected camera not supported.");
+    ret = ESP_ERR_NOT_SUPPORTED;
+    goto err;
+  }
+
+  ESP_LOGI(TAG, "Camera PID=0x%02x VER=0x%02x MIDL=0x%02x MIDH=0x%02x", id->PID, id->VER, id->MIDH, id->MIDL);
+
+  ESP_LOGD(TAG, "Doing SW reset of sensor");
+  vTaskDelay(10 / portTICK_PERIOD_MS);
+
+  return s_state->sensor.reset(&s_state->sensor);
 err:
-    free(cam_obj);
-    cam_obj = NULL;
-    return ESP_FAIL;
+  CAMERA_DISABLE_OUT_CLOCK();
+  return ret;
 }
 
-esp_err_t cam_config(const camera_config_t *config, framesize_t frame_size, uint16_t sensor_pid)
-{
-    CAM_CHECK(NULL != config, "config pointer is invalid", ESP_ERR_INVALID_ARG);
-    esp_err_t ret = ESP_OK;
-
-    ret = ll_cam_set_sample_mode(cam_obj, (pixformat_t)config->pixel_format, config->xclk_freq_hz, sensor_pid);
-    CAM_CHECK_GOTO(ret == ESP_OK, "ll_cam_set_sample_mode failed", err);
-    
-    cam_obj->jpeg_mode = config->pixel_format == PIXFORMAT_JPEG;
-#if CONFIG_IDF_TARGET_ESP32
-    cam_obj->psram_mode = false;
-#else
-    cam_obj->psram_mode = (config->xclk_freq_hz == 16000000);
-#endif
-    cam_obj->frame_cnt = config->fb_count;
-    cam_obj->width = resolution[frame_size].width;
-    cam_obj->height = resolution[frame_size].height;
-
-    if(cam_obj->jpeg_mode){
-#ifdef CONFIG_CAMERA_JPEG_MODE_FRAME_SIZE_AUTO
-        cam_obj->recv_size = cam_obj->width * cam_obj->height / 5;
-#else
-        cam_obj->recv_size = CONFIG_CAMERA_JPEG_MODE_FRAME_SIZE;
-#endif
-        cam_obj->fb_size = cam_obj->recv_size;
-    } else {
-        cam_obj->recv_size = cam_obj->width * cam_obj->height * cam_obj->in_bytes_per_pixel;
-        cam_obj->fb_size = cam_obj->width * cam_obj->height * cam_obj->fb_bytes_per_pixel;
-    }
-
-    ret = cam_dma_config(config);
-    CAM_CHECK_GOTO(ret == ESP_OK, "cam_dma_config failed", err);
-
-    size_t queue_size = cam_obj->dma_half_buffer_cnt - 1;
-    if (queue_size == 0) {
-        queue_size = 1;
-    }
-    cam_obj->event_queue = xQueueCreate(queue_size, sizeof(cam_event_t));
-    CAM_CHECK_GOTO(cam_obj->event_queue != NULL, "event_queue create failed", err);
-
-    size_t frame_buffer_queue_len = cam_obj->frame_cnt;
-    if (config->grab_mode == CAMERA_GRAB_LATEST && cam_obj->frame_cnt > 1) {
-        frame_buffer_queue_len = cam_obj->frame_cnt - 1;
-    }
-    cam_obj->frame_buffer_queue = xQueueCreate(frame_buffer_queue_len, sizeof(camera_fb_t*));
-    CAM_CHECK_GOTO(cam_obj->frame_buffer_queue != NULL, "frame_buffer_queue create failed", err);
-
-    ret = ll_cam_init_isr(cam_obj);
-    CAM_CHECK_GOTO(ret == ESP_OK, "cam intr alloc failed", err);
-
-
-#if CONFIG_CAMERA_CORE0
-    xTaskCreatePinnedToCore(cam_task, "cam_task", CAM_TASK_STACK, NULL, configMAX_PRIORITIES - 2, &cam_obj->task_handle, 0);
-#elif CONFIG_CAMERA_CORE1
-    xTaskCreatePinnedToCore(cam_task, "cam_task", CAM_TASK_STACK, NULL, configMAX_PRIORITIES - 2, &cam_obj->task_handle, 1);
-#else
-    xTaskCreate(cam_task, "cam_task", CAM_TASK_STACK, NULL, configMAX_PRIORITIES - 2, &cam_obj->task_handle);
+#if CONFIG_CAMERA_CONVERTER_ENABLED
+static pixformat_t get_output_data_format(camera_conv_mode_t conv_mode) {
+  pixformat_t format = PIXFORMAT_RGB565;
+  switch (conv_mode) {
+    case YUV422_TO_YUV420:
+      format = PIXFORMAT_YUV420;
+      break;
+    case YUV422_TO_RGB565:  // default format is RGB565
+    default:
+      break;
+  }
+  ESP_LOGD(TAG, "Convert to %d format enabled", format);
+  return format;
+}
 #endif
 
-    ESP_LOGI(TAG, "cam config ok");
-    return ESP_OK;
+esp_err_t esp_camera_init(const camera_config_t *config) {
+  esp_err_t err;
+  err = cam_init(config);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Camera init failed with error 0x%x", err);
+    return err;
+  }
 
-err:
-    cam_deinit();
-    return ESP_FAIL;
-}
+  camera_model_t camera_model = CAMERA_NONE;
+  err = camera_probe(config, &camera_model);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Camera probe failed with error 0x%x(%s)", err, esp_err_to_name(err));
+    goto fail;
+  }
 
-esp_err_t cam_deinit(void)
-{
-    if (!cam_obj) {
-        return ESP_FAIL;
-    }
+  framesize_t frame_size = (framesize_t) config->frame_size;
+  pixformat_t pix_format = (pixformat_t) config->pixel_format;
 
-    cam_stop();
-    if (cam_obj->task_handle) {
-        vTaskDelete(cam_obj->task_handle);
-    }
-    if (cam_obj->event_queue) {
-        vQueueDelete(cam_obj->event_queue);
-    }
-    if (cam_obj->frame_buffer_queue) {
-        vQueueDelete(cam_obj->frame_buffer_queue);
-    }
+  if (PIXFORMAT_JPEG == pix_format && (!camera_sensor[camera_model].support_jpeg)) {
+    ESP_LOGE(TAG, "JPEG format is not supported on this sensor");
+    err = ESP_ERR_NOT_SUPPORTED;
+    goto fail;
+  }
 
-    ll_cam_deinit(cam_obj);
+  if (frame_size > camera_sensor[camera_model].max_size) {
+    ESP_LOGW(TAG,
+             "The frame size exceeds the maximum for this sensor, it will be forced to the maximum possible value");
+    frame_size = camera_sensor[camera_model].max_size;
+  }
 
-    if (cam_obj->dma) {
-        free(cam_obj->dma);
-    }
-    if (cam_obj->dma_buffer) {
-        free(cam_obj->dma_buffer);
-    }
-    if (cam_obj->frames) {
-        for (int x = 0; x < cam_obj->frame_cnt; x++) {
-            free(cam_obj->frames[x].fb.buf - cam_obj->frames[x].fb_offset);
-            if (cam_obj->frames[x].dma) {
-                free(cam_obj->frames[x].dma);
-            }
-        }
-        free(cam_obj->frames);
-    }
+  err = cam_config(config, frame_size, s_state->sensor.id.PID);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Camera config failed with error 0x%x", err);
+    goto fail;
+  }
 
-    free(cam_obj);
-    cam_obj = NULL;
-    return ESP_OK;
-}
+  s_state->sensor.status.framesize = frame_size;
+  s_state->sensor.pixformat = pix_format;
 
-void cam_stop(void)
-{
-    ll_cam_vsync_intr_enable(cam_obj, false);
-    ll_cam_stop(cam_obj);
-}
-
-void cam_start(void)
-{
-    ll_cam_vsync_intr_enable(cam_obj, true);
-}
-
-camera_fb_t *cam_take(TickType_t timeout)
-{
-    camera_fb_t *dma_buffer = NULL;
-    TickType_t start = xTaskGetTickCount();
-    xQueueReceive(cam_obj->frame_buffer_queue, (void *)&dma_buffer, timeout);
-#if CONFIG_IDF_TARGET_ESP32S3
-    // Currently (22.01.2024) there is a bug in ESP-IDF v5.2, that causes
-    // GDMA to fall into a strange state if it is running while WiFi STA is connecting.
-    // This code tries to reset GDMA if frame is not received, to try and help with
-    // this case. It is possible to have some side effects too, though none come to mind
-    if (!dma_buffer) {
-        ll_cam_dma_reset(cam_obj);
-        xQueueReceive(cam_obj->frame_buffer_queue, (void *)&dma_buffer, timeout);
-    }
+  ESP_LOGD(TAG, "Setting frame size to %dx%d", resolution[frame_size].width, resolution[frame_size].height);
+  if (s_state->sensor.set_framesize(&s_state->sensor, frame_size) != 0) {
+    ESP_LOGE(TAG, "Failed to set frame size");
+    err = ESP_ERR_CAMERA_FAILED_TO_SET_FRAME_SIZE;
+    goto fail;
+  }
+  s_state->sensor.set_pixformat(&s_state->sensor, pix_format);
+#if CONFIG_CAMERA_CONVERTER_ENABLED
+  if (config->conv_mode) {
+    s_state->sensor.pixformat = get_output_data_format(
+        config->conv_mode);  // If conversion enabled, change the out data format by conversion mode
+  }
 #endif
-    if (dma_buffer) {
-        if(cam_obj->jpeg_mode){
-            // find the end marker for JPEG. Data after that can be discarded
-            int offset_e = cam_verify_jpeg_eoi(dma_buffer->buf, dma_buffer->len);
-            if (offset_e >= 0) {
-                // adjust buffer length
-                dma_buffer->len = offset_e + sizeof(JPEG_EOI_MARKER);
-                return dma_buffer;
-            } else {
-                ESP_LOGW(TAG, "NO-EOI");
-                cam_give(dma_buffer);
-                TickType_t ticks_spent = xTaskGetTickCount() - start;
-                if (ticks_spent >= timeout) {
-                    return NULL; /* We are out of time */
-                }
-                return cam_take(timeout - ticks_spent);//recurse!!!!
-            }
-        } else if(cam_obj->psram_mode && cam_obj->in_bytes_per_pixel != cam_obj->fb_bytes_per_pixel){
-            //currently this is used only for YUV to GRAYSCALE
-            dma_buffer->len = ll_cam_memcpy(cam_obj, dma_buffer->buf, dma_buffer->buf, dma_buffer->len);
-        }
-        return dma_buffer;
-    } else {
-        ESP_LOGW(TAG, "Failed to get the frame on time!");
-// #if CONFIG_IDF_TARGET_ESP32S3
-//         ll_cam_dma_print_state(cam_obj);
-// #endif
-    }
+
+  if (s_state->sensor.id.PID == OV2640_PID) {
+    s_state->sensor.set_gainceiling(&s_state->sensor, GAINCEILING_2X);
+    s_state->sensor.set_bpc(&s_state->sensor, false);
+    s_state->sensor.set_wpc(&s_state->sensor, true);
+    s_state->sensor.set_lenc(&s_state->sensor, true);
+  }
+
+  if (pix_format == PIXFORMAT_JPEG) {
+    s_state->sensor.set_quality(&s_state->sensor, config->jpeg_quality);
+  }
+  s_state->sensor.init_status(&s_state->sensor);
+
+  cam_start();
+
+  return ESP_OK;
+
+fail:
+  esp_camera_deinit();
+  return err;
+}
+
+esp_err_t esp_camera_deinit() {
+  esp_err_t ret = cam_deinit();
+  CAMERA_DISABLE_OUT_CLOCK();
+  if (s_state) {
+    SCCB_Deinit();
+
+    free(s_state);
+    s_state = NULL;
+  }
+
+  return ret;
+}
+
+#define FB_GET_TIMEOUT (4000 / portTICK_PERIOD_MS)
+
+camera_fb_t *esp_camera_fb_get() {
+  if (s_state == NULL) {
     return NULL;
+  }
+  camera_fb_t *fb = cam_take(FB_GET_TIMEOUT);
+  // set the frame properties
+  if (fb) {
+    fb->width = resolution[s_state->sensor.status.framesize].width;
+    fb->height = resolution[s_state->sensor.status.framesize].height;
+    fb->format = s_state->sensor.pixformat;
+  }
+  return fb;
 }
 
-void cam_give(camera_fb_t *dma_buffer)
-{
-    for (int x = 0; x < cam_obj->frame_cnt; x++) {
-        if (&cam_obj->frames[x].fb == dma_buffer) {
-            cam_obj->frames[x].en = 1;
-            break;
-        }
-    }
+void esp_camera_fb_return(camera_fb_t *fb) {
+  if (s_state == NULL) {
+    return;
+  }
+  cam_give(fb);
 }
 
-void cam_give_all(void) {
-    for (int x = 0; x < cam_obj->frame_cnt; x++) {
-        cam_obj->frames[x].en = 1;
+sensor_t *esp_camera_sensor_get() {
+  if (s_state == NULL) {
+    return NULL;
+  }
+  return &s_state->sensor;
+}
+
+esp_err_t esp_camera_save_to_nvs(const char *key) {
+#if ESP_IDF_VERSION_MAJOR > 3
+  nvs_handle_t handle;
+#else
+  nvs_handle handle;
+#endif
+  esp_err_t ret = nvs_open(key, NVS_READWRITE, &handle);
+
+  if (ret == ESP_OK) {
+    sensor_t *s = esp_camera_sensor_get();
+    if (s != NULL) {
+      ret = nvs_set_blob(handle, CAMERA_SENSOR_NVS_KEY, &s->status, sizeof(camera_status_t));
+      if (ret == ESP_OK) {
+        uint8_t pf = s->pixformat;
+        ret = nvs_set_u8(handle, CAMERA_PIXFORMAT_NVS_KEY, pf);
+      }
+      return ret;
+    } else {
+      return ESP_ERR_CAMERA_NOT_DETECTED;
     }
+    nvs_close(handle);
+    return ret;
+  } else {
+    return ret;
+  }
+}
+
+esp_err_t esp_camera_load_from_nvs(const char *key) {
+#if ESP_IDF_VERSION_MAJOR > 3
+  nvs_handle_t handle;
+#else
+  nvs_handle handle;
+#endif
+  uint8_t pf;
+
+  esp_err_t ret = nvs_open(key, NVS_READWRITE, &handle);
+
+  if (ret == ESP_OK) {
+    sensor_t *s = esp_camera_sensor_get();
+    camera_status_t st;
+    if (s != NULL) {
+      size_t size = sizeof(camera_status_t);
+      ret = nvs_get_blob(handle, CAMERA_SENSOR_NVS_KEY, &st, &size);
+      if (ret == ESP_OK) {
+        s->set_ae_level(s, st.ae_level);
+        s->set_aec2(s, st.aec2);
+        s->set_aec_value(s, st.aec_value);
+        s->set_agc_gain(s, st.agc_gain);
+        s->set_awb_gain(s, st.awb_gain);
+        s->set_bpc(s, st.bpc);
+        s->set_brightness(s, st.brightness);
+        s->set_colorbar(s, st.colorbar);
+        s->set_contrast(s, st.contrast);
+        s->set_dcw(s, st.dcw);
+        s->set_denoise(s, st.denoise);
+        s->set_exposure_ctrl(s, st.aec);
+        s->set_framesize(s, st.framesize);
+        s->set_gain_ctrl(s, st.agc);
+        s->set_gainceiling(s, st.gainceiling);
+        s->set_hmirror(s, st.hmirror);
+        s->set_lenc(s, st.lenc);
+        s->set_quality(s, st.quality);
+        s->set_raw_gma(s, st.raw_gma);
+        s->set_saturation(s, st.saturation);
+        s->set_sharpness(s, st.sharpness);
+        s->set_special_effect(s, st.special_effect);
+        s->set_vflip(s, st.vflip);
+        s->set_wb_mode(s, st.wb_mode);
+        s->set_whitebal(s, st.awb);
+        s->set_wpc(s, st.wpc);
+      }
+      ret = nvs_get_u8(handle, CAMERA_PIXFORMAT_NVS_KEY, &pf);
+      if (ret == ESP_OK) {
+        s->set_pixformat(s, pf);
+      }
+    } else {
+      return ESP_ERR_CAMERA_NOT_DETECTED;
+    }
+    nvs_close(handle);
+    return ret;
+  } else {
+    ESP_LOGW(TAG, "Error (%d) opening nvs key \"%s\"", ret, key);
+    return ret;
+  }
+}
+
+void esp_camera_return_all(void) {
+  if (s_state == NULL) {
+    return;
+  }
+  cam_give_all();
 }

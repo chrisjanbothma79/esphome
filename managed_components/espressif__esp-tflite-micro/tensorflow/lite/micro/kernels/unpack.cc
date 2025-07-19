@@ -1,4 +1,4 @@
-/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,96 +13,78 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <stddef.h>
+
+#include <cstring>
+
 #include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/internal/compatibility.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/memory_helpers.h"
+#include "tensorflow/lite/micro/micro_graph.h"
 #include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_resource_variable.h"
+#include "tensorflow/lite/schema/schema_generated.h"
 
 namespace tflite {
 
 namespace {
 
-constexpr int kInputTensor = 0;
+struct OpData {
+  int32_t resource_id;
+};
 
-template <typename T>
-TfLiteStatus UnpackImpl(TfLiteContext* context, TfLiteNode* node,
-                        const TfLiteEvalTensor* input, int output_count,
-                        int axis) {
-  const TfLiteEvalTensor* output0 =
-      tflite::micro::GetEvalOutput(context, node, 0);
-  const TfLiteIntArray* input_dims = input->dims;
-  const TfLiteIntArray* output_dims = output0->dims;
-  const int dimensions = input_dims->size;
+void *VarHandleInit(TfLiteContext *context, const char *buffer, size_t length) {
+  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
+  return context->AllocatePersistentBuffer(context, sizeof(OpData));
+}
 
-  if (axis < 0) {
-    axis += input->dims->size;
+TfLiteStatus VarHandlePrepare(TfLiteContext *context, TfLiteNode *node) {
+  OpData *op_data = reinterpret_cast<OpData *>(node->user_data);
+  const auto *params = reinterpret_cast<const TfLiteVarHandleParams *>(node->builtin_data);
+
+  tflite::MicroContext *micro_context = tflite::GetMicroContext(context);
+  MicroGraph &graph_info = micro_context->graph();
+
+  MicroResourceVariables *resources = graph_info.GetResourceVariables();
+  if (resources == nullptr) {
+    MicroPrintf("VAR_HANDLE requires resource variables. Please create "
+                "ResourceVariables and pass it to the interpreter.");
+    return kTfLiteError;
+  }
+  op_data->resource_id = resources->CreateIdIfNoneFound(params->container, params->shared_name);
+  if (op_data->resource_id < 0) {
+    return kTfLiteError;
   }
 
-  TFLITE_DCHECK_LT(axis, dimensions);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, 0);
+  TFLITE_DCHECK(output != nullptr);
 
-  int outer_size = 1;
-  for (int i = 0; i < axis; ++i) {
-    outer_size *= input_dims->data[i];
-  }
-  int copy_size = 1;
-  for (int i = axis + 1; i < dimensions; ++i) {
-    copy_size *= input_dims->data[i];
-  }
-  int output_size = 1;
-  for (int i = 0; i < output_dims->size; ++i) {
-    output_size *= output_dims->data[i];
-  }
-  TFLITE_DCHECK_EQ(output_size, copy_size * outer_size);
-
-  const T* input_data = tflite::micro::GetTensorData<T>(input);
-
-  for (int i = 0; i < output_count; ++i) {
-    TfLiteEvalTensor* t = tflite::micro::GetEvalOutput(context, node, i);
-    T* output_data = tflite::micro::GetTensorData<T>(t);
-    for (int k = 0; k < outer_size; ++k) {
-      T* output_ptr = output_data + copy_size * k;
-      int loc = k * output_count * copy_size + i * copy_size;
-      const T* input_ptr = input_data + loc;
-      for (int j = 0; j < copy_size; ++j) output_ptr[j] = input_ptr[j];
-    }
-  }
+  // Assign saved resource_id so this output tensor will always return the
+  // correct resource id.
+  output->data.i32 = &op_data->resource_id;
 
   return kTfLiteOk;
 }
 
-TfLiteStatus UnpackEval(TfLiteContext* context, TfLiteNode* node) {
-  TfLiteUnpackParams* data =
-      reinterpret_cast<TfLiteUnpackParams*>(node->builtin_data);
+TfLiteStatus VarHandleEval(TfLiteContext *context, TfLiteNode *node) {
+  OpData *op_data = reinterpret_cast<OpData *>(node->user_data);
 
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, 0);
+  TFLITE_DCHECK(output != nullptr);
 
-  switch (input->type) {
-    case kTfLiteFloat32: {
-      return UnpackImpl<float>(context, node, input, data->num, data->axis);
-    }
-    case kTfLiteInt32: {
-      return UnpackImpl<int32_t>(context, node, input, data->num, data->axis);
-    }
-    case kTfLiteInt8: {
-      return UnpackImpl<int8_t>(context, node, input, data->num, data->axis);
-    }
-    default: {
-      MicroPrintf("Type '%s' is not supported by unpack.",
-                  TfLiteTypeGetName(input->type));
-      return kTfLiteError;
-    }
-  }
-
+  // Assign saved resource_id so this output tensor will always return the
+  // correct resource id.
+  output->data.i32 = &op_data->resource_id;
   return kTfLiteOk;
 }
 
-}  // namespace
+}  // namespace.
 
-TFLMRegistration Register_UNPACK() {
-  return tflite::micro::RegisterOp(nullptr, nullptr, UnpackEval);
+TFLMRegistration Register_VAR_HANDLE() {
+  return tflite::micro::RegisterOp(VarHandleInit, VarHandlePrepare, VarHandleEval);
 }
 
 }  // namespace tflite

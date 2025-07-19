@@ -13,56 +13,56 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/kernels/mul.h"
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_MUL_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_MUL_H_
 
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/reference/integer_ops/mul.h"
-#include "tensorflow/lite/kernels/internal/reference/mul.h"
-#include "tensorflow/lite/kernels/internal/reference/process_broadcast_shapes.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/memory_helpers.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include <cstdint>
+
+#include "tensorflow/lite/c/builtin_op_data.h"
+#include "tensorflow/lite/micro/micro_common.h"
 
 namespace tflite {
 
-TfLiteStatus MulEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->builtin_data != nullptr);
-  auto* params = reinterpret_cast<TfLiteMulParams*>(node->builtin_data);
+extern const int kMulInput1Tensor;
+extern const int kMulInput2Tensor;
+extern const int kMulOutputTensor;
 
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpDataMul* data = static_cast<const OpDataMul*>(node->user_data);
+struct OpDataMul {
+  int32_t input1_zero_point;
+  int32_t input2_zero_point;
 
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kMulInput1Tensor);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kMulInput2Tensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kMulOutputTensor);
+  int32_t output_activation_min;
+  int32_t output_activation_max;
+  int32_t output_zero_point;
+  int32_t output_multiplier;
+  int output_shift;
 
-  switch (input1->type) {
-    case kTfLiteInt8:
-    case kTfLiteInt16:
-    case kTfLiteInt32:
-      EvalMulQuantizedReference(context, node, data, input1, input2, output);
-      break;
-    case kTfLiteFloat32:
-      EvalMulFloatReference(context, node, params, data, input1, input2,
-                            output);
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
-      return kTfLiteError;
-  }
+  float output_activation_min_f32;
+  float output_activation_max_f32;
+};
 
-  return kTfLiteOk;
-}
+void *MulInit(TfLiteContext *context, const char *buffer, size_t length);
 
-TFLMRegistration Register_MUL() {
-  return tflite::micro::RegisterOp(MulInit, MulPrepare, MulEval);
-}
+TfLiteStatus CalculateOpDataMul(TfLiteContext *context, TfLiteNode *node, TfLiteMulParams *params, OpDataMul *data);
 
+TfLiteStatus MulPrepare(TfLiteContext *context, TfLiteNode *node);
+
+TfLiteStatus EvalMulQuantizedReference(TfLiteContext *context, TfLiteNode *node, const OpDataMul *data,
+                                       const TfLiteEvalTensor *input1, const TfLiteEvalTensor *input2,
+                                       TfLiteEvalTensor *output);
+
+void EvalMulFloatReference(TfLiteContext *context, TfLiteNode *node, TfLiteMulParams *params, const OpDataMul *data,
+                           const TfLiteEvalTensor *input1, const TfLiteEvalTensor *input2, TfLiteEvalTensor *output);
+
+// Generic must define registration function.
+TFLMRegistration Register_MUL();
+
+#if defined(CMSIS_NN)
+TFLMRegistration Register_MUL_INT8();
+#else
+// Fallback registration
+inline TFLMRegistration Register_MUL_INT8() { return Register_MUL(); }
+#endif
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_MUL_H_

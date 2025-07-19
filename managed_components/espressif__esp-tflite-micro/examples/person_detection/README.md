@@ -1,84 +1,98 @@
-# Person detection example
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
-This example shows how you can use Tensorflow Lite to run a 250 kilobyte neural
-network to recognize people in images captured by a camera.  It is designed to
-run on systems with small amounts of memory such as microcontrollers and DSPs.
-This uses the experimental int8 quantized version of the person detection model.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-## Deploy to ESP32
+    http://www.apache.org/licenses/LICENSE-2.0
 
-The following instructions will help you build and deploy this sample
-to [ESP32](https://www.espressif.com/en/products/hardware/esp32/overview)
-devices using the [ESP IDF](https://github.com/espressif/esp-idf).
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
 
-The sample has been tested on ESP-IDF version `release/v4.2` and `release/v4.4` with the following devices:
-- [ESP32-DevKitC](http://esp-idf.readthedocs.io/en/latest/get-started/get-started-devkitc.html)
-- [ESP32-S3-DevKitC](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html)
-- [ESP-EYE](https://github.com/espressif/esp-who/blob/master/docs/en/get-started/ESP-EYE_Getting_Started_Guide.md)
-- [ESP32-S3-EYE](https://github.com/espressif/esp-bsp/tree/master/bsp/esp32_s3_eye)
-- [ESP32-S3-Korvo-2](https://github.com/espressif/esp-bsp/tree/master/bsp/esp32_s3_korvo_2)
-- [ESP32-S2-Kaluga](https://github.com/espressif/esp-bsp/tree/master/bsp/esp32_s2_kaluga_kit) (limited performance on ESP32-S2: ~1-2 FPS)
+#include "app_camera_esp.h"
+#include "sdkconfig.h"
 
-### Install the ESP IDF
+#if (CONFIG_TFLITE_USE_BSP)
+#include "bsp/esp-bsp.h"
+#endif
 
-Follow the instructions of the
-[ESP-IDF get started guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html)
-to setup the toolchain and the ESP-IDF itself.
+static const char *TAG = "app_camera";
 
-The next steps assume that the
-[IDF environment variables are set](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html#step-4-set-up-the-environment-variables) :
+int app_camera_init() {
+#if ESP_CAMERA_SUPPORTED
+#if CONFIG_CAMERA_MODULE_ESP_EYE || CONFIG_CAMERA_MODULE_ESP32_CAM_BOARD
+  /* IO13, IO14 is designed for JTAG by default,
+   * to use it as generalized input,
+   * firstly declare it as pullup input */
+  gpio_config_t conf;
+  conf.mode = GPIO_MODE_INPUT;
+  conf.pull_up_en = GPIO_PULLUP_ENABLE;
+  conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  conf.intr_type = GPIO_INTR_DISABLE;
+  conf.pin_bit_mask = 1LL << 13;
+  gpio_config(&conf);
+  conf.pin_bit_mask = 1LL << 14;
+  gpio_config(&conf);
+#endif  // CONFIG_CAMERA_MODULE_ESP_EYE || CONFIG_CAMERA_MODULE_ESP32_CAM_BOARD
 
- * The `IDF_PATH` environment variable is set
- * `idf.py` and Xtensa-esp32 tools (e.g. `xtensa-esp32-elf-gcc`) are in `$PATH`
+#if (CONFIG_TFLITE_USE_BSP)
+  bsp_i2c_init();
+  camera_config_t config = BSP_CAMERA_DEFAULT_CONFIG;
 
-### Dependencies
+#else   // CONFIG_TFLITE_USE_BSP
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+  config.pin_d0 = CAMERA_PIN_D0;
+  config.pin_d1 = CAMERA_PIN_D1;
+  config.pin_d2 = CAMERA_PIN_D2;
+  config.pin_d3 = CAMERA_PIN_D3;
+  config.pin_d4 = CAMERA_PIN_D4;
+  config.pin_d5 = CAMERA_PIN_D5;
+  config.pin_d6 = CAMERA_PIN_D6;
+  config.pin_d7 = CAMERA_PIN_D7;
+  config.pin_xclk = CAMERA_PIN_XCLK;
+  config.pin_pclk = CAMERA_PIN_PCLK;
+  config.pin_vsync = CAMERA_PIN_VSYNC;
+  config.pin_href = CAMERA_PIN_HREF;
+  config.pin_sscb_sda = CAMERA_PIN_SIOD;
+  config.pin_sscb_scl = CAMERA_PIN_SIOC;
+  config.pin_pwdn = CAMERA_PIN_PWDN;
+  config.pin_reset = CAMERA_PIN_RESET;
+  config.xclk_freq_hz = XCLK_FREQ_HZ;
+  config.jpeg_quality = 10;
+  config.fb_count = 2;
+  config.fb_location = CAMERA_FB_IN_PSRAM;
+#endif  // CONFIG_TFLITE_USE_BSP
 
-This example requires an external component [esp32-camera](https://components.espressif.com/components/espressif/esp32-camera) and optionally on selected Board Support Package. All these components are distributed via [IDF Component Manager](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/tools/idf-component-manager.html).
+  // Pixel format and frame size are specific configurations options for this application.
+  // Frame size must be 96x96 pixels to match the trained model.
+  // Pixel format defaults to grayscale to match the trained model.
+  // With display support enabled, the pixel format is RGB565 to match the display. The frame is converted to grayscale
+  // before it is passed to the trained model.
+  config.pixel_format = CAMERA_PIXEL_FORMAT;
+  config.frame_size = CAMERA_FRAME_SIZE;
 
-### Building the example
-
-Set the chip target (For esp32s3 target, IDF version `release/v4.4` is needed):
-
-```
-idf.py set-target esp32s3
-```
-
-Then build with `idf.py`
-```
-idf.py build
-```
-
-### Load and run the example
-
-To flash and monitor (replace `/dev/ttyUSB0` with the device serial port):
-```
-idf.py --port /dev/ttyUSB0 flash monitor
-```
-
-Use `Ctrl+]` to exit.
-
-### Using Display
-
-If your development board has a display, input from the camera can be shown on it.
-This feature is enabled by specific [Board Support Package](https://github.com/espressif/esp-bsp).
-
-Select your development board BSP in menuconfig: `Application Configuration -> Select BSP`.
-
-### Using CLI for inferencing
-
-Not all dev boards come with camera and you may wish to do inferencing on static images.
-There are 10 [images](static_images/sample_images/README.md) embedded into the application.
-
-  * To switch to CLI mode just define the following line in [esp_main.h](main/esp_main.h):
-
-  ```
-  #define CLI_ONLY_INFERENCE 1
-  ```
-
-  * To run an inferencing you need to type following on `idf.py monitor` window:
-
-```
-detect_image <image_number>
-```
-where `<image_number>` is in [0, 9]. 
-The output is person and no_person score printed on the log screen.
+  // camera init
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Camera init failed with error 0x%x", err);
+    return -1;
+  }
+  sensor_t *s = esp_camera_sensor_get();
+  s->set_vflip(s, 1);  // flip it back
+  // initial sensors are flipped vertically and colors are a bit saturated
+  if (s->id.PID == OV3660_PID) {
+    s->set_brightness(s, 1);   // up the blightness just a bit
+    s->set_saturation(s, -2);  // lower the saturation
+  }
+  return 0;
+#else   // ESP_CAMERA_SUPPORTED
+  ESP_LOGE(TAG, "Camera is not supported for this device!");
+  return -1;
+#endif  // ESP_CAMERA_SUPPORTED
+}

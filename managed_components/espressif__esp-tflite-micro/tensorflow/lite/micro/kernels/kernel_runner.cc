@@ -13,132 +13,76 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/kernels/kernel_runner.h"
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_KERNEL_RUNNER_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_KERNEL_RUNNER_H_
 
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/compatibility.h"
 #include "tensorflow/lite/micro/arena_allocator/single_arena_buffer_allocator.h"
-#include "tensorflow/lite/micro/micro_arena_constants.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/fake_micro_context.h"
+#include "tensorflow/lite/micro/mock_micro_graph.h"
 
 namespace tflite {
 namespace micro {
 
-// TODO(b/161841696): Consider moving away from global arena buffers:
-constexpr int KernelRunner::kKernelRunnerBufferSize_;
-uint8_t KernelRunner::kKernelRunnerBuffer_[];
-
-void ClearBufferApi(TfLiteContext* context_) {
-  context_->GetScratchBuffer = nullptr;
-  context_->GetExternalContext = nullptr;
-  context_->AllocatePersistentBuffer = nullptr;
-  context_->RequestScratchBufferInArena = nullptr;
-}
-
-KernelRunner::KernelRunner(const TFLMRegistration& registration,
-                           TfLiteTensor* tensors, int tensors_size,
-                           TfLiteIntArray* inputs, TfLiteIntArray* outputs,
-                           const void* builtin_data,
-                           TfLiteIntArray* intermediates
+// Helper class to perform a simulated kernel (i.e. TFLMRegistration)
+// lifecycle (init, prepare, invoke). All internal allocations are handled by
+// this class. Simply pass in the registration, list of required tensors, inputs
+// array, outputs array, and any pre-builtin data. Calling Invoke() will
+// automatically walk the kernel and outputs will be ready on the TfLiteTensor
+// output provided during construction.
+class KernelRunner {
+ public:
+  KernelRunner(const TFLMRegistration &registration, TfLiteTensor *tensors, int tensors_size, TfLiteIntArray *inputs,
+               TfLiteIntArray *outputs, const void *builtin_data, TfLiteIntArray *intermediates = nullptr
 #ifdef USE_TFLM_COMPRESSION
-                           ,
-                           const CompressedTensorList* compressed_tensors
+               ,
+               const CompressedTensorList *compressed_tensors = nullptr
 #endif  // USE_TFLM_COMPRESSION
-                           )
-    : registration_(registration),
-      allocator_(SingleArenaBufferAllocator::Create(kKernelRunnerBuffer_,
-                                                    kKernelRunnerBufferSize_)),
-      mock_micro_graph_(allocator_),
-      fake_micro_context_(tensors, allocator_, &mock_micro_graph_
-#ifdef USE_TFLM_COMPRESSION
-                          ,
-                          compressed_tensors
-#endif  // USE_TFLM_COMPRESSION
-      ) {
-  // Prepare TfLiteContext:
-  context_.impl_ = static_cast<void*>(&fake_micro_context_);
-  context_.ReportError = MicroContextReportOpError;
-  context_.recommended_num_threads = 1;
-  context_.GetTensor = MicroContextGetTensor;
-  context_.GetEvalTensor = MicroContextGetEvalTensor;
-  tflite::micro::ClearBufferApi(&context_);
-  context_.AllocatePersistentBuffer = MicroContextAllocatePersistentBuffer;
+  );
 
-  context_.recommended_num_threads = 0;
+  // Calls init and prepare on the kernel (i.e. TFLMRegistration) struct.
+  // Any exceptions will be DebugLog'd and returned as a status code.
+  TfLiteStatus InitAndPrepare(const char *init_data = nullptr, size_t length = 0);
 
-  // Prepare TfLiteNode:
-  node_.inputs = inputs;
-  node_.outputs = outputs;
-  node_.builtin_data = const_cast<void*>(builtin_data);
-  node_.intermediates = intermediates;
-}
+  // Calls invoke on a given TFLMRegistration pointer. After successful
+  // invoke, results will be available in the output tensor as passed into the
+  // constructor of this class.
+  TfLiteStatus Invoke();
 
-bool KernelRunner::ValidateTempBufferDeallocated() {
-  return fake_micro_context_.IsAllTempTfLiteTensorDeallocated();
-}
+  // Calls Free on a given TFLMRegistration pointer(if it's implemented).
+  // After successful Free, kTfLiteOk status will be returned. If Free is not
+  // implemented for a given kernel kTfLiteError will be returned.
+  TfLiteStatus Free();
 
-TfLiteStatus KernelRunner::InitAndPrepare(const char* init_data,
-                                          size_t length) {
-  if (registration_.init) {
-    tflite::micro::ClearBufferApi(&context_);
-    context_.AllocatePersistentBuffer = MicroContextAllocatePersistentBuffer;
-    node_.user_data = registration_.init(&context_, init_data, length);
-  }
+  // Calls Reset on a given TFLMRegistration pointer(if it's implemented).
+  // After successful Reset, kTfLiteOk status will be returned. If Free is not
+  // implemented for a given kernel kTfLiteError will be returned.
+  TfLiteStatus Reset();
 
-  TF_LITE_ENSURE(&context_, ValidateTempBufferDeallocated());
+  // Returns a pointer to the internal MockMicroGraph which KernelRunner uses
+  // to stub out MicroGraph methods and track invocations on each subgraph.
+  MockMicroGraph *GetMockGraph() { return &mock_micro_graph_; }
 
-  if (registration_.prepare) {
-    tflite ::micro::ClearBufferApi(&context_);
-    context_.AllocatePersistentBuffer = MicroContextAllocatePersistentBuffer;
-    context_.RequestScratchBufferInArena =
-        MicroContextRequestScratchBufferInArena;
-    context_.GetExternalContext = MicroContextGetExternalContext;
-    TF_LITE_ENSURE_STATUS(registration_.prepare(&context_, &node_));
-  }
+  // Returns true if all temp buffer in tests are deallocated.
+  // TODO(b/209453859): move this function to private after deallocation checks
+  // are enabled for all kernel tests.
+  bool ValidateTempBufferDeallocated();
 
-  TF_LITE_ENSURE(&context_, ValidateTempBufferDeallocated());
+ private:
+  static constexpr int kKernelRunnerBufferSize_ = 10000;
+  static uint8_t kKernelRunnerBuffer_[kKernelRunnerBufferSize_];
 
-  return kTfLiteOk;
-}
+  TfLiteContext context_ = {};
+  TfLiteNode node_ = {};
+  const TFLMRegistration &registration_;
 
-TfLiteStatus KernelRunner::Invoke() {
-  tflite::micro::ClearBufferApi(&context_);
-  context_.GetScratchBuffer = MicroContextGetScratchBuffer;
+  SingleArenaBufferAllocator *allocator_;
+  MockMicroGraph mock_micro_graph_;
+  FakeMicroContext fake_micro_context_;
+};
 
-  if (registration_.invoke == nullptr) {
-    MicroPrintf("TFLMRegistration missing invoke function pointer!");
-    return kTfLiteError;
-  }
-
-  TF_LITE_ENSURE_STATUS(registration_.invoke(&context_, &node_));
-
-  TF_LITE_ENSURE(&context_, ValidateTempBufferDeallocated());
-
-  return kTfLiteOk;
-}
-
-TfLiteStatus KernelRunner::Reset() {
-  tflite::micro::ClearBufferApi(&context_);
-  context_.GetScratchBuffer = MicroContextGetScratchBuffer;
-
-  if (registration_.reset == nullptr) {
-    MicroPrintf("TFLMRegistration missing reset function pointer!");
-    return kTfLiteError;
-  }
-
-  registration_.reset(&context_, node_.user_data);
-  return kTfLiteOk;
-}
-
-TfLiteStatus KernelRunner::Free() {
-  tflite::micro::ClearBufferApi(&context_);
-  context_.GetScratchBuffer = MicroContextGetScratchBuffer;
-
-  if (registration_.free == nullptr) {
-    MicroPrintf("TFLMRegistration missing free function pointer!");
-    return kTfLiteError;
-  }
-
-  registration_.free(&context_, node_.user_data);
-  return kTfLiteOk;
-}
 }  // namespace micro
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_KERNEL_RUNNER_H_

@@ -13,24 +13,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "signal/src/window.h"
+#ifndef SIGNAL_SRC_WINDOW_H_
+#define SIGNAL_SRC_WINDOW_H_
 
-#include <cstdint>
+#include <stdint.h>
 
-// TODO(b/286250473): remove namespace once de-duped libraries
 namespace tflm_signal {
 
-void ApplyWindow(const int16_t* input, const int16_t* window, int size,
-                 int shift, int16_t* output) {
-  for (int i = 0; i < size; ++i) {
-    int32_t raw = (static_cast<int32_t>(input[i]) * window[i]) >> shift;
-    if (raw < INT16_MIN) {
-      output[i] = INT16_MIN;
-    } else if (raw > INT16_MAX) {
-      output[i] = INT16_MAX;
-    } else {
-      output[i] = static_cast<int16_t>(raw);
-    }
-  }
-}
+// Applies a window function to an input signal
+//
+// * `input` and `window` must be both of size `size` elements and are
+//    multiplied element-by element.
+// * `shift` is a right shift to apply before writing the result to `output`.
+void ApplyWindow(const int16_t *input, const int16_t *window, int size, int shift, int16_t *output);
 }  // namespace tflm_signal
+#endif  // SIGNAL_SRC_WINDOW_H_

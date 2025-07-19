@@ -12,94 +12,79 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
-#include "tensorflow/lite/micro/kernels/svdf.h"
-
-#include <math.h>
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_SVDF_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_SVDF_H_
 
 #include "tensorflow/lite/c/builtin_op_data.h"
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/kernels/op_macros.h"
-#include "tensorflow/lite/micro/kernels/activation_utils.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
-#include "tensorflow/lite/micro/micro_utils.h"
+#include "tensorflow/lite/micro/micro_common.h"
 
 namespace tflite {
-namespace {
 
-void* InitSvdf(TfLiteContext* context, const char* buffer, size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(OpDataSvdf));
-}
+struct OpDataSvdf {
+  int32_t effective_scale_1_a;
+  int32_t effective_scale_2_a;
+  // b versions of each scale are kept at int since the numbers are just the
+  // shift value - typically between [-32, 32].
+  int effective_scale_1_b;
+  int effective_scale_2_b;
+  int scratch_tensor_index;
+  int scratch_output_tensor_index;
 
-TfLiteStatus EvalSvdf(TfLiteContext* context, TfLiteNode* node) {
-  auto* params = reinterpret_cast<TfLiteSVDFParams*>(node->builtin_data);
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpDataSvdf& data = *(static_cast<const OpDataSvdf*>(node->user_data));
+  // Cached tensor zero point values for quantized operations.
+  int input_zero_point;
+  int output_zero_point;
+  int activation_state_zero_point;
+};
 
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kSvdfInputTensor);
-  const TfLiteEvalTensor* weights_feature =
-      tflite::micro::GetEvalInput(context, node, kSvdfWeightsFeatureTensor);
-  const TfLiteEvalTensor* weights_time =
-      tflite::micro::GetEvalInput(context, node, kSvdfWeightsTimeTensor);
-  // TODO(#1751): account for optional bias tensor
-  const TfLiteEvalTensor* bias =
-      (NumInputs(node) == 5)
-          ? tflite::micro::GetEvalInput(context, node, kSvdfBiasTensor)
-          : nullptr;
-  TfLiteEvalTensor* activation_state = tflite::micro::GetMutableEvalInput(
-      context, node, kSvdfInputActivationStateTensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kSvdfOutputTensor);
+// Input tensors.
+extern const int kSvdfInputTensor;
+extern const int kSvdfWeightsFeatureTensor;
+extern const int kSvdfWeightsTimeTensor;
+extern const int kSvdfBiasTensor;
+// This is a variable tensor, and will be modified by this op.
+extern const int kSvdfInputActivationStateTensor;
 
-  switch (weights_feature->type) {
-    case kTfLiteFloat32: {
-      EvalFloatSvdfReference(
-          context, node, input, weights_feature, weights_time, bias, params,
-          data.scratch_tensor_index, activation_state, output);
-      break;
-    }
+// Output tensor.
+extern const int kSvdfOutputTensor;
 
-    case kTfLiteInt8: {
-      switch (weights_time->type) {
-        case kTfLiteInt16: {
-          EvalInt16SvdfReference(context, node, input, weights_feature,
-                                 weights_time, bias, params, activation_state,
-                                 output, data);
-          break;
-        }
-        case kTfLiteInt8: {
-          EvalInt8SvdfReference(context, node, input, weights_feature,
-                                weights_time, bias, params, activation_state,
-                                output, data);
-          break;
-        }
-        default:
-          MicroPrintf("Type %s not currently supported.",
-                      TfLiteTypeGetName(weights_time->type));
-          return kTfLiteError;
-      }
-      break;
-    }
+void EvalInt8SvdfReference(TfLiteContext *context, TfLiteNode *node, const TfLiteEvalTensor *input_tensor,
+                           const TfLiteEvalTensor *weights_feature_tensor, const TfLiteEvalTensor *weights_time_tensor,
+                           const TfLiteEvalTensor *bias_tensor, const TfLiteSVDFParams *params,
+                           TfLiteEvalTensor *activation_state_tensor, TfLiteEvalTensor *output_tensor,
+                           const OpDataSvdf &data);
 
-    default:
-      MicroPrintf("Type %s not currently supported.",
-                  TfLiteTypeGetName(weights_feature->type));
-      return kTfLiteError;
-  }
-  return kTfLiteOk;
-}
+// TODO(#523): remove 16-bit code when no longer needed.
+void EvalInt16SvdfReference(TfLiteContext *context, TfLiteNode *node, const TfLiteEvalTensor *input_tensor,
+                            const TfLiteEvalTensor *weights_feature_tensor, const TfLiteEvalTensor *weights_time_tensor,
+                            const TfLiteEvalTensor *bias_tensor, const TfLiteSVDFParams *params,
+                            TfLiteEvalTensor *activation_state_tensor, TfLiteEvalTensor *output_tensor,
+                            const OpDataSvdf &data);
 
-}  // namespace
+void EvalFloatSvdfReference(TfLiteContext *context, TfLiteNode *node, const TfLiteEvalTensor *input,
+                            const TfLiteEvalTensor *weights_feature, const TfLiteEvalTensor *weights_time,
+                            const TfLiteEvalTensor *bias, const TfLiteSVDFParams *params, int scratch_tensor_index,
+                            TfLiteEvalTensor *activation_state, TfLiteEvalTensor *output);
 
-TFLMRegistration Register_SVDF() {
-  return tflite::micro::RegisterOp(InitSvdf, PrepareSvdf, EvalSvdf);
-}
+TfLiteStatus PrepareSvdf(TfLiteContext *context, TfLiteNode *node);
 
+// This is the most generic TFLMRegistration. The actual supported types
+// may still be target dependent. The only requirement is that every
+// implementation (reference or optimized) must define this function.
+TFLMRegistration Register_SVDF();
+
+#if defined(HEXAGON) || defined(CMSIS_NN) || defined(XTENSA)
+
+TFLMRegistration Register_SVDF_INT8();
+
+#else
+// Note that while this block gets used for both reference and optimized kernels
+// that do not have any specialized implementations, the only goal here is to
+// define fallback implementation that allow reference kernels to still be used
+// from applications that call a more specific kernel variant.
+
+inline TFLMRegistration Register_SVDF_INT8() { return Register_SVDF(); }
+
+#endif
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_SVDF_H_

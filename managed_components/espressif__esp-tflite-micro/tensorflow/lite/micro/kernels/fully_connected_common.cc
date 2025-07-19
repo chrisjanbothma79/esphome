@@ -1,4 +1,4 @@
-/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,140 +15,191 @@ limitations under the License.
 
 #include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/reference/fully_connected.h"
-#include "tensorflow/lite/kernels/internal/reference/integer_ops/fully_connected.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/fully_connected.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_utils.h"
 
 namespace tflite {
+namespace {
 
-const int kFullyConnectedInputTensor = 0;
-const int kFullyConnectedWeightsTensor = 1;
-const int kFullyConnectedBiasTensor = 2;
-const int kFullyConnectedOutputTensor = 0;
+constexpr int kInputTensor = 0;
+constexpr int kInputPositions = 1;
+constexpr int kOutputTensor = 0;
 
-FullyConnectedParams FullyConnectedParamsQuantized(
-    const OpDataFullyConnected& op_data) {
-  FullyConnectedParams op_params;
-  op_params.input_offset = -op_data.input_zero_point;
-  op_params.weights_offset = -op_data.filter_zero_point;
-  op_params.output_offset = op_data.output_zero_point;
-  op_params.output_multiplier = op_data.output_multiplier;
-  op_params.output_shift = op_data.output_shift;
-  op_params.quantized_activation_min = op_data.output_activation_min;
-  op_params.quantized_activation_max = op_data.output_activation_max;
-  return op_params;
-}
+template<typename InputT, typename CoordsT = int32_t>
+TfLiteStatus Gather(const TfLiteGatherParams *params, const TfLiteEvalTensor *input, const TfLiteEvalTensor *coords,
+                    TfLiteEvalTensor *output) {
+  const InputT *input_data = tflite::micro::GetTensorData<InputT>(input);
+  const CoordsT *coords_data = tflite::micro::GetTensorData<CoordsT>(coords);
+  InputT *output_data = tflite::micro::GetTensorData<InputT>(output);
+  const TfLiteIntArray *input_dims = input->dims;
+  const int input_dims_size = input_dims->size;
+  int axis = params->axis;
+  if (axis < 0) {
+    axis += input_dims_size;
+  }
+  TFLITE_DCHECK_GE(axis, 0);
+  TFLITE_DCHECK_LT(axis, input_dims_size);
 
-FullyConnectedParams FullyConnectedParamsFloat(
-    TfLiteFusedActivation activation) {
-  FullyConnectedParams op_params;
-  CalculateActivationRange(activation, &op_params.float_activation_min,
-                           &op_params.float_activation_max);
-  return op_params;
-}
-
-TfLiteStatus CalculateOpDataFullyConnected(
-    TfLiteContext* context, TfLiteFusedActivation activation,
-    TfLiteType data_type, const TfLiteTensor* input, const TfLiteTensor* filter,
-    const TfLiteTensor* bias, TfLiteTensor* output,
-    OpDataFullyConnected* data) {
-#ifndef HEXAGON
-  data->is_per_channel = false;
-#endif
-
-  if (data_type == kTfLiteFloat32) {
-    return kTfLiteOk;
+  int batch_dims = params->batch_dims;
+  // batch_dims should be in range: [-rank(coords), rank(coords)].
+  // Negative batch_dims is added with rank of coords.
+  const TfLiteIntArray *coords_dims = coords->dims;
+  const int coords_dims_size = coords_dims->size;
+  if (batch_dims < 0) {
+    batch_dims += coords_dims_size;
+  }
+  TFLITE_DCHECK_GE(batch_dims, 0);
+  TFLITE_DCHECK_LT(batch_dims, input_dims_size);
+  TFLITE_DCHECK_LE(batch_dims, coords_dims_size);
+  TFLITE_DCHECK_GE(axis, batch_dims);
+  for (int i = 0; i < batch_dims; ++i) {
+    TFLITE_DCHECK_EQ(input_dims->data[i], coords_dims->data[i]);
   }
 
-  bool is_per_channel = false;
-  if (filter->quantization.type == kTfLiteAffineQuantization &&
-      filter->quantization.params != nullptr) {
-    const auto* affine_quantization =
-        reinterpret_cast<TfLiteAffineQuantization*>(
-            filter->quantization.params);
-    TF_LITE_ENSURE(context, affine_quantization);
-    TF_LITE_ENSURE(context, affine_quantization->scale);
-    is_per_channel = affine_quantization->scale->size > 1;
+  const int axis_size = input_dims->data[axis];
+
+  int batch_size = 1;
+  for (int i = 0; i < batch_dims; ++i) {
+    batch_size *= input_dims->data[i];
+  }
+  int outer_size = 1;
+  for (int i = batch_dims; i < axis; ++i) {
+    outer_size *= input_dims->data[i];
+  }
+  int inner_size = 1;
+  for (int i = axis + 1; i < input_dims_size; ++i) {
+    inner_size *= input_dims->data[i];
+  }
+  int coord_size = 1;
+  for (int i = batch_dims; i < coords_dims_size; ++i) {
+    coord_size *= coords_dims->data[i];
   }
 
-  if (is_per_channel) {
-// Hexagon currently does not support per-channel fully connected, and the
-// existing hexagon support library is intolerant of data members being added to
-// OpDataFullyConnected. As such, we have to be careful not to reference newer
-// data members. This is why we use a local variable is_per_channel in common
-// code, and only reference the data->is_per_channel in non-HEXAGON code.
-#ifdef HEXAGON
-    TF_LITE_ENSURE_MSG(
-        context, !is_per_channel,
-        "FullyConnected per-channel quantization not yet supported on Hexagon. "
-        "Please set converter._experimental_disable_per_channel_quantization_"
-        "for_dense_layers = True.");
-#else
-    data->is_per_channel = is_per_channel;
-    const auto* affine_quantization =
-        reinterpret_cast<TfLiteAffineQuantization*>(
-            filter->quantization.params);
-    const int per_channel_quantization_size = affine_quantization->scale->size;
-
-    //  Currently only Int8 is supported for per channel quantization.
-    TF_LITE_ENSURE(context,
-                   input->type == kTfLiteInt8 && filter->type != kTfLiteInt4);
-
-    TF_LITE_ENSURE_EQ(
-        context, per_channel_quantization_size,
-        filter->dims->data[affine_quantization->quantized_dimension]);
-
-    data->per_channel_output_multiplier =
-        static_cast<int32_t*>(context->AllocatePersistentBuffer(
-            context, per_channel_quantization_size * sizeof(int32_t)));
-    data->per_channel_output_shift =
-        static_cast<int32_t*>(context->AllocatePersistentBuffer(
-            context, per_channel_quantization_size * sizeof(int32_t)));
-
-    // Populate multiplier and shift using affine quantization.
-    const float input_scale = input->params.scale;
-    const float output_scale = output->params.scale;
-    const float* filter_scales = affine_quantization->scale->data;
-
-    for (int i = 0; i < per_channel_quantization_size; ++i) {
-      const float scale = filter_scales[i];
-      const double filter_scale = static_cast<double>(scale);
-      const double effective_output_scale = static_cast<double>(input_scale) *
-                                            filter_scale /
-                                            static_cast<double>(output_scale);
-      int32_t significand;
-      int channel_shift;
-      QuantizeMultiplier(effective_output_scale, &significand, &channel_shift);
-      data->per_channel_output_multiplier[i] = significand;
-      data->per_channel_output_shift[i] = channel_shift;
+  for (int batch = 0; batch < batch_size; ++batch) {
+    for (int outer = 0; outer < outer_size; ++outer) {
+      for (int coord = 0; coord < coord_size; ++coord) {
+        TFLITE_DCHECK_GE(coords_data[coord], 0);
+        TFLITE_DCHECK_LT(coords_data[coord], axis_size);
+        std::memcpy(
+            output_data + (((batch * outer_size) + outer) * coord_size + coord) * inner_size,
+            input_data +
+                (((batch * outer_size) + outer) * axis_size + coords_data[batch * coord_size + coord]) * inner_size,
+            sizeof(InputT) * inner_size);
+      }
     }
-#endif
-  } else {
-    double real_multiplier = 0.0;
-    TF_LITE_ENSURE_STATUS(GetQuantizedConvolutionMultipler(
-        context, input, filter, bias, output, &real_multiplier));
-    QuantizeMultiplier(real_multiplier, &data->output_multiplier,
-                       &data->output_shift);
+  }
+  return kTfLiteOk;
+}
+
+TfLiteStatus GatherPrepare(TfLiteContext *context, TfLiteNode *node) {
+  MicroContext *micro_context = GetMicroContext(context);
+
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 2);
+  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
+
+  const auto *params = reinterpret_cast<const TfLiteGatherParams *>(node->builtin_data);
+  TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, kInputTensor);
+  TF_LITE_ENSURE(context, input != nullptr);
+  TfLiteTensor *coords = micro_context->AllocateTempInputTensor(node, kInputPositions);
+  TF_LITE_ENSURE(context, coords != nullptr);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TF_LITE_ENSURE(context, output != nullptr);
+
+  switch (coords->type) {
+    case kTfLiteInt32:
+      break;
+    default:
+      MicroPrintf("Positions of type '%s' are not supported by gather.", TfLiteTypeGetName(coords->type));
+      return kTfLiteError;
+      break;
   }
 
-  // Filter weights will always be symmetric quantized since we only support
-  // int8 quantization. See
-  // https://github.com/tensorflow/tensorflow/issues/44912 for additional
-  // context.
-  TFLITE_DCHECK(filter->params.zero_point == 0);
+  // Assign to output the input type.
+  output->type = input->type;
 
-  data->input_zero_point = input->params.zero_point;
-  data->filter_zero_point = filter->params.zero_point;
-  data->output_zero_point = output->params.zero_point;
+  // Check conditions for different types.
+  switch (input->type) {
+    case kTfLiteFloat32:
+    case kTfLiteInt8:
+      break;
+    default:
+      MicroPrintf("Type '%s' is not supported by gather.", TfLiteTypeGetName(input->type));
+      return kTfLiteError;
+      break;
+  }
 
-  return CalculateActivationRangeQuantized(context, activation, output,
-                                           &data->output_activation_min,
-                                           &data->output_activation_max);
+  int axis = params->axis;
+  if (axis < 0) {
+    axis += NumDimensions(input);
+  }
+  TF_LITE_ENSURE(context, 0 <= axis && axis < NumDimensions(input));
+
+  int batch_dims = params->batch_dims;
+  // batch_dims should be in range: [-rank(coords), rank(coords)].
+  // Negative batch_dims is added with rank of coords.
+  if (batch_dims < 0) {
+    batch_dims += NumDimensions(coords);
+  }
+  TF_LITE_ENSURE(context, batch_dims <= axis);
+  TF_LITE_ENSURE(context, 0 <= batch_dims && batch_dims < NumDimensions(input));
+  TF_LITE_ENSURE(context, batch_dims <= NumDimensions(coords));
+  for (int i = 0; i < batch_dims; ++i) {
+    TF_LITE_ENSURE_EQ(context, input->dims->data[i], coords->dims->data[i]);
+  }
+
+  // GATHER updates the output tensor dimensions, but TfLiteTensor in the
+  // MicroInterpreter is a temporary allocation. We must therefore relocate the
+  // dims from the FlatBuffer to the persistent storage arena.
+  TfLiteEvalTensor *output_eval = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  TF_LITE_ENSURE_OK(context, tflite::micro::CreateWritableTensorDimsWithCopy(context, output, output_eval));
+
+  TfLiteIntArray *output_shape = output->dims;
+  output_shape->size = NumDimensions(input) + NumDimensions(coords) - 1 - batch_dims;
+  int output_index = 0;
+  for (int i = 0; i < axis; ++i) {
+    output_shape->data[output_index++] = input->dims->data[i];
+  }
+  for (int i = batch_dims; i < coords->dims->size; ++i) {
+    output_shape->data[output_index++] = coords->dims->data[i];
+  }
+  for (int i = axis + 1; i < input->dims->size; ++i) {
+    output_shape->data[output_index++] = input->dims->data[i];
+  }
+
+  micro_context->DeallocateTempTfLiteTensor(input);
+  micro_context->DeallocateTempTfLiteTensor(coords);
+  micro_context->DeallocateTempTfLiteTensor(output);
+
+  return kTfLiteOk;
 }
+
+TfLiteStatus GatherEval(TfLiteContext *context, TfLiteNode *node) {
+  const auto *params = reinterpret_cast<const TfLiteGatherParams *>(node->builtin_data);
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kInputTensor);
+  const TfLiteEvalTensor *coords = tflite::micro::GetEvalInput(context, node, kInputPositions);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+
+  if (coords->type == kTfLiteInt32) {
+    switch (input->type) {
+      case kTfLiteFloat32:
+        return Gather<float, int32_t>(params, input, coords, output);
+        break;
+      case kTfLiteInt8:
+        return Gather<int8_t, int32_t>(params, input, coords, output);
+        break;
+      default:
+        MicroPrintf("Type '%s' is not supported by gather.", TfLiteTypeGetName(input->type));
+        return kTfLiteError;
+        break;
+    }
+  }
+  return kTfLiteOk;
+}
+}  // namespace
+
+TFLMRegistration Register_GATHER() { return tflite::micro::RegisterOp(nullptr, GatherPrepare, GatherEval); }
 
 }  // namespace tflite

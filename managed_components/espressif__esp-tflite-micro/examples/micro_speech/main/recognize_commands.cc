@@ -13,130 +13,135 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "recognize_commands.h"
+#ifndef TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_RECOGNIZE_COMMANDS_H_
+#define TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_RECOGNIZE_COMMANDS_H_
 
-#include <limits>
+#include <cstdint>
 
-RecognizeCommands::RecognizeCommands(int32_t average_window_duration_ms,
-                                     float detection_threshold,
-                                     int32_t suppression_ms,
-                                     int32_t minimum_count)
-    : average_window_duration_ms_(average_window_duration_ms),
-      detection_threshold_(detection_threshold),
-      suppression_ms_(suppression_ms),
-      minimum_count_(minimum_count),
-      previous_results_() {
-  previous_top_label_ = "silence";
-  previous_top_label_time_ = std::numeric_limits<int32_t>::min();
-}
+#include "tensorflow/lite/c/common.h"
+#include "micro_model_settings.h"
+#include "tensorflow/lite/micro/micro_log.h"
 
-TfLiteStatus RecognizeCommands::ProcessLatestResults(
-    const TfLiteTensor* latest_results, const int32_t current_time_ms,
-    const char** found_command, float* score, bool* is_new_command) {
-  if ((latest_results->dims->size != 2) ||
-      (latest_results->dims->data[0] != 1) ||
-      (latest_results->dims->data[1] != kCategoryCount)) {
-    MicroPrintf(
-        "The results for recognition should contain %d elements, but there are "
-        "%d in an %d-dimensional shape",
-        kCategoryCount, latest_results->dims->data[1],
-        latest_results->dims->size);
-    return kTfLiteError;
-  }
+// Partial implementation of std::dequeue, just providing the functionality
+// that's needed to keep a record of previous neural network results over a
+// short time period, so they can be averaged together to produce a more
+// accurate overall prediction. This doesn't use any dynamic memory allocation
+// so it's a better fit for microcontroller applications, but this does mean
+// there are hard limits on the number of results it can store.
+class PreviousResultsQueue {
+ public:
+  PreviousResultsQueue() : front_index_(0), size_(0) {}
 
-  if (latest_results->type != kTfLiteInt8) {
-    MicroPrintf(
-        "The results for recognition should be int8_t elements, but are %d",
-        latest_results->type);
-    return kTfLiteError;
-  }
-
-  if ((!previous_results_.empty()) &&
-      (current_time_ms < previous_results_.front().time_)) {
-    MicroPrintf(
-        "Results must be fed in increasing time order, but received a "
-        "timestamp of %d that was earlier than the previous one of %d",
-        current_time_ms, previous_results_.front().time_);
-    return kTfLiteError;
-  }
-
-  // Add the latest results to the head of the queue.
-  previous_results_.push_back({current_time_ms, latest_results->data.int8});
-
-  // Prune any earlier results that are too old for the averaging window.
-  const int64_t time_limit = current_time_ms - average_window_duration_ms_;
-  while ((!previous_results_.empty()) &&
-         previous_results_.front().time_ < time_limit) {
-    previous_results_.pop_front();
-  }
-
-  // If there are too few results, assume the result will be unreliable and
-  // bail.
-  const int64_t how_many_results = previous_results_.size();
-  const int64_t earliest_time = previous_results_.front().time_;
-  const int64_t samples_duration = current_time_ms - earliest_time;
-  if ((how_many_results < minimum_count_) ||
-      (samples_duration < (average_window_duration_ms_ / 4))) {
-    *found_command = previous_top_label_;
-    *score = 0;
-    *is_new_command = false;
-    return kTfLiteOk;
-  }
-
-  // Calculate the average score across all the results in the window.
-  float average_scores[kCategoryCount];
-
-  float output_scale = latest_results->params.scale;
-  int output_zero_point = latest_results->params.zero_point;
-
-  for (int offset = 0; offset < previous_results_.size(); ++offset) {
-    PreviousResultsQueue::Result previous_result =
-        previous_results_.from_front(offset);
-    const int8_t* scores = previous_result.scores;
-    for (int i = 0; i < kCategoryCount; ++i) {
-      float current_score = (scores[i] - output_zero_point) * output_scale;
-      if (offset == 0) {
-        average_scores[i] = current_score;
-      } else {
-        average_scores[i] += current_score;
+  // Data structure that holds an inference result, and the time when it
+  // was recorded.
+  struct Result {
+    Result() : time_(0), scores() {}
+    Result(int32_t time, int8_t *input_scores) : time_(time) {
+      for (int i = 0; i < kCategoryCount; ++i) {
+        scores[i] = input_scores[i];
       }
     }
-  }
-  for (int i = 0; i < kCategoryCount; ++i) {
-    average_scores[i] /= how_many_results;
-  }
+    int32_t time_;
+    int8_t scores[kCategoryCount];
+  };
 
-  // Find the current highest scoring category.
-  int current_top_index = 0;
-  float current_top_score = 0;
-  for (int i = 0; i < kCategoryCount; ++i) {
-    if (average_scores[i] > current_top_score) {
-      current_top_score = average_scores[i];
-      current_top_index = i;
+  int size() { return size_; }
+  bool empty() { return size_ == 0; }
+  Result &front() { return results_[front_index_]; }
+  Result &back() {
+    int back_index = front_index_ + (size_ - 1);
+    if (back_index >= kMaxResults) {
+      back_index -= kMaxResults;
     }
+    return results_[back_index];
   }
-  const char* current_top_label = kCategoryLabels[current_top_index];
 
-  // If we've recently had another label trigger, assume one that occurs too
-  // soon afterwards is a bad result.
-  int64_t time_since_last_top;
-  if ((previous_top_label_ == kCategoryLabels[0]) ||
-      (previous_top_label_time_ == std::numeric_limits<int32_t>::min())) {
-    time_since_last_top = std::numeric_limits<int32_t>::max();
-  } else {
-    time_since_last_top = current_time_ms - previous_top_label_time_;
+  void push_back(const Result &entry) {
+    if (size() >= kMaxResults) {
+      MicroPrintf("Couldn't push_back latest result, too many already!");
+      return;
+    }
+    size_ += 1;
+    back() = entry;
   }
-  if ((current_top_score > detection_threshold_) &&
-      ((current_top_label != previous_top_label_) ||
-       (time_since_last_top > suppression_ms_))) {
-    previous_top_label_ = current_top_label;
-    previous_top_label_time_ = current_time_ms;
-    *is_new_command = true;
-  } else {
-    *is_new_command = false;
-  }
-  *found_command = current_top_label;
-  *score = current_top_score;
 
-  return kTfLiteOk;
-}
+  Result pop_front() {
+    if (size() <= 0) {
+      MicroPrintf("Couldn't pop_front result, none present!");
+      return Result();
+    }
+    Result result = front();
+    front_index_ += 1;
+    if (front_index_ >= kMaxResults) {
+      front_index_ = 0;
+    }
+    size_ -= 1;
+    return result;
+  }
+
+  // Most of the functions are duplicates of dequeue containers, but this
+  // is a helper that makes it easy to iterate through the contents of the
+  // queue.
+  Result &from_front(int offset) {
+    if ((offset < 0) || (offset >= size_)) {
+      MicroPrintf("Attempt to read beyond the end of the queue!");
+      offset = size_ - 1;
+    }
+    int index = front_index_ + offset;
+    if (index >= kMaxResults) {
+      index -= kMaxResults;
+    }
+    return results_[index];
+  }
+
+ private:
+  static constexpr int kMaxResults = 50;
+  Result results_[kMaxResults];
+
+  int front_index_;
+  int size_;
+};
+
+// This class is designed to apply a very primitive decoding model on top of the
+// instantaneous results from running an audio recognition model on a single
+// window of samples. It applies smoothing over time so that noisy individual
+// label scores are averaged, increasing the confidence that apparent matches
+// are real.
+// To use it, you should create a class object with the configuration you
+// want, and then feed results from running a TensorFlow model into the
+// processing method. The timestamp for each subsequent call should be
+// increasing from the previous, since the class is designed to process a stream
+// of data over time.
+class RecognizeCommands {
+ public:
+  // labels should be a list of the strings associated with each one-hot score.
+  // The window duration controls the smoothing. Longer durations will give a
+  // higher confidence that the results are correct, but may miss some commands.
+  // The detection threshold has a similar effect, with high values increasing
+  // the precision at the cost of recall. The minimum count controls how many
+  // results need to be in the averaging window before it's seen as a reliable
+  // average. This prevents erroneous results when the averaging window is
+  // initially being populated for example. The suppression argument disables
+  // further recognitions for a set time after one has been triggered, which can
+  // help reduce spurious recognitions.
+  explicit RecognizeCommands(int32_t average_window_duration_ms = 1000, float detection_threshold = .8,
+                             int32_t suppression_ms = 1500, int32_t minimum_count = 3);
+
+  // Call this with the results of running a model on sample data.
+  TfLiteStatus ProcessLatestResults(const TfLiteTensor *latest_results, const int32_t current_time_ms,
+                                    const char **found_command, float *score, bool *is_new_command);
+
+ private:
+  // Configuration
+  int32_t average_window_duration_ms_;
+  float detection_threshold_;
+  int32_t suppression_ms_;
+  int32_t minimum_count_;
+
+  // Working variables
+  PreviousResultsQueue previous_results_;
+  const char *previous_top_label_;
+  int32_t previous_top_label_time_;
+};
+
+#endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_RECOGNIZE_COMMANDS_H_

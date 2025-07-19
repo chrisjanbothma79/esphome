@@ -1,4 +1,4 @@
-/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,174 +13,257 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_MICRO_MICRO_INTERPRETER_CONTEXT_H_
-#define TENSORFLOW_LITE_MICRO_MICRO_INTERPRETER_CONTEXT_H_
-
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/micro/micro_allocator.h"
-#include "tensorflow/lite/micro/micro_context.h"
 #include "tensorflow/lite/micro/micro_interpreter_graph.h"
+
+#include "flatbuffers/flatbuffers.h"  // from @flatbuffers
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/micro/flatbuffer_utils.h"
+#include "tensorflow/lite/micro/memory_helpers.h"
 #include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_profiler.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+
+#ifdef USE_TFLM_COMPRESSION
+
+#include "tensorflow/lite/micro/micro_context.h"
+
+#endif  // USE_TFLM_COMPRESSION
 
 namespace tflite {
+namespace {
 
-// A full implementation of the MicroContext, to be used by the
-// MicroInterpreter. Kernels should not depend on this directly. Instead they
-// should only depend on the MicroContext.
-class MicroInterpreterContext : public MicroContext {
- public:
-  // Enum that allows MicroContext to keep track of the stages different memory
-  // planning APIs are available to kernels.
-  enum class InterpreterState {
-    kInit,
-    kPrepare,
-    kMemoryPlanning,
-    kInvoke,
-  };
+const char *OpNameFromRegistration(const TFLMRegistration *registration) {
+  if (registration->builtin_code == BuiltinOperator_CUSTOM) {
+    return registration->custom_name;
+  } else {
+    return EnumNameBuiltinOperator(BuiltinOperator(registration->builtin_code));
+  }
+}
 
-  // Does not take any ownership, and all pointers must refer to valid objects
-  // that outlive the one constructed.
-  MicroInterpreterContext(MicroAllocator* allocator, const Model* model,
-                          MicroInterpreterGraph* graph);
-  virtual ~MicroInterpreterContext();
+}  // namespace
 
-  // Allocate persistent buffer which has the same life time as the interpreter.
-  // Returns nullptr on failure.
-  // The memory is allocated from the tail.
-  // This method is only available in Init or Prepare stage.
-  // Virtual so that it can be faked for kernel tests.
-  virtual void* AllocatePersistentBuffer(size_t bytes) override;
+MicroInterpreterGraph::MicroInterpreterGraph(TfLiteContext *context, const Model *model, MicroAllocator *allocator,
+                                             MicroResourceVariables *resource_variables)
+    : context_(context),
+      model_(model),
+      allocator_(allocator),
+      current_subgraph_index_(0),
+      current_operator_index_(0),
+      resource_variables_(resource_variables) {
+  if (model != nullptr) {
+    subgraphs_ = model->subgraphs();
+  }
+}
 
-  // Request a scratch buffer in the arena through static memory planning.
-  // This method is only available in Prepare stage and the buffer is allocated
-  // by the interpreter between Prepare and Eval stage. In Eval stage,
-  // GetScratchBuffer API can be used to fetch the address.
-  // Virtual so that it can be faked for kernel tests.
-  virtual TfLiteStatus RequestScratchBufferInArena(size_t bytes,
-                                                   int* buffer_idx) override;
+MicroInterpreterGraph::~MicroInterpreterGraph() {}
 
-  // Get the scratch buffer pointer.
-  // This method is only available in Eval stage.
-  // Virtual so that it can be faked for kernel tests.
-  virtual void* GetScratchBuffer(int buffer_idx) override;
+TfLiteStatus MicroInterpreterGraph::InitSubgraphs() {
+  int previous_subgraph_idx = current_subgraph_index_;
+  uint32_t previous_operator_idx = current_operator_index_;
 
-  // Returns a temporary TfLiteTensor struct for a given index.
-  // Virtual so that it can be faked for kernel tests.
-  virtual TfLiteTensor* AllocateTempTfLiteTensor(int tensor_idx) override;
+  for (size_t subgraph_idx = 0; subgraph_idx < subgraphs_->size(); subgraph_idx++) {
+    current_subgraph_index_ = subgraph_idx;
+    uint32_t operators_size = NumSubgraphOperators(model_, subgraph_idx);
+    for (current_operator_index_ = 0; current_operator_index_ < operators_size; ++current_operator_index_) {
+      TfLiteNode *node = &(subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].node);
+      const TFLMRegistration *registration =
+          subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].registration;
+      size_t init_data_size;
+      const char *init_data;
+      if (registration->builtin_code == BuiltinOperator_CUSTOM) {
+        init_data = reinterpret_cast<const char *>(node->custom_initial_data);
+        init_data_size = node->custom_initial_data_size;
+      } else {
+        init_data = reinterpret_cast<const char *>(node->builtin_data);
+        init_data_size = 0;
+      }
+      if (registration->init) {
+        node->user_data = registration->init(context_, init_data, init_data_size);
+      }
+    }
+  }
+  current_subgraph_index_ = previous_subgraph_idx;
+  current_operator_index_ = previous_operator_idx;
 
-  // Deallocates a temp TfLiteTensor.
-  // Virtual so that it can be faked for kernel tests.
-  virtual void DeallocateTempTfLiteTensor(TfLiteTensor* tensor) override;
+  return kTfLiteOk;
+}
 
-  // Returns a pointer to a temporary buffer (from the arena).
-  // This API is only valid from the kernel's Prepare function and
-  // the buffer's lifetime is also that of the Prepare function.
-  // Virtual so that it can be faked for kernel tests.
-  virtual uint8_t* AllocateTempBuffer(size_t size, size_t alignment) override;
-
-  // Signals that the temporary buffer is no longer needed.
-  // Virtual so that it can be faked for kernel tests.
-  virtual void DeallocateTempBuffer(uint8_t* buffer) override;
-
-  // Returns a TfLiteEvalTensor struct for a given index.
-  // Virtual so that it can be faked for kernel tests.
-  virtual TfLiteEvalTensor* GetEvalTensor(int tensor_idx) override;
-
-  // Sets the State of MemoryPlanning MicroInterpreterContext
-  void SetInterpreterState(InterpreterState state);
-
-  // Sets the State of MemoryPlanning MicroInterpreterContext
-  InterpreterState GetInterpreterState() const;
-
-  // Does not take ownership of the pointer and the pointer must refer to valid
-  // an object that outlive this class instance.
-  // This can only be called once to set one external context.
-  TfLiteStatus set_external_context(void* external_context_payload) override;
-
-  void* external_context() override { return external_context_payload_; }
-
-  MicroGraph& graph() override { return graph_; }
-
-  // Sets the pointer to a list of ScratchBufferHandle instances.
-  // Not API between TFLM and kernels. Primarily used by the framework for
-  // housekeeping in MicroInterpreterContext.
-  void SetScratchBufferHandles(ScratchBufferHandle* scratch_buffer_handles);
-
+TfLiteStatus MicroInterpreterGraph::PrepareSubgraphs() {
+  int previous_subgraph_idx = current_subgraph_index_;
+  uint32_t previous_operator_idx = current_operator_index_;
+  for (size_t subgraph_idx = 0; subgraph_idx < subgraphs_->size(); subgraph_idx++) {
+    current_subgraph_index_ = subgraph_idx;
+    uint32_t operators_size = NumSubgraphOperators(model_, subgraph_idx);
+    for (current_operator_index_ = 0; current_operator_index_ < operators_size; ++current_operator_index_) {
+      TfLiteNode *node = &(subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].node);
+      const TFLMRegistration *registration =
+          subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].registration;
+      if (registration->prepare != nullptr) {
+        TfLiteStatus prepare_status = registration->prepare(context_, node);
+        if (prepare_status != kTfLiteOk) {
+          MicroPrintf("Node %s (number %df) failed to prepare with status %d", OpNameFromRegistration(registration),
+                      current_operator_index_, prepare_status);
+          return kTfLiteError;
+        }
 #ifdef USE_TFLM_COMPRESSION
+        GetMicroContext(context_)->ResetDecompressionMemoryAllocations();
+#endif  // USE_TFLM_COMPRESSION
+      }
+      allocator_->FinishPrepareNodeAllocations(
+          /*node_id=*/current_operator_index_);
+    }
+  }
+  current_subgraph_index_ = previous_subgraph_idx;
+  current_operator_index_ = previous_operator_idx;
+  return kTfLiteOk;
+}
 
-  // Available during Prepare & Eval. Returns false if tensor is not
-  // compressed.
-  bool IsTensorCompressed(const TfLiteNode* node, int tensor_idx) override;
+TfLiteStatus MicroInterpreterGraph::ResetSubgraphs() {
+  int previous_subgraph_idx = current_subgraph_index_;
+  uint32_t previous_operator_idx = current_operator_index_;
 
-  // Only available during Prepare. The kernel is responsible for storing the
-  // scratch buffer handle.
-  int AllocateDecompressionScratchBuffer(const TfLiteNode* node,
-                                         int tensor_idx) override;
+  for (size_t subgraph_idx = 0; subgraph_idx < subgraphs_->size(); subgraph_idx++) {
+    current_subgraph_index_ = subgraph_idx;
+    uint32_t operators_size = NumSubgraphOperators(model_, subgraph_idx);
+    for (current_operator_index_ = 0; current_operator_index_ < operators_size; ++current_operator_index_) {
+      TfLiteNode *node = &(subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].node);
+      const TFLMRegistration *registration =
+          subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].registration;
+      // registration is allocated outside the interpreter, so double check to
+      // make sure it's not nullptr;
+      if (registration != nullptr && registration->reset != nullptr) {
+        registration->reset(context_, node->user_data);
+      }
+    }
+  }
+  current_subgraph_index_ = previous_subgraph_idx;
+  current_operator_index_ = previous_operator_idx;
 
-  // Available during Prepare & Eval. Returns nullptr if tensor is not
-  // compressed.
-  const CompressionTensorData* GetTensorCompressionData(
-      const TfLiteNode* node, int tensor_idx) override;
+  return kTfLiteOk;
+}
 
-  // Only available during Prepare & Eval. Returns nullptr on failure, otherwise
-  // returns a pointer to the buffer.
-  void* DecompressTensorToBuffer(const TfLiteEvalTensor& tensor,
-                                 const CompressionTensorData& compression_data,
-                                 void* buffer) override;
+TfLiteStatus MicroInterpreterGraph::FreeSubgraphs() {
+  int previous_subgraph_idx = current_subgraph_index_;
+  uint32_t previous_operator_idx = current_operator_index_;
 
-  // Set the alternate decompression memory regions.
-  // Can only be called during the MicroInterpreter kInit state.
-  TfLiteStatus SetDecompressionMemory(
-      const std::initializer_list<AlternateMemoryRegion>& regions) override;
+  for (size_t subgraph_idx = 0; subgraph_idx < subgraphs_->size(); subgraph_idx++) {
+    current_subgraph_index_ = subgraph_idx;
+    uint32_t operators_size = NumSubgraphOperators(model_, subgraph_idx);
+    for (current_operator_index_ = 0; current_operator_index_ < operators_size; ++current_operator_index_) {
+      TfLiteNode *node = &(subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].node);
+      const TFLMRegistration *registration =
+          subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].registration;
+      // registration is allocated outside the interpreter, so double check to
+      // make sure it's not nullptr;
+      if (registration != nullptr && registration->free != nullptr) {
+        registration->free(context_, node->user_data);
+      }
+    }
+  }
+  current_subgraph_index_ = previous_subgraph_idx;
+  current_operator_index_ = previous_operator_idx;
 
-  // Return a pointer to memory that can be used for decompression.
-  // The pointer will be aligned to the <alignment> value.
-  // Return nullptr if the requested size is not available.
-  // Can be called during kPrepare and kInvoke states.
-  void* AllocateDecompressionMemory(size_t bytes, size_t alignment) override;
+  return kTfLiteOk;
+}
 
-  // reset all allocation tracking
-  void ResetDecompressionMemoryAllocations() override;
+TfLiteStatus MicroInterpreterGraph::InvokeSubgraph(int subgraph_idx) {
+  int previous_subgraph_idx = current_subgraph_index_;
+  uint32_t previous_operator_idx = current_operator_index_;
+  current_subgraph_index_ = subgraph_idx;
 
+  if (static_cast<size_t>(subgraph_idx) >= subgraphs_->size()) {
+    MicroPrintf("Accessing subgraph %d but only %d subgraphs found", subgraph_idx, subgraphs_->size());
+    return kTfLiteError;
+  }
+  uint32_t operators_size = NumSubgraphOperators(model_, subgraph_idx);
+  for (current_operator_index_ = 0; current_operator_index_ < operators_size; ++current_operator_index_) {
+    TfLiteNode *node = &(subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].node);
+    const TFLMRegistration *registration =
+        subgraph_allocations_[subgraph_idx].node_and_registrations[current_operator_index_].registration;
+
+// This ifdef is needed (even though ScopedMicroProfiler itself is a no-op with
+// -DTF_LITE_STRIP_ERROR_STRINGS) because the function OpNameFromRegistration is
+// only defined for builds with the error strings.
+#if !defined(TF_LITE_STRIP_ERROR_STRINGS)
+    ScopedMicroProfiler scoped_profiler(OpNameFromRegistration(registration),
+                                        reinterpret_cast<MicroProfilerInterface *>(context_->profiler));
+#endif
+
+    TFLITE_DCHECK(registration->invoke);
+    TfLiteStatus invoke_status = registration->invoke(context_, node);
+#ifdef USE_TFLM_COMPRESSION
+    GetMicroContext(context_)->ResetDecompressionMemoryAllocations();
 #endif  // USE_TFLM_COMPRESSION
 
-  // Set the alternate MicroProfilerInterface.
-  // This can be used to profile subsystems simultaneously with the profiling
-  // of kernels during the Eval phase.  See (b/379584353).
-  // The alternate MicroProfilerInterface is currently used by the tensor
-  // decompression subsystem.
-  TfLiteStatus SetAlternateProfiler(
-      MicroProfilerInterface* alt_profiler) override;
+    // All TfLiteTensor structs used in the kernel are allocated from temp
+    // memory in the allocator. This creates a chain of allocations in the
+    // temp section. The call below resets the chain of allocations to
+    // prepare for the next call.
+    allocator_->ResetTempAllocations();
 
-  // Get the alternate MicroProfilerInterface.
-  // This can be used to profile subsystems simultaneously with the profiling
-  // of kernels during the Eval phase.  See (b/379584353).
-  // The alternate MicroProfilerInterface is currently used by the tensor
-  // decompression subsystem.
-  MicroProfilerInterface* GetAlternateProfiler() const override;
+    if (invoke_status == kTfLiteError) {
+      MicroPrintf("Node %s (number %d) failed to invoke with status %d", OpNameFromRegistration(registration),
+                  current_operator_index_, invoke_status);
+      return kTfLiteError;
+    } else if (invoke_status != kTfLiteOk) {
+      return invoke_status;
+    }
+  }
+  current_subgraph_index_ = previous_subgraph_idx;
+  current_operator_index_ = previous_operator_idx;
+  return kTfLiteOk;
+}
 
- private:
-  MicroAllocator& allocator_;
-  MicroInterpreterGraph& graph_;
-  const Model* model_;
-  InterpreterState state_;
+TfLiteStatus MicroInterpreterGraph::ResetVariableTensors() {
+  for (size_t subgraph_idx = 0; subgraph_idx < subgraphs_->size(); subgraph_idx++) {
+    const SubGraph *subgraph = (*subgraphs_)[subgraph_idx];
+    for (size_t i = 0; i < subgraph->tensors()->size(); ++i) {
+      auto *tensor = subgraph->tensors()->Get(i);
+      if (tensor->is_variable()) {
+        size_t buffer_size;
+        TF_LITE_ENSURE_STATUS(
+            TfLiteEvalTensorByteLength(&subgraph_allocations_[subgraph_idx].tensors[i], &buffer_size));
 
-  ScratchBufferHandle* scratch_buffer_handles_ = nullptr;
-  void* external_context_payload_ = nullptr;
-  MicroProfilerInterface* alt_profiler_ = nullptr;
+        int value = 0;
+        if (tensor->type() == tflite::TensorType_INT8) {
+          value = tensor->quantization()->zero_point()->Get(0);
+        }
+        memset(subgraph_allocations_[subgraph_idx].tensors[i].data.raw, value, buffer_size);
+      }
+    }
+  }
+  if (resource_variables_ != nullptr) {
+    resource_variables_->ResetAll();
+  }
 
-#ifdef USE_TFLM_COMPRESSION
+  return kTfLiteOk;
+}
 
-  const std::initializer_list<AlternateMemoryRegion>* decompress_regions_ =
-      nullptr;
-  // array of size_t elements with length equal to decompress_regions_.size()
-  size_t* decompress_regions_allocations_;
+int MicroInterpreterGraph::NumSubgraphs() { return model_->subgraphs()->size(); }
 
-#endif  // USE_TFLM_COMPRESSION
+void MicroInterpreterGraph::SetSubgraphAllocations(SubgraphAllocations *subgraph_allocations) {
+  subgraph_allocations_ = subgraph_allocations;
+}
 
-  TF_LITE_REMOVE_VIRTUAL_DELETE
-};
+size_t MicroInterpreterGraph::NumSubgraphInputs(int subgraph_idx) {
+  return model_->subgraphs()->Get(subgraph_idx)->inputs()->size();
+}
+
+TfLiteEvalTensor *MicroInterpreterGraph::GetSubgraphInput(int subgraph_idx, int input_idx) {
+  int tensor_idx = model_->subgraphs()->Get(subgraph_idx)->inputs()->Get(input_idx);
+  return &subgraph_allocations_[subgraph_idx].tensors[tensor_idx];
+}
+
+size_t MicroInterpreterGraph::NumSubgraphOutputs(int subgraph_idx) {
+  return model_->subgraphs()->Get(subgraph_idx)->outputs() == nullptr
+             ? 0
+             : model_->subgraphs()->Get(subgraph_idx)->outputs()->size();
+}
+
+TfLiteEvalTensor *MicroInterpreterGraph::GetSubgraphOutput(int subgraph_idx, int output_idx) {
+  int tensor_idx = model_->subgraphs()->Get(subgraph_idx)->outputs()->Get(output_idx);
+  return &subgraph_allocations_[subgraph_idx].tensors[tensor_idx];
+}
 
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_MICRO_INTERPRETER_CONTEXT_H_

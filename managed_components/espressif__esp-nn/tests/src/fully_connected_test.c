@@ -8,269 +8,167 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <inttypes.h>
+#include <malloc.h>
 
 #include <esp_nn.h>
 #include "test_utils.h"
 
+void esp_nn_avg_pool_s8_test() {
+  /* prepare data */
+  const uint16_t input_wd = 16;
+  const uint16_t input_ht = 16;
+  const uint16_t channels = 16; /* With TFLite example, I have seen it 256 */
+  const int size = input_wd * input_ht * channels;
+  int8_t *input = NULL, *output_c = NULL, *output_opt = NULL;
+  const int32_t activation_min = -128;
+  const int32_t activation_max = 127;
+  const uint16_t pad_wd = 1;
+  const uint16_t pad_ht = 1;
+  const uint16_t stride_wd = 1;
+  const uint16_t stride_ht = 1;
+  const uint16_t filter_ht = 3;
+  const uint16_t filter_wd = 3;
+  const uint16_t out_wd = input_wd / stride_wd;
+  const uint16_t out_ht = input_ht / stride_ht;
+  const int out_size = out_wd * out_ht * channels;
 
-void esp_nn_fully_connected_s8_test()
-{
-    uint32_t total_c = 0, total_opt = 0;
-    /* prepare data */
-    uint16_t row_len = 256 + 8 + 7; /* odd len to test unaligned+left-over */
-    uint16_t out_channels = 3;
-    int8_t input[row_len];
-    int8_t filter_data[row_len * out_channels];
-    int8_t output_c[out_channels], output_opt[out_channels];
-    int32_t activation_min = -128;
-    int32_t activation_max = 127;
-    int32_t input_offset = 0;
-    int32_t filter_offset = 0;
-    int32_t out_shift = -10;
-    int32_t out_offset = 5;
-    int32_t out_mult = 0x59e492c4;
-    printf("\n######## Running %s ##########\n", __FUNCTION__);
-    for (int itr = 0; itr < 15; itr++) {
-        out_mult = INT32_MAX / row_len + rand() % INT16_MAX;
-        switch (itr) {
-        case 0:
-            out_shift = -10;
-            break;
-        case 1:
-            out_shift = SHIFT_MIN;
-            break;
-        case 2:
-            out_shift = SHIFT_MAX;
-            break;
-        case 3:
-            out_shift = 0;
-            break;
-        case 4:
-            row_len = 1;
-            out_channels = 16;
-            out_shift = -10 + rand() % 5;
-            break;
-        case 5:
-            row_len = 16;
-            out_channels = 8;
-            out_shift = -10 + rand() % 5;
-            break;
-        case 6:
-            row_len = 8;
-            out_channels = 8;
-            out_shift = -10 + rand() % 5;
-            break;
-        case 7:
-            row_len = 8;
-            out_channels = 15;
-            out_shift = -10 + rand() % 5;
-            break;
-        case 8:
-            row_len = 8;
-            out_channels = 1;
-            out_shift = -10 + rand() % 5;
-            break;
-        default:
-            row_len = rand() % 7 + 1;
-            out_channels = 8;
-            out_shift = -10 + rand() % 5;
-            break;
-        }
-        if (itr == 0) {
-            out_shift = SHIFT_MAX;
-        }
-        /* Generate input and filter data */
-        for (int i = 0; i < row_len; ++i) {
-            input[i] = rand() % 256 - 128;
-        }
-        for (int i = 0; i < row_len * out_channels; ++i) {
-            filter_data[i] = rand() % 256 - 128;
-        }
+  int8_t *input_orig = malloc(size + 16);
+  int8_t *out_c_orig = malloc(out_size + 16);
+  int8_t *out_opt_orig = malloc(out_size + 16);
+  if (input_orig == NULL || out_c_orig == NULL || out_opt_orig == NULL) {
+    printf(ANSI_COLOR_RED "%s allocations failed\n" ANSI_COLOR_RESET, __FUNCTION__);
+    goto avg_pool_s8_cleanup;
+  }
 
-        /* enable profiler */
-        profile_c_start();
+  input = (int8_t *) (((uint32_t) input_orig + 15) & ~15);
+  output_c = (int8_t *) (((uint32_t) out_c_orig + 15) & ~15);
+  output_opt = (int8_t *) (((uint32_t) out_opt_orig + 15) & ~15);
 
-        /* C function */
-        esp_nn_fully_connected_s8_ansi(input, input_offset, row_len, filter_data, filter_offset,
-                                    NULL, output_c, out_channels, out_offset, out_shift, out_mult,
-                                    activation_min, activation_max);
+  /**
+   * width/height, channels etc look suspicious but it it true.
+   * It actually depends upon where in model this is actually placed.
+   * If at the end wd/ht tends to be smaller and depth larger.
+   */
 
-        total_c = profile_c_end();
-        profile_opt_start();
+  for (int i = 0; i < size; ++i) {
+    input[i] = rand() % 256 - 128;
+  }
 
-        /* Optimized function */
-        esp_nn_fully_connected_s8(input, input_offset, row_len, filter_data, filter_offset,
-                                NULL, output_opt, out_channels, out_offset, out_shift, out_mult,
-                                activation_min, activation_max);
+  /* enable profiler */
+  profile_c_start();
 
-        /* disable profiler */
-        total_opt = profile_opt_end();
+  /* C function */
+  esp_nn_avg_pool_s8_ansi(input, input_wd, input_ht, output_c, out_wd, out_ht, stride_wd, stride_ht, filter_wd,
+                          filter_ht, pad_wd, pad_ht, activation_min, activation_max, channels);
 
-        bool ret = CHECK_EQUAL(output_c, output_opt, out_channels);
-        if (ret == false) {
-            printf(ANSI_COLOR_RED"[%3d] failed\n"ANSI_COLOR_RESET, itr);
-#if 0
-            printf("Output: \n");
-            PRINT_ARRAY_HEX(output_opt, out_channels, 1);
-            printf("Expected: \n");
-            PRINT_ARRAY_HEX(output_c, out_channels, 1);
-            printf("Input:\n");
-            PRINT_ARRAY_HEX(input, row_len, 1);
-            printf("Filter data:\n");
-            PRINT_ARRAY_HEX(filter_data, row_len, out_channels);
-            printf("Out shift: %d\n", out_shift);
-            printf("Out mult: %x\n", out_mult);
-#endif
-            return;
-        }
-        printf(ANSI_COLOR_GREEN"[%3d] passed [row_len %"PRIu16", out_ch %"PRIu16"]"ANSI_COLOR_RESET,
-               itr, row_len, out_channels);
-        printf("\tcycles: c %8"PRIu32", opt %8"PRIu32"\n", total_c, total_opt);
-    }
+  profile_c_end();
+  profile_opt_start();
+
+  /* Optimized function */
+  esp_nn_avg_pool_s8(input, input_wd, input_ht, output_opt, out_wd, out_ht, stride_wd, stride_ht, filter_wd, filter_ht,
+                     pad_wd, pad_ht, activation_min, activation_max, channels);
+
+  /* disable profiler */
+  profile_opt_end();
+
+  bool ret = CHECK_EQUAL(output_c, output_opt, out_size);
+  if (ret == false) {
+    printf(ANSI_COLOR_RED "%s failed\n" ANSI_COLOR_RESET, __FUNCTION__);
+    printf("Output: \n");
+    PRINT_ARRAY_HEX(output_opt, out_wd * channels, out_ht);
+    printf("Expected: \n");
+    PRINT_ARRAY_HEX(output_c, out_wd * channels, out_ht);
+    printf("Input:\n");
+    PRINT_ARRAY_HEX(input, input_wd * channels, input_ht);
+    goto avg_pool_s8_cleanup;
+  }
+  printf(ANSI_COLOR_GREEN "%s passed\n" ANSI_COLOR_RESET, __FUNCTION__);
+
+avg_pool_s8_cleanup:
+  if (input_orig) {
+    free(input_orig);
+  }
+  if (out_c_orig) {
+    free(out_c_orig);
+  }
+  if (out_opt_orig) {
+    free(out_opt_orig);
+  }
 }
 
-void esp_nn_fully_connected_per_ch_s8_test()
-{
-    uint32_t total_c = 0, total_opt = 0;
-    /* prepare data */
-    uint16_t row_len = 256 + 8 + 7; /* odd len to test unaligned+left-over */
-    const int32_t max_out_ch = 16;
-    uint16_t out_channels = 3;
-    int8_t input[row_len];
-    int8_t filter_data[row_len * max_out_ch];
-    int8_t output_c[max_out_ch], output_opt[max_out_ch];
-    int32_t activation_min = -128;
-    int32_t activation_max = 127;
-    int32_t input_offset = 0;
-    int32_t filter_offset = 0;
-    int32_t out_offset = 7;
+void esp_nn_max_pool_s8_test() {
+  /* prepare data */
+  const uint16_t input_wd = 16;
+  const uint16_t input_ht = 16;
+  const uint16_t channels = 16; /* With TFLite example, I have seen it 256 */
+  int8_t *input = NULL, *output_c = NULL, *output_opt = NULL;
+  const int size = input_wd * input_ht * channels;
+  const int32_t activation_min = -128;
+  const int32_t activation_max = 127;
+  const uint16_t pad_wd = 1;
+  const uint16_t pad_ht = 1;
+  const uint16_t stride_wd = 1;
+  const uint16_t stride_ht = 1;
+  const uint16_t filter_ht = 3;
+  const uint16_t filter_wd = 3;
+  const uint16_t out_wd = input_wd / stride_wd;
+  const uint16_t out_ht = input_ht / stride_ht;
+  const int out_size = out_wd * out_ht * channels;
 
-    int32_t* out_mult = NULL;
-    int32_t* out_shift = NULL;
+  int8_t *input_orig = malloc(size + 16);
+  int8_t *out_c_orig = malloc(out_size + 16);
+  int8_t *out_opt_orig = malloc(out_size + 16);
+  if (input_orig == NULL || out_c_orig == NULL || out_opt_orig == NULL) {
+    printf(ANSI_COLOR_RED "%s allocations failed\n" ANSI_COLOR_RESET, __FUNCTION__);
+    goto max_pool_s8_cleanup;
+  }
 
-    printf("\n######## Running %s ##########\n", __FUNCTION__);
-    for (int itr = 0;  itr < 15; itr++) {
-        int32_t out_shift_val = 0;
-        switch (itr) {
-        case 0:
-            out_shift_val = -10;
-            break;
-        case 1:
-            out_shift_val = SHIFT_MIN;
-            break;
-        case 2:
-            out_shift_val = SHIFT_MAX;
-            break;
-        case 3:
-            out_shift_val = 0;
-            break;
-        case 4:
-            row_len = 1;
-            out_channels = 16;
-            break;
-        case 5:
-            row_len = 16;
-            out_channels = 8;
-            break;
-        case 6:
-            row_len = 8;
-            out_channels = 8;
-            break;
-        case 7:
-            row_len = 8;
-            out_channels = 15;
-            break;
-        case 8:
-            row_len = 8;
-            out_channels = 1;
-            break;
-        default:
-            row_len = rand() % 7 + 1;
-            out_channels = 8;
-            break;
-        }
+  input = (int8_t *) (((uint32_t) input_orig + 15) & ~15);
+  output_c = (int8_t *) (((uint32_t) out_c_orig + 15) & ~15);
+  output_opt = (int8_t *) (((uint32_t) out_opt_orig + 15) & ~15);
 
-        out_mult = ESP_NN_TEST_ALLOC(out_channels * sizeof(int32_t));
-        out_shift = ESP_NN_TEST_ALLOC(out_channels * sizeof(int32_t));
+  for (int i = 0; i < size; ++i) {
+    input[i] = rand() % 256 - 128;
+  }
 
-        if (out_shift == NULL || out_mult == NULL) {
-            printf(ANSI_COLOR_RED"out_shift/out_mult allocations failed\n"ANSI_COLOR_RESET);
-            goto fully_connected_per_ch_cleanup;
-        }
+  /* enable profiler */
+  profile_c_start();
 
-        for (int i = 0; i < out_channels; i++) {
-            out_mult[i] = INT32_MAX / row_len + rand() % INT16_MAX;
-            if (i < 4) {
-                out_shift[i] = out_shift_val;
-            } else {
-                out_shift[i] = -10 + rand() % 5;
-            }
-        }
+  /* C function */
+  esp_nn_max_pool_s8_ansi(input, input_wd, input_ht, output_c, out_wd, out_ht, stride_wd, stride_ht, filter_wd,
+                          filter_ht, pad_wd, pad_ht, activation_min, activation_max, channels);
 
-        /* Generate input and filter data */
-        for (int i = 0; i < row_len; ++i) {
-            input[i] = rand() % 256 - 128;
-        }
-        for (int i = 0; i < row_len * out_channels; ++i) {
-            filter_data[i] = rand() % 256 - 128;
-        }
-        
-        /* enable profiler */
-        profile_c_start();
+  profile_c_end();
+  profile_opt_start();
 
-        /* C function */
-        esp_nn_fully_connected_per_ch_s8_ansi(input, input_offset, row_len, filter_data, filter_offset,
-                                    NULL, output_c, out_channels, out_offset, out_shift, out_mult,
-                                    activation_min, activation_max);
+  /* Optimized function */
+  esp_nn_max_pool_s8(input, input_wd, input_ht, output_opt, out_wd, out_ht, stride_wd, stride_ht, filter_wd, filter_ht,
+                     pad_wd, pad_ht, activation_min, activation_max, channels);
 
-        total_c = profile_c_end();
-        profile_opt_start();
+  /* disable profiler */
+  profile_opt_end();
 
-        /* Optimized function */
-        esp_nn_fully_connected_per_ch_s8(input, input_offset, row_len, filter_data, filter_offset,
-                                NULL, output_opt, out_channels, out_offset, out_shift, out_mult,
-                                activation_min, activation_max);
+  bool ret = CHECK_EQUAL(output_c, output_opt, out_wd * out_ht * channels);
+  if (ret == false) {
+    printf(ANSI_COLOR_RED "%s failed\n" ANSI_COLOR_RESET, __FUNCTION__);
+    printf("Output: \n");
+    PRINT_ARRAY_HEX(output_opt, out_wd * out_ht * channels, 1);
+    printf("Expected: \n");
+    PRINT_ARRAY_HEX(output_c, out_wd * out_ht * channels, 1);
+    printf("Input:\n");
+    PRINT_ARRAY_HEX(input, 8, size / 8);
+    goto max_pool_s8_cleanup;
+  }
+  printf(ANSI_COLOR_GREEN "%s passed\n" ANSI_COLOR_RESET, __FUNCTION__);
 
-        /* disable profiler */
-        total_opt = profile_opt_end();
-
-        bool ret = CHECK_EQUAL(output_c, output_opt, out_channels);
-        if (ret == false) {
-            printf(ANSI_COLOR_RED"[%3d] failed\n"ANSI_COLOR_RESET, itr);
-#if 0
-            printf("Output: \n");
-            PRINT_ARRAY_HEX(output_opt, out_channels, 1);
-            printf("Expected: \n");
-            PRINT_ARRAY_HEX(output_c, out_channels, 1);
-            printf("Input:\n");
-            PRINT_ARRAY_HEX(input, row_len, 1);
-            printf("Filter data:\n");
-            PRINT_ARRAY_HEX(filter_data, row_len, out_channels);
-
-            printf("Out shift: ");
-            for (int i = 0; i < out_channels; i++) {
-                printf("%d, ", out_shift[i]);
-            }
-
-            printf("\nOut mult: ");
-            for (int i = 0; i < out_channels; i++) {
-                printf("%d, ", out_mult[i]);
-            }
-            printf("\n");
-#endif
-            goto fully_connected_per_ch_cleanup;
-        }
-        printf(ANSI_COLOR_GREEN"[%3d] passed [row_len %"PRIu16", out_ch %"PRIu16"]"ANSI_COLOR_RESET,
-               itr, row_len, out_channels);
-        printf("\tcycles: c %8"PRIu32", opt %8"PRIu32"\n", total_c, total_opt);
-    
-    fully_connected_per_ch_cleanup:
-        if (out_shift) {
-            free(out_shift);
-        }
-        if (out_mult) {
-            free(out_mult);
-        }
-    }
+max_pool_s8_cleanup:
+  if (input_orig) {
+    free(input_orig);
+  }
+  if (out_c_orig) {
+    free(out_c_orig);
+  }
+  if (out_opt_orig) {
+    free(out_opt_orig);
+  }
 }

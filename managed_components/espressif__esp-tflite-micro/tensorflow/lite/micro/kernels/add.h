@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,66 +13,85 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_MICRO_KERNELS_ADD_H_
-#define TENSORFLOW_LITE_MICRO_KERNELS_ADD_H_
-
-#include <cstdint>
-
 #include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/micro/micro_common.h"
+#include "tensorflow/lite/kernels/internal/quantization_util.h"
+#include "tensorflow/lite/kernels/internal/reference/add.h"
+#include "tensorflow/lite/kernels/internal/reference/integer_ops/add.h"
+#include "tensorflow/lite/kernels/internal/reference/process_broadcast_shapes.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/kernel_util.h"
+#include "tensorflow/lite/kernels/op_macros.h"
+#include "tensorflow/lite/micro/kernels/add.h"
+#include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/memory_helpers.h"
 
 namespace tflite {
 
-extern const int kAddInputTensor1;
-extern const int kAddInputTensor2;
-extern const int kAddOutputTensor;
+const int kAddInputTensor1 = 0;
+const int kAddInputTensor2 = 1;
+const int kAddOutputTensor = 0;
 
-struct OpDataAdd {
-  bool requires_broadcast;
+TfLiteStatus CalculateOpDataAdd(TfLiteContext *context, TfLiteAddParams *params, const TfLiteTensor *input1,
+                                const TfLiteTensor *input2, TfLiteTensor *output, OpDataAdd *data) {
+  data->requires_broadcast = !HaveSameShapes(input1, input2);
 
-  // These fields are used in both the general 8-bit -> 8bit quantized path,
-  // and the special 16-bit -> 16bit quantized path
-  int input1_shift;
-  int input2_shift;
-  int32_t output_activation_min;
-  int32_t output_activation_max;
+  if (output->type == kTfLiteInt8 || output->type == kTfLiteInt16) {
+    TFLITE_CHECK_NE(output->quantization.type, kTfLiteNoQuantization);
 
-  // These fields are used only in the general 8-bit -> 8bit quantized path
-  int32_t input1_multiplier;
-  int32_t input2_multiplier;
-  int32_t output_multiplier;
-  int output_shift;
-  int left_shift;
-  int32_t input1_offset;
-  int32_t input2_offset;
-  int32_t output_offset;
+    // 8bit -> 8bit general quantized path, with general rescalings
+    data->input1_offset = -input1->params.zero_point;
+    data->input2_offset = -input2->params.zero_point;
+    data->output_offset = output->params.zero_point;
+    data->left_shift = (output->type == kTfLiteInt16) ? 15 : 20;
+    const double twice_max_input_scale = 2 * static_cast<double>(std::max(input1->params.scale, input2->params.scale));
+    const double real_input1_multiplier = static_cast<double>(input1->params.scale) / twice_max_input_scale;
+    const double real_input2_multiplier = static_cast<double>(input2->params.scale) / twice_max_input_scale;
+    const double real_output_multiplier =
+        twice_max_input_scale / ((1 << data->left_shift) * static_cast<double>(output->params.scale));
 
-  // Used only for float evals:
-  float output_activation_min_f32;
-  float output_activation_max_f32;
-};
+    QuantizeMultiplierSmallerThanOneExp(real_input1_multiplier, &data->input1_multiplier, &data->input1_shift);
 
-TfLiteStatus CalculateOpDataAdd(TfLiteContext* context, TfLiteAddParams* params,
-                                const TfLiteTensor* input1,
-                                const TfLiteTensor* input2,
-                                TfLiteTensor* output, OpDataAdd* data);
+    QuantizeMultiplierSmallerThanOneExp(real_input2_multiplier, &data->input2_multiplier, &data->input2_shift);
 
-TfLiteStatus AddPrepare(TfLiteContext* context, TfLiteNode* node);
+    QuantizeMultiplierSmallerThanOneExp(real_output_multiplier, &data->output_multiplier, &data->output_shift);
 
-// Generic must define registration function.
-TFLMRegistration Register_ADD();
+    TF_LITE_ENSURE_STATUS(CalculateActivationRangeQuantized(
+        context, params->activation, output, &data->output_activation_min, &data->output_activation_max));
+  } else if (output->type == kTfLiteFloat32) {
+    CalculateActivationRange(params->activation, &data->output_activation_min_f32, &data->output_activation_max_f32);
+  }
 
-#if defined(CMSIS_NN)
-TFLMRegistration Register_ADD_INT8();
+  return kTfLiteOk;
+}
 
-TFLMRegistration Register_ADD_INT16();
-#else
-// Fallback registration
-inline TFLMRegistration Register_ADD_INT8() { return Register_ADD(); }
+TfLiteStatus AddPrepare(TfLiteContext *context, TfLiteNode *node) {
+  TFLITE_DCHECK(node->user_data != nullptr);
+  TFLITE_DCHECK(node->builtin_data != nullptr);
 
-inline TFLMRegistration Register_ADD_INT16() { return Register_ADD(); }
-#endif
+  MicroContext *micro_context = GetMicroContext(context);
+  TfLiteTensor *input1 = micro_context->AllocateTempInputTensor(node, kAddInputTensor1);
+  TF_LITE_ENSURE(context, input1 != nullptr);
+  TfLiteTensor *input2 = micro_context->AllocateTempInputTensor(node, kAddInputTensor2);
+  TF_LITE_ENSURE(context, input2 != nullptr);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kAddOutputTensor);
+  TF_LITE_ENSURE(context, output != nullptr);
+
+  OpDataAdd *data = static_cast<OpDataAdd *>(node->user_data);
+  auto *params = reinterpret_cast<TfLiteAddParams *>(node->builtin_data);
+
+  TF_LITE_ENSURE_STATUS(CalculateOpDataAdd(context, params, input1, input2, output, data));
+
+  if (output->type == kTfLiteInt32) {
+    // Only support int32 unquantized add for now.
+    TF_LITE_ENSURE_EQ(context, input1->quantization.type, kTfLiteNoQuantization);
+    TF_LITE_ENSURE_EQ(context, input2->quantization.type, kTfLiteNoQuantization);
+  }
+
+  micro_context->DeallocateTempTfLiteTensor(input1);
+  micro_context->DeallocateTempTfLiteTensor(input2);
+  micro_context->DeallocateTempTfLiteTensor(output);
+  return kTfLiteOk;
+}
+
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_KERNELS_ADD_H_

@@ -1,4 +1,4 @@
-/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,178 +13,69 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/kernels/depthwise_conv.h"
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_DEPTHWISE_CONV_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_DEPTHWISE_CONV_H_
+
+#include <cstdint>
 
 #include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/portable_tensor_utils.h"
-#include "tensorflow/lite/kernels/internal/reference/depthwiseconv_float.h"
-#include "tensorflow/lite/kernels/internal/reference/integer_ops/depthwise_conv.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/kernels/internal/types.h"
+#include "tensorflow/lite/micro/kernels/conv.h"
 
 namespace tflite {
-namespace {
 
-void* DepthwiseConvInit(TfLiteContext* context, const char* buffer,
-                        size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(OpDataConv));
-}
+extern const int kDepthwiseConvInputTensor;
+extern const int kDepthwiseConvWeightsTensor;
+extern const int kDepthwiseConvBiasTensor;
+extern const int kDepthwiseConvOutputTensor;
+extern const int kDepthwiseConvQuantizedDimension;
 
-TfLiteStatus DepthwiseConvEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->user_data != nullptr);
-  TFLITE_DCHECK(node->builtin_data != nullptr);
+// Returns a DepthwiseParams struct with all the parameters needed for a
+// float computation.
+DepthwiseParams DepthwiseConvParamsFloat(const TfLiteDepthwiseConvParams &params, const OpDataConv &data);
 
-  auto& params =
-      *(reinterpret_cast<TfLiteDepthwiseConvParams*>(node->builtin_data));
-  const OpDataConv& data = *(static_cast<const OpDataConv*>(node->user_data));
+// Returns a DepthwiseParams struct with all the parameters needed for a
+// quantized computation.
+DepthwiseParams DepthwiseConvParamsQuantized(const TfLiteDepthwiseConvParams &params, const OpDataConv &data);
 
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kDepthwiseConvOutputTensor);
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kDepthwiseConvInputTensor);
-  const TfLiteEvalTensor* filter =
-      tflite::micro::GetEvalInput(context, node, kDepthwiseConvWeightsTensor);
-  const TfLiteEvalTensor* bias =
-      (NumInputs(node) == 3)
-          ? tflite::micro::GetEvalInput(context, node, kDepthwiseConvBiasTensor)
-          : nullptr;
+TfLiteStatus CalculateOpDataDepthwiseConv(TfLiteContext *context, TfLiteNode *node,
+                                          const TfLiteDepthwiseConvParams &params, int width, int height,
+                                          int filter_width, int filter_height, int out_width, int out_height,
+                                          const TfLiteType data_type, OpDataConv *data);
 
-#ifdef USE_TFLM_COMPRESSION
+TfLiteStatus DepthwiseConvPrepare(TfLiteContext *context, TfLiteNode *node);
 
-  MicroContext* micro_context = GetMicroContext(context);
+// This is the most generic TFLMRegistration. The actual supported types
+// may still be target dependent. The only requirement is that every
+// implementation (reference or optimized) must define this function.
+TFLMRegistration Register_DEPTHWISE_CONV_2D();
 
-  const CompressionTensorData* filter_comp_td =
-      micro_context->GetTensorCompressionData(node,
-                                              kDepthwiseConvWeightsTensor);
-  const CompressionTensorData* bias_comp_td =
-      micro_context->GetTensorCompressionData(node, kDepthwiseConvBiasTensor);
+#if defined(CMSIS_NN)
+// Returns a TFLMRegistration struct for kernel variant that only supports
+// int8 activations and int8 weights and uses the latency optimized
+// implementations.
+TFLMRegistration Register_DEPTHWISE_CONV_2D_INT8();
 
-#endif  // USE_TFLM_COMPRESSION
+// Returns a TFLMRegistration struct for kernel variant that only supports
+// int16 activations and int8 weights and uses the latency optimized
+// implementations.
+TFLMRegistration Register_DEPTHWISE_CONV_2D_INT16();
 
-  switch (input->type) {  // Already know in/out types are same.
-    case kTfLiteFloat32: {
-      tflite::reference_ops::DepthwiseConv(
-          DepthwiseConvParamsFloat(params, data),
-          tflite::micro::GetTensorShape(input),
-          tflite::micro::GetTensorData<float>(input),
-          tflite::micro::GetTensorShape(filter),
-#ifdef USE_TFLM_COMPRESSION
-          tflite::micro::GetTensorData<float>(micro_context, filter,
-                                              filter_comp_td,
-                                              data.weights_scratch_index),
-          tflite::micro::GetTensorShape(bias),
-          tflite::micro::GetOptionalTensorData<float>(
-              micro_context, bias, bias_comp_td, data.bias_scratch_index),
-#else   // USE_TFLM_COMPRESSION
-          tflite::micro::GetTensorData<float>(filter),
-          tflite::micro::GetTensorShape(bias),
-          tflite::micro::GetOptionalTensorData<float>(bias),
-#endif  // USE_TFLM_COMPRESSION
-          tflite::micro::GetTensorShape(output),
-          tflite::micro::GetTensorData<float>(output));
-      break;
-    }
-    case kTfLiteInt8: {
-      switch (filter->type) {
-        case kTfLiteInt4: {
-          int8_t* unpacked_filter_data = static_cast<int8_t*>(
-              context->GetScratchBuffer(context, data.filter_buffer_index));
-          tflite::tensor_utils::UnpackDenseInt4IntoInt8(
-              tflite::micro::GetTensorData<int8_t>(filter),
-              tflite::micro::GetTensorShape(filter).FlatSize(),
-              unpacked_filter_data);
-          reference_integer_ops::DepthwiseConvPerChannel(
-              DepthwiseConvParamsQuantized(params, data),
-              data.per_channel_output_multiplier, data.per_channel_output_shift,
-              tflite::micro::GetTensorShape(input),
-              tflite::micro::GetTensorData<int8_t>(input),
-              tflite::micro::GetTensorShape(filter), unpacked_filter_data,
-              tflite::micro::GetTensorShape(bias),
-              tflite::micro::GetOptionalTensorData<int32_t>(bias),
-              tflite::micro::GetTensorShape(output),
-              tflite::micro::GetTensorData<int8_t>(output));
-          break;
-        }
-        case kTfLiteInt8: {
-          reference_integer_ops::DepthwiseConvPerChannel(
-              DepthwiseConvParamsQuantized(params, data),
-              data.per_channel_output_multiplier, data.per_channel_output_shift,
-              tflite::micro::GetTensorShape(input),
-              tflite::micro::GetTensorData<int8_t>(input),
-              tflite::micro::GetTensorShape(filter),
-#ifdef USE_TFLM_COMPRESSION
-              tflite::micro::GetTensorData<int8_t>(micro_context, filter,
-                                                   filter_comp_td,
-                                                   data.weights_scratch_index),
-              tflite::micro::GetTensorShape(bias),
-              tflite::micro::GetOptionalTensorData<int32_t>(
-                  micro_context, bias, bias_comp_td, data.bias_scratch_index),
-#else   // USE_TFLM_COMPRESSION
-              tflite::micro::GetTensorData<int8_t>(filter),
-              tflite::micro::GetTensorShape(bias),
-              tflite::micro::GetOptionalTensorData<int32_t>(bias),
-#endif  // USE_TFLM_COMPRESSION
-              tflite::micro::GetTensorShape(output),
-              tflite::micro::GetTensorData<int8_t>(output));
-          break;
-        }
-        default:
-          MicroPrintf("Filter type %s (%d) for input type %s not supported.",
-                      TfLiteTypeGetName(filter->type), filter->type,
-                      TfLiteTypeGetName(input->type));
-          return kTfLiteError;
-      }
-      break;
-    }
-    case kTfLiteInt16: {
-      switch (filter->type) {
-        case kTfLiteInt8: {
-          reference_integer_ops::DepthwiseConvPerChannel(
-              DepthwiseConvParamsQuantized(params, data),
-              data.per_channel_output_multiplier, data.per_channel_output_shift,
-              tflite::micro::GetTensorShape(input),
-              tflite::micro::GetTensorData<int16_t>(input),
-              tflite::micro::GetTensorShape(filter),
-#ifdef USE_TFLM_COMPRESSION
-              tflite::micro::GetTensorData<int8_t>(micro_context, filter,
-                                                   filter_comp_td,
-                                                   data.weights_scratch_index),
-              tflite::micro::GetTensorShape(bias),
-              tflite::micro::GetOptionalTensorData<int64_t>(
-                  micro_context, bias, bias_comp_td, data.bias_scratch_index),
-#else   // USE_TFLM_COMPRESSION
-              tflite::micro::GetTensorData<int8_t>(filter),
-              tflite::micro::GetTensorShape(bias),
-              tflite::micro::GetOptionalTensorData<int64_t>(bias),
-#endif  // USE_TFLM_COMPRESSION
-              tflite::micro::GetTensorShape(output),
-              tflite::micro::GetTensorData<int16_t>(output));
-          break;
-        }
-        default:
-          MicroPrintf("Filter type %s (%d) for input type %s not supported.",
-                      TfLiteTypeGetName(filter->type), filter->type,
-                      TfLiteTypeGetName(input->type));
-          return kTfLiteError;
-      }
-      break;
-    }
-    default:
-      MicroPrintf("Input type %s (%d) not supported.",
-                  TfLiteTypeGetName(input->type), input->type);
-      return kTfLiteError;
-  }
-  return kTfLiteOk;
-}
+// Returns a TFLMRegistration struct for kernel variant that only supports
+// int8 activations and int4 weights and uses the latency optimized
+// implementations.
+TFLMRegistration Register_DEPTHWISE_CONV_2D_INT4();
 
-}  // namespace
+#else
+inline TFLMRegistration Register_DEPTHWISE_CONV_2D_INT8() { return Register_DEPTHWISE_CONV_2D(); }
 
-TFLMRegistration Register_DEPTHWISE_CONV_2D() {
-  return tflite::micro::RegisterOp(DepthwiseConvInit, DepthwiseConvPrepare,
-                                   DepthwiseConvEval);
-}
+inline TFLMRegistration Register_DEPTHWISE_CONV_2D_INT16() { return Register_DEPTHWISE_CONV_2D(); }
+
+inline TFLMRegistration Register_DEPTHWISE_CONV_2D_INT4() { return Register_DEPTHWISE_CONV_2D(); }
+
+#endif
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_DEPTHWISE_CONV_H_

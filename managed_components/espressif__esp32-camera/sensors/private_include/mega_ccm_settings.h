@@ -1,19 +1,34 @@
-#ifndef _GC032A_SETTINGS_H_
-#define _GC032A_SETTINGS_H_
+/*
+ * This file is part of the OpenMV project.
+ * Copyright (c) 2013/2014 Ibrahim Abdelkader <i.abdalkader@gmail.com>
+ * This work is licensed under the MIT license, see the file LICENSE for details.
+ *
+ * NT99141 driver.
+ *
+ */
+#ifndef __NT99141_H__
+#define __NT99141_H__
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "esp_attr.h"
-#include "mega_ccm_regs.h"
+#include "sensor.h"
 
+/**
+ * @brief Detect sensor pid
+ *
+ * @param slv_addr SCCB address
+ * @param id Detection result
+ * @return
+ *     0:       Can't detect this sensor
+ *     Nonzero: This sensor has been detected
+ */
+int nt99141_detect(int slv_addr, sensor_id_t *id);
 
-#define REG_DLY 0xffff
-#define REGLIST_TAIL 0x0000
+/**
+ * @brief initialize sensor function pointers
+ *
+ * @param sensor pointer of sensor
+ * @return
+ *      Always 0
+ */
+int nt99141_init(sensor_t *sensor);
 
-static const uint16_t mega_ccm_default_regs[][2] = {
-    {0x0120,      0x01 }, // JPEG 
-    {0x0121,      0x01 }, // 320X240
-    {REGLIST_TAIL, 0x00},
-};
-
-#endif
+#endif  // __NT99141_H__

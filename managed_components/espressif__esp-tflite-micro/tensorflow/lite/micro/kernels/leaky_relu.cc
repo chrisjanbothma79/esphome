@@ -13,83 +13,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/leaky_relu.h"
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_LEAKY_RELU_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_LEAKY_RELU_H_
 
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/reference/process_broadcast_shapes.h"
-#include "tensorflow/lite/kernels/internal/types.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/leaky_relu.h"
-#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
 
-template <typename T>
-void QuantizeLeakyRelu(const LeakyReluOpData& data,
-                       const TfLiteEvalTensor* input,
-                       TfLiteEvalTensor* output) {
-  LeakyReluParams op_params = {};
+// Input/output tensor index.
+extern const int kInputTensor;
+extern const int kOutputTensor;
 
-  op_params.input_offset = data.input_zero_point;
-  op_params.output_offset = data.output_zero_point;
-  op_params.output_multiplier_alpha = data.output_multiplier_alpha;
-  op_params.output_shift_alpha = data.output_shift_alpha;
-  op_params.output_multiplier_identity = data.output_multiplier_identity;
-  op_params.output_shift_identity = data.output_shift_identity;
-  reference_ops::QuantizeLeakyRelu(op_params,
-                                   tflite::micro::GetTensorShape(input),
-                                   tflite::micro::GetTensorData<T>(input),
-                                   tflite::micro::GetTensorShape(output),
-                                   tflite::micro::GetTensorData<T>(output));
-}
+struct LeakyReluOpData {
+  // quantization parameters
+  int32_t output_multiplier_alpha;
+  int32_t output_shift_alpha;
+  int32_t output_multiplier_identity;
+  int32_t output_shift_identity;
+  int32_t input_zero_point;
+  int32_t output_zero_point;
+};
 
-void* LeakyReluInit(TfLiteContext* context, const char* buffer, size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(LeakyReluOpData));
-}
+TfLiteStatus CalculateOpDataLeakyRelu(TfLiteContext *context, TfLiteNode *node);
 
-TfLiteStatus LeakyReluEval(TfLiteContext* context, TfLiteNode* node) {
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-  const LeakyReluOpData& data = *static_cast<LeakyReluOpData*>(node->user_data);
-
-  switch (input->type) {
-    case kTfLiteFloat32: {
-      LeakyReluParams op_params = {};
-      const auto* params =
-          static_cast<TfLiteLeakyReluParams*>(node->builtin_data);
-
-      op_params.alpha = params->alpha;
-      reference_ops::LeakyRelu(op_params, tflite::micro::GetTensorShape(input),
-                               tflite::micro::GetTensorData<float>(input),
-                               tflite::micro::GetTensorShape(output),
-                               tflite::micro::GetTensorData<float>(output));
-      return kTfLiteOk;
-    } break;
-    case kTfLiteInt8: {
-      QuantizeLeakyRelu<int8_t>(data, input, output);
-      return kTfLiteOk;
-    } break;
-    case kTfLiteInt16: {
-      QuantizeLeakyRelu<int16_t>(data, input, output);
-      return kTfLiteOk;
-    } break;
-    default:
-      MicroPrintf("Only float32, int8 are supported by LEAKY_RELU, got %s.",
-                  TfLiteTypeGetName(input->type));
-      return kTfLiteError;
-  }
-
-  return kTfLiteError;
-}
-
-TFLMRegistration Register_LEAKY_RELU() {
-  return tflite::micro::RegisterOp(LeakyReluInit, LeakyReluPrepare,
-                                   LeakyReluEval);
-}
+TfLiteStatus LeakyReluPrepare(TfLiteContext *context, TfLiteNode *node);
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_LEAKY_RELU_H_

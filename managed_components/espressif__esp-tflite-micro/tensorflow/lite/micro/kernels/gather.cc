@@ -13,7 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
@@ -24,201 +23,171 @@ limitations under the License.
 namespace tflite {
 namespace {
 
-constexpr int kInputTensor = 0;
-constexpr int kInputPositions = 1;
+constexpr int kParams = 0;
+constexpr int kIndices = 1;
 constexpr int kOutputTensor = 0;
+constexpr int MAX_INDICES_ND = 5;
 
-template <typename InputT, typename CoordsT = int32_t>
-TfLiteStatus Gather(const TfLiteGatherParams* params,
-                    const TfLiteEvalTensor* input,
-                    const TfLiteEvalTensor* coords, TfLiteEvalTensor* output) {
-  const InputT* input_data = tflite::micro::GetTensorData<InputT>(input);
-  const CoordsT* coords_data = tflite::micro::GetTensorData<CoordsT>(coords);
-  InputT* output_data = tflite::micro::GetTensorData<InputT>(output);
-  const TfLiteIntArray* input_dims = input->dims;
-  const int input_dims_size = input_dims->size;
-  int axis = params->axis;
-  if (axis < 0) {
-    axis += input_dims_size;
-  }
-  TFLITE_DCHECK_GE(axis, 0);
-  TFLITE_DCHECK_LT(axis, input_dims_size);
-
-  int batch_dims = params->batch_dims;
-  // batch_dims should be in range: [-rank(coords), rank(coords)].
-  // Negative batch_dims is added with rank of coords.
-  const TfLiteIntArray* coords_dims = coords->dims;
-  const int coords_dims_size = coords_dims->size;
-  if (batch_dims < 0) {
-    batch_dims += coords_dims_size;
-  }
-  TFLITE_DCHECK_GE(batch_dims, 0);
-  TFLITE_DCHECK_LT(batch_dims, input_dims_size);
-  TFLITE_DCHECK_LE(batch_dims, coords_dims_size);
-  TFLITE_DCHECK_GE(axis, batch_dims);
-  for (int i = 0; i < batch_dims; ++i) {
-    TFLITE_DCHECK_EQ(input_dims->data[i], coords_dims->data[i]);
-  }
-
-  const int axis_size = input_dims->data[axis];
-
-  int batch_size = 1;
-  for (int i = 0; i < batch_dims; ++i) {
-    batch_size *= input_dims->data[i];
-  }
-  int outer_size = 1;
-  for (int i = batch_dims; i < axis; ++i) {
-    outer_size *= input_dims->data[i];
-  }
-  int inner_size = 1;
-  for (int i = axis + 1; i < input_dims_size; ++i) {
-    inner_size *= input_dims->data[i];
-  }
-  int coord_size = 1;
-  for (int i = batch_dims; i < coords_dims_size; ++i) {
-    coord_size *= coords_dims->data[i];
-  }
-
-  for (int batch = 0; batch < batch_size; ++batch) {
-    for (int outer = 0; outer < outer_size; ++outer) {
-      for (int coord = 0; coord < coord_size; ++coord) {
-        TFLITE_DCHECK_GE(coords_data[coord], 0);
-        TFLITE_DCHECK_LT(coords_data[coord], axis_size);
-        std::memcpy(output_data +
-                        (((batch * outer_size) + outer) * coord_size + coord) *
-                            inner_size,
-                    input_data + (((batch * outer_size) + outer) * axis_size +
-                                  coords_data[batch * coord_size + coord]) *
-                                     inner_size,
-                    sizeof(InputT) * inner_size);
-      }
-    }
-  }
-  return kTfLiteOk;
-}
-
-TfLiteStatus GatherPrepare(TfLiteContext* context, TfLiteNode* node) {
-  MicroContext* micro_context = GetMicroContext(context);
+TfLiteStatus GatherNdPrepare(TfLiteContext *context, TfLiteNode *node) {
+  MicroContext *micro_context = GetMicroContext(context);
 
   TF_LITE_ENSURE_EQ(context, NumInputs(node), 2);
   TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
 
-  const auto* params =
-      reinterpret_cast<const TfLiteGatherParams*>(node->builtin_data);
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
-  TF_LITE_ENSURE(context, input != nullptr);
-  TfLiteTensor* coords =
-      micro_context->AllocateTempInputTensor(node, kInputPositions);
-  TF_LITE_ENSURE(context, coords != nullptr);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TfLiteTensor *params = micro_context->AllocateTempInputTensor(node, kParams);
+  TF_LITE_ENSURE(context, params != nullptr);
+  TfLiteTensor *indices = micro_context->AllocateTempInputTensor(node, kIndices);
+  TF_LITE_ENSURE(context, indices != nullptr);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
   TF_LITE_ENSURE(context, output != nullptr);
 
-  switch (coords->type) {
-    case kTfLiteInt32:
-      break;
-    default:
-      MicroPrintf("Positions of type '%s' are not supported by gather.",
-                  TfLiteTypeGetName(coords->type));
-      return kTfLiteError;
-      break;
-  }
-
-  // Assign to output the input type.
-  output->type = input->type;
-
-  // Check conditions for different types.
-  switch (input->type) {
+  switch (params->type) {
     case kTfLiteFloat32:
     case kTfLiteInt8:
       break;
     default:
-      MicroPrintf("Type '%s' is not supported by gather.",
-                  TfLiteTypeGetName(input->type));
+      MicroPrintf("Params of type '%s' are not supported by gather_nd.", TfLiteTypeGetName(params->type));
       return kTfLiteError;
       break;
   }
-
-  int axis = params->axis;
-  if (axis < 0) {
-    axis += NumDimensions(input);
-  }
-  TF_LITE_ENSURE(context, 0 <= axis && axis < NumDimensions(input));
-
-  int batch_dims = params->batch_dims;
-  // batch_dims should be in range: [-rank(coords), rank(coords)].
-  // Negative batch_dims is added with rank of coords.
-  if (batch_dims < 0) {
-    batch_dims += NumDimensions(coords);
-  }
-  TF_LITE_ENSURE(context, batch_dims <= axis);
-  TF_LITE_ENSURE(context, 0 <= batch_dims && batch_dims < NumDimensions(input));
-  TF_LITE_ENSURE(context, batch_dims <= NumDimensions(coords));
-  for (int i = 0; i < batch_dims; ++i) {
-    TF_LITE_ENSURE_EQ(context, input->dims->data[i], coords->dims->data[i]);
+  switch (indices->type) {
+    case kTfLiteInt32:
+      break;
+    default:
+      MicroPrintf("Indices of type '%s' are not supported by gather_nd.", TfLiteTypeGetName(indices->type));
+      return kTfLiteError;
   }
 
-  // GATHER updates the output tensor dimensions, but TfLiteTensor in the
-  // MicroInterpreter is a temporary allocation. We must therefore relocate the
-  // dims from the FlatBuffer to the persistent storage arena.
-  TfLiteEvalTensor* output_eval =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-  TF_LITE_ENSURE_OK(context, tflite::micro::CreateWritableTensorDimsWithCopy(
-                                 context, output, output_eval));
+  const int params_rank = NumDimensions(params);
+  const int indices_rank = NumDimensions(indices);
+  const int indices_nd = SizeOfDimension(indices, indices_rank - 1);
+  if (params_rank < 1) {
+    MicroPrintf("Params must be at least a vector.");
+    return kTfLiteError;
+  }
+  if (indices_rank < 1) {
+    MicroPrintf("Indices must be at least a vector.");
+    return kTfLiteError;
+  }
+  if (indices_nd > params_rank) {
+    MicroPrintf("Index innermost dimension length must be <= params rank.");
+    return kTfLiteError;
+  }
+  if (indices_nd > MAX_INDICES_ND) {
+    MicroPrintf("Index innermost dimension length must not exceed %d.", MAX_INDICES_ND);
+    return kTfLiteError;
+  }
 
-  TfLiteIntArray* output_shape = output->dims;
-  output_shape->size =
-      NumDimensions(input) + NumDimensions(coords) - 1 - batch_dims;
+  // Assign to output the input type.
+  output->type = params->type;
+
+  // The tensor output dims must be relocated
+  // from the FlatBuffer to the persistent storage arena.
+  TfLiteEvalTensor *output_eval = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  TF_LITE_ENSURE_OK(context, tflite::micro::CreateWritableTensorDimsWithCopy(context, output, output_eval));
+
+  // TFLM gather_nd does not create the output tensor, but it needs to ensure
+  // that the output shape is correct. The result shape is
+  // indices.shape[:-1] + params.shape[indices.shape[-1]:]
+  TfLiteIntArray *output_shape = output->dims;
   int output_index = 0;
-  for (int i = 0; i < axis; ++i) {
-    output_shape->data[output_index++] = input->dims->data[i];
+  for (int i = 0; i < indices_rank - 1; ++i) {
+    output_shape->data[output_index++] = indices->dims->data[i];
   }
-  for (int i = batch_dims; i < coords->dims->size; ++i) {
-    output_shape->data[output_index++] = coords->dims->data[i];
+  for (int i = indices_nd; i < params_rank; ++i) {
+    output_shape->data[output_index++] = params->dims->data[i];
   }
-  for (int i = axis + 1; i < input->dims->size; ++i) {
-    output_shape->data[output_index++] = input->dims->data[i];
-  }
+  output_shape->size = output_index;
 
-  micro_context->DeallocateTempTfLiteTensor(input);
-  micro_context->DeallocateTempTfLiteTensor(coords);
+  micro_context->DeallocateTempTfLiteTensor(params);
+  micro_context->DeallocateTempTfLiteTensor(indices);
   micro_context->DeallocateTempTfLiteTensor(output);
-
   return kTfLiteOk;
 }
 
-TfLiteStatus GatherEval(TfLiteContext* context, TfLiteNode* node) {
-  const auto* params =
-      reinterpret_cast<const TfLiteGatherParams*>(node->builtin_data);
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  const TfLiteEvalTensor* coords =
-      tflite::micro::GetEvalInput(context, node, kInputPositions);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+template<typename ParamsT, typename IndicesT>
+TfLiteStatus GatherNd(const TfLiteEvalTensor *params, const TfLiteEvalTensor *indices, TfLiteEvalTensor *output) {
+  const int indices_dims = indices->dims->size;
+  const int indices_nd = indices->dims->data[indices_dims - 1];
+  const int params_dims = params->dims->size;
+  const IndicesT *index_data = tflite::micro::GetTensorData<IndicesT>(indices);
+  const ParamsT *param_data = tflite::micro::GetTensorData<ParamsT>(params);
+  ParamsT *output_data = tflite::micro::GetTensorData<ParamsT>(output);
 
-  if (coords->type == kTfLiteInt32) {
-    switch (input->type) {
-      case kTfLiteFloat32:
-        return Gather<float, int32_t>(params, input, coords, output);
-        break;
-      case kTfLiteInt8:
-        return Gather<int8_t, int32_t>(params, input, coords, output);
-        break;
-      default:
-        MicroPrintf("Type '%s' is not supported by gather.",
-                    TfLiteTypeGetName(input->type));
-        return kTfLiteError;
-        break;
+  int n_slices = 1;
+  for (int i = 0; i < indices_dims - 1; ++i) {
+    n_slices *= indices->dims->data[i];
+  }
+
+  // If indices[-1] == params.rank, fetch single elements.
+  // If indices[-1] < params.rank, fetch slices.
+  int slice_size = 1;
+  for (int i = indices_nd; i < params_dims; ++i) {
+    slice_size *= params->dims->data[i];
+  }
+
+  int params_flat_size = ElementCount(*params->dims);
+  int remain_flat_size = params_flat_size;
+
+  // Number of elements per dimension
+  int dims_to_count[MAX_INDICES_ND];
+  for (int i = 0; i < indices_nd; ++i) {
+    dims_to_count[i] = remain_flat_size / params->dims->data[i];
+    remain_flat_size = dims_to_count[i];
+  }
+
+  for (int i = 0; i < n_slices; ++i) {
+    int from_pos = 0;
+    for (int j = 0; j < indices_nd; ++j) {
+      int offset = i * indices_nd + j;
+      IndicesT index = index_data[offset];
+      from_pos += index * dims_to_count[j];
     }
+    if (from_pos < 0 || from_pos + slice_size > params_flat_size) {
+      return kTfLiteError;
+    }
+    std::memcpy(output_data + i * slice_size, param_data + from_pos, sizeof(ParamsT) * slice_size);
   }
   return kTfLiteOk;
+}
+
+template<typename IndicesT>
+TfLiteStatus EvalGatherNd(TfLiteContext *context, const TfLiteEvalTensor *params, const TfLiteEvalTensor *indices,
+                          TfLiteEvalTensor *output) {
+  TfLiteStatus status = kTfLiteError;
+  switch (params->type) {
+    case kTfLiteFloat32:
+      status = GatherNd<float, IndicesT>(params, indices, output);
+      break;
+    case kTfLiteInt8:
+      status = GatherNd<int8_t, IndicesT>(params, indices, output);
+      break;
+    default:
+      MicroPrintf("Params type '%s' are not supported by gather_nd.", TfLiteTypeGetName(params->type));
+      return kTfLiteError;
+  }
+  if (status != kTfLiteOk) {
+    MicroPrintf("gather_nd index out of bounds");
+  }
+  return status;
+}
+
+TfLiteStatus GatherNdEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *params = tflite::micro::GetEvalInput(context, node, kParams);
+  const TfLiteEvalTensor *indices = tflite::micro::GetEvalInput(context, node, kIndices);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+
+  switch (indices->type) {
+    case kTfLiteInt32:
+      return EvalGatherNd<int32_t>(context, params, indices, output);
+      break;
+    default:
+      MicroPrintf("Indices of type '%s' are not supported by gather_nd.", TfLiteTypeGetName(indices->type));
+      return kTfLiteError;
+  }
 }
 }  // namespace
 
-TFLMRegistration Register_GATHER() {
-  return tflite::micro::RegisterOp(nullptr, GatherPrepare, GatherEval);
-}
+TFLMRegistration Register_GATHER_ND() { return tflite::micro::RegisterOp(nullptr, GatherNdPrepare, GatherNdEval); }
 
 }  // namespace tflite

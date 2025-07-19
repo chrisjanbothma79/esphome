@@ -12,41 +12,47 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/micro/arena_allocator/persistent_arena_buffer_allocator.h"
+#ifndef TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_
+#define TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_
 
-#include "tensorflow/lite/micro/memory_helpers.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include <cstddef>
+#include <cstdint>
+
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/micro/arena_allocator/ibuffer_allocator.h"
+#include "tensorflow/lite/micro/compatibility.h"
 
 namespace tflite {
 
-PersistentArenaBufferAllocator::PersistentArenaBufferAllocator(
-    uint8_t* buffer, size_t buffer_size)
-    : buffer_head_(buffer),
-      buffer_tail_(buffer + buffer_size),
-      tail_temp_(buffer_tail_) {}
+// PersistentArenaBufferAllocator is an implementatation of
+// IPersistentBufferAllocator interface on an arena that is dedicated for
+// persistent buffers.
+class PersistentArenaBufferAllocator : public IPersistentBufferAllocator {
+ public:
+  PersistentArenaBufferAllocator(uint8_t *buffer, size_t buffer_size);
+  virtual ~PersistentArenaBufferAllocator();
 
-PersistentArenaBufferAllocator::~PersistentArenaBufferAllocator() {}
+  // Allocates persistent memory. The persistent buffer is never freed.
+  // Returns nullptr if errors occured.
+  uint8_t *AllocatePersistentBuffer(size_t size, size_t alignment) override;
 
-uint8_t* PersistentArenaBufferAllocator::AllocatePersistentBuffer(
-    size_t size, size_t alignment) {
-  uint8_t* const aligned_result =
-      AlignPointerDown(tail_temp_ - size, alignment);
-  if (aligned_result < buffer_head_) {
-#ifndef TF_LITE_STRIP_ERROR_STRINGS
-    const size_t missing_memory = buffer_head_ - aligned_result;
-    MicroPrintf(
-        "Failed to allocate tail memory. Requested: %u, "
-        "available %u, missing: %u",
-        size, size - missing_memory, missing_memory);
-#endif
-    return nullptr;
-  }
-  tail_temp_ = aligned_result;
-  return aligned_result;
-}
+  // Returns the size of all persistent allocations in bytes.
+  size_t GetPersistentUsedBytes() const override;
 
-size_t PersistentArenaBufferAllocator::GetPersistentUsedBytes() const {
-  return buffer_tail_ - tail_temp_;
-}
+  TF_LITE_REMOVE_VIRTUAL_DELETE
+ private:
+  // The memory arena that this allocator manages.
+  uint8_t *const buffer_head_;
+  uint8_t *const buffer_tail_;
+
+  // The whole region is split into two parts:
+  // tail_temp_ to buffer_tail_ contains allocated buffers;
+  // buffer_head_ to tail_temp_ - 1 belongs to still available spaces.
+  // So in essence, the allocated region grows from the bottom and emulates
+  // SingleArenaBufferAllocator's persistent part.
+  uint8_t *tail_temp_;
+};
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_

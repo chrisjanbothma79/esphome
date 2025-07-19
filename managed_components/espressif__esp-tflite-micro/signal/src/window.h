@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,20 +12,28 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#include "tensorflow/compiler/mlir/lite/core/api/error_reporter.h"
 
-#ifndef SIGNAL_SRC_WINDOW_H_
-#define SIGNAL_SRC_WINDOW_H_
+#include <cstdarg>
 
-#include <stdint.h>
+namespace tflite {
 
-namespace tflm_signal {
+int ErrorReporter::Report(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  int code = Report(format, args);
+  va_end(args);
+  return code;
+}
 
-// Applies a window function to an input signal
-//
-// * `input` and `window` must be both of size `size` elements and are
-//    multiplied element-by element.
-// * `shift` is a right shift to apply before writing the result to `output`.
-void ApplyWindow(const int16_t* input, const int16_t* window, int size,
-                 int shift, int16_t* output);
-}  // namespace tflm_signal
-#endif  // SIGNAL_SRC_WINDOW_H_
+// TODO(aselle): Make the name of ReportError on context the same, so
+// we can use the ensure functions w/o a context and w/ a reporter.
+int ErrorReporter::ReportError(void *, const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  int code = Report(format, args);
+  va_end(args);
+  return code;
+}
+
+}  // namespace tflite

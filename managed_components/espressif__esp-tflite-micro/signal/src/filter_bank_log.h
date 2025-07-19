@@ -13,26 +13,48 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef SIGNAL_SRC_FILTER_BANK_LOG_H_
-#define SIGNAL_SRC_FILTER_BANK_LOG_H_
-
-#include <stdint.h>
+#include "signal/src/filter_bank_spectral_subtraction.h"
 
 namespace tflite {
 namespace tflm_signal {
-// TODO(b/286250473): remove namespace once de-duped libraries above
 
-// Apply natural log to each element in array `input` of size `num_channels`
-// with pre-shift and post scaling.
-// The operation is roughly equivalent to:
-// `output` = min(Log(`input` << `correction_bits`) * `output_scale`, INT16_MAX)
-//  Where:
-//    If (input << `correction_bits`) is 1 or 0, the function returns 0
-void FilterbankLog(const uint32_t* input, int num_channels,
-                   int32_t output_scale, uint32_t correction_bits,
-                   int16_t* output);
+void FilterbankSpectralSubtraction(const SpectralSubtractionConfig *config, const uint32_t *input, uint32_t *output,
+                                   uint32_t *noise_estimate) {
+  const bool data_clamping = config->clamping;
+  const int smoothing_bits = config->smoothing_bits;
+  const int num_channels = config->num_channels;
+
+  for (int i = 0; i < num_channels; ++i) {
+    uint32_t smoothing;
+    uint32_t one_minus_smoothing;
+    if ((i & 1) == 0) {
+      smoothing = config->smoothing;
+      one_minus_smoothing = config->one_minus_smoothing;
+    } else {  // Use alternate smoothing coefficient on odd-index channels.
+      smoothing = config->alternate_smoothing;
+      one_minus_smoothing = config->alternate_one_minus_smoothing;
+    }
+
+    // Scale up signal[i] for smoothing filter computation.
+    const uint32_t signal_scaled_up = input[i] << smoothing_bits;
+    noise_estimate[i] = ((static_cast<uint64_t>(signal_scaled_up) * smoothing) +
+                         (static_cast<uint64_t>(noise_estimate[i]) * one_minus_smoothing)) >>
+                        config->spectral_subtraction_bits;
+
+    uint32_t estimate_scaled_up = noise_estimate[i];
+    // Make sure that we can't get a negative value for the signal - estimate.
+    if (estimate_scaled_up > signal_scaled_up) {
+      estimate_scaled_up = signal_scaled_up;
+      if (data_clamping) {
+        noise_estimate[i] = estimate_scaled_up;
+      }
+    }
+    const uint32_t floor =
+        (static_cast<uint64_t>(input[i]) * config->min_signal_remaining) >> config->spectral_subtraction_bits;
+    const uint32_t subtracted = (signal_scaled_up - estimate_scaled_up) >> smoothing_bits;
+    output[i] = subtracted > floor ? subtracted : floor;
+  }
+}
 
 }  // namespace tflm_signal
 }  // namespace tflite
-
-#endif  // SIGNAL_SRC_FILTER_BANK_LOG_H_

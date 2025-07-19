@@ -12,43 +12,30 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#ifndef TENSORFLOW_LITE_MICRO_DEBUG_LOG_H_
+#define TENSORFLOW_LITE_MICRO_DEBUG_LOG_H_
 
-// Reference implementation of the DebugLog() function that's required for a
-// platform to support the TensorFlow Lite for Microcontrollers library. This is
-// the only function that's absolutely required to be available on a target
-// device, since it's used for communicating test results back to the host so
-// that we can verify the implementation is working correctly.
-// This function should support standard C/C++ stdio style formatting
-// operations. It's designed to be as easy as possible to supply an
-// implementation though. On platforms that have a POSIX stack or C library, it
-// can be written as a single call to `vfprintf(stderr, format, args)` to output
-// a string to the error stream of the console, but if there's no OS or C
-// library available, there's almost always an equivalent way to write out a
-// string to some serial interface that can be used instead. To add an
-// equivalent function for your own platform, create your own implementation
-// file, and place it in a subfolder with named after the OS you're targeting.
-// For example, see the Cortex M bare metal version in the
-// tensorflow/lite/micro/bluepill/debug_log.cc file.
+#ifdef __cplusplus
+#include <cstdarg>
+#include <cstddef>
+#else
+#include <stdarg.h>
+#include <stddef.h>
+#endif  // __cplusplus
 
-#include "tensorflow/lite/micro/debug_log.h"
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
 
-#ifndef TF_LITE_STRIP_ERROR_STRINGS
-#include <cstdio>
-#endif
+// These functions should be implemented by each target platform, and provide a
+// way for strings to be output to some text stream. For more information, see
+// the tensorflow/lite/micro/debug_log.cc file.  These functions should support
+// standard C/C++ stdio style formatting operations.
+void DebugLog(const char *format, va_list args);
+int DebugVsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist);
 
-extern "C" void DebugLog(const char* format, va_list args) {
-#ifndef TF_LITE_STRIP_ERROR_STRINGS
-  // Reusing TF_LITE_STRIP_ERROR_STRINGS to disable DebugLog completely to get
-  // maximum reduction in binary size. This is because we have DebugLog calls
-  // via TF_LITE_CHECK that are not stubbed out by TF_LITE_REPORT_ERROR.
-  vfprintf(stderr, format, args);
-#endif
-}
+#ifdef __cplusplus
+}  // extern "C"
+#endif  // __cplusplus
 
-#ifndef TF_LITE_STRIP_ERROR_STRINGS
-// Only called from MicroVsnprintf (micro_log.h)
-extern "C" int DebugVsnprintf(char* buffer, size_t buf_size, const char* format,
-                              va_list vlist) {
-  return vsnprintf(buffer, buf_size, format, vlist);
-}
-#endif
+#endif  // TENSORFLOW_LITE_MICRO_DEBUG_LOG_H_

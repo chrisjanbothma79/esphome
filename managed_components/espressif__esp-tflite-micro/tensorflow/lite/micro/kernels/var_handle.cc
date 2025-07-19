@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,72 +23,92 @@ limitations under the License.
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/memory_helpers.h"
+#include "tensorflow/lite/micro/micro_context.h"
 #include "tensorflow/lite/micro/micro_graph.h"
-#include "tensorflow/lite/micro/micro_log.h"
-#include "tensorflow/lite/micro/micro_resource_variable.h"
-#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/micro/micro_utils.h"
 
 namespace tflite {
 
 namespace {
 
 struct OpData {
-  int32_t resource_id;
+  int cond_subgraph_index;
+  int body_subgraph_index;
 };
 
-void* VarHandleInit(TfLiteContext* context, const char* buffer, size_t length) {
+void *WhileInit(TfLiteContext *context, const char *buffer, size_t length) {
   TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
   return context->AllocatePersistentBuffer(context, sizeof(OpData));
 }
 
-TfLiteStatus VarHandlePrepare(TfLiteContext* context, TfLiteNode* node) {
-  OpData* op_data = reinterpret_cast<OpData*>(node->user_data);
-  const auto* params =
-      reinterpret_cast<const TfLiteVarHandleParams*>(node->builtin_data);
+TfLiteStatus WhilePrepare(TfLiteContext *context, TfLiteNode *node) {
+  OpData *op_data = reinterpret_cast<OpData *>(node->user_data);
+  const auto *params = reinterpret_cast<const TfLiteWhileParams *>(node->builtin_data);
 
-  tflite::MicroContext* micro_context = tflite::GetMicroContext(context);
-  MicroGraph& graph_info = micro_context->graph();
+  op_data->cond_subgraph_index = params->cond_subgraph_index;
+  op_data->body_subgraph_index = params->body_subgraph_index;
 
-  MicroResourceVariables* resources = graph_info.GetResourceVariables();
-  if (resources == nullptr) {
-    MicroPrintf(
-        "VAR_HANDLE requires resource variables. Please create "
-        "ResourceVariables and pass it to the interpreter.");
-    return kTfLiteError;
-  }
-  op_data->resource_id =
-      resources->CreateIdIfNoneFound(params->container, params->shared_name);
-  if (op_data->resource_id < 0) {
-    return kTfLiteError;
-  }
+  // The first input is the condition.
+  tflite::MicroContext *micro_context = tflite::GetMicroContext(context);
 
-  TfLiteEvalTensor* output = tflite::micro::GetEvalOutput(context, node, 0);
-  TFLITE_DCHECK(output != nullptr);
+  size_t num_inputs = node->inputs->size;
+  size_t num_outputs = node->outputs->size;
 
-  // Assign saved resource_id so this output tensor will always return the
-  // correct resource id.
-  output->data.i32 = &op_data->resource_id;
+  MicroGraph &graph_info = micro_context->graph();
+
+  TF_LITE_ENSURE(context, op_data->cond_subgraph_index < graph_info.NumSubgraphs());
+  TF_LITE_ENSURE(context, op_data->body_subgraph_index < graph_info.NumSubgraphs());
+
+  TF_LITE_ENSURE_EQ(context, num_inputs, graph_info.NumSubgraphInputs(op_data->cond_subgraph_index));
+  TF_LITE_ENSURE_EQ(context, num_inputs, graph_info.NumSubgraphInputs(op_data->body_subgraph_index));
+  TF_LITE_ENSURE_EQ(context, num_inputs, num_outputs);
+  TF_LITE_ENSURE_EQ(context, num_outputs, graph_info.NumSubgraphOutputs(op_data->body_subgraph_index));
 
   return kTfLiteOk;
 }
 
-TfLiteStatus VarHandleEval(TfLiteContext* context, TfLiteNode* node) {
-  OpData* op_data = reinterpret_cast<OpData*>(node->user_data);
+TfLiteStatus WhileEval(TfLiteContext *context, TfLiteNode *node) {
+  const OpData *op_data = reinterpret_cast<OpData *>(node->user_data);
 
-  TfLiteEvalTensor* output = tflite::micro::GetEvalOutput(context, node, 0);
-  TFLITE_DCHECK(output != nullptr);
+  tflite::MicroContext *micro_context = tflite::GetMicroContext(context);
+  MicroGraph *graph_info = &micro_context->graph();
 
-  // Assign saved resource_id so this output tensor will always return the
-  // correct resource id.
-  output->data.i32 = &op_data->resource_id;
+  TF_LITE_ENSURE_OK(context,
+                    tflite::micro::CopyOpInputsToSubgraphInputs(context, node, graph_info, op_data->cond_subgraph_index,
+                                                                /*first_tensor_idx=*/0));
+
+  TF_LITE_ENSURE_OK(context, graph_info->InvokeSubgraph(op_data->cond_subgraph_index));
+
+  TfLiteEvalTensor *cond_subgraph_output =
+      graph_info->GetSubgraphOutput(op_data->cond_subgraph_index, /*tensor_idx=*/0);
+  bool cond_value = cond_subgraph_output->data.b[0];
+
+  TF_LITE_ENSURE_OK(context,
+                    tflite::micro::CopyOpInputsToSubgraphInputs(context, node, graph_info, op_data->body_subgraph_index,
+                                                                /*first_tensor_idx=*/0));
+  TF_LITE_ENSURE_OK(context, tflite::micro::CopyOpInputsToOpOutputs(context, node));
+
+  while (cond_value == true) {
+    // Copy output of this iteration back to the body input.
+    TF_LITE_ENSURE_OK(
+        context, tflite::micro::CopyOpOutputsToSubgraphInputs(context, node, graph_info, op_data->body_subgraph_index));
+    TF_LITE_ENSURE_OK(context, graph_info->InvokeSubgraph(op_data->body_subgraph_index));
+
+    TF_LITE_ENSURE_OK(context, tflite::micro::CopySubgraphOutputsToOpOutputs(context, node, graph_info,
+                                                                             op_data->body_subgraph_index));
+    TF_LITE_ENSURE_OK(
+        context, tflite::micro::CopyOpOutputsToSubgraphInputs(context, node, graph_info, op_data->cond_subgraph_index));
+    TF_LITE_ENSURE_OK(context, graph_info->InvokeSubgraph(op_data->cond_subgraph_index));
+
+    cond_subgraph_output = graph_info->GetSubgraphOutput(op_data->cond_subgraph_index, /*tensor_idx=*/0);
+    cond_value = cond_subgraph_output->data.b[0];
+  }
+
   return kTfLiteOk;
 }
 
 }  // namespace.
 
-TFLMRegistration Register_VAR_HANDLE() {
-  return tflite::micro::RegisterOp(VarHandleInit, VarHandlePrepare,
-                                   VarHandleEval);
-}
+TFLMRegistration Register_WHILE() { return tflite::micro::RegisterOp(WhileInit, WhilePrepare, WhileEval); }
 
 }  // namespace tflite

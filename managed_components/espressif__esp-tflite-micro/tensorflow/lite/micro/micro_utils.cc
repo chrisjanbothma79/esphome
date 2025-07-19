@@ -13,78 +13,138 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/micro_utils.h"
+#ifndef TENSORFLOW_LITE_MICRO_MICRO_UTILS_H_
+#define TENSORFLOW_LITE_MICRO_MICRO_UTILS_H_
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <limits>
 
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/compatibility.h"
-#include "tensorflow/lite/kernels/op_macros.h"
-#include "tensorflow/lite/micro/memory_helpers.h"
-#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
 
-int ElementCount(const TfLiteIntArray& dims) {
-  int result = 1;
-  for (int i = 0; i < dims.size; ++i) {
-    result *= dims.data[i];
-  }
+// Returns number of elements in the shape array.
+
+int ElementCount(const TfLiteIntArray &dims);
+
+size_t EvalTensorBytes(const TfLiteEvalTensor *tensor);
+
+// C++11 does not support constexpr max; hence, use ternary conditional to
+// create our own constexpr Max function.
+constexpr int Max(int a, int b) { return a >= b ? a : b; }
+
+// Converts a float value into a quantized value.  Note that large values (close
+// to max int and min int) may see significant error due to a lack of floating
+// point granularity for large values.
+template<typename T> T FloatToQuantizedType(const float value, const float scale, int zero_point) {
+  int32_t result = round(value / scale) + zero_point;
+  result = std::max(static_cast<int32_t>(std::numeric_limits<T>::min()), result);
+  result = std::min(static_cast<int32_t>(std::numeric_limits<T>::max()), result);
   return result;
 }
 
-size_t EvalTensorBytes(const TfLiteEvalTensor* tensor) {
-  size_t bytes_per_element;
-  TFLITE_DCHECK(kTfLiteOk ==
-                TfLiteTypeSizeOf(tensor->type, &bytes_per_element));
-  return ElementCount(*tensor->dims) * bytes_per_element;
+template<typename T> T FloatToSymmetricQuantizedType(const float value, const float scale) {
+  // 64-bit values are required since 8x16 conv accumulates to int64, meaning
+  // an int64 bias is required.
+  std::int64_t result = round(value / scale);
+  result = std::max(static_cast<std::int64_t>(std::numeric_limits<T>::min() + 1), result);
+  result = std::min(static_cast<std::int64_t>(std::numeric_limits<T>::max()), result);
+  return result;
 }
 
-void SignedSymmetricPerChannelQuantize(
-    const float* values, TfLiteIntArray* dims, int quantized_dimension,
-    int8_t* quantized_values, float* scaling_factors, TfLiteType type) {
-  int input_size = ElementCount(*dims);
-  int channel_count = dims->data[quantized_dimension];
-  int per_channel_size = input_size / channel_count;
-
-  int stride;
-  int channel_stride;
-
-  int qmin = QMinFromTfLiteType(type);
-  int qmax = QMaxFromTfLiteType(type);
-
-  if (quantized_dimension == 0) {
-    stride = 1;
-    channel_stride = per_channel_size;
-  } else if (quantized_dimension == 3) {
-    stride = channel_count;
-    channel_stride = 1;
-  } else {
-    MicroPrintf("quantized dimension must be 0 or 3");
-    TFLITE_ABORT;
+// Helper methods to quantize arrays of floats to the desired format.
+//
+// There are several key flavors of quantization in TfLite:
+//        asymmetric symmetric  per channel
+// int8_t  |     X    |    X    |     X      |
+// uint8_t |     X    |    X    |            |
+// int16_t |     X    |         |            |
+// int32_t |          |    X    |     X      |
+//
+// The per-op quantization spec can be found here:
+// https://www.tensorflow.org/lite/performance/quantization_spec
+template<typename T> void Quantize(const float *input, T *output, int num_elements, float scale, int zero_point) {
+  for (int i = 0; i < num_elements; i++) {
+    output[i] = FloatToQuantizedType<T>(input[i], scale, zero_point);
   }
+}
 
-  // Calculate scales for each channel.
-  for (int channel = 0; channel < channel_count; channel++) {
-    float min = 0;
-    float max = 0;
+template<typename T> void SymmetricQuantize(const float *input, T *output, int num_elements, float scale) {
+  for (int i = 0; i < num_elements; i++) {
+    output[i] = FloatToSymmetricQuantizedType<T>(input[i], scale);
+  }
+}
 
-    for (int i = 0; i < per_channel_size; i++) {
-      int idx = channel * channel_stride + i * stride;
-      min = fminf(min, values[idx]);
-      max = fmaxf(max, values[idx]);
+template<typename T>
+void SymmetricPerChannelQuantize(const float *input, T *output, int num_elements, int num_channels, float *scales,
+                                 size_t quantized_dimension = 0) {
+  int elements_per_channel = num_elements / num_channels;
+  for (int i = 0; i < num_channels; i++) {
+    for (int j = 0; j < elements_per_channel; j++) {
+      size_t offset;
+      if (quantized_dimension == 0) {
+        offset = i * elements_per_channel + j;
+      } else {
+        offset = i + elements_per_channel * j;
+      }
+      output[offset] = FloatToSymmetricQuantizedType<T>(input[offset], scales[i]);
     }
-    scaling_factors[channel] = fmaxf(fabs(min), fabs(max)) / qmax;
-    for (int i = 0; i < per_channel_size; i++) {
-      int idx = channel * channel_stride + i * stride;
-      const int32_t quantized_value =
-          static_cast<int32_t>(roundf(values[idx] / scaling_factors[channel]));
-      // Clamp: just in case some odd numeric offset.
-      quantized_values[idx] = fminf(qmax, fmaxf(qmin + 1, quantized_value));
-    }
+  }
+}
+
+void SignedSymmetricPerChannelQuantize(const float *values, TfLiteIntArray *dims, int quantized_dimension,
+                                       int8_t *quantized_values, float *scaling_factor,
+                                       TfLiteType type = kTfLiteNoType);
+
+// Quantizes inputs based on the values provided, choosing the smallest range
+// which includes all input values.
+template<typename T>
+void SymmetricQuantizeCalculateScales(const float *values, TfLiteIntArray *dims, T *output, float *scale) {
+  int input_size = ElementCount(*dims);
+
+  float min = 0;
+  float max = 0;
+  for (int i = 0; i < input_size; i++) {
+    min = fminf(min, values[i]);
+    max = fmaxf(max, values[i]);
+  }
+  *scale = fmaxf(std::abs(min), std::abs(max)) / std::numeric_limits<T>::max();
+  for (int i = 0; i < input_size; i++) {
+    const int32_t quantized_value = static_cast<int32_t>(roundf(values[i] / *scale));
+    // Clamp: just in case some odd numeric offset.
+    quantized_value = fminf(std::numeric_limits<T>::max(), quantized_value);
+    quantized_value = fmaxf(std::numeric_limits<T>::min() + 1, quantized_value);
+    output[i] = quantized_value;
+  }
+}
+
+template<typename T>
+void Dequantize(const T *values, const int size, const float scale, int zero_point, float *dequantized_values) {
+  for (int i = 0; i < size; ++i) {
+    dequantized_values[i] = (values[i] - zero_point) * scale;
+  }
+}
+
+// based on TfLiteType passed in to these functions the corresponding max / min
+// int for that type are returned
+inline int QMinFromTfLiteType(TfLiteType type) {
+  if (type == kTfLiteInt4) {
+    return -8;
+  } else {
+    return std::numeric_limits<int8_t>::min();
+  }
+}
+
+inline int QMaxFromTfLiteType(TfLiteType type) {
+  if (type == kTfLiteInt4) {
+    return 7;
+  } else {
+    return std::numeric_limits<int8_t>::max();
   }
 }
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_MICRO_UTILS_H_

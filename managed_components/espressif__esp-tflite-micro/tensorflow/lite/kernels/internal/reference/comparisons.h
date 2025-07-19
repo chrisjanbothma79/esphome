@@ -12,264 +12,122 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_COMPARISONS_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_COMPARISONS_H_
 
-#include <cstdint>
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CONCATENATION_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CONCATENATION_H_
 
-#include "tensorflow/lite/core/c/common.h"
-#include "tensorflow/lite/core/macros.h"
+#include <algorithm>
+
 #include "tensorflow/lite/kernels/internal/common.h"
-#include "tensorflow/lite/kernels/internal/runtime_shape.h"
+#include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/kernels/internal/cppmath.h"
 #include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
-
 namespace reference_ops {
 
-template <typename T>
-inline bool EqualFn(T lhs, T rhs) {
-  return lhs == rhs;
-}
+template<typename Scalar>
+inline void Concatenation(const ConcatenationParams &params, const RuntimeShape *const *input_shapes,
+                          const Scalar *const *input_data, const RuntimeShape &output_shape, Scalar *output_data) {
+  int axis = params.axis;
+  int inputs_count = params.inputs_count;
+  const int concat_dimensions = output_shape.DimensionsCount();
+  TFLITE_DCHECK_LT(axis, concat_dimensions);
 
-template <typename T>
-inline bool NotEqualFn(T lhs, T rhs) {
-  return lhs != rhs;
-}
-
-template <typename T>
-inline bool GreaterFn(T lhs, T rhs) {
-  return lhs > rhs;
-}
-template <typename T>
-inline bool GreaterEqualFn(T lhs, T rhs) {
-  return lhs >= rhs;
-}
-template <typename T>
-inline bool LessFn(T lhs, T rhs) {
-  return lhs < rhs;
-}
-template <typename T>
-inline bool LessEqualFn(T lhs, T rhs) {
-  return lhs <= rhs;
-}
-
-template <typename T>
-using ComparisonFn = bool (*)(T, T);
-
-template <typename T, ComparisonFn<T> F>
-inline void ComparisonImpl(
-    const ComparisonParams& op_params, const RuntimeShape& input1_shape,
-    const T* input1_data, const RuntimeShape& input2_shape,
-    const T* input2_data, const RuntimeShape& output_shape, bool* output_data) {
-  const int64_t flatsize =
-      MatchingFlatSize(input1_shape, input2_shape, output_shape);
-  for (int64_t i = 0; i < flatsize; ++i) {
-    output_data[i] = F(input1_data[i], input2_data[i]);
-  }
-}
-
-template <ComparisonFn<float> F>
-inline void Comparison(const ComparisonParams& op_params,
-                       const RuntimeShape& input1_shape,
-                       const float* input1_data,
-                       const RuntimeShape& input2_shape,
-                       const float* input2_data,
-                       const RuntimeShape& output_shape, bool* output_data) {
-  ComparisonImpl<float, F>(op_params, input1_shape, input1_data, input2_shape,
-                           input2_data, output_shape, output_data);
-}
-
-template <typename T, ComparisonFn<int32_t> F>
-inline void ComparisonWithScaling(
-    const ComparisonParams& op_params, const RuntimeShape& input1_shape,
-    const T* input1_data, const RuntimeShape& input2_shape,
-    const T* input2_data, const RuntimeShape& output_shape, bool* output_data) {
-  int left_shift = op_params.left_shift;
-  int32_t input1_offset = op_params.input1_offset;
-  int32_t input1_multiplier = op_params.input1_multiplier;
-  int input1_shift = op_params.input1_shift;
-  int32_t input2_offset = op_params.input2_offset;
-  int32_t input2_multiplier = op_params.input2_multiplier;
-  int input2_shift = op_params.input2_shift;
-
-  const int64_t flatsize =
-      MatchingFlatSize(input1_shape, input2_shape, output_shape);
-  for (int64_t i = 0; i < flatsize; ++i) {
-    const int32_t input1_val = input1_offset + input1_data[i];
-    const int32_t input2_val = input2_offset + input2_data[i];
-    const int32_t shifted_input1_val = input1_val * (1 << left_shift);
-    const int32_t shifted_input2_val = input2_val * (1 << left_shift);
-    const int32_t scaled_input1_val =
-        MultiplyByQuantizedMultiplierSmallerThanOneExp(
-            shifted_input1_val, input1_multiplier, input1_shift);
-    const int32_t scaled_input2_val =
-        MultiplyByQuantizedMultiplierSmallerThanOneExp(
-            shifted_input2_val, input2_multiplier, input2_shift);
-    output_data[i] = F(scaled_input1_val, scaled_input2_val);
-  }
-}
-
-struct BroadcastComparison4DSlowCommon {
-  const RuntimeShape output_shape;
-  NdArrayDesc<4> desc1;
-  NdArrayDesc<4> desc2;
-};
-
-TFLITE_NOINLINE
-BroadcastComparison4DSlowCommon BroadcastComparison4DSlowPreprocess(
-    const RuntimeShape& unextended_input1_shape,
-    const RuntimeShape& unextended_input2_shape,
-    const RuntimeShape& unextended_output_shape);
-
-template <typename T, ComparisonFn<T> F>
-inline void BroadcastComparison4DSlowImpl(
-    const ComparisonParams& op_params,
-    const RuntimeShape& unextended_input1_shape, const T* input1_data,
-    const RuntimeShape& unextended_input2_shape, const T* input2_data,
-    const RuntimeShape& unextended_output_shape, bool* output_data) {
-  const BroadcastComparison4DSlowCommon dims =
-      BroadcastComparison4DSlowPreprocess(unextended_input1_shape,
-                                          unextended_input2_shape,
-                                          unextended_output_shape);
-
-  for (int b = 0; b < dims.output_shape.Dims(0); ++b) {
-    for (int y = 0; y < dims.output_shape.Dims(1); ++y) {
-      for (int x = 0; x < dims.output_shape.Dims(2); ++x) {
-        for (int c = 0; c < dims.output_shape.Dims(3); ++c) {
-          output_data[Offset(dims.output_shape, b, y, x, c)] =
-              F(input1_data[SubscriptToIndex(dims.desc1, b, y, x, c)],
-                input2_data[SubscriptToIndex(dims.desc2, b, y, x, c)]);
-        }
+  int64_t concat_size = 0;
+  for (int i = 0; i < inputs_count; i++) {
+    TFLITE_DCHECK_EQ(input_shapes[i]->DimensionsCount(), concat_dimensions);
+    for (int j = 0; j < concat_dimensions; j++) {
+      if (j != axis) {
+        MatchingDim(*input_shapes[i], j, output_shape, j);
       }
+    }
+    concat_size += input_shapes[i]->Dims(axis);
+  }
+  TFLITE_DCHECK_EQ(concat_size, output_shape.Dims(axis));
+  int64_t outer_size = 1;
+  for (int i = 0; i < axis; ++i) {
+    outer_size *= output_shape.Dims(i);
+  }
+  // For all input arrays,
+  // FlatSize() = outer_size * Dims(axis) * base_inner_size;
+  int64_t base_inner_size = 1;
+  for (int i = axis + 1; i < concat_dimensions; ++i) {
+    base_inner_size *= output_shape.Dims(i);
+  }
+
+  Scalar *output_ptr = output_data;
+  for (int k = 0; k < outer_size; k++) {
+    for (int i = 0; i < inputs_count; ++i) {
+      const int copy_size = input_shapes[i]->Dims(axis) * base_inner_size;
+      const Scalar *input_ptr = input_data[i] + k * copy_size;
+      memcpy(output_ptr, input_ptr, copy_size * sizeof(Scalar));
+      output_ptr += copy_size;
     }
   }
 }
 
-template <ComparisonFn<float> F>
-inline void BroadcastComparison4DSlow(const ComparisonParams& op_params,
-                                      const RuntimeShape& input1_shape,
-                                      const float* input1_data,
-                                      const RuntimeShape& input2_shape,
-                                      const float* input2_data,
-                                      const RuntimeShape& output_shape,
-                                      bool* output_data) {
-  BroadcastComparison4DSlowImpl<float, F>(op_params, input1_shape, input1_data,
-                                          input2_shape, input2_data,
-                                          output_shape, output_data);
-}
+// TODO(b/174275780): The quantized implementation of concatentation isn't fully
+// quantized as it takes scale as a floating point value. This should be fixed
+// when optimizng this routine further.
+inline void ConcatenationWithScaling(const ConcatenationParams &params, const RuntimeShape *const *input_shapes,
+                                     const uint8_t *const *input_data, const RuntimeShape &output_shape,
+                                     uint8_t *output_data) {
+  int axis = params.axis;
+  const int32_t *input_zeropoint = params.input_zeropoint;
+  const float *input_scale = params.input_scale;
+  int inputs_count = params.inputs_count;
+  const int32_t output_zeropoint = params.output_zeropoint;
+  const float output_scale = params.output_scale;
 
-template <typename T, ComparisonFn<int32_t> F>
-inline void BroadcastComparison4DSlowWithScaling(
-    const ComparisonParams& op_params,
-    const RuntimeShape& unextended_input1_shape, const T* input1_data,
-    const RuntimeShape& unextended_input2_shape, const T* input2_data,
-    const RuntimeShape& unextended_output_shape, bool* output_data) {
-  const BroadcastComparison4DSlowCommon dims =
-      BroadcastComparison4DSlowPreprocess(unextended_input1_shape,
-                                          unextended_input2_shape,
-                                          unextended_output_shape);
+  const int concat_dimensions = output_shape.DimensionsCount();
+  TFLITE_DCHECK_LT(axis, concat_dimensions);
 
-  int left_shift = op_params.left_shift;
-  int32_t input1_offset = op_params.input1_offset;
-  int32_t input1_multiplier = op_params.input1_multiplier;
-  int input1_shift = op_params.input1_shift;
-  int32_t input2_offset = op_params.input2_offset;
-  int32_t input2_multiplier = op_params.input2_multiplier;
-  int input2_shift = op_params.input2_shift;
+  int64_t concat_size = 0;
+  for (int i = 0; i < inputs_count; i++) {
+    TFLITE_DCHECK_EQ(input_shapes[i]->DimensionsCount(), concat_dimensions);
+    for (int j = 0; j < concat_dimensions; j++) {
+      if (j != axis) {
+        MatchingDim(*input_shapes[i], j, output_shape, j);
+      }
+    }
+    concat_size += input_shapes[i]->Dims(axis);
+  }
+  TFLITE_DCHECK_EQ(concat_size, output_shape.Dims(axis));
+  int64_t outer_size = 1;
+  for (int i = 0; i < axis; ++i) {
+    outer_size *= output_shape.Dims(i);
+  }
+  // For all input arrays,
+  // FlatSize() = outer_size * Dims(axis) * base_inner_size;
+  int64_t base_inner_size = 1;
+  for (int i = axis + 1; i < concat_dimensions; ++i) {
+    base_inner_size *= output_shape.Dims(i);
+  }
 
-  for (int b = 0; b < dims.output_shape.Dims(0); ++b) {
-    for (int y = 0; y < dims.output_shape.Dims(1); ++y) {
-      for (int x = 0; x < dims.output_shape.Dims(2); ++x) {
-        for (int c = 0; c < dims.output_shape.Dims(3); ++c) {
-          const int32_t input1_val =
-              input1_offset +
-              input1_data[SubscriptToIndex(dims.desc1, b, y, x, c)];
-          const int32_t input2_val =
-              input2_offset +
-              input2_data[SubscriptToIndex(dims.desc2, b, y, x, c)];
-          const int32_t shifted_input1_val = input1_val * (1 << left_shift);
-          const int32_t shifted_input2_val = input2_val * (1 << left_shift);
-          const int32_t scaled_input1_val =
-              MultiplyByQuantizedMultiplierSmallerThanOneExp(
-                  shifted_input1_val, input1_multiplier, input1_shift);
-          const int32_t scaled_input2_val =
-              MultiplyByQuantizedMultiplierSmallerThanOneExp(
-                  shifted_input2_val, input2_multiplier, input2_shift);
-          output_data[Offset(dims.output_shape, b, y, x, c)] =
-              F(scaled_input1_val, scaled_input2_val);
+  const float inverse_output_scale = 1.f / output_scale;
+  uint8_t *output_ptr = output_data;
+  for (int k = 0; k < outer_size; k++) {
+    for (int i = 0; i < inputs_count; ++i) {
+      const int copy_size = input_shapes[i]->Dims(axis) * base_inner_size;
+      const uint8_t *input_ptr = input_data[i] + k * copy_size;
+      if (input_zeropoint[i] == output_zeropoint && input_scale[i] == output_scale) {
+        memcpy(output_ptr, input_ptr, copy_size);
+      } else {
+        const float scale = input_scale[i] * inverse_output_scale;
+        const float bias = -input_zeropoint[i] * scale;
+        for (int j = 0; j < copy_size; ++j) {
+          const int32_t value =
+              static_cast<int32_t>(tflite::TfLiteRound(input_ptr[j] * scale + bias)) + output_zeropoint;
+          output_ptr[j] = static_cast<uint8_t>(std::max<int32_t>(std::min<int32_t>(255, value), 0));
         }
       }
+      output_ptr += copy_size;
     }
   }
 }
-
-#define TFLITE_COMPARISON_OP(name)                                             \
-  inline void name(const ComparisonParams& op_params,                          \
-                   const RuntimeShape& input1_shape, const float* input1_data, \
-                   const RuntimeShape& input2_shape, const float* input2_data, \
-                   const RuntimeShape& output_shape, bool* output_data) {      \
-    Comparison<name##Fn>(op_params, input1_shape, input1_data, input2_shape,   \
-                         input2_data, output_shape, output_data);              \
-  }                                                                            \
-  template <typename T>                                                        \
-  inline void name##NoScaling(                                                 \
-      const ComparisonParams& op_params, const RuntimeShape& input1_shape,     \
-      const T* input1_data, const RuntimeShape& input2_shape,                  \
-      const T* input2_data, const RuntimeShape& output_shape,                  \
-      bool* output_data) {                                                     \
-    ComparisonImpl<T, name##Fn>(op_params, input1_shape, input1_data,          \
-                                input2_shape, input2_data, output_shape,       \
-                                output_data);                                  \
-  }                                                                            \
-  template <typename T>                                                        \
-  inline void name##WithScaling(                                               \
-      const ComparisonParams& op_params, const RuntimeShape& input1_shape,     \
-      const T* input1_data, const RuntimeShape& input2_shape,                  \
-      const T* input2_data, const RuntimeShape& output_shape,                  \
-      bool* output_data) {                                                     \
-    ComparisonWithScaling<T, name##Fn>(op_params, input1_shape, input1_data,   \
-                                       input2_shape, input2_data,              \
-                                       output_shape, output_data);             \
-  }                                                                            \
-  template <typename T>                                                        \
-  inline void Broadcast4DSlow##name##NoScaling(                                \
-      const ComparisonParams& op_params, const RuntimeShape& input1_shape,     \
-      const T* input1_data, const RuntimeShape& input2_shape,                  \
-      const T* input2_data, const RuntimeShape& output_shape,                  \
-      bool* output_data) {                                                     \
-    BroadcastComparison4DSlowImpl<T, name##Fn>(                                \
-        op_params, input1_shape, input1_data, input2_shape, input2_data,       \
-        output_shape, output_data);                                            \
-  }                                                                            \
-  inline void Broadcast4DSlow##name(                                           \
-      const ComparisonParams& op_params, const RuntimeShape& input1_shape,     \
-      const float* input1_data, const RuntimeShape& input2_shape,              \
-      const float* input2_data, const RuntimeShape& output_shape,              \
-      bool* output_data) {                                                     \
-    BroadcastComparison4DSlow<name##Fn>(op_params, input1_shape, input1_data,  \
-                                        input2_shape, input2_data,             \
-                                        output_shape, output_data);            \
-  }                                                                            \
-  template <typename T>                                                        \
-  inline void Broadcast4DSlow##name##WithScaling(                              \
-      const ComparisonParams& op_params, const RuntimeShape& input1_shape,     \
-      const T* input1_data, const RuntimeShape& input2_shape,                  \
-      const T* input2_data, const RuntimeShape& output_shape,                  \
-      bool* output_data) {                                                     \
-    BroadcastComparison4DSlowWithScaling<T, name##Fn>(                         \
-        op_params, input1_shape, input1_data, input2_shape, input2_data,       \
-        output_shape, output_data);                                            \
-  }
-TFLITE_COMPARISON_OP(Equal)
-TFLITE_COMPARISON_OP(NotEqual)
-TFLITE_COMPARISON_OP(Greater)
-TFLITE_COMPARISON_OP(GreaterEqual)
-TFLITE_COMPARISON_OP(Less)
-TFLITE_COMPARISON_OP(LessEqual)
-#undef TFLITE_COMPARISON_OP
 
 }  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_COMPARISONS_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_CONCATENATION_H_

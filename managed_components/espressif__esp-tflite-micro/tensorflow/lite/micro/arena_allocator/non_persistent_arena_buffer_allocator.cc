@@ -12,159 +12,91 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/micro/arena_allocator/non_persistent_arena_buffer_allocator.h"
+#ifndef TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_NON_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_
+#define TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_NON_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_
 
-#include "tensorflow/lite/micro/memory_helpers.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include <cstddef>
+#include <cstdint>
+
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/micro/arena_allocator/ibuffer_allocator.h"
+#include "tensorflow/lite/micro/compatibility.h"
 
 namespace tflite {
 
-NonPersistentArenaBufferAllocator::NonPersistentArenaBufferAllocator(
-    uint8_t* buffer, size_t buffer_size)
-    : buffer_head_(buffer),
-      buffer_tail_(buffer + buffer_size),
-      head_temp_(buffer),
-      next_temp_(buffer) {}
+// Implement INonPersistentBufferAllocator on an arena that is dedicated for
+// non-persistent buffers.
+class NonPersistentArenaBufferAllocator : public INonPersistentBufferAllocator {
+ public:
+  NonPersistentArenaBufferAllocator(uint8_t *buffer, size_t buffer_size);
+  virtual ~NonPersistentArenaBufferAllocator();
 
-NonPersistentArenaBufferAllocator::~NonPersistentArenaBufferAllocator() {}
+  // Allocates a temporary buffer. This buffer is not resizable.
+  uint8_t *AllocateTemp(size_t size, size_t alignment) override;
 
-// Allocates a temporary buffer. This buffer is not resizable.
-uint8_t* NonPersistentArenaBufferAllocator::AllocateTemp(size_t size,
-                                                         size_t alignment) {
-  uint8_t* const aligned_result = AlignPointerUp(next_temp_, alignment);
-  const size_t available_memory = buffer_tail_ - aligned_result;
-  if (available_memory < size) {
-    MicroPrintf(
-        "Failed to allocate temp memory. Requested: %u, "
-        "available %u, missing: %u",
-        size, available_memory, size - available_memory);
-    return nullptr;
-  }
-  next_temp_ = aligned_result + size;
-  temp_buffer_ptr_check_sum_ ^= reinterpret_cast<intptr_t>(aligned_result);
-  temp_buffer_count_++;
-  return aligned_result;
-}
+  // Signals that a temporary buffer is no longer needed.
+  void DeallocateTemp(uint8_t *buf) override;
 
-// Signals that a temporary buffer is no longer needed.
-void NonPersistentArenaBufferAllocator::DeallocateTemp(uint8_t* temp_buf) {
-  temp_buffer_ptr_check_sum_ ^= reinterpret_cast<intptr_t>(temp_buf);
-  temp_buffer_count_--;
-}
+  // Returns true if all temporary buffers are already deallocated.
+  bool IsAllTempDeallocated() override;
 
-// Returns true if all temporary buffers are already deallocated.
-bool NonPersistentArenaBufferAllocator::IsAllTempDeallocated() {
-  if (temp_buffer_count_ != 0 || temp_buffer_ptr_check_sum_ != 0) {
-    MicroPrintf(
-        "Number of allocated temp buffers: %d. Checksum passing status: %d",
-        temp_buffer_count_, !temp_buffer_ptr_check_sum_);
-    return false;
-  }
-  return true;
-}
+  // Signals that all temporary allocations can be reclaimed. TFLM calls this
+  // API when it knows that all temporary buffers that it requested has been
+  // deallocated.
+  TfLiteStatus ResetTempAllocations() override;
 
-// Signals that all temporary allocations can be reclaimed. TFLM calls this
-// API when it knows that all temporary buffers that it requested has been
-// deallocated. The goal of API is to facilitate implementations of
-// INonPersistentBufferAllocator can reuse buffer with some reasonable
-// complexity.
-TfLiteStatus NonPersistentArenaBufferAllocator::ResetTempAllocations() {
-  if (!IsAllTempDeallocated()) {
-    MicroPrintf(
-        "All temp buffers must be freed before calling ResetTempAllocations()");
-    return kTfLiteError;
-  }
-  next_temp_ = head_temp_;
-  return kTfLiteOk;
-}
+  // Returns a buffer that is resizable viable ResizeBuffer().
+  uint8_t *AllocateResizableBuffer(size_t size, size_t alignment) override;
 
-// Returns a buffer that is resizable viable ResizeBuffer().
-uint8_t* NonPersistentArenaBufferAllocator::AllocateResizableBuffer(
-    size_t size, size_t alignment) {
-  // Only supports one resizable buffer, which starts at the buffer head.
-  uint8_t* expected_resizable_buf = AlignPointerUp(buffer_head_, alignment);
+  // Resizes a buffer that is previously returned by the
+  // AllocateResizableBuffer.
+  TfLiteStatus ResizeBuffer(uint8_t *resizable_buf, size_t size, size_t alignment) override;
 
-  if (resizable_buffer_allocated_) {
-    MicroPrintf(
-        "Cannot allocate a new resizable buffer when one is already allocated");
-    return nullptr;
-  }
+  // Frees up the memory occupied by the resizable buffer.
+  TfLiteStatus DeallocateResizableBuffer(uint8_t *resizable_buf) override;
 
-  if (ResizeBuffer(expected_resizable_buf, size, alignment) == kTfLiteOk) {
-    resizable_buffer_allocated_ = true;
-    return expected_resizable_buf;
-  }
-  return nullptr;
-}
+  // Returns a pointer pointing to the start of the overlay memory, which is
+  // used for activation tensors and scratch buffers by kernels at Invoke stage.
+  uint8_t *GetOverlayMemoryAddress() const override;
 
-// Resizes a buffer that is previously returned by the AllocateResizableBuffer.
-// Note that ResizeBuffer(old_resizable_buf, 0, 1) effectively deallocates
-// a previous allocated resizable buffer.
-TfLiteStatus NonPersistentArenaBufferAllocator::ResizeBuffer(
-    uint8_t* resizable_buf, size_t size, size_t alignment) {
-  // Only supports one resizable buffer, which starts at the buffer head.
-  uint8_t* expect_resizable_buf = AlignPointerUp(buffer_head_, alignment);
-  if (resizable_buf != expect_resizable_buf) {
-    MicroPrintf("Internal error: buffer is not resizable");
-    return kTfLiteError;
-  }
-  if (head_temp_ != next_temp_) {
-    MicroPrintf("ResetTempAllocations() is not called before ResizeBuffer().");
-    return kTfLiteError;
-  }
+  // Reserves the size of the overlay memory. This overlay is reserved for the
+  // kernels at Invoke stage. This is referred to as the overlay because before
+  // Invoket state, the same memory can be used for temp buffers. The layout of
+  // the memory is planned by the memory planner separately at Invoke stage.
+  TfLiteStatus ReserveNonPersistentOverlayMemory(size_t size, size_t alignment) override;
 
-  const size_t available_memory = buffer_tail_ - expect_resizable_buf;
-  if (available_memory < size) {
-    MicroPrintf(
-        "Failed to resize buffer. Requested: %u, available %u, missing: %u",
-        size, available_memory, size - available_memory);
-    return kTfLiteError;
-  }
-  head_temp_ = expect_resizable_buf + size;
-  next_temp_ = head_temp_;
+  // Returns the size of non-persistent buffer in use.
+  size_t GetNonPersistentUsedBytes() const override;
 
-  return kTfLiteOk;
-}
+  // Returns the number of bytes available with a given alignment. This number
+  // takes in account any temporary allocations.
+  size_t GetAvailableMemory(size_t alignment) const override;
 
-// Frees up the memory occupied by the resizable buffer.
-TfLiteStatus NonPersistentArenaBufferAllocator::DeallocateResizableBuffer(
-    uint8_t* resizable_buf) {
-  TfLiteStatus status = ResizeBuffer(resizable_buf, 0, 1);
-  if (status == kTfLiteOk) {
-    resizable_buffer_allocated_ = false;
-  }
-  return status;
-}
+  TF_LITE_REMOVE_VIRTUAL_DELETE
 
-// Returns a pointer pointing to the start of the overlay memory, which is
-// used for activation tensors and scratch buffers by kernels at Invoke stage.
-uint8_t* NonPersistentArenaBufferAllocator::GetOverlayMemoryAddress() const {
-  return buffer_head_;
-}
+ private:
+  // The memory arena that this allocator manages.
+  uint8_t *const buffer_head_;
+  uint8_t *const buffer_tail_;
 
-// Reserves the size of the overlay memory. This overlay is reserved for the
-// kernels at Invoke stage. This is referred to as the overlay because before
-// Invoket state, the same memory can be used for temp buffers. The layout of
-// the memory is planned by the memory planner separately at Invoke stage.
-TfLiteStatus
-NonPersistentArenaBufferAllocator::ReserveNonPersistentOverlayMemory(
-    size_t size, size_t alignment) {
-  uint8_t* expect_resizable_buf = AlignPointerUp(buffer_head_, alignment);
-  return ResizeBuffer(expect_resizable_buf, size, alignment);
-}
+  // The whole region is split into two parts:
+  // buffer_head_ to head_temp_ - 1 belongs to the only resizable buffer.
+  // head_temp_ to buffer_tail_ can be used for (non-resizable) temp buffers.
+  uint8_t *head_temp_;
 
-// Returns the size of non-persistent buffer in use.
-size_t NonPersistentArenaBufferAllocator::GetNonPersistentUsedBytes() const {
-  return (next_temp_ - buffer_head_);
-}
+  // next_temp_ points to the next available temp buffer allocation address and
+  // its range is between head_temp_ and buffer_tail_
+  uint8_t *next_temp_;
 
-// Returns the number of bytes available with a given alignment. This number
-// takes in account any temporary allocations.
-size_t NonPersistentArenaBufferAllocator::GetAvailableMemory(
-    size_t alignment) const {
-  uint8_t* const aligned_temp = AlignPointerUp(next_temp_, alignment);
-  uint8_t* const aligned_tail = AlignPointerDown(buffer_tail_, alignment);
-  return aligned_tail - aligned_temp;
-}
+  // XOR Check sum for outstanding temp buffers.
+  // If all temp buffers are deallocated OR no temp buffers are allocated,
+  // temp_buffer_ptr_check_sum_ == nullptr.
+  intptr_t temp_buffer_ptr_check_sum_ = 0;
+  // Count of outstanding temp buffers.
+  int temp_buffer_count_ = 0;
+  bool resizable_buffer_allocated_ = false;
+};
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_NON_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_

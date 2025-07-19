@@ -1,216 +1,463 @@
-/*
- * This file is part of the OpenMV project.
- * Copyright (c) 2013/2014 Ibrahim Abdelkader <i.abdalkader@gmail.com>
- * This work is licensed under the MIT license, see the file LICENSE for details.
- *
- * OV2640 register definitions.
- */
-#ifndef __REG_REGS_H__
-#define __REG_REGS_H__
-/* DSP register bank FF=0x00*/
-#define R_BYPASS            0x05
-#define QS                  0x44
-#define CTRLI               0x50
-#define HSIZE               0x51
-#define VSIZE               0x52
-#define XOFFL               0x53
-#define YOFFL               0x54
-#define VHYX                0x55
-#define DPRP                0x56
-#define TEST                0x57
-#define ZMOW                0x5A
-#define ZMOH                0x5B
-#define ZMHH                0x5C
-#define BPADDR              0x7C
-#define BPDATA              0x7D
-#define CTRL2               0x86
-#define CTRL3               0x87
-#define SIZEL               0x8C
-#define HSIZE8              0xC0
-#define VSIZE8              0xC1
-#define CTRL0               0xC2
-#define CTRL1               0xC3
-#define R_DVP_SP            0xD3
-#define IMAGE_MODE          0xDA
-#define RESET               0xE0
-#define MS_SP               0xF0
-#define SS_ID               0xF7
-#define SS_CTRL             0xF7
-#define MC_BIST             0xF9
-#define MC_AL               0xFA
-#define MC_AH               0xFB
-#define MC_D                0xFC
-#define P_CMD               0xFD
-#define P_STATUS            0xFE
-#define BANK_SEL            0xFF
+// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#ifndef _OV2640_SETTINGS_H_
+#define _OV2640_SETTINGS_H_
 
-#define CTRLI_LP_DP         0x80
-#define CTRLI_ROUND         0x40
+#include <stdint.h>
+#include <stdbool.h>
+#include "esp_attr.h"
+#include "ov2640_regs.h"
 
-#define CTRL0_AEC_EN        0x80
-#define CTRL0_AEC_SEL       0x40
-#define CTRL0_STAT_SEL      0x20
-#define CTRL0_VFIRST        0x10
-#define CTRL0_YUV422        0x08
-#define CTRL0_YUV_EN        0x04
-#define CTRL0_RGB_EN        0x02
-#define CTRL0_RAW_EN        0x01
+typedef enum { OV2640_MODE_UXGA, OV2640_MODE_SVGA, OV2640_MODE_CIF, OV2640_MODE_MAX } ov2640_sensor_mode_t;
 
-#define CTRL2_DCW_EN        0x20
-#define CTRL2_SDE_EN        0x10
-#define CTRL2_UV_ADJ_EN     0x08
-#define CTRL2_UV_AVG_EN     0x04
-#define CTRL2_CMX_EN        0x01
+typedef struct {
+  union {
+    struct {
+      uint8_t pclk_div : 7;
+      uint8_t pclk_auto : 1;
+    };
+    uint8_t pclk;
+  };
+  union {
+    struct {
+      uint8_t clk_div : 6;
+      uint8_t reserved : 1;
+      uint8_t clk_2x : 1;
+    };
+    uint8_t clk;
+  };
+} ov2640_clk_t;
 
-#define CTRL3_BPC_EN        0x80
-#define CTRL3_WPC_EN        0x40
+typedef struct {
+  uint16_t offset_x;
+  uint16_t offset_y;
+  uint16_t max_x;
+  uint16_t max_y;
+} ov2640_ratio_settings_t;
 
-#define R_DVP_SP_AUTO_MODE  0x80
+static const DRAM_ATTR ov2640_ratio_settings_t ratio_table[] = {
+    // ox,  oy,   mx,   my
+    {0, 0, 1600, 1200},    // 4x3
+    {8, 72, 1584, 1056},   // 3x2
+    {0, 100, 1600, 1000},  // 16x10
+    {0, 120, 1600, 960},   // 5x3
+    {0, 150, 1600, 900},   // 16x9
+    {2, 258, 1596, 684},   // 21x9
+    {50, 0, 1500, 1200},   // 5x4
+    {200, 0, 1200, 1200},  // 1x1
+    {462, 0, 676, 1200}    // 9x16
+};
 
-#define R_BYPASS_DSP_EN         0x00
-#define R_BYPASS_DSP_BYPAS      0x01
+// 30fps@24MHz
+const DRAM_ATTR uint8_t ov2640_settings_cif[][2] = {{BANK_SEL, BANK_DSP},
+                                                    {0x2c, 0xff},
+                                                    {0x2e, 0xdf},
+                                                    {BANK_SEL, BANK_SENSOR},
+                                                    {0x3c, 0x32},
+                                                    {CLKRC, 0x01},
+                                                    {COM2, COM2_OUT_DRIVE_3x},
+                                                    {REG04, REG04_DEFAULT},
+                                                    {COM8, COM8_DEFAULT | COM8_BNDF_EN | COM8_AGC_EN | COM8_AEC_EN},
+                                                    {COM9, COM9_AGC_SET(COM9_AGC_GAIN_8x)},
+                                                    {0x2c, 0x0c},
+                                                    {0x33, 0x78},
+                                                    {0x3a, 0x33},
+                                                    {0x3b, 0xfB},
+                                                    {0x3e, 0x00},
+                                                    {0x43, 0x11},
+                                                    {0x16, 0x10},
+                                                    {0x39, 0x92},
+                                                    {0x35, 0xda},
+                                                    {0x22, 0x1a},
+                                                    {0x37, 0xc3},
+                                                    {0x23, 0x00},
+                                                    {ARCOM2, 0xc0},
+                                                    {0x06, 0x88},
+                                                    {0x07, 0xc0},
+                                                    {COM4, 0x87},
+                                                    {0x0e, 0x41},
+                                                    {0x4c, 0x00},
+                                                    {0x4a, 0x81},
+                                                    {0x21, 0x99},
+                                                    {AEW, 0x40},
+                                                    {AEB, 0x38},
+                                                    {VV, VV_AGC_TH_SET(8, 2)},
+                                                    {0x5c, 0x00},
+                                                    {0x63, 0x00},
+                                                    {HISTO_LOW, 0x70},
+                                                    {HISTO_HIGH, 0x80},
+                                                    {0x7c, 0x05},
+                                                    {0x20, 0x80},
+                                                    {0x28, 0x30},
+                                                    {0x6c, 0x00},
+                                                    {0x6d, 0x80},
+                                                    {0x6e, 0x00},
+                                                    {0x70, 0x02},
+                                                    {0x71, 0x94},
+                                                    {0x73, 0xc1},
+                                                    {0x3d, 0x34},
+                                                    {0x5a, 0x57},
+                                                    {BD50, 0xbb},
+                                                    {BD60, 0x9c},
+                                                    {COM7, COM7_RES_CIF},
+                                                    {HSTART, 0x11},
+                                                    {HSTOP, 0x43},
+                                                    {VSTART, 0x00},
+                                                    {VSTOP, 0x25},
+                                                    {REG32, 0x89},
+                                                    {0x37, 0xc0},
+                                                    {BD50, 0xca},
+                                                    {BD60, 0xa8},
+                                                    {0x6d, 0x00},
+                                                    {0x3d, 0x38},
+                                                    {BANK_SEL, BANK_DSP},
+                                                    {0xe5, 0x7f},
+                                                    {MC_BIST, MC_BIST_RESET | MC_BIST_BOOT_ROM_SEL},
+                                                    {0x41, 0x24},
+                                                    {RESET, RESET_JPEG | RESET_DVP},
+                                                    {0x76, 0xff},
+                                                    {0x33, 0xa0},
+                                                    {0x42, 0x20},
+                                                    {0x43, 0x18},
+                                                    {0x4c, 0x00},
+                                                    {CTRL3, CTRL3_WPC_EN | 0x10},
+                                                    {0x88, 0x3f},
+                                                    {0xd7, 0x03},
+                                                    {0xd9, 0x10},
+                                                    {R_DVP_SP, R_DVP_SP_AUTO_MODE | 0x02},
+                                                    {0xc8, 0x08},
+                                                    {0xc9, 0x80},
+                                                    {BPADDR, 0x00},
+                                                    {BPDATA, 0x00},
+                                                    {BPADDR, 0x03},
+                                                    {BPDATA, 0x48},
+                                                    {BPDATA, 0x48},
+                                                    {BPADDR, 0x08},
+                                                    {BPDATA, 0x20},
+                                                    {BPDATA, 0x10},
+                                                    {BPDATA, 0x0e},
+                                                    {0x90, 0x00},
+                                                    {0x91, 0x0e},
+                                                    {0x91, 0x1a},
+                                                    {0x91, 0x31},
+                                                    {0x91, 0x5a},
+                                                    {0x91, 0x69},
+                                                    {0x91, 0x75},
+                                                    {0x91, 0x7e},
+                                                    {0x91, 0x88},
+                                                    {0x91, 0x8f},
+                                                    {0x91, 0x96},
+                                                    {0x91, 0xa3},
+                                                    {0x91, 0xaf},
+                                                    {0x91, 0xc4},
+                                                    {0x91, 0xd7},
+                                                    {0x91, 0xe8},
+                                                    {0x91, 0x20},
+                                                    {0x92, 0x00},
+                                                    {0x93, 0x06},
+                                                    {0x93, 0xe3},
+                                                    {0x93, 0x05},
+                                                    {0x93, 0x05},
+                                                    {0x93, 0x00},
+                                                    {0x93, 0x04},
+                                                    {0x93, 0x00},
+                                                    {0x93, 0x00},
+                                                    {0x93, 0x00},
+                                                    {0x93, 0x00},
+                                                    {0x93, 0x00},
+                                                    {0x93, 0x00},
+                                                    {0x93, 0x00},
+                                                    {0x96, 0x00},
+                                                    {0x97, 0x08},
+                                                    {0x97, 0x19},
+                                                    {0x97, 0x02},
+                                                    {0x97, 0x0c},
+                                                    {0x97, 0x24},
+                                                    {0x97, 0x30},
+                                                    {0x97, 0x28},
+                                                    {0x97, 0x26},
+                                                    {0x97, 0x02},
+                                                    {0x97, 0x98},
+                                                    {0x97, 0x80},
+                                                    {0x97, 0x00},
+                                                    {0x97, 0x00},
+                                                    {0xa4, 0x00},
+                                                    {0xa8, 0x00},
+                                                    {0xc5, 0x11},
+                                                    {0xc6, 0x51},
+                                                    {0xbf, 0x80},
+                                                    {0xc7, 0x10},
+                                                    {0xb6, 0x66},
+                                                    {0xb8, 0xA5},
+                                                    {0xb7, 0x64},
+                                                    {0xb9, 0x7C},
+                                                    {0xb3, 0xaf},
+                                                    {0xb4, 0x97},
+                                                    {0xb5, 0xFF},
+                                                    {0xb0, 0xC5},
+                                                    {0xb1, 0x94},
+                                                    {0xb2, 0x0f},
+                                                    {0xc4, 0x5c},
+                                                    {CTRL1, 0xfd},
+                                                    {0x7f, 0x00},
+                                                    {0xe5, 0x1f},
+                                                    {0xe1, 0x67},
+                                                    {0xdd, 0x7f},
+                                                    {IMAGE_MODE, 0x00},
+                                                    {RESET, 0x00},
+                                                    {R_BYPASS, R_BYPASS_DSP_EN},
+                                                    {0, 0}};
 
-#define IMAGE_MODE_Y8_DVP_EN    0x40
-#define IMAGE_MODE_JPEG_EN      0x10
-#define IMAGE_MODE_YUV422       0x00
-#define IMAGE_MODE_RAW10        0x04
-#define IMAGE_MODE_RGB565       0x08
-#define IMAGE_MODE_HREF_VSYNC   0x02
-#define IMAGE_MODE_LBYTE_FIRST  0x01
+const DRAM_ATTR uint8_t ov2640_settings_to_cif[][2] = {{BANK_SEL, BANK_SENSOR},
+                                                       {COM7, COM7_RES_CIF},
 
-#define RESET_MICROC            0x40
-#define RESET_SCCB              0x20
-#define RESET_JPEG              0x10
-#define RESET_DVP               0x04
-#define RESET_IPU               0x02
-#define RESET_CIF               0x01
+                                                       // Set the sensor output window
+                                                       {COM1, 0x0A},
+                                                       {REG32, REG32_CIF},
+                                                       {HSTART, 0x11},
+                                                       {HSTOP, 0x43},
+                                                       {VSTART, 0x00},
+                                                       {VSTOP, 0x25},
 
-#define MC_BIST_RESET           0x80
-#define MC_BIST_BOOT_ROM_SEL    0x40
-#define MC_BIST_12KB_SEL        0x20
-#define MC_BIST_12KB_MASK       0x30
-#define MC_BIST_512KB_SEL       0x08
-#define MC_BIST_512KB_MASK      0x0C
-#define MC_BIST_BUSY_BIT_R      0x02
-#define MC_BIST_MC_RES_ONE_SH_W 0x02
-#define MC_BIST_LAUNCH          0x01
+                                                       //{CLKRC, 0x00},
+                                                       {BD50, 0xca},
+                                                       {BD60, 0xa8},
+                                                       {0x5a, 0x23},
+                                                       {0x6d, 0x00},
+                                                       {0x3d, 0x38},
+                                                       {0x39, 0x92},
+                                                       {0x35, 0xda},
+                                                       {0x22, 0x1a},
+                                                       {0x37, 0xc3},
+                                                       {0x23, 0x00},
+                                                       {ARCOM2, 0xc0},
+                                                       {0x06, 0x88},
+                                                       {0x07, 0xc0},
+                                                       {COM4, 0x87},
+                                                       {0x0e, 0x41},
+                                                       {0x4c, 0x00},
+                                                       {BANK_SEL, BANK_DSP},
+                                                       {RESET, RESET_DVP},
 
+                                                       // Set the sensor resolution (UXGA, SVGA, CIF)
+                                                       {HSIZE8, 0x32},
+                                                       {VSIZE8, 0x25},
+                                                       {SIZEL, 0x00},
 
-typedef enum {
-    BANK_DSP, BANK_SENSOR, BANK_MAX
-} ov2640_bank_t;
+                                                       // Set the image window size >= output size
+                                                       {HSIZE, 0x64},
+                                                       {VSIZE, 0x4a},
+                                                       {XOFFL, 0x00},
+                                                       {YOFFL, 0x00},
+                                                       {VHYX, 0x00},
+                                                       {TEST, 0x00},
 
-/* Sensor register bank FF=0x01*/
-#define GAIN                0x00
-#define COM1                0x03
-#define REG04               0x04
-#define REG08               0x08
-#define COM2                0x09
-#define REG_PID             0x0A
-#define REG_VER             0x0B
-#define COM3                0x0C
-#define COM4                0x0D
-#define AEC                 0x10
-#define CLKRC               0x11
-#define COM7                0x12
-#define COM8                0x13
-#define COM9                0x14 /* AGC gain ceiling */
-#define COM10               0x15
-#define HSTART              0x17
-#define HSTOP               0x18
-#define VSTART              0x19
-#define VSTOP               0x1A
-#define REG_MIDH            0x1C
-#define REG_MIDL            0x1D
-#define AEW                 0x24
-#define AEB                 0x25
-#define VV                  0x26
-#define REG2A               0x2A
-#define FRARL               0x2B
-#define ADDVSL              0x2D
-#define ADDVSH              0x2E
-#define YAVG                0x2F
-#define HSDY                0x30
-#define HEDY                0x31
-#define REG32               0x32
-#define ARCOM2              0x34
-#define REG45               0x45
-#define FLL                 0x46
-#define FLH                 0x47
-#define COM19               0x48
-#define ZOOMS               0x49
-#define COM22               0x4B
-#define COM25               0x4E
-#define BD50                0x4F
-#define BD60                0x50
-#define REG5D               0x5D
-#define REG5E               0x5E
-#define REG5F               0x5F
-#define REG60               0x60
-#define HISTO_LOW           0x61
-#define HISTO_HIGH          0x62
+                                                       {CTRL2, CTRL2_DCW_EN | 0x1D},
+                                                       {CTRLI, CTRLI_LP_DP | 0x00},
+                                                       //{R_DVP_SP, 0x08},
+                                                       {0, 0}};
 
-#define REG04_DEFAULT       0x28
-#define REG04_HFLIP_IMG     0x80
-#define REG04_VFLIP_IMG     0x40
-#define REG04_VREF_EN       0x10
-#define REG04_HREF_EN       0x08
-#define REG04_SET(x)        (REG04_DEFAULT|x)
+const DRAM_ATTR uint8_t ov2640_settings_to_svga[][2] = {{BANK_SEL, BANK_SENSOR},
+                                                        {COM7, COM7_RES_SVGA},
 
-#define COM2_STDBY          0x10
-#define COM2_OUT_DRIVE_1x   0x00
-#define COM2_OUT_DRIVE_2x   0x01
-#define COM2_OUT_DRIVE_3x   0x02
-#define COM2_OUT_DRIVE_4x   0x03
+                                                        // Set the sensor output window
+                                                        {COM1, 0x0A},
+                                                        {REG32, REG32_SVGA},
+                                                        {HSTART, 0x11},
+                                                        {HSTOP, 0x43},
+                                                        {VSTART, 0x00},
+                                                        {VSTOP, 0x4b},
 
-#define COM3_DEFAULT        0x38
-#define COM3_BAND_50Hz      0x04
-#define COM3_BAND_60Hz      0x00
-#define COM3_BAND_AUTO      0x02
-#define COM3_BAND_SET(x)    (COM3_DEFAULT|x)
+                                                        //{CLKRC, 0x00},
+                                                        {0x37, 0xc0},
+                                                        {BD50, 0xca},
+                                                        {BD60, 0xa8},
+                                                        {0x5a, 0x23},
+                                                        {0x6d, 0x00},
+                                                        {0x3d, 0x38},
+                                                        {0x39, 0x92},
+                                                        {0x35, 0xda},
+                                                        {0x22, 0x1a},
+                                                        {0x37, 0xc3},
+                                                        {0x23, 0x00},
+                                                        {ARCOM2, 0xc0},
+                                                        {0x06, 0x88},
+                                                        {0x07, 0xc0},
+                                                        {COM4, 0x87},
+                                                        {0x0e, 0x41},
+                                                        {0x42, 0x03},
+                                                        {0x4c, 0x00},
+                                                        {BANK_SEL, BANK_DSP},
+                                                        {RESET, RESET_DVP},
 
-#define COM7_SRST           0x80
-#define COM7_RES_UXGA       0x00 /* UXGA */
-#define COM7_RES_SVGA       0x40 /* SVGA */
-#define COM7_RES_CIF        0x20 /* CIF  */
-#define COM7_ZOOM_EN        0x04 /* Enable Zoom */
-#define COM7_COLOR_BAR      0x02 /* Enable Color Bar Test */
+                                                        // Set the sensor resolution (UXGA, SVGA, CIF)
+                                                        {HSIZE8, 0x64},
+                                                        {VSIZE8, 0x4B},
+                                                        {SIZEL, 0x00},
 
-#define COM8_DEFAULT        0xC0
-#define COM8_BNDF_EN        0x20 /* Enable Banding filter */
-#define COM8_AGC_EN         0x04 /* AGC Auto/Manual control selection */
-#define COM8_AEC_EN         0x01 /* Auto/Manual Exposure control */
-#define COM8_SET(x)         (COM8_DEFAULT|x)
+                                                        // Set the image window size >= output size
+                                                        {HSIZE, 0xC8},
+                                                        {VSIZE, 0x96},
+                                                        {XOFFL, 0x00},
+                                                        {YOFFL, 0x00},
+                                                        {VHYX, 0x00},
+                                                        {TEST, 0x00},
 
-#define COM9_DEFAULT        0x08
-#define COM9_AGC_GAIN_2x    0x00 /* AGC:    2x */
-#define COM9_AGC_GAIN_4x    0x01 /* AGC:    4x */
-#define COM9_AGC_GAIN_8x    0x02 /* AGC:    8x */
-#define COM9_AGC_GAIN_16x   0x03 /* AGC:   16x */
-#define COM9_AGC_GAIN_32x   0x04 /* AGC:   32x */
-#define COM9_AGC_GAIN_64x   0x05 /* AGC:   64x */
-#define COM9_AGC_GAIN_128x  0x06 /* AGC:  128x */
-#define COM9_AGC_SET(x)     (COM9_DEFAULT|(x<<5))
+                                                        {CTRL2, CTRL2_DCW_EN | 0x1D},
+                                                        {CTRLI, CTRLI_LP_DP | 0x00},
+                                                        //{R_DVP_SP, 0x08},
+                                                        {0, 0}};
 
-#define COM10_HREF_EN       0x80 /* HSYNC changes to HREF */
-#define COM10_HSYNC_EN      0x40 /* HREF changes to HSYNC */
-#define COM10_PCLK_FREE     0x20 /* PCLK output option: free running PCLK */
-#define COM10_PCLK_EDGE     0x10 /* Data is updated at the rising edge of PCLK */
-#define COM10_HREF_NEG      0x08 /* HREF negative */
-#define COM10_VSYNC_NEG     0x02 /* VSYNC negative */
-#define COM10_HSYNC_NEG     0x01 /* HSYNC negative */
+const DRAM_ATTR uint8_t ov2640_settings_to_uxga[][2] = {{BANK_SEL, BANK_SENSOR},
+                                                        {COM7, COM7_RES_UXGA},
 
-#define CTRL1_AWB           0x08 /* Enable AWB */
+                                                        // Set the sensor output window
+                                                        {COM1, 0x0F},
+                                                        {REG32, REG32_UXGA},
+                                                        {HSTART, 0x11},
+                                                        {HSTOP, 0x75},
+                                                        {VSTART, 0x01},
+                                                        {VSTOP, 0x97},
 
-#define VV_AGC_TH_SET(h,l)  ((h<<4)|(l&0x0F))
+                                                        //{CLKRC, 0x00},
+                                                        {0x3d, 0x34},
+                                                        {BD50, 0xbb},
+                                                        {BD60, 0x9c},
+                                                        {0x5a, 0x57},
+                                                        {0x6d, 0x80},
+                                                        {0x39, 0x82},
+                                                        {0x23, 0x00},
+                                                        {0x07, 0xc0},
+                                                        {0x4c, 0x00},
+                                                        {0x35, 0x88},
+                                                        {0x22, 0x0a},
+                                                        {0x37, 0x40},
+                                                        {ARCOM2, 0xa0},
+                                                        {0x06, 0x02},
+                                                        {COM4, 0xb7},
+                                                        {0x0e, 0x01},
+                                                        {0x42, 0x83},
+                                                        {BANK_SEL, BANK_DSP},
+                                                        {RESET, RESET_DVP},
 
-#define REG32_UXGA          0x36
-#define REG32_SVGA          0x09
-#define REG32_CIF           0x89
+                                                        // Set the sensor resolution (UXGA, SVGA, CIF)
+                                                        {HSIZE8, 0xc8},
+                                                        {VSIZE8, 0x96},
+                                                        {SIZEL, 0x00},
 
-#define CLKRC_2X            0x80
-#define CLKRC_2X_UXGA       (0x01 | CLKRC_2X)
-#define CLKRC_2X_SVGA       CLKRC_2X
-#define CLKRC_2X_CIF        CLKRC_2X
+                                                        // Set the image window size >= output size
+                                                        {HSIZE, 0x90},
+                                                        {VSIZE, 0x2c},
+                                                        {XOFFL, 0x00},
+                                                        {YOFFL, 0x00},
+                                                        {VHYX, 0x88},
+                                                        {TEST, 0x00},
 
-#endif //__REG_REGS_H__
+                                                        {CTRL2, CTRL2_DCW_EN | 0x1d},
+                                                        {CTRLI, 0x00},
+                                                        //{R_DVP_SP, 0x06},
+                                                        {0, 0}};
+
+const DRAM_ATTR uint8_t ov2640_settings_jpeg3[][2] = {{BANK_SEL, BANK_DSP},
+                                                      {RESET, RESET_JPEG | RESET_DVP},
+                                                      {IMAGE_MODE, IMAGE_MODE_JPEG_EN | IMAGE_MODE_HREF_VSYNC},
+                                                      {0xD7, 0x03},
+                                                      {0xE1, 0x77},
+                                                      {0xE5, 0x1F},
+                                                      {0xD9, 0x10},
+                                                      {0xDF, 0x80},
+                                                      {0x33, 0x80},
+                                                      {0x3C, 0x10},
+                                                      {0xEB, 0x30},
+                                                      {0xDD, 0x7F},
+                                                      {RESET, 0x00},
+                                                      {0, 0}};
+
+static const uint8_t ov2640_settings_yuv422[][2] = {
+    {BANK_SEL, BANK_DSP},
+    {RESET, RESET_DVP},
+    {IMAGE_MODE, IMAGE_MODE_YUV422},
+    {0xD7, 0x01},
+    {0xE1, 0x67},
+    {RESET, 0x00},
+    {0, 0},
+};
+
+static const uint8_t ov2640_settings_rgb565[][2] = {
+    {BANK_SEL, BANK_DSP},
+    {RESET, RESET_DVP},
+    {IMAGE_MODE, IMAGE_MODE_RGB565},
+    {0xD7, 0x03},
+    {0xE1, 0x77},
+    {RESET, 0x00},
+    {0, 0},
+};
+
+#define NUM_BRIGHTNESS_LEVELS (5)
+static const uint8_t brightness_regs[NUM_BRIGHTNESS_LEVELS + 1][5] = {
+    {BPADDR, BPDATA, BPADDR, BPDATA, BPDATA}, {0x00, 0x04, 0x09, 0x00, 0x00}, /* -2 */
+    {0x00, 0x04, 0x09, 0x10, 0x00},                                           /* -1 */
+    {0x00, 0x04, 0x09, 0x20, 0x00},                                           /*  0 */
+    {0x00, 0x04, 0x09, 0x30, 0x00},                                           /* +1 */
+    {0x00, 0x04, 0x09, 0x40, 0x00},                                           /* +2 */
+};
+
+#define NUM_CONTRAST_LEVELS (5)
+static const uint8_t contrast_regs[NUM_CONTRAST_LEVELS + 1][7] = {
+    {BPADDR, BPDATA, BPADDR, BPDATA, BPDATA, BPDATA, BPDATA},
+    {0x00, 0x04, 0x07, 0x20, 0x18, 0x34, 0x06}, /* -2 */
+    {0x00, 0x04, 0x07, 0x20, 0x1c, 0x2a, 0x06}, /* -1 */
+    {0x00, 0x04, 0x07, 0x20, 0x20, 0x20, 0x06}, /*  0 */
+    {0x00, 0x04, 0x07, 0x20, 0x24, 0x16, 0x06}, /* +1 */
+    {0x00, 0x04, 0x07, 0x20, 0x28, 0x0c, 0x06}, /* +2 */
+};
+
+#define NUM_SATURATION_LEVELS (5)
+static const uint8_t saturation_regs[NUM_SATURATION_LEVELS + 1][5] = {
+    {BPADDR, BPDATA, BPADDR, BPDATA, BPDATA}, {0x00, 0x02, 0x03, 0x28, 0x28}, /* -2 */
+    {0x00, 0x02, 0x03, 0x38, 0x38},                                           /* -1 */
+    {0x00, 0x02, 0x03, 0x48, 0x48},                                           /*  0 */
+    {0x00, 0x02, 0x03, 0x58, 0x58},                                           /* +1 */
+    {0x00, 0x02, 0x03, 0x68, 0x68},                                           /* +2 */
+};
+
+#define NUM_SPECIAL_EFFECTS (7)
+static const uint8_t special_effects_regs[NUM_SPECIAL_EFFECTS + 1][5] = {
+    {BPADDR, BPDATA, BPADDR, BPDATA, BPDATA}, {0x00, 0X00, 0x05, 0X80, 0X80}, /* no effect */
+    {0x00, 0X40, 0x05, 0X80, 0X80},                                           /* negative */
+    {0x00, 0X18, 0x05, 0X80, 0X80},                                           /* black and white */
+    {0x00, 0X18, 0x05, 0X40, 0XC0},                                           /* reddish */
+    {0x00, 0X18, 0x05, 0X40, 0X40},                                           /* greenish */
+    {0x00, 0X18, 0x05, 0XA0, 0X40},                                           /* blue */
+    {0x00, 0X18, 0x05, 0X40, 0XA6},                                           /* retro */
+};
+
+#define NUM_WB_MODES (4)
+static const uint8_t wb_modes_regs[NUM_WB_MODES + 1][3] = {
+    {0XCC, 0XCD, 0XCE}, {0x5E, 0X41, 0x54}, /* sunny */
+    {0x65, 0X41, 0x4F},                     /* cloudy */
+    {0x52, 0X41, 0x66},                     /* office */
+    {0x42, 0X3F, 0x71},                     /* home */
+};
+
+#define NUM_AE_LEVELS (5)
+static const uint8_t ae_levels_regs[NUM_AE_LEVELS + 1][3] = {
+    {AEW, AEB, VV}, {0x20, 0X18, 0x60}, {0x34, 0X1C, 0x00}, {0x3E, 0X38, 0x81}, {0x48, 0X40, 0x81}, {0x58, 0X50, 0x92},
+};
+
+const uint8_t agc_gain_tbl[31] = {0x00, 0x10, 0x18, 0x30, 0x34, 0x38, 0x3C, 0x70, 0x72, 0x74, 0x76,
+                                  0x78, 0x7A, 0x7C, 0x7E, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6,
+                                  0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF};
+
+#endif /* _OV2640_SETTINGS_H_ */

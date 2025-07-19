@@ -13,19 +13,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "signal/src/filter_bank_square_root.h"
+#ifndef SIGNAL_SRC_FILTER_BANK_SQUARE_ROOT_H_
+#define SIGNAL_SRC_FILTER_BANK_SQUARE_ROOT_H_
 
-#include "signal/src/square_root.h"
+#include <stdint.h>
 
 namespace tflite {
 namespace tflm_signal {
+// TODO(b/286250473): remove namespace once de-duped libraries above
 
-void FilterbankSqrt(const uint64_t* input, int num_channels,
-                    int scale_down_bits, uint32_t* output) {
-  for (int i = 0; i < num_channels; ++i) {
-    output[i] = Sqrt64(input[i]) >> scale_down_bits;
-  }
-}
+// Apply square root to each element in `input`, then shift right by
+// `scale_down_bits` before writing the result to `output`,
+// `input` and `output` must both be of size `num_channels`
+void FilterbankSqrt(const uint64_t *input, int num_channels, int scale_down_bits, uint32_t *output);
 
 }  // namespace tflm_signal
 }  // namespace tflite
+
+#endif  // SIGNAL_SRC_FILTER_BANK_SQUARE_ROOT_H_

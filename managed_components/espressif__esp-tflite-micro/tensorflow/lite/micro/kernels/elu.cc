@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,139 +13,183 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/elu.h"
-
-#include <algorithm>
-#include <limits>
+// Ops that looks up items from matrix.
+//
+// Input:
+//     Tensor[0]: Row numbers to lookup, dim.size == 1, int32
+//     Tensor[1]: 2-dimensional matrix of multi-dimensional items
+//                dim.size >= 2, all items are INT8 or FLOAT32.
+//                first dimension is row, second dimension is column.
+//
+// Output:
+//   Output.dim[0] == Tensor[0].dim[0], num of lookups
+//   Output.dim[1] == Tensor[1].dim[1],  num of items per row
+//   Each item in output is a raw bytes copy of the corresponding item in input,
+//   or a dequantized value in the case of a INT8 input.
+//   When indices are out of bound, the ops will not succeed.
+//
 
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/cppmath.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/reference/process_broadcast_shapes.h"
 #include "tensorflow/lite/kernels/internal/types.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_utils.h"
 
 namespace tflite {
 namespace {
 
-// Input/output tensor index.
-constexpr int kInputTensor = 0;
+constexpr int kInputTensor_0 = 0;
+constexpr int kInputTensor_1 = 1;
 constexpr int kOutputTensor = 0;
 
-// OLD-TODO(b/142762739): We should figure out a multi-threading plan for most
-// of the activation ops below.
-
 struct OpData {
-  int8_t table[256];
+  float scale;         // quantization scale for tensor 1
+  size_t num_columns;  // number of columns after flattening tensor 1 into 2D
 };
 
-using TransformFunc = float (*)(float);
+TfLiteStatus CalculateOpData(TfLiteContext *context, TfLiteNode *node, const TfLiteTensor *tensor_1,
+                             const TfLiteTensor *output) {
+  node->user_data = context->AllocatePersistentBuffer(context, sizeof(OpData));
+  OpData *op_data = static_cast<OpData *>(node->user_data);
+  TF_LITE_ENSURE(context, op_data != nullptr);
 
-template <typename T>
-void PopulateLookupTable(const TfLiteTensor* input, const TfLiteTensor* output,
-                         const TransformFunc transform, OpData* data) {
-  if (sizeof(T) != 1) {
-    MicroPrintf("Lookup table valid only for 8bit");
-    TFLITE_ABORT;
+  if (tensor_1->type == kTfLiteInt8 && output->type == kTfLiteFloat32) {
+    TF_LITE_ENSURE_EQ(context, tensor_1->params.zero_point, 0);
+    op_data->scale = tensor_1->params.scale;
   }
 
-  const float inverse_scale = 1 / output->params.scale;
-  int32_t maxval = std::numeric_limits<T>::max();
-  int32_t minval = std::numeric_limits<T>::min();
-  for (int32_t val = minval; val <= maxval; ++val) {
-    const float dequantized =
-        input->params.scale * (val - input->params.zero_point);
-    const float transformed = transform(dequantized);
-    const float rescaled = TfLiteRound(transformed * inverse_scale);
-    const int32_t quantized =
-        static_cast<int32_t>(rescaled + output->params.zero_point);
-    data->table[static_cast<uint8_t>(static_cast<T>(val))] =
-        static_cast<T>(std::max(std::min(maxval, quantized), minval));
-  }
-}
+  op_data->num_columns = NumElements(tensor_1) / tensor_1->dims->data[0];
 
-// OLD-TODO(b/143696793): move this to optimized_ops.
-void EvalUsingLookupTable(const OpData* data, const TfLiteEvalTensor* input,
-                          TfLiteEvalTensor* output) {
-  const int size = MatchingFlatSize(tflite::micro::GetTensorShape(input),
-                                    tflite::micro::GetTensorShape(output));
-  int8_t* output_data = tflite::micro::GetTensorData<int8_t>(output);
-  const int8_t* input_data = tflite::micro::GetTensorData<int8_t>(input);
-
-  for (int i = 0; i < size; ++i) {
-    output_data[i] = data->table[static_cast<uint8_t>(input_data[i])];
-  }
-}
-
-TfLiteStatus CalculateOpData(TfLiteContext* context, TfLiteNode* node) {
-  MicroContext* micro_context = GetMicroContext(context);
-
-  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
-  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
-  TF_LITE_ENSURE(context, input != nullptr);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
-  TF_LITE_ENSURE(context, output != nullptr);
-  TF_LITE_ENSURE_TYPES_EQ(context, input->type, output->type);
-
-  // Use LUT to handle quantized elu path.
-  if (input->type == kTfLiteInt8) {
-    OpData* data = static_cast<OpData*>(node->user_data);
-    TransformFunc transform = [](float value) {
-      return value < 0.0f ? std::exp(value) - 1.0f : value;
-    };
-    PopulateLookupTable<int8_t>(input, output, transform, data);
-  }
-  micro_context->DeallocateTempTfLiteTensor(input);
-  micro_context->DeallocateTempTfLiteTensor(output);
   return kTfLiteOk;
 }
 
-void* EluInit(TfLiteContext* context, const char* buffer, size_t length) {
-  // This is a builtin op, so we don't use the contents in 'buffer', if any.
-  // Instead, we allocate a new object to carry information from Prepare() to
-  // Eval().
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(OpData));
+TfLiteStatus EmbeddingLookUpPrepare(TfLiteContext *context, TfLiteNode *node) {
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 2);
+  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
+
+  MicroContext *micro_context = GetMicroContext(context);
+
+  TfLiteTensor *lookup = micro_context->AllocateTempInputTensor(node, kInputTensor_0);
+  TF_LITE_ENSURE(context, lookup != nullptr);
+  TF_LITE_ENSURE_EQ(context, NumDimensions(lookup), 1);
+  TF_LITE_ENSURE_EQ(context, lookup->type, kTfLiteInt32);
+
+  TfLiteTensor *value = micro_context->AllocateTempInputTensor(node, kInputTensor_1);
+  TF_LITE_ENSURE(context, value != nullptr);
+  TF_LITE_ENSURE(context, NumDimensions(value) >= 2);
+  TF_LITE_ENSURE(context, value->type == kTfLiteFloat32 || value->type == kTfLiteInt8);
+
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TF_LITE_ENSURE(context, output != nullptr);
+  if (value->type == kTfLiteFloat32) {
+    TF_LITE_ENSURE(context, output->type == kTfLiteFloat32);
+  } else {
+    TF_LITE_ENSURE(context, output->type == kTfLiteFloat32 || output->type == kTfLiteInt8);
+  }
+
+  // make sure output dimensions size can hold the new dimension data
+  TF_LITE_ENSURE(context, output->dims->size >= NumDimensions(value));
+  // make the output tensor dimensions mutable
+  TfLiteEvalTensor *output_eval = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  TF_LITE_ENSURE_OK(context, tflite::micro::CreateWritableTensorDimsWithCopy(context, output, output_eval));
+  // set the new output dimensions
+  output->dims->data[0] = SizeOfDimension(lookup, 0);
+  output->dims->data[1] = SizeOfDimension(value, 1);
+  for (int i = 2; i < NumDimensions(value); i++) {
+    output->dims->data[i] = SizeOfDimension(value, i);
+  }
+  // check the new output dimensions do not exceed the output data buffer size
+  size_t new_dims_size = NumElements(output) * TfLiteTypeGetSize(output->type);
+  TF_LITE_ENSURE(context, new_dims_size <= output->bytes);
+
+  TF_LITE_ENSURE_OK(context, CalculateOpData(context, node, value, output));
+
+  micro_context->DeallocateTempTfLiteTensor(lookup);
+  micro_context->DeallocateTempTfLiteTensor(value);
+  micro_context->DeallocateTempTfLiteTensor(output);
+
+  return kTfLiteOk;
 }
 
-TfLiteStatus EluPrepare(TfLiteContext* context, TfLiteNode* node) {
-  return CalculateOpData(context, node);
+TfLiteStatus EvalSimple(const OpData &op_data, const TfLiteEvalTensor *lookup, const TfLiteEvalTensor *value,
+                        TfLiteEvalTensor *output) {
+  const int num_rows = value->dims->data[0];
+  if (num_rows == 0) {
+    // Propagate empty tensor if input is empty
+    return kTfLiteOk;
+  }
+  const size_t row_bytes = op_data.num_columns * TfLiteTypeGetSize(value->type);
+
+  int8_t *output_raw = tflite::micro::GetTensorData<int8_t>(output);
+  const int8_t *value_raw = tflite::micro::GetTensorData<int8_t>(value);
+  const int32_t *lookup_data = tflite::micro::GetTensorData<int32_t>(lookup);
+  for (int i = 0; i < lookup->dims->data[0]; i++) {
+    int32_t idx = lookup_data[i];
+    if (idx >= num_rows || idx < 0) {
+      MicroPrintf("EMBEDDING_LOOKUP: index out of bounds. "
+                  "Got %d, and bounds are [0, %d]",
+                  idx, num_rows - 1);
+      return kTfLiteError;
+    } else {
+      std::memcpy(output_raw + i * row_bytes, value_raw + idx * row_bytes, row_bytes);
+    }
+  }
+
+  return kTfLiteOk;
 }
 
-TfLiteStatus EluEval(TfLiteContext* context, TfLiteNode* node) {
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-  switch (input->type) {
-    case kTfLiteFloat32: {
-      reference_ops::Elu(tflite::micro::GetTensorShape(input),
-                         tflite::micro::GetTensorData<float>(input),
-                         tflite::micro::GetTensorShape(output),
-                         tflite::micro::GetTensorData<float>(output));
-      return kTfLiteOk;
+TfLiteStatus EvalHybrid(const OpData &op_data, const TfLiteEvalTensor *lookup, const TfLiteEvalTensor *value,
+                        TfLiteEvalTensor *output) {
+  const int num_rows = value->dims->data[0];
+  const size_t num_colums = op_data.num_columns;
+
+  float *output_ptr = tflite::micro::GetTensorData<float>(output);
+  const int8_t *value_ptr = tflite::micro::GetTensorData<int8_t>(value);
+  const int32_t *lookup_data = tflite::micro::GetTensorData<int32_t>(lookup);
+
+  for (int i = 0; i < lookup->dims->data[0]; i++) {
+    int32_t idx = lookup_data[i];
+    if (idx >= num_rows || idx < 0) {
+      MicroPrintf("EMBEDDING_LOOKUP: index out of bounds. "
+                  "Got %d, and bounds are [0, %d]",
+                  idx, num_rows - 1);
+      return kTfLiteError;
+    } else {
+      // Dequantize embedding values.
+      Dequantize(&value_ptr[idx * num_colums], num_colums, op_data.scale, 0, &output_ptr[i * num_colums]);
     }
-    case kTfLiteInt8: {
-      const OpData* data = static_cast<OpData*>(node->user_data);
-      EvalUsingLookupTable(data, input, output);
-      return kTfLiteOk;
-    }
+  }
+
+  return kTfLiteOk;
+}
+
+TfLiteStatus EmbeddingLookUpEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *lookup = tflite::micro::GetEvalInput(context, node, kInputTensor_0);
+  const TfLiteEvalTensor *value = tflite::micro::GetEvalInput(context, node, kInputTensor_1);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+
+  OpData &op_data = *static_cast<OpData *>(node->user_data);
+
+  switch (value->type) {
+    case kTfLiteFloat32:
+      return EvalSimple(op_data, lookup, value, output);
+    case kTfLiteInt8:
+      if (output->type == kTfLiteFloat32) {
+        return EvalHybrid(op_data, lookup, value, output);
+      } else {
+        return EvalSimple(op_data, lookup, value, output);
+      }
     default:
-      MicroPrintf("ELU only supports float32 and int8 currently, got %s.",
-                  TfLiteTypeGetName(input->type));
+      MicroPrintf("EMBEDDING_LOOKUP only supports FLOAT32 and INT8, got %s.", TfLiteTypeGetName(output->type));
       return kTfLiteError;
   }
 }
 
 }  // namespace
 
-TFLMRegistration Register_ELU() {
-  return tflite::micro::RegisterOp(EluInit, EluPrepare, EluEval);
+TFLMRegistration Register_EMBEDDING_LOOKUP() {
+  return tflite::micro::RegisterOp(nullptr, EmbeddingLookUpPrepare, EmbeddingLookUpEval);
 }
 
 }  // namespace tflite

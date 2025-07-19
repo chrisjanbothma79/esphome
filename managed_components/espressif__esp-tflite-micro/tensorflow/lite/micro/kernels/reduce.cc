@@ -13,62 +13,47 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/reduce.h"
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_REDUCE_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_REDUCE_H_
+
+#include <cstdint>
 
 #include "tensorflow/lite/c/builtin_op_data.h"
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/quantization_util.h"
-#include "tensorflow/lite/kernels/internal/reference/integer_ops/mean.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/internal/types.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/reduce.h"
-#include "tensorflow/lite/micro/micro_utils.h"
+#include "tensorflow/lite/micro/micro_common.h"
 
 namespace tflite {
 
-void* InitReduce(TfLiteContext* context, const char* buffer, size_t length) {
-  void* op_data =
-      context->AllocatePersistentBuffer(context, sizeof(OpDataReduce));
-  return new (op_data) OpDataReduce();
-}
+extern const int kMaxNumberOfAxis;
+extern const int kMaxNumberOfReducedAxis;
 
-TfLiteStatus PrepareMax(TfLiteContext* context, TfLiteNode* node) {
-  return PrepareMaxHelper(context, node,
-                          static_cast<OpDataReduce*>(node->user_data));
-}
+struct OpDataReduce {
+  int32_t multiplier;
+  int shift;
+  int temp_buffer_idx;
+  int resolved_axis_idx;
+  int input_zp;
+  float input_scale;
+  int output_zp;
+  float output_scale;
+  int num_output_elements;
+  int num_axis;
+};
 
-TfLiteStatus PrepareMeanOrSum(TfLiteContext* context, TfLiteNode* node) {
-  return PrepareMeanOrSumHelper(context, node,
-                                static_cast<OpDataReduce*>(node->user_data));
-}
+TfLiteStatus PrepareMaxHelper(TfLiteContext *context, TfLiteNode *node, OpDataReduce *op_data);
 
-TfLiteStatus EvalMean(TfLiteContext* context, TfLiteNode* node) {
-  return EvalMeanHelper(context, node,
-                        static_cast<OpDataReduce*>(node->user_data));
-}
+TfLiteStatus PrepareMeanOrSumHelper(TfLiteContext *context, TfLiteNode *node, OpDataReduce *op_data);
 
-TfLiteStatus EvalMax(TfLiteContext* context, TfLiteNode* node) {
-  OpDataReduce* op_data = static_cast<OpDataReduce*>(node->user_data);
-  return EvalMaxHelper(context, node, op_data);
-}
+TfLiteStatus EvalMaxHelper(TfLiteContext *context, TfLiteNode *node, OpDataReduce *op_data);
+TfLiteStatus EvalMeanHelper(TfLiteContext *context, TfLiteNode *node, OpDataReduce *op_data);
+TfLiteStatus EvalSumHelper(TfLiteContext *context, TfLiteNode *node, OpDataReduce *op_data);
 
-TfLiteStatus EvalSum(TfLiteContext* context, TfLiteNode* node) {
-  return EvalSumHelper(context, node,
-                       static_cast<OpDataReduce*>(node->user_data));
-}
+void ReduceResolveAxis(const int *axis_data, int axis_count, MeanParams *op_params);
 
-TFLMRegistration Register_MEAN() {
-  return tflite::micro::RegisterOp(InitReduce, PrepareMeanOrSum, EvalMean);
-}
-
-TFLMRegistration Register_REDUCE_MAX() {
-  return tflite::micro::RegisterOp(InitReduce, PrepareMax, EvalMax);
-}
-
-TFLMRegistration Register_SUM() {
-  return tflite::micro::RegisterOp(InitReduce, PrepareMeanOrSum, EvalSum);
-}
+TFLMRegistration Register_MEAN();
+TFLMRegistration Register_REDUCE_MAX();
+TFLMRegistration Register_SUM();
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_REDUCE_H_

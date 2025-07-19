@@ -13,121 +13,201 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "signal/src/rfft.h"
+
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "signal/src/pcan_argc_fixed.h"
+#include "signal/micro/kernels/rfft.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/flatbuffer_utils.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/memory_helpers.h"
-#include "tensorflow/lite/micro/micro_context.h"
+#include "tensorflow/lite/portable_type_to_tflitetype.h"
 
 namespace tflite {
-namespace tflm_signal {
-// TODO(b/286250473): remove namespace once de-duped libraries above
+namespace {
 
 constexpr int kInputTensor = 0;
-constexpr int kNoiseEstimateTensor = 1;
-constexpr int kGainLutTensor = 2;
 constexpr int kOutputTensor = 0;
 
 // Indices into the init flexbuffer's vector.
 // The parameter's name is in the comment that follows.
 // Elements in the vectors are ordered alphabetically by parameter name.
-constexpr int kSnrShiftIndex = 0;  // 'snr_shift'
+// 'T' is added implicitly by the TensorFlow framework when the type is resolved
+// during graph construction.
+// constexpr int kTypeIndex = 0;  // 'T' (unused)
+constexpr int kFftLengthIndex = 1;  // 'fft_length'
 
-struct TfLitePcanParams {
-  int snr_shift;
+template<typename T> struct TfLiteAudioFrontendRfftParams {
+  int32_t fft_length;
+  int32_t input_size;
+  int32_t input_length;
+  int32_t output_length;
+  TfLiteType fft_type;
+  T *work_area;
+  int scratch_buffer_index;
+  int8_t *state;
 };
 
-void* PcanInit(TfLiteContext* context, const char* buffer, size_t length) {
-  auto* params = static_cast<TfLitePcanParams*>(
-      context->AllocatePersistentBuffer(context, sizeof(TfLitePcanParams)));
+template<typename T, size_t (*get_needed_memory_func)(int32_t), void *(*init_func)(int32_t, void *, size_t)>
+void *RfftInit(TfLiteContext *context, const char *buffer, size_t length) {
+  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
 
-  tflite::FlexbufferWrapper fbw(reinterpret_cast<const uint8_t*>(buffer),
-                                length);
-  params->snr_shift = fbw.ElementAsInt32(kSnrShiftIndex);
+  const uint8_t *buffer_t = reinterpret_cast<const uint8_t *>(buffer);
+  auto *params = static_cast<TfLiteAudioFrontendRfftParams<T> *>(
+      context->AllocatePersistentBuffer(context, sizeof(TfLiteAudioFrontendRfftParams<T>)));
+
+  tflite::FlexbufferWrapper fbw(buffer_t, length);
+  params->fft_length = fbw.ElementAsInt32(kFftLengthIndex);
+  params->fft_type = typeToTfLiteType<T>();
+
+  size_t state_size = (*get_needed_memory_func)(params->fft_length);
+  params->state = static_cast<int8_t *>(context->AllocatePersistentBuffer(context, state_size * sizeof(int8_t)));
+  (*init_func)(params->fft_length, params->state, state_size);
   return params;
 }
 
-TfLiteStatus PcanPrepare(TfLiteContext* context, TfLiteNode* node) {
-  TF_LITE_ENSURE_EQ(context, NumInputs(node), 3);
+template<typename T, TfLiteType TfLiteTypeEnum> TfLiteStatus RfftPrepare(TfLiteContext *context, TfLiteNode *node) {
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
   TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
 
-  MicroContext* micro_context = GetMicroContext(context);
-
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
+  MicroContext *micro_context = GetMicroContext(context);
+  TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, kInputTensor);
   TF_LITE_ENSURE(context, input != nullptr);
-  TfLiteTensor* noise_estimate =
-      micro_context->AllocateTempInputTensor(node, kNoiseEstimateTensor);
-  TF_LITE_ENSURE(context, noise_estimate != nullptr);
-  TfLiteTensor* gain_lut =
-      micro_context->AllocateTempInputTensor(node, kGainLutTensor);
-  TF_LITE_ENSURE(context, gain_lut != nullptr);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
   TF_LITE_ENSURE(context, output != nullptr);
 
-  TF_LITE_ENSURE_EQ(context, NumDimensions(input), 1);
-  TF_LITE_ENSURE_EQ(context, NumDimensions(noise_estimate), 1);
-  TF_LITE_ENSURE_EQ(context, NumDimensions(gain_lut), 1);
-  TF_LITE_ENSURE_EQ(context, NumDimensions(output), 1);
+  TF_LITE_ENSURE_EQ(context, NumDimensions(input), NumDimensions(output));
 
-  TF_LITE_ENSURE_TYPES_EQ(context, input->type, kTfLiteUInt32);
-  TF_LITE_ENSURE_TYPES_EQ(context, noise_estimate->type, kTfLiteUInt32);
-  TF_LITE_ENSURE_TYPES_EQ(context, gain_lut->type, kTfLiteInt16);
-  TF_LITE_ENSURE_TYPES_EQ(context, output->type, kTfLiteUInt32);
+  TF_LITE_ENSURE_TYPES_EQ(context, input->type, TfLiteTypeEnum);
+  TF_LITE_ENSURE_TYPES_EQ(context, output->type, TfLiteTypeEnum);
 
+  auto *params = reinterpret_cast<TfLiteAudioFrontendRfftParams<T> *>(node->user_data);
+  RuntimeShape input_shape = GetTensorShape(input);
+  RuntimeShape output_shape = GetTensorShape(output);
+  params->input_length = input_shape.Dims(input_shape.DimensionsCount() - 1);
+  params->input_size = input_shape.FlatSize();
+  // Divide by 2 because output is complex.
+  params->output_length = output_shape.Dims(output_shape.DimensionsCount() - 1) / 2;
+
+  context->RequestScratchBufferInArena(context, params->fft_length * sizeof(T), &params->scratch_buffer_index);
   micro_context->DeallocateTempTfLiteTensor(input);
   micro_context->DeallocateTempTfLiteTensor(output);
-  micro_context->DeallocateTempTfLiteTensor(noise_estimate);
-  micro_context->DeallocateTempTfLiteTensor(gain_lut);
   return kTfLiteOk;
 }
 
-TfLiteStatus PcanEval(TfLiteContext* context, TfLiteNode* node) {
-  auto* params = reinterpret_cast<TfLitePcanParams*>(node->user_data);
+template<typename T, void (*apply_func)(void *, const T *input, Complex<T> *)>
+TfLiteStatus RfftEval(TfLiteContext *context, TfLiteNode *node) {
+  auto *params = reinterpret_cast<TfLiteAudioFrontendRfftParams<T> *>(node->user_data);
 
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  TF_LITE_ENSURE(context, input != nullptr);
-  const TfLiteEvalTensor* noise_estimate =
-      tflite::micro::GetEvalInput(context, node, kNoiseEstimateTensor);
-  TF_LITE_ENSURE(context, noise_estimate != nullptr);
-  const TfLiteEvalTensor* gain_lut =
-      tflite::micro::GetEvalInput(context, node, kGainLutTensor);
-  TF_LITE_ENSURE(context, gain_lut != nullptr);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-  TF_LITE_ENSURE(context, output != nullptr);
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kInputTensor);
 
-  const uint32_t* input_data = tflite::micro::GetTensorData<uint32_t>(input);
-  const uint32_t* noise_estimate_data =
-      tflite::micro::GetTensorData<uint32_t>(noise_estimate);
-  const int16_t* gain_lut_data =
-      tflite::micro::GetTensorData<int16_t>(gain_lut);
-  uint32_t* output_data = tflite::micro::GetTensorData<uint32_t>(output);
+  const T *input_data = tflite::micro::GetTensorData<T>(input);
 
-  int num_channels = input->dims->data[0];
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  Complex<T> *output_data = tflite::micro::GetTensorData<Complex<T>>(output);
 
-  size_t output_byte_size;
-  TF_LITE_ENSURE_OK(
-      context, tflite::TfLiteEvalTensorByteLength(output, &output_byte_size));
+  T *work_area = static_cast<T *>(context->GetScratchBuffer(context, params->scratch_buffer_index));
 
-  memcpy(output_data, input_data, output_byte_size);
+  for (int input_idx = 0, output_idx = 0; input_idx < params->input_size;
+       input_idx += params->input_length, output_idx += params->output_length) {
+    memcpy(work_area, &input_data[input_idx], sizeof(T) * params->input_length);
+    // Zero pad input to FFT length
+    memset(&work_area[params->input_length], 0, sizeof(T) * (params->fft_length - params->input_length));
 
-  tflite::tflm_signal::ApplyPcanAutoGainControlFixed(
-      gain_lut_data, params->snr_shift, noise_estimate_data, output_data,
-      num_channels);
+    (*apply_func)(params->state, work_area, &output_data[output_idx]);
+  }
   return kTfLiteOk;
 }
 
-TFLMRegistration* Register_PCAN() {
+void *RfftInitAll(TfLiteContext *context, const char *buffer, size_t length) {
+  const uint8_t *buffer_t = reinterpret_cast<const uint8_t *>(buffer);
+  const flexbuffers::Map &m = flexbuffers::GetRoot(buffer_t, length).AsMap();
+  auto tensor_type = static_cast<tflite::TensorType>(m["T"].AsInt32());
+
+  switch (tensor_type) {
+    case TensorType_INT16: {
+      return RfftInit<int16_t, ::tflm_signal::RfftInt16GetNeededMemory, ::tflm_signal::RfftInt16Init>(context, buffer,
+                                                                                                      length);
+    }
+    case TensorType_INT32: {
+      return RfftInit<int32_t, ::tflm_signal::RfftInt32GetNeededMemory, ::tflm_signal::RfftInt32Init>(context, buffer,
+                                                                                                      length);
+    }
+    case TensorType_FLOAT32: {
+      return RfftInit<float, ::tflm_signal::RfftFloatGetNeededMemory, ::tflm_signal::RfftFloatInit>(context, buffer,
+                                                                                                    length);
+    }
+    default:
+      return nullptr;
+  }
+}
+
+TfLiteStatus RfftPrepareAll(TfLiteContext *context, TfLiteNode *node) {
+  auto *params = reinterpret_cast<TfLiteAudioFrontendRfftParams<void> *>(node->user_data);
+
+  switch (params->fft_type) {
+    case kTfLiteInt16: {
+      return RfftPrepare<int16_t, kTfLiteInt16>(context, node);
+    }
+    case kTfLiteInt32: {
+      return RfftPrepare<int32_t, kTfLiteInt32>(context, node);
+    }
+    case kTfLiteFloat32: {
+      return RfftPrepare<float, kTfLiteFloat32>(context, node);
+    }
+    default:
+      return kTfLiteError;
+  }
+}
+
+TfLiteStatus RfftEvalAll(TfLiteContext *context, TfLiteNode *node) {
+  auto *params = reinterpret_cast<TfLiteAudioFrontendRfftParams<void> *>(node->user_data);
+
+  switch (params->fft_type) {
+    case kTfLiteInt16: {
+      return RfftEval<int16_t, ::tflm_signal::RfftInt16Apply>(context, node);
+    }
+    case kTfLiteInt32: {
+      return RfftEval<int32_t, ::tflm_signal::RfftInt32Apply>(context, node);
+    }
+    case kTfLiteFloat32: {
+      return RfftEval<float, ::tflm_signal::RfftFloatApply>(context, node);
+    }
+    default:
+      return kTfLiteError;
+  }
+}
+}  // namespace
+
+// TODO(b/286250473): remove namespace once de-duped libraries
+namespace tflm_signal {
+
+TFLMRegistration *Register_RFFT() {
+  static TFLMRegistration r = tflite::micro::RegisterOp(RfftInitAll, RfftPrepareAll, RfftEvalAll);
+  return &r;
+}
+
+TFLMRegistration *Register_RFFT_FLOAT() {
   static TFLMRegistration r =
-      tflite::micro::RegisterOp(PcanInit, PcanPrepare, PcanEval);
+      tflite::micro::RegisterOp(RfftInit<float, ::tflm_signal::RfftFloatGetNeededMemory, ::tflm_signal::RfftFloatInit>,
+                                RfftPrepare<float, kTfLiteFloat32>, RfftEval<float, ::tflm_signal::RfftFloatApply>);
+  return &r;
+}
+
+TFLMRegistration *Register_RFFT_INT16() {
+  static TFLMRegistration r = tflite::micro::RegisterOp(
+      RfftInit<int16_t, ::tflm_signal::RfftInt16GetNeededMemory, ::tflm_signal::RfftInt16Init>,
+      RfftPrepare<int16_t, kTfLiteInt16>, RfftEval<int16_t, ::tflm_signal::RfftInt16Apply>);
+  return &r;
+}
+
+TFLMRegistration *Register_RFFT_INT32() {
+  static TFLMRegistration r = tflite::micro::RegisterOp(
+      RfftInit<int32_t, ::tflm_signal::RfftInt32GetNeededMemory, ::tflm_signal::RfftInt32Init>,
+      RfftPrepare<int32_t, kTfLiteInt32>, RfftEval<int32_t, ::tflm_signal::RfftInt32Apply>);
   return &r;
 }
 

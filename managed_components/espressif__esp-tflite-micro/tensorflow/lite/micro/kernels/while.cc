@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,121 +13,67 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include <stddef.h>
-
-#include <cstring>
-
-#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/memory_helpers.h"
-#include "tensorflow/lite/micro/micro_context.h"
-#include "tensorflow/lite/micro/micro_graph.h"
-#include "tensorflow/lite/micro/micro_utils.h"
+#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
-
 namespace {
 
-struct OpData {
-  int cond_subgraph_index;
-  int body_subgraph_index;
-};
+constexpr int kInputTensor = 0;
+constexpr int kOutputTensor = 0;
 
-void* WhileInit(TfLiteContext* context, const char* buffer, size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(OpData));
-}
+TfLiteStatus ZerosLikePrepare(TfLiteContext *context, TfLiteNode *node) {
+  MicroContext *micro_context = GetMicroContext(context);
 
-TfLiteStatus WhilePrepare(TfLiteContext* context, TfLiteNode* node) {
-  OpData* op_data = reinterpret_cast<OpData*>(node->user_data);
-  const auto* params =
-      reinterpret_cast<const TfLiteWhileParams*>(node->builtin_data);
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
+  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
+  TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, kInputTensor);
+  TF_LITE_ENSURE(context, input != nullptr);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TF_LITE_ENSURE(context, output != nullptr);
+  output->type = input->type;
 
-  op_data->cond_subgraph_index = params->cond_subgraph_index;
-  op_data->body_subgraph_index = params->body_subgraph_index;
-
-  // The first input is the condition.
-  tflite::MicroContext* micro_context = tflite::GetMicroContext(context);
-
-  size_t num_inputs = node->inputs->size;
-  size_t num_outputs = node->outputs->size;
-
-  MicroGraph& graph_info = micro_context->graph();
-
-  TF_LITE_ENSURE(context,
-                 op_data->cond_subgraph_index < graph_info.NumSubgraphs());
-  TF_LITE_ENSURE(context,
-                 op_data->body_subgraph_index < graph_info.NumSubgraphs());
-
-  TF_LITE_ENSURE_EQ(context, num_inputs,
-                    graph_info.NumSubgraphInputs(op_data->cond_subgraph_index));
-  TF_LITE_ENSURE_EQ(context, num_inputs,
-                    graph_info.NumSubgraphInputs(op_data->body_subgraph_index));
-  TF_LITE_ENSURE_EQ(context, num_inputs, num_outputs);
-  TF_LITE_ENSURE_EQ(
-      context, num_outputs,
-      graph_info.NumSubgraphOutputs(op_data->body_subgraph_index));
-
+  micro_context->DeallocateTempTfLiteTensor(input);
+  micro_context->DeallocateTempTfLiteTensor(output);
   return kTfLiteOk;
 }
 
-TfLiteStatus WhileEval(TfLiteContext* context, TfLiteNode* node) {
-  const OpData* op_data = reinterpret_cast<OpData*>(node->user_data);
-
-  tflite::MicroContext* micro_context = tflite::GetMicroContext(context);
-  MicroGraph* graph_info = &micro_context->graph();
-
-  TF_LITE_ENSURE_OK(context,
-                    tflite::micro::CopyOpInputsToSubgraphInputs(
-                        context, node, graph_info, op_data->cond_subgraph_index,
-                        /*first_tensor_idx=*/0));
-
-  TF_LITE_ENSURE_OK(context,
-                    graph_info->InvokeSubgraph(op_data->cond_subgraph_index));
-
-  TfLiteEvalTensor* cond_subgraph_output = graph_info->GetSubgraphOutput(
-      op_data->cond_subgraph_index, /*tensor_idx=*/0);
-  bool cond_value = cond_subgraph_output->data.b[0];
-
-  TF_LITE_ENSURE_OK(context,
-                    tflite::micro::CopyOpInputsToSubgraphInputs(
-                        context, node, graph_info, op_data->body_subgraph_index,
-                        /*first_tensor_idx=*/0));
-  TF_LITE_ENSURE_OK(context,
-                    tflite::micro::CopyOpInputsToOpOutputs(context, node));
-
-  while (cond_value == true) {
-    // Copy output of this iteration back to the body input.
-    TF_LITE_ENSURE_OK(
-        context, tflite::micro::CopyOpOutputsToSubgraphInputs(
-                     context, node, graph_info, op_data->body_subgraph_index));
-    TF_LITE_ENSURE_OK(context,
-                      graph_info->InvokeSubgraph(op_data->body_subgraph_index));
-
-    TF_LITE_ENSURE_OK(
-        context, tflite::micro::CopySubgraphOutputsToOpOutputs(
-                     context, node, graph_info, op_data->body_subgraph_index));
-    TF_LITE_ENSURE_OK(
-        context, tflite::micro::CopyOpOutputsToSubgraphInputs(
-                     context, node, graph_info, op_data->cond_subgraph_index));
-    TF_LITE_ENSURE_OK(context,
-                      graph_info->InvokeSubgraph(op_data->cond_subgraph_index));
-
-    cond_subgraph_output = graph_info->GetSubgraphOutput(
-        op_data->cond_subgraph_index, /*tensor_idx=*/0);
-    cond_value = cond_subgraph_output->data.b[0];
+template<typename T> void resetZeros(T *out, const int num_elements) {
+  for (int i = 0; i < num_elements; ++i) {
+    out[i] = static_cast<T>(0);
   }
+}
 
+TfLiteStatus ZerosLikeEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kInputTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  int flat_size = MatchingFlatSize(tflite::micro::GetTensorShape(input), tflite::micro::GetTensorShape(output));
+  switch (input->type) {
+    case kTfLiteInt64:
+      resetZeros(tflite::micro::GetTensorData<int64_t>(output), flat_size);
+      break;
+    case kTfLiteInt32:
+      resetZeros(tflite::micro::GetTensorData<int32_t>(output), flat_size);
+      break;
+    case kTfLiteInt8:
+      resetZeros(tflite::micro::GetTensorData<int8_t>(output), flat_size);
+      break;
+    case kTfLiteFloat32:
+      resetZeros(tflite::micro::GetTensorData<float>(output), flat_size);
+      break;
+    default:
+      MicroPrintf("ZerosLike only currently supports int64, int32, "
+                  "and float32, got %d.",
+                  input->type);
+      return kTfLiteError;
+  }
   return kTfLiteOk;
 }
+}  // namespace
 
-}  // namespace.
-
-TFLMRegistration Register_WHILE() {
-  return tflite::micro::RegisterOp(WhileInit, WhilePrepare, WhileEval);
-}
+TFLMRegistration Register_ZEROS_LIKE() { return tflite::micro::RegisterOp(nullptr, ZerosLikePrepare, ZerosLikeEval); }
 
 }  // namespace tflite

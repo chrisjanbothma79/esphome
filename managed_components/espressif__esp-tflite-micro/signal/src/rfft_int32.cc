@@ -1,4 +1,4 @@
-/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,32 +13,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include <stddef.h>
-#include <stdint.h>
+#include "signal/src/msb.h"
+#include "signal/src/square_root.h"
 
-#include "signal/src/complex.h"
-#include "signal/src/kiss_fft_wrappers/kiss_fft_int32.h"
-#include "signal/src/rfft.h"
-
-// TODO(b/286250473): remove namespace once de-duped libraries
+namespace tflite {
 namespace tflm_signal {
 
-size_t RfftInt32GetNeededMemory(int32_t fft_length) {
-  size_t state_size = 0;
-  kiss_fft_fixed32::kiss_fftr_alloc(fft_length, 0, nullptr, &state_size);
-  return state_size;
-}
-
-void* RfftInt32Init(int32_t fft_length, void* state, size_t state_size) {
-  return kiss_fft_fixed32::kiss_fftr_alloc(fft_length, 0, state, &state_size);
-}
-
-void RfftInt32Apply(void* state, const int32_t* input,
-                    Complex<int32_t>* output) {
-  kiss_fft_fixed32::kiss_fftr(
-      static_cast<kiss_fft_fixed32::kiss_fftr_cfg>(state),
-      reinterpret_cast<const kiss_fft_scalar*>(input),
-      reinterpret_cast<kiss_fft_fixed32::kiss_fft_cpx*>(output));
+uint16_t Sqrt32(uint32_t num) {
+  if (num == 0) {
+    return 0;
+  };
+  uint32_t res = 0;
+  int max_bit_number = 32 - MostSignificantBit32(num);
+  max_bit_number |= 1;
+  uint32_t bit = 1u << (31 - max_bit_number);
+  int iterations = (31 - max_bit_number) / 2 + 1;
+  while (iterations--) {
+    if (num >= res + bit) {
+      num -= res + bit;
+      res = (res >> 1U) + bit;
+    } else {
+      res >>= 1U;
+    }
+    bit >>= 2U;
+  }
+  // Do rounding - if we have the bits.
+  if (num > res && res != 0xFFFF)
+    ++res;
+  return res;
 }
 
 }  // namespace tflm_signal
+}  // namespace tflite

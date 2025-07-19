@@ -13,8 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/neg.h"
-
+#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
@@ -24,34 +23,80 @@ namespace tflite {
 
 namespace {
 
-constexpr int kInputTensor = 0;
 constexpr int kOutputTensor = 0;
 
-TfLiteStatus NegEval(TfLiteContext* context, TfLiteNode* node) {
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
-  switch (input->type) {
-    // TODO(wangtz): handle for kTfLiteInt8
-    case kTfLiteFloat32:
-      reference_ops::Negate(tflite::micro::GetTensorShape(input),
-                            tflite::micro::GetTensorData<float>(input),
-                            tflite::micro::GetTensorShape(output),
-                            tflite::micro::GetTensorData<float>(output));
-      break;
-    default:
-      MicroPrintf("Type %s (%d) not supported.", TfLiteTypeGetName(input->type),
-                  input->type);
-      return kTfLiteError;
+template<typename T>
+TfLiteStatus PackImpl(TfLiteContext *context, TfLiteNode *node, TfLiteEvalTensor *output, int values_count, int axis) {
+  const TfLiteEvalTensor *input0 = tflite::micro::GetEvalInput(context, node, 0);
+
+  const int dimensions = output->dims->size;
+  const TfLiteIntArray *input_dims = input0->dims;
+  const TfLiteIntArray *output_dims = output->dims;
+
+  if (axis < 0) {
+    axis += dimensions;
   }
+
+  int outer_size = 1;
+  for (int i = 0; i < axis; ++i) {
+    outer_size *= output_dims->data[i];
+  }
+  int copy_size = 1;
+  for (int i = axis + 1; i < dimensions; ++i) {
+    copy_size *= output_dims->data[i];
+  }
+  int input_size = 1;
+  for (int i = 0; i < input_dims->size; ++i) {
+    input_size *= input_dims->data[i];
+  }
+  TFLITE_DCHECK_EQ(input_size, copy_size * outer_size);
+
+  T *output_data = tflite::micro::GetTensorData<T>(output);
+
+  for (int i = 0; i < values_count; ++i) {
+    const TfLiteEvalTensor *t = tflite::micro::GetEvalInput(context, node, i);
+    const T *input_data = tflite::micro::GetTensorData<T>(t);
+    for (int k = 0; k < outer_size; ++k) {
+      const T *input_ptr = input_data + copy_size * k;
+      int loc = k * values_count * copy_size + i * copy_size;
+      T *output_ptr = output_data + loc;
+      for (int j = 0; j < copy_size; ++j)
+        output_ptr[j] = input_ptr[j];
+    }
+  }
+
+  return kTfLiteOk;
+}
+
+TfLiteStatus PackEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLitePackParams *data = reinterpret_cast<TfLitePackParams *>(node->builtin_data);
+
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+
+  switch (output->type) {
+    case kTfLiteFloat32: {
+      return PackImpl<float>(context, node, output, data->values_count, data->axis);
+    }
+    case kTfLiteInt8: {
+      return PackImpl<int8_t>(context, node, output, data->values_count, data->axis);
+    }
+    case kTfLiteInt32: {
+      return PackImpl<int32_t>(context, node, output, data->values_count, data->axis);
+    }
+    case kTfLiteInt64: {
+      return PackImpl<int64_t>(context, node, output, data->values_count, data->axis);
+    }
+    default: {
+      MicroPrintf("Type '%s' is not supported by pack.", TfLiteTypeGetName(output->type));
+      return kTfLiteError;
+    }
+  }
+
   return kTfLiteOk;
 }
 
 }  // namespace
 
-TFLMRegistration Register_NEG() {
-  return tflite::micro::RegisterOp(nullptr, nullptr, NegEval);
-}
+TFLMRegistration Register_PACK() { return tflite::micro::RegisterOp(nullptr, nullptr, PackEval); }
 
 }  // namespace tflite

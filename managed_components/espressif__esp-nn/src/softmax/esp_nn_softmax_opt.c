@@ -12,97 +12,91 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "softmax_common.h"
-#include <stdio.h>
+#include <stdint.h>
+#include <common_functions.h>
 
-static int32_t *scratch_buf = NULL;
+#define MASK_IF_ZERO(x) (x) == 0 ? ~0 : 0
+#define MASK_IF_NON_ZERO(x) (x) != 0 ? ~0 : 0
+#define SELECT_USING_MASK(mask, a, b) ((mask) & (a)) ^ (~(mask) & (b))
+#define SAT_HIGH_MUL(x, y) esp_nn_sat_round_doubling_high_mul((x), (y))
+#define DIV_POW2(x, y) esp_nn_div_by_power_of_two((x), (y))
 
-/**
- * @brief   Get scratch buffer size needed by softmax function
- *
- * @param   width
- * @param   height
- * @return  size in bytes
- *
- * @note    buffer must be 4 byte aligned
- */
-int32_t esp_nn_get_softmax_scratch_size_opt(const int32_t width, const int32_t height)
-{
-    (void) height;
-    return width * 4;
+__NN_FORCE_INLINE__ int32_t mul_power_of_2(int val, int exp) {
+  const int32_t thresh = ((1 << (31 - exp)) - 1);
+  int32_t result = val << exp;
+  result = SELECT_USING_MASK(MASK_IF_NON_ZERO(val > thresh), INT32_MAX, result);
+  result = SELECT_USING_MASK(MASK_IF_NON_ZERO(val < -thresh), INT32_MIN, result);
+  return result;
 }
 
 /**
- * @brief   Set scratch buffer to be used by softmax function
+ * @brief   Calculate `1 / (1 + x)` for x in [0, 1]
  *
- * @param   buffer  this can be NULL if one needs to unset it
- *                  must be aligned to 4 bytes
+ * @param   val     input value to calculate `1/(1+x)` for
+ * @return  `int32_t` result
+ * @note    Newton-Raphson division
+ *
+ *          https://en.wikipedia.org/wiki/Division_algorithm#Newton.E2.80.93Raphson_division
+ *          Refer to that page for the logic behind the 48/17 and 32/17 constants.
+ *          Pseudocode: https://en.wikipedia.org/wiki/Division_algorithm#Pseudocode
  */
-void esp_nn_set_softmax_scratch_buf_opt(void *buffer)
-{
-    scratch_buf = (int32_t *) buffer;
+__NN_FORCE_INLINE__ int32_t esp_nn_one_over_one_plus_x_for_x_in_0_1(int32_t val) {
+  const int64_t sum = (int64_t) val + INT32_MAX;
+  const int32_t half_denominator = (int32_t) ((sum + (sum >= 0 ? 1 : -1)) / 2L);
+  int32_t constant_48_over_17 = 1515870810;
+  int32_t constant_neg_32_over_17 = -1010580540;
+  int32_t x = constant_48_over_17 + SAT_HIGH_MUL(half_denominator, constant_neg_32_over_17);
+  const int32_t fixed_2_one = (1 << 29);
+
+  x += mul_power_of_2(SAT_HIGH_MUL(x, fixed_2_one - SAT_HIGH_MUL(half_denominator, x)), 2);
+  x += mul_power_of_2(SAT_HIGH_MUL(x, fixed_2_one - SAT_HIGH_MUL(half_denominator, x)), 2);
+  x += mul_power_of_2(SAT_HIGH_MUL(x, fixed_2_one - SAT_HIGH_MUL(half_denominator, x)), 2);
+
+  return mul_power_of_2(x, 1);
 }
 
-void esp_nn_softmax_s8_opt(const int8_t *input_data,
-                           const int32_t height,
-                           const int32_t width,
-                           const int32_t mult,
-                           const int32_t shift,
-                           const int32_t diff_min,
-                           int8_t *output_data)
-{
-    if (scratch_buf == NULL) {
-        printf("%s error! scratch buffer not set\n", __FUNCTION__);
-        return;
-    }
-    // The representation chosen for the input to the exp() function is Q5.26.
-    // We need to leave extra space since values that we skip might be as large as
-    // -32 before multiplying by input mult, and therefore as large as
-    // -16 afterwards.  Note that exp(-8) is definitely not insignificant to
-    // accumulation, but exp(-16) definitely is.
-#define ACCUM_BITS  12
-#define DIFF_BITS   5
+#define ONE_OVER_ONE_X(x) esp_nn_one_over_one_plus_x_for_x_in_0_1((x))
 
-    const int32_t mask = (1 << shift);
-    int32_t col = 0;
-    const int8_t *in_ptr = input_data;
-    int8_t *out_ptr = output_data;
+/**
+ * @brief   Return exp(x) for x < 0.
+ *
+ */
+__NN_FORCE_INLINE__ int32_t esp_nn_exp_on_negative_values(int32_t val) {
+  int32_t shift = 24;
 
-    for (int row_idx = 0; row_idx < height; row_idx++) {
-        int8_t max_in_row = in_ptr[0];
-        for (col = 1; col < width; col++) {
-            max_in_row = max(max_in_row, in_ptr[col]);
-        }
+  const int32_t one_quarter = (1 << shift);
+  int32_t mask = one_quarter - 1;
+  const int32_t val_mod_minus_quarter = (val & mask) - one_quarter;
+  const int32_t remainder = val_mod_minus_quarter - val;
 
-        int32_t input_diff = 0;
-        int32_t sum_of_exps = 0;
+  // calculate exponent for x in [-1/4, 0) in `result`
+  const int32_t x = (val_mod_minus_quarter << 5) + (1 << 28);
+  const int32_t x2 = SAT_HIGH_MUL(x, x);
+  const int32_t x3 = SAT_HIGH_MUL(x2, x);
+  const int32_t x4 = SAT_HIGH_MUL(x2, x2);
+  const int32_t one_over_3 = 715827883;
+  const int32_t one_over_8 = 1895147668;
 
-        for (col = 0; col < width; col++) {
-            input_diff = in_ptr[col] - max_in_row;
-            if (input_diff >= diff_min) {
-                const int32_t input_diff_rescaled = SAT_HIGH_MUL(input_diff * mask, mult);
-                const int32_t exp_raw = esp_nn_exp_on_negative_values(input_diff_rescaled);
-                scratch_buf[col] = exp_raw; // store to avoid duplicate calculation later
-                sum_of_exps += DIV_POW2(exp_raw, ACCUM_BITS);
-            }
-        }
+  const int32_t x4_over_4 = DIV_POW2(x4, 2);
+  const int32_t x4_over_4_plus_x3_over_6_plus_x2_over_2 = DIV_POW2(SAT_HIGH_MUL(x4_over_4 + x3, one_over_3) + x2, 1);
+  int32_t result = one_over_8 + SAT_HIGH_MUL(one_over_8, x + x4_over_4_plus_x3_over_6_plus_x2_over_2);
 
-        const int32_t headroom_plus1 = esp_nn_clz32((uint32_t) sum_of_exps);
-        const int32_t shifted_scale = ONE_OVER_ONE_X((sum_of_exps << headroom_plus1) - (1 << 31));
-        const int32_t bits_over_unit = ACCUM_BITS - headroom_plus1 + 31 - sizeof(int8_t) * 8;
+#define SELECT_IF_NON_ZERO(x) \
+  { \
+    mask = MASK_IF_NON_ZERO(remainder & (1 << shift++)); \
+    result = SELECT_USING_MASK(mask, SAT_HIGH_MUL(result, x), result); \
+  }
 
-        for (col = 0; col < width; col++) {
-            input_diff = in_ptr[col] - max_in_row;
-            if (input_diff >= diff_min) {
-                int32_t exp_raw = scratch_buf[col];
-                const int32_t shifted_output = SAT_HIGH_MUL(shifted_scale, exp_raw);
-                const int32_t result = DIV_POW2(shifted_output, bits_over_unit) - 128;
-                out_ptr[col] = (int8_t) esp_nn_saturate8(result);
-            } else {
-                out_ptr[col] = -128;
-            }
-        }
-        in_ptr  += width;
-        out_ptr += width;
-    }
+  SELECT_IF_NON_ZERO(1672461947)
+  SELECT_IF_NON_ZERO(1302514674)
+  SELECT_IF_NON_ZERO(790015084)
+  SELECT_IF_NON_ZERO(290630308)
+  SELECT_IF_NON_ZERO(39332535)
+  SELECT_IF_NON_ZERO(720401)
+  SELECT_IF_NON_ZERO(242)
+
+#undef SELECT_IF_NON_ZERO
+
+  mask = MASK_IF_ZERO(val);
+  return SELECT_USING_MASK(mask, INT32_MAX, result);
 }

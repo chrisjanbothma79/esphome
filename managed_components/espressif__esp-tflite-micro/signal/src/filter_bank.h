@@ -13,57 +13,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef SIGNAL_SRC_FILTER_BANK_H_
-#define SIGNAL_SRC_FILTER_BANK_H_
+#include "signal/src/filter_bank_log.h"
 
-#include <stdint.h>
+#include "signal/src/log.h"
 
 namespace tflite {
 namespace tflm_signal {
-// TODO(b/286250473): remove namespace once de-duped libraries above
 
-struct FilterbankConfig {
-  // Number of filterbank channels
-  int32_t num_channels;
-
-  // Each of the following three arrays is of size num_channels + 1
-  // An extra channel is needed for scratch. See implementation of
-  // FilterbankAccumulateChannels() for more details
-
-  // For each channel, the index in the input (spectrum) where its band starts
-  const int16_t* channel_frequency_starts;
-  // For each channel, the index in the weights/unweights arrays where
-  // it filter weights start
-  const int16_t* channel_weight_starts;
-  // For each channel, the number of bins in the input (spectrum) that span
-  // its band
-  const int16_t* channel_widths;
-
-  // The weights array holds the triangular filter weights of all the filters
-  // in the bank. The output of each filter in the bank is caluclated by
-  // multiplying the elements in the input spectrum that are in its band
-  // (see above: channel_frequency_starts, channel_widths) by the filter weights
-  // then accumulating. Each element in the unweights array holds the 1 minus
-  // corresponding elements in the weights array and is used to make this
-  // operation more efficient. For more details, see documnetation in
-  // FilterbankAccumulateChannels()
-  const int16_t* weights;
-  const int16_t* unweights;
-  int32_t output_scale;
-
-  int32_t input_correction_bits;
-};
-
-// Accumulate the energy spectrum bins in `input` into filter bank channels
-// contained in `output`.
-// * `input` - Spectral energy array
-// * `output` - of size `config.num_channels` + 1.
-//              Elements [1:num_channels] contain the filter bank channels.
-//              Element 0 is used as scratch and should be ignored
-void FilterbankAccumulateChannels(const FilterbankConfig* config,
-                                  const uint32_t* input, uint64_t* output);
+void FilterbankLog(const uint32_t *input, int num_channels, int32_t output_scale, uint32_t correction_bits,
+                   int16_t *output) {
+  for (int i = 0; i < num_channels; ++i) {
+    const uint32_t scaled = input[i] << correction_bits;
+    if (scaled > 1) {
+      const uint32_t log_value = Log32(scaled, output_scale);
+      output[i] = ((log_value < static_cast<uint32_t>(INT16_MAX)) ? log_value : static_cast<uint32_t>(INT16_MAX));
+    } else {
+      output[i] = 0;
+    }
+  }
+}
 
 }  // namespace tflm_signal
 }  // namespace tflite
-
-#endif  // SIGNAL_SRC_FILTER_BANK_H_

@@ -13,52 +13,45 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/mock_micro_graph.h"
+#ifndef TENSORFLOW_LITE_MICRO_MOCK_MICRO_GRAPH_H_
+#define TENSORFLOW_LITE_MICRO_MOCK_MICRO_GRAPH_H_
 
-#include "tensorflow/lite/micro/test_helpers.h"
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/micro/micro_allocator.h"
+#include "tensorflow/lite/micro/micro_graph.h"
+#include "tensorflow/lite/schema/schema_generated.h"
 
 namespace tflite {
 
-MockMicroGraph::MockMicroGraph(SingleArenaBufferAllocator* allocator)
-    : allocator_(allocator), init_count_(0), prepare_count_(0), free_count_(0) {
-  memset(invoke_counts_, 0, sizeof(invoke_counts_));
-  mock_tensor_ =
-      reinterpret_cast<TfLiteEvalTensor*>(allocator_->AllocatePersistentBuffer(
-          sizeof(TfLiteEvalTensor), alignof(TfLiteEvalTensor)));
-  int* dims_array = reinterpret_cast<int*>(
-      allocator_->AllocatePersistentBuffer(3 * sizeof(int), alignof(int)));
-  float* data_array = reinterpret_cast<float*>(
-      allocator_->AllocatePersistentBuffer(2 * sizeof(float), alignof(float)));
-  int dims[] = {2, 1, 2};
-  memcpy(dims_array, dims, 3 * sizeof(int));
-  mock_tensor_->dims = testing::IntArrayFromInts(dims_array);
-  mock_tensor_->data.f = data_array;
-  mock_tensor_->type = kTfLiteFloat32;
-}
+// MockMicroGraph stubs out all MicroGraph methods used during invoke. A count
+// of the number of calls to invoke for each subgraph is maintained for
+// validation of control flow operators.
+class MockMicroGraph : public MicroGraph {
+ public:
+  explicit MockMicroGraph(SingleArenaBufferAllocator *allocator);
+  TfLiteStatus InvokeSubgraph(int subgraph_idx) override;
+  size_t NumSubgraphInputs(int subgraph_idx) override;
+  TfLiteEvalTensor *GetSubgraphInput(int subgraph_idx, int tensor_idx) override;
+  size_t NumSubgraphOutputs(int subgraph_idx) override;
+  TfLiteEvalTensor *GetSubgraphOutput(int subgraph_idx, int tensor_idx) override;
+  int NumSubgraphs() override;
+  MicroResourceVariables *GetResourceVariables() override;
+  int get_init_count() const { return init_count_; }
+  int get_prepare_count() const { return prepare_count_; }
+  int get_free_count() const { return free_count_; }
+  int get_invoke_count(int subgraph_idx) const { return invoke_counts_[subgraph_idx]; }
 
-TfLiteStatus MockMicroGraph::InvokeSubgraph(int subgraph_idx) {
-  invoke_counts_[subgraph_idx]++;
-  return kTfLiteOk;
-}
-
-size_t MockMicroGraph::NumSubgraphInputs(int subgraph_idx) { return 1; }
-
-TfLiteEvalTensor* MockMicroGraph::GetSubgraphInput(int subgraph_idx,
-                                                   int tensor_idx) {
-  return mock_tensor_;
-}
-
-size_t MockMicroGraph::NumSubgraphOutputs(int subgraph_idx) { return 1; }
-
-TfLiteEvalTensor* MockMicroGraph::GetSubgraphOutput(int subgraph_idx,
-                                                    int tensor_idx) {
-  return mock_tensor_;
-}
-
-int MockMicroGraph::NumSubgraphs() { return kMaxSubgraphs; }
-
-MicroResourceVariables* MockMicroGraph::GetResourceVariables() {
-  return nullptr;
-}
+ private:
+  static constexpr int kMaxSubgraphs = 10;
+  SingleArenaBufferAllocator *allocator_;
+  TfLiteEvalTensor *mock_tensor_;
+  int init_count_;
+  int prepare_count_;
+  int free_count_;
+  int invoke_counts_[kMaxSubgraphs];
+  TF_LITE_REMOVE_VIRTUAL_DELETE
+};
 
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_MOCK_MICRO_GRAPH_H_

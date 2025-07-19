@@ -14,90 +14,42 @@
 
 #include "tensorflow/lite/micro/hexdump.h"
 
-#include <algorithm>
-#include <cctype>
+#include <array>
 
-#include "tensorflow/lite/micro/debug_log.h"
-#include "tensorflow/lite/micro/static_vector.h"
+#include "tensorflow/lite/micro/span.h"
+#include "tensorflow/lite/micro/testing/micro_test.h"
 
-namespace {
+constexpr tflite::Span<const char> input{"This is an input string for testing."};
 
-tflite::Span<char> output(const tflite::Span<char>& buf, const char* format,
-                          ...) {
-  // Writes formatted output, printf-style, to either a buffer or DebugLog.
-  // Writes to DebugLog if the buffer data pointer is null. Does not exceed
-  // the size of the buffer. Returns the unused remainder of the buffer, or a
-  // buffer with a null data pointer in the case of printing to DebugLog.
+const tflite::Span<const std::byte> region{reinterpret_cast<const std::byte *>(input.data()), input.size()};
 
-  tflite::Span<char> result{nullptr, 0};
+// clang-format off
+constexpr tflite::Span<const char> expected{
+    "00000000: 54 68 69 73 20 69 73 20  61 6E 20 69 6E 70 75 74  This is an input\n"
+    "00000001: 20 73 74 72 69 6E 67 20  66 6F 72 20 74 65 73 74   string for test\n"
+    "00000002: 69 6E 67 2E 00                                    ing..\n"};
+// clang-format on
 
-  va_list args;
-  va_start(args, format);
+// String literals have null terminators, but don't expect a null terminator
+// in the hexdump output.
+constexpr tflite::Span<const char> expected_no_null{expected.data(), expected.size() - 1};
 
-  if (buf.data() == nullptr) {
-    DebugLog(format, args);
-    result = {nullptr, 0};
-  } else {
-    size_t len = DebugVsnprintf(buf.data(), buf.size(), format, args);
-    // Returns the number of characters that would have been written if
-    // there were enough room, so cap it at the size of the buffer in order to
-    // know how much was actually written.
-    size_t consumed = std::min(len, buf.size());
-    result = {buf.data() + consumed, buf.size() - consumed};
-  }
+TF_LITE_MICRO_TESTS_BEGIN
 
-  va_end(args);
-  return result;
+TF_LITE_MICRO_TEST(TestOutputToBuffer) {
+  // Allocate a buffer with an arbitrary amount of extra room so the test has
+  // the possibility of failing if hexdump mishandles the extra space.
+  std::array<char, expected.size() + 10> buffer;
+
+  tflite::Span<char> output = tflite::hexdump(region, buffer);
+  TF_LITE_MICRO_EXPECT(output == expected_no_null);
 }
 
-}  // end anonymous namespace
-
-tflite::Span<char> tflite::hexdump(const tflite::Span<const std::byte> region,
-                                   const tflite::Span<char> out) {
-  tflite::Span<char> buffer{out};
-  std::size_t byte_nr = 0;
-  constexpr int per_line = 16;
-  const int lines = (region.size() + per_line - 1) / per_line;  // round up
-
-  for (int line = 0; line < lines; ++line) {
-    tflite::StaticVector<char, per_line> ascii;
-
-    // print address
-    buffer = output(buffer, "%08X:", line);
-
-    for (int pos = 0; pos < per_line; ++pos) {
-      if (byte_nr < region.size()) {
-        // print byte
-        int as_int = static_cast<int>(region[byte_nr++]);
-        buffer = output(buffer, " %02X", as_int);
-
-        // buffer an ascii printable value
-        char c{'.'};
-        if (std::isprint(as_int)) {
-          c = static_cast<char>(as_int);
-        }
-        ascii.push_back(c);
-      } else {
-        buffer = output(buffer, "   ");
-      }
-
-      // print extra space in middle of the line
-      if (pos == per_line / 2 - 1) {
-        buffer = output(buffer, " ");
-      }
-    }
-
-    // print the ascii value
-    buffer = output(buffer, "  ");
-    for (const auto& c : ascii) {
-      buffer = output(buffer, "%c", c);
-    }
-    buffer = output(buffer, "%c", '\n');
-  }
-
-  return {out.data(), out.size() - buffer.size()};
+TF_LITE_MICRO_TEST(TestOutputToDebugLog) {
+  // There's no easy way to verify DebugLog output; however, test it anyhow to
+  // catch an outright crash, and so the output appears in the log should
+  // someone wish to examine it.
+  tflite::hexdump(region);
 }
 
-void tflite::hexdump(const tflite::Span<const std::byte> region) {
-  hexdump(region, {nullptr, 0});
-}
+TF_LITE_MICRO_TESTS_END

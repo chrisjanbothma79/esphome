@@ -1,4 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,80 +12,44 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_BINARY_FUNCTION_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_BINARY_FUNCTION_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_BROADCAST_ARGS_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_BROADCAST_ARGS_H_
 
-#include "tensorflow/lite/kernels/internal/common.h"
 #include "tensorflow/lite/kernels/internal/compatibility.h"
 #include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
-
 namespace reference_ops {
 
-// Also appears to duplicate MinimumMaximum.
-//
-// R: Result type. T1: Input 1 type. T2: Input 2 type.
-template <typename R, typename T1, typename T2>
-inline void BroadcastBinaryFunction4DSlow(
-    const RuntimeShape& unextended_input1_shape, const T1* input1_data,
-    const RuntimeShape& unextended_input2_shape, const T2* input2_data,
-    const RuntimeShape& unextended_output_shape, R* output_data,
-    R (*func)(T1, T2)) {
-  TFLITE_DCHECK_LE(unextended_input1_shape.DimensionsCount(), 4);
-  TFLITE_DCHECK_LE(unextended_input2_shape.DimensionsCount(), 4);
-  TFLITE_DCHECK_LE(unextended_output_shape.DimensionsCount(), 4);
-  const RuntimeShape output_shape =
-      RuntimeShape::ExtendedShape(4, unextended_output_shape);
+template<typename T>
+void BroadcastArgs(const RuntimeShape &input1_shape, const T *input1_data, const RuntimeShape &input2_shape,
+                   const T *input2_data, const RuntimeShape &output_shape, T *output_data) {
+  // Gets data at the backward index i of the shape tensor. Returns 1 if the
+  // index is out of range.
+  auto get_shape_data = [](const RuntimeShape &shape, const T *data, int backward_idx) -> T {
+    int forward_idx = shape.FlatSize() - 1 - backward_idx;
+    if (forward_idx < 0)
+      return 1;
+    return data[forward_idx];
+  };
 
-  NdArrayDesc<4> desc1;
-  NdArrayDesc<4> desc2;
-  NdArrayDescsForElementwiseBroadcast(unextended_input1_shape,
-                                      unextended_input2_shape, &desc1, &desc2);
-
-  const int* dims_data =
-      reinterpret_cast<const int*>(output_shape.DimsDataUpTo5D());
-  for (int b = 0; b < output_shape.Dims(0); ++b) {
-    int out_idx_b = b * dims_data[1];
-    int in_idx1_b = desc1.strides[0] * b;
-    int in_idx2_b = desc2.strides[0] * b;
-    for (int y = 0; y < output_shape.Dims(1); ++y) {
-      int out_idx_y = (out_idx_b + y) * dims_data[2];
-      int in_idx1_y = in_idx1_b + desc1.strides[1] * y;
-      int in_idx2_y = in_idx2_b + desc2.strides[1] * y;
-      for (int x = 0; x < output_shape.Dims(2); ++x) {
-        int out_idx_x = (out_idx_y + x) * dims_data[3];
-        int in1_idx = in_idx1_y + desc1.strides[2] * x;
-        int in2_idx = in_idx2_y + desc2.strides[2] * x;
-        for (int c = 0; c < output_shape.Dims(3); ++c) {
-          auto out_idx = out_idx_x + c;
-          auto in1_val = input1_data[in1_idx];
-          auto in2_val = input2_data[in2_idx];
-          output_data[out_idx] = func(in1_val, in2_val);
-          in1_idx += desc1.strides[3];
-          in2_idx += desc2.strides[3];
-        }
-      }
+  int output_num_elements = output_shape.FlatSize();
+  for (int i = 0; i < output_num_elements; ++i) {
+    int backward_i = output_num_elements - 1 - i;
+    int shape1_i = get_shape_data(input1_shape, input1_data, i);
+    int shape2_i = get_shape_data(input2_shape, input2_data, i);
+    if (shape1_i == 1) {
+      output_data[backward_i] = shape2_i;
+    } else if (shape2_i == 1) {
+      output_data[backward_i] = shape1_i;
+    } else {
+      TFLITE_CHECK_EQ(shape1_i, shape2_i);
+      output_data[backward_i] = shape1_i;
     }
-  }
-}
-
-// R: Result type. T1: Input 1 type. T2: Input 2 type.
-template <typename R, typename T1, typename T2>
-inline void BinaryFunction(const RuntimeShape& input1_shape,
-                           const T1* input1_data,
-                           const RuntimeShape& input2_shape,
-                           const T2* input2_data,
-                           const RuntimeShape& output_shape, R* output_data,
-                           R (*func)(T1, T2)) {
-  const int flat_size =
-      MatchingFlatSize(input1_shape, input2_shape, output_shape);
-  for (int i = 0; i < flat_size; ++i) {
-    output_data[i] = func(input1_data[i], input2_data[i]);
   }
 }
 
 }  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_BINARY_FUNCTION_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_BROADCAST_ARGS_H_

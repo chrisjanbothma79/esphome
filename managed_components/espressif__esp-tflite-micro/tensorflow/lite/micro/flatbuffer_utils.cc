@@ -13,72 +13,51 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/micro/flatbuffer_utils.h"
+#ifndef THIRD_PARTY_TFLITE_MICRO_TENSORFLOW_LITE_MICRO_FLATBUFFER_UTILS_H_
+#define THIRD_PARTY_TFLITE_MICRO_TENSORFLOW_LITE_MICRO_FLATBUFFER_UTILS_H_
+
+#include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/flexbuffers.h"
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/schema/schema_generated.h"
 
 namespace tflite {
+// Kernels use flexbuffers::Map to pack their init parameters in a tflite file,
+// with the parameter names as map keys and the parameter values as the
+// corresponding map values.
+// Accessing the map values using the flexbuffers:Map class is inline heavy,
+// which can cause the code size to bloat beyond what's reasonable for a micro
+// application. Use this class instead, when possible.
+// FlexbufferWrapper takes advantage of the following properties of
+// flexbuffers::Map:
+// 1. It can be viewed as a flexbuffers::Vector of the values.
+// 2. The values in the vector are ordered alphabetically by their keys.
+// 3. All integer and Boolean values are stored as 64-bit numbers.
+// 4. All floating point values are stored as double precision numbers.
+// The properties are mentioned in the flexbuffers docs, but we rely on
+// a unit test to catch design changes.
+class FlexbufferWrapper : public flexbuffers::Vector {
+ public:
+  // Construct with a serialized flexbuffer 'buffer' of 'size' bytes
+  explicit FlexbufferWrapper(const uint8_t *buffer, size_t size);
+  int64_t ElementAsInt64(size_t i) const;
+  uint64_t ElementAsUInt64(size_t i) const;
+  int32_t ElementAsInt32(size_t i) const;
+  bool ElementAsBool(size_t i) const;
+  double ElementAsDouble(size_t i) const;
+  float ElementAsFloat(size_t i) const;
+};
 
-FlexbufferWrapper::FlexbufferWrapper(const uint8_t* buffer, size_t size)
-    : flexbuffers::Vector(flexbuffers::GetRoot(buffer, size).AsVector()) {}
+// Return the number of operators in a subgraph tflite
+uint32_t NumSubgraphOperators(const SubGraph *subgraph);
+uint32_t NumSubgraphOperators(const Model *model, int subgraph_idx);
 
-int64_t FlexbufferWrapper::ElementAsInt64(size_t i) const {
-  const uint8_t* elem = data_ + i * byte_width_;
-  return ::flexbuffers::ReadInt64(elem, byte_width_);
-}
-
-uint64_t FlexbufferWrapper::ElementAsUInt64(size_t i) const {
-  const uint8_t* elem = data_ + i * byte_width_;
-  return ::flexbuffers::ReadUInt64(elem, byte_width_);
-}
-
-int32_t FlexbufferWrapper::ElementAsInt32(size_t i) const {
-  return static_cast<int32_t>(ElementAsInt64(i));
-}
-
-bool FlexbufferWrapper::ElementAsBool(size_t i) const {
-  return static_cast<bool>(ElementAsUInt64(i));
-}
-
-double FlexbufferWrapper::ElementAsDouble(size_t i) const {
-  const uint8_t* elem = data_ + i * byte_width_;
-  return ::flexbuffers::ReadDouble(elem, byte_width_);
-}
-
-float FlexbufferWrapper::ElementAsFloat(size_t i) const {
-  return static_cast<float>(FlexbufferWrapper::ElementAsDouble(i));
-}
-
-// TODO(b/192589496): Ops must always be there. Remove this function when fixed
-uint32_t NumSubgraphOperators(const SubGraph* subgraph) {
-  if (subgraph->operators() != nullptr) {
-    return subgraph->operators()->size();
-  } else {
-    return 0;
-  }
-}
-// TODO(b/192589496): Ops must always be there. Remove this function when fixed
-uint32_t NumSubgraphOperators(const Model* model, int subgraph_idx) {
-  const SubGraph* subgraph = model->subgraphs()->Get(subgraph_idx);
-  return NumSubgraphOperators(subgraph);
-}
-
-TfLiteIntArray* FlatBufferVectorToTfLiteTypeArray(
-    const flatbuffers::Vector<int32_t>* flatbuffer_array) {
-  // On little-endian machines, TfLiteIntArray happens to have the same memory
-  // layout as flatbuffers:Vector<int32_t>, so we can reinterpret_cast the
-  // flatbuffer vector and avoid a copy and malloc.
-  // TODO(b/188459715): audit this usage of const_cast.
-  return const_cast<TfLiteIntArray*>(
-      reinterpret_cast<const TfLiteIntArray*>(flatbuffer_array));
-}
-
-TfLiteFloatArray* FlatBufferVectorToTfLiteTypeArray(
-    const flatbuffers::Vector<float>* flatbuffer_array) {
-  // On little-endian machines, TfLiteFloatArray happens to have the same memory
-  // layout as flatbuffers:Vector<float>, so we can reinterpret_cast the
-  // flatbuffer vector and avoid a copy and malloc.
-  // TODO(b/188459715): audit this usage of const_cast.
-  return const_cast<TfLiteFloatArray*>(
-      reinterpret_cast<const TfLiteFloatArray*>(flatbuffer_array));
-}
+// Converts a flatbuffer array to a TfLiteArray.
+// TODO(b/188459715): These function convert a const input to a non-const via a
+// const_cast. It is unclear exactly why this is required.
+TfLiteIntArray *FlatBufferVectorToTfLiteTypeArray(const flatbuffers::Vector<int32_t> *flatbuffer_array);
+TfLiteFloatArray *FlatBufferVectorToTfLiteTypeArray(const flatbuffers::Vector<float> *flatbuffer_array);
 
 }  // namespace tflite
+
+#endif  // THIRD_PARTY_TFLITE_MICRO_TENSORFLOW_LITE_MICRO_FLATBUFFER_UTILS_H_

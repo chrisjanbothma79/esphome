@@ -12,8 +12,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_FULLY_CONNECTED_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_FULLY_CONNECTED_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_L2NORMALIZATION_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_L2NORMALIZATION_H_
 
 #include <algorithm>
 
@@ -22,107 +22,39 @@ limitations under the License.
 namespace tflite {
 namespace reference_integer_ops {
 
-// For per-channel functions, since it is defined in quantization spec that
-// weights are symmetric
-// (https://www.tensorflow.org/lite/performance/quantization_spec#symmetric_vs_asymmetric),
-// zero_point (params.weights_offset) is always 0.
-// However, for per-tensor functions, params.weights_offset is still applied for
-// backward compatibility.
-template <typename InputType, typename WeightType, typename OutputType,
-          typename BiasType>
-void FullyConnectedPerChannel(
-    const FullyConnectedParams& params, const int32_t* output_multiplier,
-    const int* output_shift, const RuntimeShape& input_shape,
-    const InputType* input_data, const RuntimeShape& filter_shape,
-    const WeightType* filter_data, const RuntimeShape& bias_shape,
-    const BiasType* bias_data, const RuntimeShape& output_shape,
-    OutputType* output_data) {
-  const int32_t input_offset = params.input_offset;
-  const int32_t output_offset = params.output_offset;
-  const int32_t output_activation_min = params.quantized_activation_min;
-  const int32_t output_activation_max = params.quantized_activation_max;
-  TFLITE_DCHECK_GE(filter_shape.DimensionsCount(), 2);
-  TFLITE_DCHECK_GE(output_shape.DimensionsCount(), 1);
+inline void L2Normalization(int32_t input_zero_point, int32_t outer_size, int32_t depth, const int8_t *input_data,
+                            int8_t *output_data) {
+  static constexpr int8_t kMinInt8 = std::numeric_limits<int8_t>::min();
+  static constexpr int8_t kMaxInt8 = std::numeric_limits<int8_t>::max();
+  // The output scale must be in sync with Prepare().
+  // Output is in 1/128 scale so the actual output range is nudged from [-1, 1]
+  // to [-1, 127/128].
+  static constexpr int32_t kOutputScale = 7;
+  for (int outer_index = 0; outer_index < outer_size; ++outer_index) {
+    // int32_t = (int8_t - int8_t) ^ 2.
+    // ([-128, 127] - [-128, 127]) ^ 2 = [0, (2^8 - 1)^2] so the accumulator is
+    // safe from overflowing in at least 2^16 steps.
+    int32_t acc = 0;
+    for (int inner_index = 0; inner_index < depth; ++inner_index) {
+      int32_t input = input_data[depth * outer_index + inner_index] - input_zero_point;
+      acc += input * input;
+    }
+    int32_t inv_l2norm_multiplier;
+    int inv_l2norm_shift;
+    GetInvSqrtQuantizedMultiplierExp(acc, kReverseShift, &inv_l2norm_multiplier, &inv_l2norm_shift);
 
-  TFLITE_DCHECK_LE(output_activation_min, output_activation_max);
-  const int filter_dim_count = filter_shape.DimensionsCount();
+    for (int inner_index = 0; inner_index < depth; ++inner_index) {
+      int32_t input = input_data[depth * outer_index + inner_index] - input_zero_point;
 
-  const int output_dim_count = output_shape.DimensionsCount();
-  const int batches = FlatSizeSkipDim(output_shape, output_dim_count - 1);
-  const int output_depth = output_shape.Dims(output_dim_count - 1);
-  TFLITE_DCHECK_LE(output_depth, filter_shape.Dims(filter_dim_count - 2));
-  const int accum_depth = filter_shape.Dims(filter_dim_count - 1);
-  for (int b = 0; b < batches; ++b) {
-    for (int out_c = 0; out_c < output_depth; ++out_c) {
-      BiasType acc = 0;
-      for (int d = 0; d < accum_depth; ++d) {
-        int32_t input_val = input_data[b * accum_depth + d];
-        int32_t filter_val = filter_data[out_c * accum_depth + d];
-        acc += filter_val * (input_val + input_offset);
-      }
-      if (bias_data) {
-        acc += bias_data[out_c];
-      }
-      int32_t acc_scaled = MultiplyByQuantizedMultiplier(
-          acc, output_multiplier[out_c], output_shift[out_c]);
-      acc_scaled += output_offset;
-      acc_scaled = std::max(acc_scaled, output_activation_min);
-      acc_scaled = std::min(acc_scaled, output_activation_max);
-      output_data[out_c + output_depth * b] =
-          static_cast<OutputType>(acc_scaled);
+      // Rescale and downcast. Rescale is folded into the division.
+      int32_t output_in_q24 =
+          MultiplyByQuantizedMultiplier(input, inv_l2norm_multiplier, inv_l2norm_shift + kOutputScale);
+      output_in_q24 = std::min(static_cast<int32_t>(kMaxInt8), std::max(static_cast<int32_t>(kMinInt8), output_in_q24));
+      output_data[depth * outer_index + inner_index] = static_cast<int8_t>(output_in_q24);
     }
   }
 }
-
-template <typename InputType, typename WeightType, typename OutputType,
-          typename BiasType>
-void FullyConnected(const FullyConnectedParams& params,
-                    const RuntimeShape& input_shape,
-                    const InputType* input_data,
-                    const RuntimeShape& filter_shape,
-                    const WeightType* filter_data,
-                    const RuntimeShape& bias_shape, const BiasType* bias_data,
-                    const RuntimeShape& output_shape, OutputType* output_data) {
-  const int32_t input_offset = params.input_offset;
-  const int32_t filter_offset = params.weights_offset;
-  const int32_t output_offset = params.output_offset;
-  const int32_t output_multiplier = params.output_multiplier;
-  const int output_shift = params.output_shift;
-  const int32_t output_activation_min = params.quantized_activation_min;
-  const int32_t output_activation_max = params.quantized_activation_max;
-  TFLITE_DCHECK_GE(filter_shape.DimensionsCount(), 2);
-  TFLITE_DCHECK_GE(output_shape.DimensionsCount(), 1);
-
-  TFLITE_DCHECK_LE(output_activation_min, output_activation_max);
-  const int filter_dim_count = filter_shape.DimensionsCount();
-  const int output_dim_count = output_shape.DimensionsCount();
-  const int batches = FlatSizeSkipDim(output_shape, output_dim_count - 1);
-  const int output_depth = output_shape.Dims(output_dim_count - 1);
-  TFLITE_DCHECK_LE(output_depth, filter_shape.Dims(filter_dim_count - 2));
-  const int accum_depth = filter_shape.Dims(filter_dim_count - 1);
-  for (int b = 0; b < batches; ++b) {
-    for (int out_c = 0; out_c < output_depth; ++out_c) {
-      BiasType acc = 0;
-      for (int d = 0; d < accum_depth; ++d) {
-        int32_t input_val = input_data[b * accum_depth + d];
-        int32_t filter_val = filter_data[out_c * accum_depth + d];
-        acc += (filter_val + filter_offset) * (input_val + input_offset);
-      }
-      if (bias_data) {
-        acc += bias_data[out_c];
-      }
-      int32_t acc_scaled =
-          MultiplyByQuantizedMultiplier(acc, output_multiplier, output_shift);
-      acc_scaled += output_offset;
-      acc_scaled = std::max(acc_scaled, output_activation_min);
-      acc_scaled = std::min(acc_scaled, output_activation_max);
-      output_data[out_c + output_depth * b] =
-          static_cast<OutputType>(acc_scaled);
-    }
-  }
-}
-
 }  // namespace reference_integer_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_FULLY_CONNECTED_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_INTEGER_OPS_L2NORMALIZATION_H_

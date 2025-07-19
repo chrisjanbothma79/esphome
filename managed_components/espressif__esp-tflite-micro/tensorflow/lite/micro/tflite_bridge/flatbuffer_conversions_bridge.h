@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,34 +12,32 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_FLATBUFFER_CONVERSIONS_BRIDGE_H_
-#define TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_FLATBUFFER_CONVERSIONS_BRIDGE_H_
 
-#include "tensorflow/lite/c/c_api_types.h"
-#include "tensorflow/lite/core/api/flatbuffer_conversions.h"
-#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/micro/tflite_bridge/micro_error_reporter.h"
+
+#include <cstdarg>
+#include <cstdint>
+#include <new>
+
+#include "tensorflow/lite/micro/micro_log.h"
+
+namespace {
+uint8_t micro_error_reporter_buffer[sizeof(tflite::MicroErrorReporter)];
+tflite::MicroErrorReporter *error_reporter_ = nullptr;
+
+}  // namespace
 
 namespace tflite {
+ErrorReporter *GetMicroErrorReporter() {
+  if (error_reporter_ == nullptr) {
+    error_reporter_ = new (micro_error_reporter_buffer) MicroErrorReporter();
+  }
+  return error_reporter_;
+}
 
-// Forward declaration of the ErrorReporter class to hide it from the TFLM code.
-class ErrorReporter;
+int MicroErrorReporter::Report(const char *format, va_list args) {
+  VMicroPrintf(format, args);
+  return 0;
+}
 
-using TfLiteBridgeBuiltinDataAllocator = BuiltinDataAllocator;
-
-using TfLiteBridgeBuiltinParseFunction =
-    TfLiteStatus (*)(const Operator* op, ErrorReporter* error_reporter,
-                     BuiltinDataAllocator* allocator, void** builtin_data);
-
-// Converts the tensor data type used in the flatbuffer to the representation
-// used by the runtime.
-TfLiteStatus ConvertTensorType(TensorType tensor_type, TfLiteType* type);
-
-// CallBuiltinParseFunction is a wrapper function to wrap the parser function
-// calls to Call parser(op, allocator, builtin_data)
-TfLiteStatus CallBuiltinParseFunction(TfLiteBridgeBuiltinParseFunction parser,
-                                      const Operator* op,
-                                      BuiltinDataAllocator* allocator,
-                                      void** builtin_data);
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_TFLITE_BRIDGE_FLATBUFFER_CONVERSIONS_BRIDGE_H_

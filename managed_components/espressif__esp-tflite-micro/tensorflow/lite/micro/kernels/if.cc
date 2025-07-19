@@ -1,4 +1,4 @@
-/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,111 +13,125 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include <stddef.h>
+#include "tensorflow/lite/micro/kernels/kernel_runner.h"
 
-#include <cstring>
-
-#include "tensorflow/lite/c/builtin_op_data.h"
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/compatibility.h"
-#include "tensorflow/lite/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/memory_helpers.h"
-#include "tensorflow/lite/micro/micro_context.h"
-#include "tensorflow/lite/micro/micro_graph.h"
-#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/micro/arena_allocator/single_arena_buffer_allocator.h"
+#include "tensorflow/lite/micro/micro_arena_constants.h"
+#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
+namespace micro {
 
-namespace {
+// TODO(b/161841696): Consider moving away from global arena buffers:
+constexpr int KernelRunner::kKernelRunnerBufferSize_;
+uint8_t KernelRunner::kKernelRunnerBuffer_[];
 
-constexpr int kCondTensor = 0;
-
-struct OpData {
-  int then_subgraph_index;
-  int else_subgraph_index;
-};
-
-void* IfInit(TfLiteContext* context, const char* buffer, size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(OpData));
+void ClearBufferApi(TfLiteContext *context_) {
+  context_->GetScratchBuffer = nullptr;
+  context_->GetExternalContext = nullptr;
+  context_->AllocatePersistentBuffer = nullptr;
+  context_->RequestScratchBufferInArena = nullptr;
 }
 
-TfLiteStatus IfPrepare(TfLiteContext* context, TfLiteNode* node) {
-  OpData* op_data = reinterpret_cast<OpData*>(node->user_data);
-  const auto* params =
-      reinterpret_cast<const TfLiteIfParams*>(node->builtin_data);
-  op_data->then_subgraph_index = params->then_subgraph_index;
-  op_data->else_subgraph_index = params->else_subgraph_index;
+KernelRunner::KernelRunner(const TFLMRegistration &registration, TfLiteTensor *tensors, int tensors_size,
+                           TfLiteIntArray *inputs, TfLiteIntArray *outputs, const void *builtin_data,
+                           TfLiteIntArray *intermediates
+#ifdef USE_TFLM_COMPRESSION
+                           ,
+                           const CompressedTensorList *compressed_tensors
+#endif  // USE_TFLM_COMPRESSION
+                           )
+    : registration_(registration),
+      allocator_(SingleArenaBufferAllocator::Create(kKernelRunnerBuffer_, kKernelRunnerBufferSize_)),
+      mock_micro_graph_(allocator_),
+      fake_micro_context_(tensors, allocator_, &mock_micro_graph_
+#ifdef USE_TFLM_COMPRESSION
+                          ,
+                          compressed_tensors
+#endif  // USE_TFLM_COMPRESSION
+      ) {
+  // Prepare TfLiteContext:
+  context_.impl_ = static_cast<void *>(&fake_micro_context_);
+  context_.ReportError = MicroContextReportOpError;
+  context_.recommended_num_threads = 1;
+  context_.GetTensor = MicroContextGetTensor;
+  context_.GetEvalTensor = MicroContextGetEvalTensor;
+  tflite::micro::ClearBufferApi(&context_);
+  context_.AllocatePersistentBuffer = MicroContextAllocatePersistentBuffer;
 
-  TF_LITE_ENSURE(context, node->inputs->size > 0);
+  context_.recommended_num_threads = 0;
 
-  // The first input is the condition.
-  tflite::MicroContext* micro_context = tflite::GetMicroContext(context);
-  TfLiteTensor* cond =
-      micro_context->AllocateTempInputTensor(node, kCondTensor);
+  // Prepare TfLiteNode:
+  node_.inputs = inputs;
+  node_.outputs = outputs;
+  node_.builtin_data = const_cast<void *>(builtin_data);
+  node_.intermediates = intermediates;
+}
 
-  TF_LITE_ENSURE(context, cond != nullptr);
-  TF_LITE_ENSURE_EQ(context, cond->type, kTfLiteBool);
-  TF_LITE_ENSURE_EQ(context, NumElements(cond), 1);
+bool KernelRunner::ValidateTempBufferDeallocated() { return fake_micro_context_.IsAllTempTfLiteTensorDeallocated(); }
 
-  micro_context->DeallocateTempTfLiteTensor(cond);
+TfLiteStatus KernelRunner::InitAndPrepare(const char *init_data, size_t length) {
+  if (registration_.init) {
+    tflite::micro::ClearBufferApi(&context_);
+    context_.AllocatePersistentBuffer = MicroContextAllocatePersistentBuffer;
+    node_.user_data = registration_.init(&context_, init_data, length);
+  }
 
-  // The first input of the node is the condition. The rest of inputs are
-  // passed to the branch subgraphs. Therefore, the number of subgraph inputs
-  // will be the number of node inputs - 1.
-  size_t num_inputs = node->inputs->size - 1;
-  size_t num_outputs = NumOutputs(node);
+  TF_LITE_ENSURE(&context_, ValidateTempBufferDeallocated());
 
-  MicroGraph& graph_info = micro_context->graph();
+  if (registration_.prepare) {
+    tflite ::micro::ClearBufferApi(&context_);
+    context_.AllocatePersistentBuffer = MicroContextAllocatePersistentBuffer;
+    context_.RequestScratchBufferInArena = MicroContextRequestScratchBufferInArena;
+    context_.GetExternalContext = MicroContextGetExternalContext;
+    TF_LITE_ENSURE_STATUS(registration_.prepare(&context_, &node_));
+  }
 
-  TF_LITE_ENSURE(context,
-                 op_data->then_subgraph_index < graph_info.NumSubgraphs());
-  TF_LITE_ENSURE(context,
-                 op_data->else_subgraph_index < graph_info.NumSubgraphs());
-
-  TF_LITE_ENSURE_EQ(context, num_inputs,
-                    graph_info.NumSubgraphInputs(op_data->then_subgraph_index));
-  TF_LITE_ENSURE_EQ(
-      context, num_outputs,
-      graph_info.NumSubgraphOutputs(op_data->then_subgraph_index));
+  TF_LITE_ENSURE(&context_, ValidateTempBufferDeallocated());
 
   return kTfLiteOk;
 }
 
-TfLiteStatus IfEval(TfLiteContext* context, TfLiteNode* node) {
-  const OpData* op_data = reinterpret_cast<OpData*>(node->user_data);
+TfLiteStatus KernelRunner::Invoke() {
+  tflite::micro::ClearBufferApi(&context_);
+  context_.GetScratchBuffer = MicroContextGetScratchBuffer;
 
-  tflite::MicroContext* micro_context = tflite::GetMicroContext(context);
-  const TfLiteEvalTensor* cond =
-      tflite::micro::GetEvalInput(context, node, kCondTensor);
-  TF_LITE_ENSURE(context, cond != nullptr);
-  const bool cond_value = cond->data.b[0];
+  if (registration_.invoke == nullptr) {
+    MicroPrintf("TFLMRegistration missing invoke function pointer!");
+    return kTfLiteError;
+  }
 
-  MicroGraph* graph_info = &micro_context->graph();
-  // Currently we copy the input / output between the subgraphs.
-  int active_branch_subgraph_index =
-      cond_value ? op_data->then_subgraph_index : op_data->else_subgraph_index;
+  TF_LITE_ENSURE_STATUS(registration_.invoke(&context_, &node_));
 
-  TF_LITE_ENSURE_OK(context,
-                    tflite::micro::CopyOpInputsToSubgraphInputs(
-                        context, node, graph_info, active_branch_subgraph_index,
-                        /*first_tensor_idx=*/1));
-
-  TF_LITE_ENSURE_OK(context,
-                    graph_info->InvokeSubgraph(active_branch_subgraph_index));
-
-  TF_LITE_ENSURE_OK(
-      context, tflite::micro::CopySubgraphOutputsToOpOutputs(
-                   context, node, graph_info, active_branch_subgraph_index));
+  TF_LITE_ENSURE(&context_, ValidateTempBufferDeallocated());
 
   return kTfLiteOk;
 }
 
-}  // namespace.
+TfLiteStatus KernelRunner::Reset() {
+  tflite::micro::ClearBufferApi(&context_);
+  context_.GetScratchBuffer = MicroContextGetScratchBuffer;
 
-TFLMRegistration Register_IF() {
-  return tflite::micro::RegisterOp(IfInit, IfPrepare, IfEval);
+  if (registration_.reset == nullptr) {
+    MicroPrintf("TFLMRegistration missing reset function pointer!");
+    return kTfLiteError;
+  }
+
+  registration_.reset(&context_, node_.user_data);
+  return kTfLiteOk;
 }
 
+TfLiteStatus KernelRunner::Free() {
+  tflite::micro::ClearBufferApi(&context_);
+  context_.GetScratchBuffer = MicroContextGetScratchBuffer;
+
+  if (registration_.free == nullptr) {
+    MicroPrintf("TFLMRegistration missing free function pointer!");
+    return kTfLiteError;
+  }
+
+  registration_.free(&context_, node_.user_data);
+  return kTfLiteOk;
+}
+}  // namespace micro
 }  // namespace tflite

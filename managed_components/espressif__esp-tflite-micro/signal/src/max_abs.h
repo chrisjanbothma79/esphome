@@ -1,4 +1,4 @@
-/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,19 +13,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef SIGNAL_SRC_MAX_ABS_H_
-#define SIGNAL_SRC_MAX_ABS_H_
+#include "signal/src/msb.h"
 
-#include <stdint.h>
+#if defined(XTENSA)
+#include <xtensa/tie/xt_misc.h>
+#endif
 
-// TODO(b/286250473): remove namespace once de-duped libraries
 namespace tflite {
 namespace tflm_signal {
+// TODO(b/286250473): remove namespace once de-duped libraries above
 
-// Returns the maximum absolute value of the `size` elements in `input`
-int16_t MaxAbs16(const int16_t* input, int size);
+uint32_t MostSignificantBit64(uint64_t x) {
+#if defined(XTENSA)
+  // XT_NSAU returns the number of left shifts needed to put the MSB in the
+  // leftmost position. Returns 32 if the argument is 0.
+  uint32_t upper = 64 - XT_NSAU((uint32_t) (x >> 32));
+  if (upper != 32) {
+    return upper;
+  }
+  // Only if the upper bits are all clear do we want to look at the lower bits.
+  return 32 - XT_NSAU((uint32_t) x);
+#elif defined(__GNUC__)
+  if (x) {
+    return 64 - __builtin_clzll(x);
+  }
+  return 64;
+#else
+  uint32_t temp = 0;
+  while (x) {
+    x = x >> 1;
+    ++temp;
+  }
+  return temp;
+#endif
+}
 
 }  // namespace tflm_signal
 }  // namespace tflite
-
-#endif  // SIGNAL_SRC_MAX_ABS_H_

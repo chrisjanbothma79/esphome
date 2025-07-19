@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,12 +12,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/kernels/internal/reference/space_to_depth.h"
 
-#include <stdint.h>
-
+#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/types.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/micro_log.h"
@@ -26,92 +24,89 @@ namespace tflite {
 
 namespace {
 
-constexpr int kInputTensor = 0;
-constexpr int kOutputTensor = 0;
-constexpr int kBatchRank = 0;
-constexpr int kHeightRank = 1;
-constexpr int kWidthRank = 2;
-constexpr int kDepthRank = 3;
+template<typename T>
+TfLiteStatus SplitImpl(TfLiteContext *context, TfLiteNode *node, const TfLiteEvalTensor *input, int axis_value) {
+  const int output_count = NumOutputs(node);
+  const TfLiteIntArray *input_dims = input->dims;
+  const TfLiteEvalTensor *output0 = tflite::micro::GetEvalOutput(context, node, 0);
+  const TfLiteIntArray *output_dims = output0->dims;
 
-TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
-  auto* params =
-      reinterpret_cast<TfLiteSpaceToDepthParams*>(node->builtin_data);
+  const int split_dimensions = input_dims->size;
+  int axis = axis_value < 0 ? axis_value + split_dimensions : axis_value;
 
-  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
-  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
+  TFLITE_DCHECK_LT(axis, split_dimensions);
+  TFLITE_DCHECK_EQ(output_dims->size, split_dimensions);
 
-  MicroContext* micro_context = GetMicroContext(context);
+  int64_t split_size = output_dims->data[axis] * output_count;
 
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
-  TF_LITE_ENSURE(context, input != nullptr);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
-  TF_LITE_ENSURE(context, output != nullptr);
+  TFLITE_DCHECK_EQ(split_size, input_dims->data[axis]);
+  int64_t outer_size = 1;
+  for (int i = 0; i < axis; ++i) {
+    outer_size *= input_dims->data[i];
+  }
 
-  TF_LITE_ENSURE_EQ(context, NumDimensions(input), 4);
+  int64_t base_inner_size = 1;
+  for (int i = axis + 1; i < split_dimensions; ++i) {
+    base_inner_size *= input_dims->data[i];
+  }
 
-  auto data_type = output->type;
-  TF_LITE_ENSURE(context,
-                 data_type == kTfLiteFloat32 || data_type == kTfLiteInt8);
-  TF_LITE_ENSURE_TYPES_EQ(context, input->type, output->type);
-
-  const int block_size = params->block_size;
-  const int input_height = input->dims->data[kHeightRank];
-  const int input_width = input->dims->data[kWidthRank];
-  int output_height = input_height / block_size;
-  int output_width = input_width / block_size;
-
-  TF_LITE_ENSURE_EQ(context, input_height, output_height * block_size);
-  TF_LITE_ENSURE_EQ(context, input_width, output_width * block_size);
-
-  // Relocate dims to the persistent storage arena before changing them,
-  // otherwise we'd be modifying temporary copies made by the interpreters each
-  // time they process the layer.
-  TfLiteEvalTensor* output_eval =
-      micro::GetEvalOutput(context, node, kOutputTensor);
-  TF_LITE_ENSURE_OK(context, micro::CreateWritableTensorDimsWithCopy(
-                                 context, output, output_eval));
-
-  output->dims->data[kBatchRank] = input->dims->data[kBatchRank];
-  output->dims->data[kHeightRank] = output_height;
-  output->dims->data[kWidthRank] = output_width;
-  output->dims->data[kDepthRank] =
-      input->dims->data[kDepthRank] * block_size * block_size;
-
-  micro_context->DeallocateTempTfLiteTensor(input);
-  micro_context->DeallocateTempTfLiteTensor(output);
+  const T *input_ptr = tflite::micro::GetTensorData<T>(input);
+  for (int k = 0; k < outer_size; ++k) {
+    for (int i = 0; i < output_count; ++i) {
+      TfLiteEvalTensor *t = tflite::micro::GetEvalOutput(context, node, i);
+      T *output_data = tflite::micro::GetTensorData<T>(t);
+      const int copy_size = output_dims->data[axis] * base_inner_size;
+      T *output_ptr = output_data + k * copy_size;
+      for (int j = 0; j < copy_size; ++j)
+        output_ptr[j] = input_ptr[j];
+      input_ptr += copy_size;
+    }
+  }
 
   return kTfLiteOk;
 }
 
-TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
-  auto* params =
-      reinterpret_cast<TfLiteSpaceToDepthParams*>(node->builtin_data);
+TfLiteStatus SplitPrepare(TfLiteContext *context, TfLiteNode *node) {
+  MicroContext *micro_context = GetMicroContext(context);
+  TfLiteTensor *axis = micro_context->AllocateTempInputTensor(node, 0);
+  TF_LITE_ENSURE(context, axis != nullptr);
 
-  const TfLiteEvalTensor* input =
-      micro::GetEvalInput(context, node, kInputTensor);
-  TfLiteEvalTensor* output = micro::GetEvalOutput(context, node, kOutputTensor);
+  // Dynamic output tensors are needed if axis tensor is not constant.
+  // But Micro doesn't support dynamic memory allocation, so we only support
+  // constant axis tensor for now.
+  TF_LITE_ENSURE_MSG(context, IsConstantTensor(axis), "Non constant axis tensor not supported");
 
-  SpaceToDepthParams op_params;
-  op_params.block_size = params->block_size;
+  micro_context->DeallocateTempTfLiteTensor(axis);
+  return kTfLiteOk;
+}
 
-  switch (input->type) {  // Already know in/out types are same.
-    case kTfLiteFloat32:
-      reference_ops::SpaceToDepth(op_params, micro::GetTensorShape(input),
-                                  micro::GetTensorData<float>(input),
-                                  micro::GetTensorShape(output),
-                                  micro::GetTensorData<float>(output));
-      break;
-    case kTfLiteInt8:
-      reference_ops::SpaceToDepth(op_params, micro::GetTensorShape(input),
-                                  micro::GetTensorData<int8_t>(input),
-                                  micro::GetTensorShape(output),
-                                  micro::GetTensorData<int8_t>(output));
-      break;
+TfLiteStatus SplitEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *axis = tflite::micro::GetEvalInput(context, node, 0);
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, 1);
+
+  int axis_value = tflite::micro::GetTensorData<int32_t>(axis)[0];
+  if (axis_value < 0) {
+    axis_value += input->dims->size;
+  }
+
+  TF_LITE_ENSURE(context, axis_value >= 0);
+  TF_LITE_ENSURE(context, axis_value < input->dims->size);
+
+  switch (input->type) {
+    case kTfLiteFloat32: {
+      return SplitImpl<float>(context, node, input, axis_value);
+    }
+    case kTfLiteInt8: {
+      return SplitImpl<int8_t>(context, node, input, axis_value);
+    }
+    case kTfLiteInt16: {
+      return SplitImpl<int16_t>(context, node, input, axis_value);
+    }
+    case kTfLiteInt32: {
+      return SplitImpl<int32_t>(context, node, input, axis_value);
+    }
     default:
-      MicroPrintf("SPACE_TO_DEPTH only supports FLOAT32 and INT8, got %s.",
-                  TfLiteTypeGetName(input->type));
+      MicroPrintf("Type %s currently not supported.", TfLiteTypeGetName(input->type));
       return kTfLiteError;
   }
 
@@ -120,8 +115,6 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
 
 }  // namespace
 
-TFLMRegistration Register_SPACE_TO_DEPTH() {
-  return tflite::micro::RegisterOp(nullptr, Prepare, Eval);
-}
+TFLMRegistration Register_SPLIT() { return tflite::micro::RegisterOp(nullptr, SplitPrepare, SplitEval); }
 
 }  // namespace tflite

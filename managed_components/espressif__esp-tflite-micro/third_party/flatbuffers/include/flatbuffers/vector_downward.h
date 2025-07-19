@@ -14,276 +14,309 @@
  * limitations under the License.
  */
 
-#ifndef FLATBUFFERS_VECTOR_DOWNWARD_H_
-#define FLATBUFFERS_VECTOR_DOWNWARD_H_
-
-#include <algorithm>
-#include <cstdint>
+#ifndef FLATBUFFERS_VERIFIER_H_
+#define FLATBUFFERS_VERIFIER_H_
 
 #include "flatbuffers/base.h"
-#include "flatbuffers/default_allocator.h"
-#include "flatbuffers/detached_buffer.h"
+#include "flatbuffers/vector.h"
 
 namespace flatbuffers {
 
-// This is a minimal replication of std::vector<uint8_t> functionality,
-// except growing from higher to lower addresses. i.e. push_back() inserts data
-// in the lowest address in the vector.
-// Since this vector leaves the lower part unused, we support a "scratch-pad"
-// that can be stored there for temporary data, to share the allocated space.
-// Essentially, this supports 2 std::vectors in a single buffer.
-template<typename SizeT = uoffset_t> class vector_downward {
+// Helper class to verify the integrity of a FlatBuffer
+class Verifier FLATBUFFERS_FINAL_CLASS {
  public:
-  explicit vector_downward(size_t initial_size, Allocator *allocator,
-                           bool own_allocator, size_t buffer_minalign,
-                           const SizeT max_size = FLATBUFFERS_MAX_BUFFER_SIZE)
-      : allocator_(allocator),
-        own_allocator_(own_allocator),
-        initial_size_(initial_size),
-        max_size_(max_size),
-        buffer_minalign_(buffer_minalign),
-        reserved_(0),
-        size_(0),
-        buf_(nullptr),
-        cur_(nullptr),
-        scratch_(nullptr) {}
+  struct Options {
+    // The maximum nesting of tables and vectors before we call it invalid.
+    uoffset_t max_depth = 64;
+    // The maximum number of tables we will verify before we call it invalid.
+    uoffset_t max_tables = 1000000;
+    // If true, verify all data is aligned.
+    bool check_alignment = true;
+    // If true, run verifier on nested flatbuffers
+    bool check_nested_flatbuffers = true;
+    // The maximum size of a buffer.
+    size_t max_size = FLATBUFFERS_MAX_BUFFER_SIZE;
+    // Use assertions to check for errors.
+    bool assert = false;
+  };
 
-  vector_downward(vector_downward &&other) noexcept
-      // clang-format on
-      : allocator_(other.allocator_),
-        own_allocator_(other.own_allocator_),
-        initial_size_(other.initial_size_),
-        max_size_(other.max_size_),
-        buffer_minalign_(other.buffer_minalign_),
-        reserved_(other.reserved_),
-        size_(other.size_),
-        buf_(other.buf_),
-        cur_(other.cur_),
-        scratch_(other.scratch_) {
-    // No change in other.allocator_
-    // No change in other.initial_size_
-    // No change in other.buffer_minalign_
-    other.own_allocator_ = false;
-    other.reserved_ = 0;
-    other.buf_ = nullptr;
-    other.cur_ = nullptr;
-    other.scratch_ = nullptr;
+  explicit Verifier(const uint8_t *const buf, const size_t buf_len, const Options &opts)
+      : buf_(buf), size_(buf_len), opts_(opts) {
+    FLATBUFFERS_ASSERT(size_ < opts.max_size);
   }
 
-  vector_downward &operator=(vector_downward &&other) noexcept {
-    // Move construct a temporary and swap idiom
-    vector_downward temp(std::move(other));
-    swap(temp);
-    return *this;
+  // Deprecated API, please construct with Verifier::Options.
+  Verifier(const uint8_t *const buf, const size_t buf_len, const uoffset_t max_depth = 64,
+           const uoffset_t max_tables = 1000000, const bool check_alignment = true)
+      : Verifier(buf, buf_len, [&] {
+          Options opts;
+          opts.max_depth = max_depth;
+          opts.max_tables = max_tables;
+          opts.check_alignment = check_alignment;
+          return opts;
+        }()) {}
+
+  // Central location where any verification failures register.
+  bool Check(const bool ok) const {
+// clang-format off
+    #ifdef FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+       if (opts_.assert) { FLATBUFFERS_ASSERT(ok); }
+    #endif
+    #ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+      if (!ok)
+        upper_bound_ = 0;
+    #endif
+    // clang-format on
+    return ok;
   }
 
-  ~vector_downward() {
-    clear_buffer();
-    clear_allocator();
+  // Verify any range within the buffer.
+  bool Verify(const size_t elem, const size_t elem_len) const {
+// clang-format off
+    #ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+      auto upper_bound = elem + elem_len;
+      if (upper_bound_ < upper_bound)
+        upper_bound_ =  upper_bound;
+    #endif
+    // clang-format on
+    return Check(elem_len < size_ && elem <= size_ - elem_len);
   }
 
-  void reset() {
-    clear_buffer();
-    clear();
+  bool VerifyAlignment(const size_t elem, const size_t align) const {
+    return Check((elem & (align - 1)) == 0 || !opts_.check_alignment);
   }
 
-  void clear() {
-    if (buf_) {
-      cur_ = buf_ + reserved_;
-    } else {
-      reserved_ = 0;
-      cur_ = nullptr;
+  // Verify a range indicated by sizeof(T).
+  template<typename T> bool Verify(const size_t elem) const {
+    return VerifyAlignment(elem, sizeof(T)) && Verify(elem, sizeof(T));
+  }
+
+  bool VerifyFromPointer(const uint8_t *const p, const size_t len) {
+    return Verify(static_cast<size_t>(p - buf_), len);
+  }
+
+  // Verify relative to a known-good base pointer.
+  bool VerifyFieldStruct(const uint8_t *const base, const voffset_t elem_off, const size_t elem_len,
+                         const size_t align) const {
+    const auto f = static_cast<size_t>(base - buf_) + elem_off;
+    return VerifyAlignment(f, align) && Verify(f, elem_len);
+  }
+
+  template<typename T> bool VerifyField(const uint8_t *const base, const voffset_t elem_off, const size_t align) const {
+    const auto f = static_cast<size_t>(base - buf_) + elem_off;
+    return VerifyAlignment(f, align) && Verify(f, sizeof(T));
+  }
+
+  // Verify a pointer (may be NULL) of a table type.
+  template<typename T> bool VerifyTable(const T *const table) { return !table || table->Verify(*this); }
+
+  // Verify a pointer (may be NULL) of any vector type.
+  template<int &..., typename T, typename LenT> bool VerifyVector(const Vector<T, LenT> *const vec) const {
+    return !vec || VerifyVectorOrString<LenT>(reinterpret_cast<const uint8_t *>(vec), sizeof(T));
+  }
+
+  // Verify a pointer (may be NULL) of a vector to struct.
+  template<int &..., typename T, typename LenT> bool VerifyVector(const Vector<const T *, LenT> *const vec) const {
+    return VerifyVector(reinterpret_cast<const Vector<T, LenT> *>(vec));
+  }
+
+  // Verify a pointer (may be NULL) to string.
+  bool VerifyString(const String *const str) const {
+    size_t end;
+    return !str || (VerifyVectorOrString<uoffset_t>(reinterpret_cast<const uint8_t *>(str), 1, &end) &&
+                    Verify(end, 1) &&           // Must have terminator
+                    Check(buf_[end] == '\0'));  // Terminating byte must be 0.
+  }
+
+  // Common code between vectors and strings.
+  template<typename LenT = uoffset_t>
+  bool VerifyVectorOrString(const uint8_t *const vec, const size_t elem_size, size_t *const end = nullptr) const {
+    const auto vec_offset = static_cast<size_t>(vec - buf_);
+    // Check we can read the size field.
+    if (!Verify<LenT>(vec_offset))
+      return false;
+    // Check the whole array. If this is a string, the byte past the array must
+    // be 0.
+    const LenT size = ReadScalar<LenT>(vec);
+    const auto max_elems = opts_.max_size / elem_size;
+    if (!Check(size < max_elems))
+      return false;  // Protect against byte_size overflowing.
+    const auto byte_size = sizeof(LenT) + elem_size * size;
+    if (end)
+      *end = vec_offset + byte_size;
+    return Verify(vec_offset, byte_size);
+  }
+
+  // Special case for string contents, after the above has been called.
+  bool VerifyVectorOfStrings(const Vector<Offset<String>> *const vec) const {
+    if (vec) {
+      for (uoffset_t i = 0; i < vec->size(); i++) {
+        if (!VerifyString(vec->Get(i)))
+          return false;
+      }
     }
-    size_ = 0;
-    clear_scratch();
+    return true;
   }
 
-  void clear_scratch() { scratch_ = buf_; }
-
-  void clear_allocator() {
-    if (own_allocator_ && allocator_) { delete allocator_; }
-    allocator_ = nullptr;
-    own_allocator_ = false;
-  }
-
-  void clear_buffer() {
-    if (buf_) Deallocate(allocator_, buf_, reserved_);
-    buf_ = nullptr;
-  }
-
-  // Relinquish the pointer to the caller.
-  uint8_t *release_raw(size_t &allocated_bytes, size_t &offset) {
-    auto *buf = buf_;
-    allocated_bytes = reserved_;
-    offset = vector_downward::offset();
-
-    // release_raw only relinquishes the buffer ownership.
-    // Does not deallocate or reset the allocator. Destructor will do that.
-    buf_ = nullptr;
-    clear();
-    return buf;
-  }
-
-  // Relinquish the pointer to the caller.
-  DetachedBuffer release() {
-    // allocator ownership (if any) is transferred to DetachedBuffer.
-    DetachedBuffer fb(allocator_, own_allocator_, buf_, reserved_, cur_,
-                      size());
-    if (own_allocator_) {
-      allocator_ = nullptr;
-      own_allocator_ = false;
+  // Special case for table contents, after the above has been called.
+  template<typename T> bool VerifyVectorOfTables(const Vector<Offset<T>> *const vec) {
+    if (vec) {
+      for (uoffset_t i = 0; i < vec->size(); i++) {
+        if (!vec->Get(i)->Verify(*this))
+          return false;
+      }
     }
-    buf_ = nullptr;
-    clear();
-    return fb;
+    return true;
   }
 
-  size_t ensure_space(size_t len) {
-    FLATBUFFERS_ASSERT(cur_ >= scratch_ && scratch_ >= buf_);
-    // If the length is larger than the unused part of the buffer, we need to
-    // grow.
-    if (len > unused_buffer_size()) { reallocate(len); }
-    FLATBUFFERS_ASSERT(size() < max_size_);
-    return len;
+  FLATBUFFERS_SUPPRESS_UBSAN("unsigned-integer-overflow")
+  bool VerifyTableStart(const uint8_t *const table) {
+    // Check the vtable offset.
+    const auto tableo = static_cast<size_t>(table - buf_);
+    if (!Verify<soffset_t>(tableo))
+      return false;
+    // This offset may be signed, but doing the subtraction unsigned always
+    // gives the result we want.
+    const auto vtableo = tableo - static_cast<size_t>(ReadScalar<soffset_t>(table));
+    // Check the vtable size field, then check vtable fits in its entirety.
+    if (!(VerifyComplexity() && Verify<voffset_t>(vtableo) &&
+          VerifyAlignment(ReadScalar<voffset_t>(buf_ + vtableo), sizeof(voffset_t))))
+      return false;
+    const auto vsize = ReadScalar<voffset_t>(buf_ + vtableo);
+    return Check((vsize & 1) == 0) && Verify(vtableo, vsize);
   }
 
-  inline uint8_t *make_space(size_t len) {
-    if (len) {
-      ensure_space(len);
-      cur_ -= len;
-      size_ += static_cast<SizeT>(len);
+  template<typename T> bool VerifyBufferFromStart(const char *const identifier, const size_t start) {
+    // Buffers have to be of some size to be valid. The reason it is a runtime
+    // check instead of static_assert, is that nested flatbuffers go through
+    // this call and their size is determined at runtime.
+    if (!Check(size_ >= FLATBUFFERS_MIN_BUFFER_SIZE))
+      return false;
+
+    // If an identifier is provided, check that we have a buffer
+    if (identifier &&
+        !Check((size_ >= 2 * sizeof(flatbuffers::uoffset_t) && BufferHasIdentifier(buf_ + start, identifier)))) {
+      return false;
     }
-    return cur_;
+
+    // Call T::Verify, which must be in the generated code for this type.
+    const auto o = VerifyOffset<uoffset_t>(start);
+    return Check(o != 0) && reinterpret_cast<const T *>(buf_ + start + o)->Verify(*this)
+// clang-format off
+    #ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+           && GetComputedSize()
+    #endif
+        ;
+    // clang-format on
   }
 
-  // Returns nullptr if using the DefaultAllocator.
-  Allocator *get_custom_allocator() { return allocator_; }
+  template<typename T, int &..., typename SizeT>
+  bool VerifyNestedFlatBuffer(const Vector<uint8_t, SizeT> *const buf, const char *const identifier) {
+    // Caller opted out of this.
+    if (!opts_.check_nested_flatbuffers)
+      return true;
 
-  // The current offset into the buffer.
-  size_t offset() const { return cur_ - buf_; }
+    // An empty buffer is OK as it indicates not present.
+    if (!buf)
+      return true;
 
-  // The total size of the vector (both the buffer and scratch parts).
-  inline SizeT size() const { return size_; }
+    // If there is a nested buffer, it must be greater than the min size.
+    if (!Check(buf->size() >= FLATBUFFERS_MIN_BUFFER_SIZE))
+      return false;
 
-  // The size of the buffer part of the vector that is currently unused.
-  SizeT unused_buffer_size() const {
-    return static_cast<SizeT>(cur_ - scratch_);
+    Verifier nested_verifier(buf->data(), buf->size(), opts_);
+    return nested_verifier.VerifyBuffer<T>(identifier);
   }
 
-  // The size of the scratch part of the vector.
-  SizeT scratch_size() const { return static_cast<SizeT>(scratch_ - buf_); }
+  // Verify this whole buffer, starting with root type T.
+  template<typename T> bool VerifyBuffer() { return VerifyBuffer<T>(nullptr); }
 
-  size_t capacity() const { return reserved_; }
-
-  uint8_t *data() const {
-    FLATBUFFERS_ASSERT(cur_);
-    return cur_;
+  template<typename T> bool VerifyBuffer(const char *const identifier) {
+    return VerifyBufferFromStart<T>(identifier, 0);
   }
 
-  uint8_t *scratch_data() const {
-    FLATBUFFERS_ASSERT(buf_);
-    return buf_;
+  template<typename T, typename SizeT = uoffset_t> bool VerifySizePrefixedBuffer(const char *const identifier) {
+    return Verify<SizeT>(0U) &&
+           // Ensure the prefixed size is within the bounds of the provided
+           // length.
+           Check(ReadScalar<SizeT>(buf_) + sizeof(SizeT) <= size_) &&
+           VerifyBufferFromStart<T>(identifier, sizeof(SizeT));
   }
 
-  uint8_t *scratch_end() const {
-    FLATBUFFERS_ASSERT(scratch_);
-    return scratch_;
+  template<typename OffsetT = uoffset_t, typename SOffsetT = soffset_t> size_t VerifyOffset(const size_t start) const {
+    if (!Verify<OffsetT>(start))
+      return 0;
+    const auto o = ReadScalar<OffsetT>(buf_ + start);
+    // May not point to itself.
+    if (!Check(o != 0))
+      return 0;
+    // Can't wrap around larger than the max size.
+    if (!Check(static_cast<SOffsetT>(o) >= 0))
+      return 0;
+    // Must be inside the buffer to create a pointer from it (pointer outside
+    // buffer is UB).
+    if (!Verify(start + o, 1))
+      return 0;
+    return o;
   }
 
-  uint8_t *data_at(size_t offset) const { return buf_ + reserved_ - offset; }
-
-  void push(const uint8_t *bytes, size_t num) {
-    if (num > 0) { memcpy(make_space(num), bytes, num); }
+  template<typename OffsetT = uoffset_t> size_t VerifyOffset(const uint8_t *const base, const voffset_t start) const {
+    return VerifyOffset<OffsetT>(static_cast<size_t>(base - buf_) + start);
   }
 
-  // Specialized version of push() that avoids memcpy call for small data.
-  template<typename T> void push_small(const T &little_endian_t) {
-    make_space(sizeof(T));
-    *reinterpret_cast<T *>(cur_) = little_endian_t;
+  // Called at the start of a table to increase counters measuring data
+  // structure depth and amount, and possibly bails out with false if limits set
+  // by the constructor have been hit. Needs to be balanced with EndTable().
+  bool VerifyComplexity() {
+    depth_++;
+    num_tables_++;
+    return Check(depth_ <= opts_.max_depth && num_tables_ <= opts_.max_tables);
   }
 
-  template<typename T> void scratch_push_small(const T &t) {
-    ensure_space(sizeof(T));
-    *reinterpret_cast<T *>(scratch_) = t;
-    scratch_ += sizeof(T);
+  // Called at the end of a table to pop the depth count.
+  bool EndTable() {
+    depth_--;
+    return true;
   }
 
-  // fill() is most frequently called with small byte counts (<= 4),
-  // which is why we're using loops rather than calling memset.
-  void fill(size_t zero_pad_bytes) {
-    make_space(zero_pad_bytes);
-    for (size_t i = 0; i < zero_pad_bytes; i++) cur_[i] = 0;
+  // Returns the message size in bytes
+  size_t GetComputedSize() const {
+// clang-format off
+    #ifdef FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+      uintptr_t size = upper_bound_;
+      // Align the size to uoffset_t
+      size = (size - 1 + sizeof(uoffset_t)) & ~(sizeof(uoffset_t) - 1);
+      return (size > size_) ?  0 : size;
+    #else
+      // Must turn on FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE for this to work.
+      (void)upper_bound_;
+      FLATBUFFERS_ASSERT(false);
+      return 0;
+    #endif
+    // clang-format on
   }
 
-  // Version for when we know the size is larger.
-  // Precondition: zero_pad_bytes > 0
-  void fill_big(size_t zero_pad_bytes) {
-    memset(make_space(zero_pad_bytes), 0, zero_pad_bytes);
-  }
+  std::vector<uint8_t> *GetFlexReuseTracker() { return flex_reuse_tracker_; }
 
-  void pop(size_t bytes_to_remove) {
-    cur_ += bytes_to_remove;
-    size_ -= static_cast<SizeT>(bytes_to_remove);
-  }
-
-  void scratch_pop(size_t bytes_to_remove) { scratch_ -= bytes_to_remove; }
-
-  void swap(vector_downward &other) {
-    using std::swap;
-    swap(allocator_, other.allocator_);
-    swap(own_allocator_, other.own_allocator_);
-    swap(initial_size_, other.initial_size_);
-    swap(buffer_minalign_, other.buffer_minalign_);
-    swap(reserved_, other.reserved_);
-    swap(size_, other.size_);
-    swap(max_size_, other.max_size_);
-    swap(buf_, other.buf_);
-    swap(cur_, other.cur_);
-    swap(scratch_, other.scratch_);
-  }
-
-  void swap_allocator(vector_downward &other) {
-    using std::swap;
-    swap(allocator_, other.allocator_);
-    swap(own_allocator_, other.own_allocator_);
-  }
+  void SetFlexReuseTracker(std::vector<uint8_t> *const rt) { flex_reuse_tracker_ = rt; }
 
  private:
-  // You shouldn't really be copying instances of this class.
-  FLATBUFFERS_DELETE_FUNC(vector_downward(const vector_downward &));
-  FLATBUFFERS_DELETE_FUNC(vector_downward &operator=(const vector_downward &));
+  const uint8_t *buf_;
+  const size_t size_;
+  const Options opts_;
 
-  Allocator *allocator_;
-  bool own_allocator_;
-  size_t initial_size_;
+  mutable size_t upper_bound_ = 0;
 
-  // The maximum size the vector can be.
-  SizeT max_size_;
-  size_t buffer_minalign_;
-  size_t reserved_;
-  SizeT size_;
-  uint8_t *buf_;
-  uint8_t *cur_;  // Points at location between empty (below) and used (above).
-  uint8_t *scratch_;  // Points to the end of the scratchpad in use.
-
-  void reallocate(size_t len) {
-    auto old_reserved = reserved_;
-    auto old_size = size();
-    auto old_scratch_size = scratch_size();
-    reserved_ +=
-        (std::max)(len, old_reserved ? old_reserved / 2 : initial_size_);
-    reserved_ = (reserved_ + buffer_minalign_ - 1) & ~(buffer_minalign_ - 1);
-    if (buf_) {
-      buf_ = ReallocateDownward(allocator_, buf_, old_reserved, reserved_,
-                                old_size, old_scratch_size);
-    } else {
-      buf_ = Allocate(allocator_, reserved_);
-    }
-    cur_ = buf_ + reserved_ - old_size;
-    scratch_ = buf_ + old_scratch_size;
-  }
+  uoffset_t depth_ = 0;
+  uoffset_t num_tables_ = 0;
+  std::vector<uint8_t> *flex_reuse_tracker_ = nullptr;
 };
+
+// Specialization for 64-bit offsets.
+template<> inline size_t Verifier::VerifyOffset<uoffset64_t>(const size_t start) const {
+  return VerifyOffset<uoffset64_t, soffset64_t>(start);
+}
 
 }  // namespace flatbuffers
 
-#endif  // FLATBUFFERS_VECTOR_DOWNWARD_H_
+#endif  // FLATBUFFERS_VERIFIER_H_

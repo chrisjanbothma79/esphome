@@ -13,278 +13,105 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "signal/src/circular_buffer.h"
+#ifndef SIGNAL_SRC_CIRCULAR_BUFFER_H_
+#define SIGNAL_SRC_CIRCULAR_BUFFER_H_
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define ASSERT assert
+#include <stddef.h>
+#include <stdint.h>
 
 namespace tflite {
 namespace tflm_signal {
 // TODO(b/286250473): remove namespace once de-duped libraries above
-void CircularBufferReset(tflm_signal::CircularBuffer* cb) {
-  cb->read = 0;
-  cb->write = 0;
-  cb->empty = 1;
-  cb->buffer = (int16_t*)(cb + 1);
-  memset(cb->buffer, 0, sizeof(cb->buffer[0]) * cb->buffer_size);
-}
+struct CircularBuffer {
+  // Max number of elements, value passed-in to CircularBufferAlloc.
+  size_t capacity;
+  // Next position to read.
+  size_t read;
+  // Next position to write.
+  size_t write;
+  // Flag to indicate emptiness.
+  int32_t empty;
+  // Auto-generated size variable
+  int32_t buffer_size;
+  // Array of the circular buffer elements (integers).
+  int16_t *buffer;
+};
 
-size_t CircularBufferGetNeededMemory(size_t capacity) {
-  return sizeof(CircularBuffer) + sizeof(int16_t) * 2 * capacity;
-}
+// Returns the size of the memory that the circular buffer needs
+// in order to hold `capacity` items.
+size_t CircularBufferGetNeededMemory(size_t capacity);
 
-CircularBuffer* CircularBufferInit(size_t capacity, void* state,
-                                   size_t state_size) {
-  ASSERT(CircularBufferGetNeededMemory(capacity) >= state_size);
-  CircularBuffer* cb = (CircularBuffer*)state;
-  cb->buffer_size = 2 * capacity;
-  cb->capacity = capacity;
-  CircularBufferReset(cb);
-  return cb;
-}
+// Initialize an instance of the circular buffer that holds `capacity` items.
+// `state` points to a memory allocation of size `state_size`. The size
+//  should be greater or equal to the value returned by
+//  CircularBufferGetNeededMemory(capacity). Fails if it isn't.
+//  On success, returns a pointer to the circular buffer's object.
+CircularBuffer *CircularBufferInit(size_t capacity, void *state, size_t state_size);
 
-size_t CircularBufferCapacity(const tflm_signal::CircularBuffer* cb) {
-  return cb->capacity;
-}
+// Reset a circular buffer to its initial empty state
+void CircularBufferReset(CircularBuffer *cb);
 
-bool CircularBufferFull(const tflm_signal::CircularBuffer* cb) {
-  return cb->read == cb->write && cb->empty == 0;
-}
+size_t CircularBufferCapacity(const CircularBuffer *cb);
 
-bool CircularBufferEmpty(const tflm_signal::CircularBuffer* cb) {
-  return cb->empty == 1;
-}
+bool CircularBufferFull(const CircularBuffer *cb);
 
-size_t CircularBufferAvailable(const tflm_signal::CircularBuffer* cb) {
-  const int32_t diff = cb->write - cb->read;
-  if (diff > 0) {
-    return diff;
-  } else if (diff < 0) {
-    return cb->capacity + diff;
-  } else if (cb->empty == 1) {
-    return 0;
-  } else {
-    return cb->capacity;
-  }
-}
+bool CircularBufferEmpty(const CircularBuffer *cb);
 
-size_t CircularBufferCanWrite(const tflm_signal::CircularBuffer* cb) {
-  return cb->capacity - CircularBufferAvailable(cb);
-}
+// Returns the number of elements ready to read
+size_t CircularBufferAvailable(const CircularBuffer *cb);
 
-void CircularBufferAdd(tflm_signal::CircularBuffer* cb, int16_t value) {
-  ASSERT(!CircularBufferFull(cb));
-  cb->buffer[cb->write] = value;
-  cb->buffer[cb->write + cb->capacity] = value;
-  if (++cb->write == cb->capacity) {
-    cb->write = 0;
-  }
-  cb->empty = 0;
-}
+// Returns the number of elements available to write.
+size_t CircularBufferCanWrite(const CircularBuffer *cb);
 
-void CircularBufferWrite(tflm_signal::CircularBuffer* cb, const int16_t* values,
-                         size_t n) {
-  if (n > 0) {
-    ASSERT(CircularBufferCanWrite(cb) >= n);
-    size_t write = cb->write;
-    int16_t* buffer = cb->buffer;
-    const size_t capacity = cb->capacity;
-    const size_t end = write + n;
+// Adds a single `value` to the buffer and advances the write pointer.
+void CircularBufferAdd(CircularBuffer *cb, int16_t value);
 
-    memcpy(buffer + write, values, n * sizeof(int16_t));
-    if (end < capacity) {
-      memcpy(buffer + capacity + write, values, n * sizeof(int16_t));
-      write += n;
-    } else {
-      const size_t n1 = capacity - write;
-      const size_t nbytes1 = n1 * sizeof(int16_t);
-      memcpy(buffer + capacity + write, values, nbytes1);
-      const size_t n2 = end - capacity;
-      if (n2 > 0) {
-        const size_t nbytes2 = n2 * sizeof(int16_t);
-        memcpy(buffer, values + n1, nbytes2);
-      }
-      write = n2;
-    }
-    cb->write = write;
-    cb->empty = 0;
-  }
-}
+// Writes `n` `values` into the buffer and advances the write pointer.
+void CircularBufferWrite(CircularBuffer *cb, const int16_t *values, size_t n);
 
-void CircularBufferWriteZeros(tflm_signal::CircularBuffer* cb, size_t n) {
-  if (n > 0) {
-    ASSERT(CircularBufferCanWrite(cb) >= n);
-    size_t write = cb->write;
-    int16_t* buffer = cb->buffer;
-    const size_t capacity = cb->capacity;
-    const size_t end = write + n;
+// Writes `n` zeros into the buffer and advances the write pointer.
+void CircularBufferWriteZeros(CircularBuffer *cb, size_t n);
 
-    memset(buffer + write, 0, n * sizeof(int16_t));
-    if (end < capacity) {
-      memset(buffer + capacity + write, 0, n * sizeof(int16_t));
-      write += n;
-    } else {
-      const size_t n1 = capacity - write;
-      const size_t nbytes1 = n1 * sizeof(int16_t);
-      memset(buffer + capacity + write, 0, nbytes1);
-      const size_t n2 = end - capacity;
-      if (n2 > 0) {
-        const size_t nbytes2 = n2 * sizeof(int16_t);
-        memset(buffer, 0, nbytes2);
-      }
-      write = n2;
-    }
-    cb->write = write;
-    cb->empty = 0;
-  }
-}
+// Returns a pointer to a buffer where elements can be written, and
+// advances the write pointer as though they have already been written.
+// Fails if `n` elements are not available contiguously at the current
+// write position.
+int16_t *CircularBufferReserveForWrite(CircularBuffer *cb, size_t n);
 
-int16_t* CircularBufferReserveForWrite(tflm_signal::CircularBuffer* cb,
-                                       size_t n) {
-  ASSERT(cb->write + n <= cb->capacity);
-  int16_t* write_ptr = cb->buffer + cb->write;
-  cb->write += n;
-  if (cb->write == cb->capacity) {
-    cb->write = 0;
-  }
-  cb->empty = cb->empty && n == 0;
-  return write_ptr;
-}
+// Copies the final region (`count` elements) of the buffer `n` times, to
+// the end of the buffer.
+void CircularBufferExtend(CircularBuffer *cb, size_t count, int32_t n);
 
-void CircularBufferExtend(tflm_signal::CircularBuffer* cb, size_t count,
-                          int32_t n) {
-  if (n > 0 && count > 0) {
-    ASSERT(CircularBufferCanWrite(cb) >= count * n);
-    ASSERT(CircularBufferAvailable(cb) >= count);
-    const size_t capacity = cb->capacity;
-    // start pos of region to copy
-    const size_t start =
-        (count > cb->write) ? cb->write + capacity - count : cb->write - count;
-    const size_t end = start + count;
-    int i;
-    if (end <= capacity) {
-      // the source elements are contiguous
-      for (i = 0; i < n; ++i) {
-        CircularBufferWrite(cb, cb->buffer + start, count);
-      }
-    } else {
-      // the source elements wrap around the end of the buffer
-      for (i = 0; i < n; ++i) {
-        const size_t n1 = capacity - start;
-        const size_t n2 = count - n1;
-        CircularBufferWrite(cb, cb->buffer + start, n1);
-        CircularBufferWrite(cb, cb->buffer, n2);
-      }
-    }
-  }
-  // Note: no need to update empty flag
-}
+// Reads a single value from the buffer and advances the read pointer
+int16_t CircularBufferRemove(CircularBuffer *cb);
 
-int16_t CircularBufferRemove(tflm_signal::CircularBuffer* cb) {
-  ASSERT(!CircularBufferEmpty(cb));
-  const int16_t result = cb->buffer[cb->read];
-  if (++cb->read == cb->capacity) {
-    cb->read = 0;
-  }
-  if (cb->read == cb->write) {
-    cb->empty = 1;
-  }
-  return result;
-}
+// Reads the value at the given `index`, does not modify the read pointer.
+int16_t CircularBufferPeek(const CircularBuffer *cb, size_t index);
 
-int16_t CircularBufferPeek(const tflm_signal::CircularBuffer* cb,
-                           size_t index) {
-  ASSERT(CircularBufferAvailable(cb) > index);
-  size_t target = cb->read + index;
-  while (target >= cb->capacity) {
-    target -= cb->capacity;
-  }
-  return cb->buffer[target];
-}
+// Rewinds to restore the previous `n` values read
+void CircularBufferRewind(CircularBuffer *cb, size_t n);
 
-void CircularBufferRewind(tflm_signal::CircularBuffer* cb, size_t n) {
-  ASSERT(n <= CircularBufferCanWrite(cb));
-  if (n > cb->read) {
-    // Must add before subtracting because types are unsigned.
-    cb->read = (cb->read + cb->capacity) - n;
-  } else {
-    cb->read -= n;
-  }
-  if (n > 0) cb->empty = 0;
-}
+// Returns a pointer directly into the circular buffer at the given `index`.
+// Caller is responsible for not reading past the end.
+const int16_t *CircularBufferPeekDirect(const CircularBuffer *cb, size_t index);
 
-const int16_t* CircularBufferPeekDirect(const tflm_signal::CircularBuffer* cb,
-                                        size_t index) {
-  ASSERT(CircularBufferAvailable(cb) > index);
-  size_t target = cb->read + index;
-  while (target >= cb->capacity) {
-    target -= cb->capacity;
-  }
-  return cb->buffer + target;
-}
+// Returns a pointer into the circular buffer at the current read pointer,
+// setting `n` to the number of values available to be read from here.
+const int16_t *CircularBufferPeekMax(const CircularBuffer *cb, size_t *n);
 
-const int16_t* CircularBufferPeekMax(const tflm_signal::CircularBuffer* cb,
-                                     size_t* n) {
-  if (CircularBufferAvailable(cb) > 0) {
-    *n = (cb->write <= cb->read) ? cb->capacity - cb->read
-                                 : cb->write - cb->read;
-    return cb->buffer + cb->read;
-  } else {
-    *n = 0;
-    return NULL;
-  }
-}
+// Copies `n` `values` from the buffer and does not advance the read
+// pointer and does not update the empty flag.
+void CircularBufferGet(CircularBuffer *cb, size_t n, int16_t *values);
 
-void CircularBufferGet(tflm_signal::CircularBuffer* cb, size_t n,
-                       int16_t* values) {
-  ASSERT(CircularBufferAvailable(cb) >= n);
-  const int16_t* buffer = cb->buffer;
-  const size_t read = cb->read;
-  const size_t end = read + n;
-  const size_t capacity = cb->capacity;
-  if (end <= capacity) {
-    memcpy(values, buffer + read, n * sizeof(int16_t));
-  } else {
-    const size_t n1 = capacity - read;
-    const size_t n2 = end - capacity;
-    const size_t nbytes1 = n1 * sizeof(int16_t);
-    const size_t nbytes2 = n2 * sizeof(int16_t);
-    memcpy(values, buffer + read, nbytes1);
-    memcpy(values + n1, buffer, nbytes2);
-  }
-}
+// Discards the next `n` values by advancing the read index.
+// Valid for n > 0.
+void CircularBufferDiscard(CircularBuffer *cb, size_t n);
 
-void CircularBufferDiscard(tflm_signal::CircularBuffer* cb, size_t n) {
-  ASSERT(n > 0);
-  ASSERT(CircularBufferAvailable(cb) >= n);
-  cb->read += n;
-  if (cb->read >= cb->capacity) {
-    cb->read -= cb->capacity;
-  }
-  if (cb->read == cb->write) {
-    cb->empty = 1;
-  }
-}
-
-void CircularBufferShift(tflm_signal::CircularBuffer* cb, int n) {
-  if (n < 0) {
-    ASSERT(-n <= (int)cb->capacity);
-    if ((int)cb->read < -n) {
-      // First add then subtract to ensure positivity as types are unsigned.
-      cb->read += cb->capacity;
-    }
-    cb->read += n;
-  } else {
-    ASSERT(n <= (int)cb->capacity);
-    cb->read += n;
-    if (cb->read >= cb->capacity) {
-      cb->read -= cb->capacity;
-    }
-  }
-}
+// Shifts the buffer with `n` values (`n` can be negative) by moving
+// the read index.
+void CircularBufferShift(CircularBuffer *cb, int n);
 
 }  // namespace tflm_signal
 }  // namespace tflite
+
+#endif  // SIGNAL_SRC_CIRCULAR_BUFFER_H_

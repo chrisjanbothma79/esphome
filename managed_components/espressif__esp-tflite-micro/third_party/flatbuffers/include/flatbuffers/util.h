@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Google Inc. All rights reserved.
+ * Copyright 2021 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,725 +14,329 @@
  * limitations under the License.
  */
 
-#ifndef FLATBUFFERS_UTIL_H_
-#define FLATBUFFERS_UTIL_H_
-
-#include <ctype.h>
-#include <errno.h>
+#ifndef FLATBUFFERS_VECTOR_H_
+#define FLATBUFFERS_VECTOR_H_
 
 #include "flatbuffers/base.h"
+#include "flatbuffers/buffer.h"
 #include "flatbuffers/stl_emulation.h"
-
-// For TFLM we always want to use FLATBUFFERS_PREFER_PRINTF=1. See
-// http://b/211811553 for more context.
-#ifndef FLATBUFFERS_PREFER_PRINTF
-#define FLATBUFFERS_PREFER_PRINTF 1
-#endif
-
-#ifndef FLATBUFFERS_PREFER_PRINTF
-#  include <iomanip>
-#  include <sstream>
-#else  // FLATBUFFERS_PREFER_PRINTF
-#  include <float.h>
-#  include <stdio.h>
-#endif  // FLATBUFFERS_PREFER_PRINTF
-
-#include <cmath>
-#include <limits>
-#include <string>
 
 namespace flatbuffers {
 
-// @locale-independent functions for ASCII characters set.
+struct String;
 
-// Fast checking that character lies in closed range: [a <= x <= b]
-// using one compare (conditional branch) operator.
-inline bool check_ascii_range(char x, char a, char b) {
-  FLATBUFFERS_ASSERT(a <= b);
-  // (Hacker's Delight): `a <= x <= b` <=> `(x-a) <={u} (b-a)`.
-  // The x, a, b will be promoted to int and subtracted without overflow.
-  return static_cast<unsigned int>(x - a) <= static_cast<unsigned int>(b - a);
-}
+// An STL compatible iterator implementation for Vector below, effectively
+// calling Get() for every element.
+template<typename T, typename IT, typename Data = uint8_t *, typename SizeT = uoffset_t> struct VectorIterator {
+  typedef std::random_access_iterator_tag iterator_category;
+  typedef IT value_type;
+  typedef ptrdiff_t difference_type;
+  typedef IT *pointer;
+  typedef IT &reference;
 
-// Case-insensitive isalpha
-inline bool is_alpha(char c) {
-  // ASCII only: alpha to upper case => reset bit 0x20 (~0x20 = 0xDF).
-  return check_ascii_range(c & 0xDF, 'a' & 0xDF, 'z' & 0xDF);
-}
+  static const SizeT element_stride = IndirectHelper<T>::element_stride;
 
-// Check for uppercase alpha
-inline bool is_alpha_upper(char c) { return check_ascii_range(c, 'A', 'Z'); }
+  VectorIterator(Data data, SizeT i) : data_(data + element_stride * i) {}
+  VectorIterator(const VectorIterator &other) : data_(other.data_) {}
+  VectorIterator() : data_(nullptr) {}
 
-// Check (case-insensitive) that `c` is equal to alpha.
-inline bool is_alpha_char(char c, char alpha) {
-  FLATBUFFERS_ASSERT(is_alpha(alpha));
-  // ASCII only: alpha to upper case => reset bit 0x20 (~0x20 = 0xDF).
-  return ((c & 0xDF) == (alpha & 0xDF));
-}
-
-// https://en.cppreference.com/w/cpp/string/byte/isxdigit
-// isdigit and isxdigit are the only standard narrow character classification
-// functions that are not affected by the currently installed C locale. although
-// some implementations (e.g. Microsoft in 1252 codepage) may classify
-// additional single-byte characters as digits.
-inline bool is_digit(char c) { return check_ascii_range(c, '0', '9'); }
-
-inline bool is_xdigit(char c) {
-  // Replace by look-up table.
-  return is_digit(c) || check_ascii_range(c & 0xDF, 'a' & 0xDF, 'f' & 0xDF);
-}
-
-// Case-insensitive isalnum
-inline bool is_alnum(char c) { return is_alpha(c) || is_digit(c); }
-
-inline char CharToUpper(char c) {
-  return static_cast<char>(::toupper(static_cast<unsigned char>(c)));
-}
-
-inline char CharToLower(char c) {
-  return static_cast<char>(::tolower(static_cast<unsigned char>(c)));
-}
-
-// @end-locale-independent functions for ASCII character set
-
-#ifdef FLATBUFFERS_PREFER_PRINTF
-template<typename T> size_t IntToDigitCount(T t) {
-  size_t digit_count = 0;
-  // Count the sign for negative numbers
-  if (t < 0) digit_count++;
-  // Count a single 0 left of the dot for fractional numbers
-  if (-1 < t && t < 1) digit_count++;
-  // Count digits until fractional part
-  T eps = std::numeric_limits<T>::epsilon();
-  while (t <= (-1 + eps) || (1 - eps) <= t) {
-    t /= 10;
-    digit_count++;
+  VectorIterator &operator=(const VectorIterator &other) {
+    data_ = other.data_;
+    return *this;
   }
-  return digit_count;
-}
 
-template<typename T> size_t NumToStringWidth(T t, int precision = 0) {
-  size_t string_width = IntToDigitCount(t);
-  // Count the dot for floating point numbers
-  if (precision) string_width += (precision + 1);
-  return string_width;
-}
-
-template<typename T>
-std::string NumToStringImplWrapper(T t, const char *fmt, int precision = 0) {
-  size_t string_width = NumToStringWidth(t, precision);
-  std::string s(string_width, 0x00);
-  // Allow snprintf to use std::string trailing null to detect buffer overflow
-  snprintf(const_cast<char *>(s.data()), (s.size() + 1), fmt, string_width, t);
-  return s;
-}
-#endif  // FLATBUFFERS_PREFER_PRINTF
-
-// Convert an integer or floating point value to a string.
-// In contrast to std::stringstream, "char" values are
-// converted to a string of digits, and we don't use scientific notation.
-template<typename T> std::string NumToString(T t) {
-  // clang-format off
-
-  #ifndef FLATBUFFERS_PREFER_PRINTF
-    std::stringstream ss;
-    ss << t;
-    return ss.str();
-  #else // FLATBUFFERS_PREFER_PRINTF
-    auto v = static_cast<long long>(t);
-    return NumToStringImplWrapper(v, "%.*lld");
-  #endif // FLATBUFFERS_PREFER_PRINTF
-  // clang-format on
-}
-// Avoid char types used as character data.
-template<> inline std::string NumToString<signed char>(signed char t) {
-  return NumToString(static_cast<int>(t));
-}
-template<> inline std::string NumToString<unsigned char>(unsigned char t) {
-  return NumToString(static_cast<int>(t));
-}
-template<> inline std::string NumToString<char>(char t) {
-  return NumToString(static_cast<int>(t));
-}
-
-// Special versions for floats/doubles.
-template<typename T> std::string FloatToString(T t, int precision) {
-  // clang-format off
-
-  #ifndef FLATBUFFERS_PREFER_PRINTF
-    // to_string() prints different numbers of digits for floats depending on
-    // platform and isn't available on Android, so we use stringstream
-    std::stringstream ss;
-    // Use std::fixed to suppress scientific notation.
-    ss << std::fixed;
-    // Default precision is 6, we want that to be higher for doubles.
-    ss << std::setprecision(precision);
-    ss << t;
-    auto s = ss.str();
-  #else // FLATBUFFERS_PREFER_PRINTF
-    auto v = static_cast<double>(t);
-    auto s = NumToStringImplWrapper(v, "%0.*f", precision);
-  #endif // FLATBUFFERS_PREFER_PRINTF
-  // clang-format on
-  // Sadly, std::fixed turns "1" into "1.00000", so here we undo that.
-  auto p = s.find_last_not_of('0');
-  if (p != std::string::npos) {
-    // Strip trailing zeroes. If it is a whole number, keep one zero.
-    s.resize(p + (s[p] == '.' ? 2 : 1));
+  VectorIterator &operator=(VectorIterator &&other) {
+    data_ = other.data_;
+    return *this;
   }
-  return s;
-}
 
-template<> inline std::string NumToString<double>(double t) {
-  return FloatToString(t, 12);
-}
-template<> inline std::string NumToString<float>(float t) {
-  return FloatToString(t, 6);
-}
+  bool operator==(const VectorIterator &other) const { return data_ == other.data_; }
 
-// Convert an integer value to a hexadecimal string.
-// The returned string length is always xdigits long, prefixed by 0 digits.
-// For example, IntToStringHex(0x23, 8) returns the string "00000023".
-inline std::string IntToStringHex(int i, int xdigits) {
-  FLATBUFFERS_ASSERT(i >= 0);
-  // clang-format off
+  bool operator<(const VectorIterator &other) const { return data_ < other.data_; }
 
-  #ifndef FLATBUFFERS_PREFER_PRINTF
-    std::stringstream ss;
-    ss << std::setw(xdigits) << std::setfill('0') << std::hex << std::uppercase
-       << i;
-    return ss.str();
-  #else // FLATBUFFERS_PREFER_PRINTF
-    return NumToStringImplWrapper(i, "%.*X", xdigits);
-  #endif // FLATBUFFERS_PREFER_PRINTF
-  // clang-format on
-}
+  bool operator!=(const VectorIterator &other) const { return data_ != other.data_; }
 
-// clang-format off
-// Use locale independent functions {strtod_l, strtof_l, strtoll_l, strtoull_l}.
-#if defined(FLATBUFFERS_LOCALE_INDEPENDENT) && (FLATBUFFERS_LOCALE_INDEPENDENT > 0)
-  class ClassicLocale {
-    #ifdef _MSC_VER
-      typedef _locale_t locale_type;
-    #else
-      typedef locale_t locale_type;  // POSIX.1-2008 locale_t type
-    #endif
-    ClassicLocale();
-    ~ClassicLocale();
-    locale_type locale_;
-    static ClassicLocale instance_;
-  public:
-    static locale_type Get() { return instance_.locale_; }
-  };
+  difference_type operator-(const VectorIterator &other) const { return (data_ - other.data_) / element_stride; }
 
-  #ifdef _MSC_VER
-    #define __strtoull_impl(s, pe, b) _strtoui64_l(s, pe, b, ClassicLocale::Get())
-    #define __strtoll_impl(s, pe, b) _strtoi64_l(s, pe, b, ClassicLocale::Get())
-    #define __strtod_impl(s, pe) _strtod_l(s, pe, ClassicLocale::Get())
-    #define __strtof_impl(s, pe) _strtof_l(s, pe, ClassicLocale::Get())
-  #else
-    #define __strtoull_impl(s, pe, b) strtoull_l(s, pe, b, ClassicLocale::Get())
-    #define __strtoll_impl(s, pe, b) strtoll_l(s, pe, b, ClassicLocale::Get())
-    #define __strtod_impl(s, pe) strtod_l(s, pe, ClassicLocale::Get())
-    #define __strtof_impl(s, pe) strtof_l(s, pe, ClassicLocale::Get())
-  #endif
-#else
-  #define __strtod_impl(s, pe) strtod(s, pe)
-  #define __strtof_impl(s, pe) static_cast<float>(strtod(s, pe))
-  #ifdef _MSC_VER
-    #define __strtoull_impl(s, pe, b) _strtoui64(s, pe, b)
-    #define __strtoll_impl(s, pe, b) _strtoi64(s, pe, b)
-  #else
-    #define __strtoull_impl(s, pe, b) strtoull(s, pe, b)
-    #define __strtoll_impl(s, pe, b) strtoll(s, pe, b)
-  #endif
-#endif
+  // Note: return type is incompatible with the standard
+  // `reference operator*()`.
+  IT operator*() const { return IndirectHelper<T>::Read(data_, 0); }
 
-inline void strtoval_impl(int64_t *val, const char *str, char **endptr,
-                                 int base) {
-    *val = __strtoll_impl(str, endptr, base);
-}
+  // Note: return type is incompatible with the standard
+  // `pointer operator->()`.
+  IT operator->() const { return IndirectHelper<T>::Read(data_, 0); }
 
-inline void strtoval_impl(uint64_t *val, const char *str, char **endptr,
-                                 int base) {
-  *val = __strtoull_impl(str, endptr, base);
-}
-
-inline void strtoval_impl(double *val, const char *str, char **endptr) {
-  *val = __strtod_impl(str, endptr);
-}
-
-// UBSAN: double to float is safe if numeric_limits<float>::is_iec559 is true.
-FLATBUFFERS_SUPPRESS_UBSAN("float-cast-overflow")
-inline void strtoval_impl(float *val, const char *str, char **endptr) {
-  *val = __strtof_impl(str, endptr);
-}
-#undef __strtoull_impl
-#undef __strtoll_impl
-#undef __strtod_impl
-#undef __strtof_impl
-// clang-format on
-
-// Adaptor for strtoull()/strtoll().
-// Flatbuffers accepts numbers with any count of leading zeros (-009 is -9),
-// while strtoll with base=0 interprets first leading zero as octal prefix.
-// In future, it is possible to add prefixed 0b0101.
-// 1) Checks errno code for overflow condition (out of range).
-// 2) If base <= 0, function try to detect base of number by prefix.
-//
-// Return value (like strtoull and strtoll, but reject partial result):
-// - If successful, an integer value corresponding to the str is returned.
-// - If full string conversion can't be performed, 0 is returned.
-// - If the converted value falls out of range of corresponding return type, a
-// range error occurs. In this case value MAX(T)/MIN(T) is returned.
-template<typename T>
-inline bool StringToIntegerImpl(T *val, const char *const str,
-                                const int base = 0,
-                                const bool check_errno = true) {
-  // T is int64_t or uint64_T
-  FLATBUFFERS_ASSERT(str);
-  if (base <= 0) {
-    auto s = str;
-    while (*s && !is_digit(*s)) s++;
-    if (s[0] == '0' && is_alpha_char(s[1], 'X'))
-      return StringToIntegerImpl(val, str, 16, check_errno);
-    // if a prefix not match, try base=10
-    return StringToIntegerImpl(val, str, 10, check_errno);
-  } else {
-    if (check_errno) errno = 0;  // clear thread-local errno
-    auto endptr = str;
-    strtoval_impl(val, str, const_cast<char **>(&endptr), base);
-    if ((*endptr != '\0') || (endptr == str)) {
-      *val = 0;      // erase partial result
-      return false;  // invalid string
-    }
-    // errno is out-of-range, return MAX/MIN
-    if (check_errno && errno) return false;
-    return true;
+  VectorIterator &operator++() {
+    data_ += element_stride;
+    return *this;
   }
-}
 
-template<typename T>
-inline bool StringToFloatImpl(T *val, const char *const str) {
-  // Type T must be either float or double.
-  FLATBUFFERS_ASSERT(str && val);
-  auto end = str;
-  strtoval_impl(val, str, const_cast<char **>(&end));
-  auto done = (end != str) && (*end == '\0');
-  if (!done) *val = 0;  // erase partial result
-  if (done && std::isnan(*val)) { *val = std::numeric_limits<T>::quiet_NaN(); }
-  return done;
-}
-
-// Convert a string to an instance of T.
-// Return value (matched with StringToInteger64Impl and strtod):
-// - If successful, a numeric value corresponding to the str is returned.
-// - If full string conversion can't be performed, 0 is returned.
-// - If the converted value falls out of range of corresponding return type, a
-// range error occurs. In this case value MAX(T)/MIN(T) is returned.
-template<typename T> inline bool StringToNumber(const char *s, T *val) {
-  // Assert on `unsigned long` and `signed long` on LP64.
-  // If it is necessary, it could be solved with flatbuffers::enable_if<B,T>.
-  static_assert(sizeof(T) < sizeof(int64_t), "unexpected type T");
-  FLATBUFFERS_ASSERT(s && val);
-  int64_t i64;
-  // The errno check isn't needed, will return MAX/MIN on overflow.
-  if (StringToIntegerImpl(&i64, s, 0, false)) {
-    const int64_t max = (flatbuffers::numeric_limits<T>::max)();
-    const int64_t min = flatbuffers::numeric_limits<T>::lowest();
-    if (i64 > max) {
-      *val = static_cast<T>(max);
-      return false;
-    }
-    if (i64 < min) {
-      // For unsigned types return max to distinguish from
-      // "no conversion can be performed" when 0 is returned.
-      *val = static_cast<T>(flatbuffers::is_unsigned<T>::value ? max : min);
-      return false;
-    }
-    *val = static_cast<T>(i64);
-    return true;
+  VectorIterator operator++(int) {
+    VectorIterator temp(data_, 0);
+    data_ += element_stride;
+    return temp;
   }
-  *val = 0;
-  return false;
-}
 
-template<> inline bool StringToNumber<int64_t>(const char *str, int64_t *val) {
-  return StringToIntegerImpl(val, str);
-}
+  VectorIterator operator+(const SizeT &offset) const { return VectorIterator(data_ + offset * element_stride, 0); }
 
-template<>
-inline bool StringToNumber<uint64_t>(const char *str, uint64_t *val) {
-  if (!StringToIntegerImpl(val, str)) return false;
-  // The strtoull accepts negative numbers:
-  // If the minus sign was part of the input sequence, the numeric value
-  // calculated from the sequence of digits is negated as if by unary minus
-  // in the result type, which applies unsigned integer wraparound rules.
-  // Fix this behaviour (except -0).
-  if (*val) {
-    auto s = str;
-    while (*s && !is_digit(*s)) s++;
-    s = (s > str) ? (s - 1) : s;  // step back to one symbol
-    if (*s == '-') {
-      // For unsigned types return the max to distinguish from
-      // "no conversion can be performed".
-      *val = (flatbuffers::numeric_limits<uint64_t>::max)();
-      return false;
-    }
+  VectorIterator &operator+=(const SizeT &offset) {
+    data_ += offset * element_stride;
+    return *this;
   }
-  return true;
-}
 
-template<> inline bool StringToNumber(const char *s, float *val) {
-  return StringToFloatImpl(val, s);
-}
-
-template<> inline bool StringToNumber(const char *s, double *val) {
-  return StringToFloatImpl(val, s);
-}
-
-inline int64_t StringToInt(const char *s, int base = 10) {
-  int64_t val;
-  return StringToIntegerImpl(&val, s, base) ? val : 0;
-}
-
-inline uint64_t StringToUInt(const char *s, int base = 10) {
-  uint64_t val;
-  return StringToIntegerImpl(&val, s, base) ? val : 0;
-}
-
-inline bool StringIsFlatbufferNan(const std::string &s) {
-  return s == "nan" || s == "+nan" || s == "-nan";
-}
-
-inline bool StringIsFlatbufferPositiveInfinity(const std::string &s) {
-  return s == "inf" || s == "+inf" || s == "infinity" || s == "+infinity";
-}
-
-inline bool StringIsFlatbufferNegativeInfinity(const std::string &s) {
-  return s == "-inf" || s == "-infinity";
-}
-
-typedef bool (*LoadFileFunction)(const char *filename, bool binary,
-                                 std::string *dest);
-typedef bool (*FileExistsFunction)(const char *filename);
-
-LoadFileFunction SetLoadFileFunction(LoadFileFunction load_file_function);
-
-FileExistsFunction SetFileExistsFunction(
-    FileExistsFunction file_exists_function);
-
-// Check if file "name" exists.
-bool FileExists(const char *name);
-
-// Check if "name" exists and it is also a directory.
-bool DirExists(const char *name);
-
-// Load file "name" into "buf" returning true if successful
-// false otherwise.  If "binary" is false data is read
-// using ifstream's text mode, otherwise data is read with
-// no transcoding.
-bool LoadFile(const char *name, bool binary, std::string *buf);
-
-// Save data "buf" of length "len" bytes into a file
-// "name" returning true if successful, false otherwise.
-// If "binary" is false data is written using ifstream's
-// text mode, otherwise data is written with no
-// transcoding.
-bool SaveFile(const char *name, const char *buf, size_t len, bool binary);
-
-// Save data "buf" into file "name" returning true if
-// successful, false otherwise.  If "binary" is false
-// data is written using ifstream's text mode, otherwise
-// data is written with no transcoding.
-inline bool SaveFile(const char *name, const std::string &buf, bool binary) {
-  return SaveFile(name, buf.c_str(), buf.size(), binary);
-}
-
-// Functionality for minimalistic portable path handling.
-
-// The functions below behave correctly regardless of whether posix ('/') or
-// Windows ('/' or '\\') separators are used.
-
-// Any new separators inserted are always posix.
-FLATBUFFERS_CONSTEXPR char kPathSeparator = '/';
-
-// Returns the path with the extension, if any, removed.
-std::string StripExtension(const std::string &filepath);
-
-// Returns the extension, if any.
-std::string GetExtension(const std::string &filepath);
-
-// Return the last component of the path, after the last separator.
-std::string StripPath(const std::string &filepath);
-
-// Strip the last component of the path + separator.
-std::string StripFileName(const std::string &filepath);
-
-std::string StripPrefix(const std::string &filepath,
-                        const std::string &prefix_to_remove);
-
-// Concatenates a path with a filename, regardless of whether the path
-// ends in a separator or not.
-std::string ConCatPathFileName(const std::string &path,
-                               const std::string &filename);
-
-// Replaces any '\\' separators with '/'
-std::string PosixPath(const char *path);
-std::string PosixPath(const std::string &path);
-
-// This function ensure a directory exists, by recursively
-// creating dirs for any parts of the path that don't exist yet.
-void EnsureDirExists(const std::string &filepath);
-
-// Obtains the absolute path from any other path.
-// Returns the input path if the absolute path couldn't be resolved.
-std::string AbsolutePath(const std::string &filepath);
-
-// Returns files relative to the --project_root path, prefixed with `//`.
-std::string RelativeToRootPath(const std::string &project,
-                               const std::string &filepath);
-
-// To and from UTF-8 unicode conversion functions
-
-// Convert a unicode code point into a UTF-8 representation by appending it
-// to a string. Returns the number of bytes generated.
-inline int ToUTF8(uint32_t ucc, std::string *out) {
-  FLATBUFFERS_ASSERT(!(ucc & 0x80000000));  // Top bit can't be set.
-  // 6 possible encodings: http://en.wikipedia.org/wiki/UTF-8
-  for (int i = 0; i < 6; i++) {
-    // Max bits this encoding can represent.
-    uint32_t max_bits = 6 + i * 5 + static_cast<int>(!i);
-    if (ucc < (1u << max_bits)) {  // does it fit?
-      // Remaining bits not encoded in the first byte, store 6 bits each
-      uint32_t remain_bits = i * 6;
-      // Store first byte:
-      (*out) += static_cast<char>((0xFE << (max_bits - remain_bits)) |
-                                  (ucc >> remain_bits));
-      // Store remaining bytes:
-      for (int j = i - 1; j >= 0; j--) {
-        (*out) += static_cast<char>(((ucc >> (j * 6)) & 0x3F) | 0x80);
-      }
-      return i + 1;  // Return the number of bytes added.
-    }
+  VectorIterator &operator--() {
+    data_ -= element_stride;
+    return *this;
   }
-  FLATBUFFERS_ASSERT(0);  // Impossible to arrive here.
-  return -1;
-}
 
-// Converts whatever prefix of the incoming string corresponds to a valid
-// UTF-8 sequence into a unicode code. The incoming pointer will have been
-// advanced past all bytes parsed.
-// returns -1 upon corrupt UTF-8 encoding (ignore the incoming pointer in
-// this case).
-inline int FromUTF8(const char **in) {
-  int len = 0;
-  // Count leading 1 bits.
-  for (int mask = 0x80; mask >= 0x04; mask >>= 1) {
-    if (**in & mask) {
-      len++;
-    } else {
-      break;
-    }
+  VectorIterator operator--(int) {
+    VectorIterator temp(data_, 0);
+    data_ -= element_stride;
+    return temp;
   }
-  if ((static_cast<unsigned char>(**in) << len) & 0x80)
-    return -1;  // Bit after leading 1's must be 0.
-  if (!len) return *(*in)++;
-  // UTF-8 encoded values with a length are between 2 and 4 bytes.
-  if (len < 2 || len > 4) { return -1; }
-  // Grab initial bits of the code.
-  int ucc = *(*in)++ & ((1 << (7 - len)) - 1);
-  for (int i = 0; i < len - 1; i++) {
-    if ((**in & 0xC0) != 0x80) return -1;  // Upper bits must 1 0.
-    ucc <<= 6;
-    ucc |= *(*in)++ & 0x3F;  // Grab 6 more bits of the code.
+
+  VectorIterator operator-(const SizeT &offset) const { return VectorIterator(data_ - offset * element_stride, 0); }
+
+  VectorIterator &operator-=(const SizeT &offset) {
+    data_ -= offset * element_stride;
+    return *this;
   }
-  // UTF-8 cannot encode values between 0xD800 and 0xDFFF (reserved for
-  // UTF-16 surrogate pairs).
-  if (ucc >= 0xD800 && ucc <= 0xDFFF) { return -1; }
-  // UTF-8 must represent code points in their shortest possible encoding.
-  switch (len) {
-    case 2:
-      // Two bytes of UTF-8 can represent code points from U+0080 to U+07FF.
-      if (ucc < 0x0080 || ucc > 0x07FF) { return -1; }
-      break;
-    case 3:
-      // Three bytes of UTF-8 can represent code points from U+0800 to U+FFFF.
-      if (ucc < 0x0800 || ucc > 0xFFFF) { return -1; }
-      break;
-    case 4:
-      // Four bytes of UTF-8 can represent code points from U+10000 to U+10FFFF.
-      if (ucc < 0x10000 || ucc > 0x10FFFF) { return -1; }
-      break;
-  }
-  return ucc;
-}
 
-#ifndef FLATBUFFERS_PREFER_PRINTF
-// Wraps a string to a maximum length, inserting new lines where necessary. Any
-// existing whitespace will be collapsed down to a single space. A prefix or
-// suffix can be provided, which will be inserted before or after a wrapped
-// line, respectively.
-inline std::string WordWrap(const std::string in, size_t max_length,
-                            const std::string wrapped_line_prefix,
-                            const std::string wrapped_line_suffix) {
-  std::istringstream in_stream(in);
-  std::string wrapped, line, word;
-
-  in_stream >> word;
-  line = word;
-
-  while (in_stream >> word) {
-    if ((line.length() + 1 + word.length() + wrapped_line_suffix.length()) <
-        max_length) {
-      line += " " + word;
-    } else {
-      wrapped += line + wrapped_line_suffix + "\n";
-      line = wrapped_line_prefix + word;
-    }
-  }
-  wrapped += line;
-
-  return wrapped;
-}
-#endif  // !FLATBUFFERS_PREFER_PRINTF
-
-inline bool EscapeString(const char *s, size_t length, std::string *_text,
-                         bool allow_non_utf8, bool natural_utf8) {
-  std::string &text = *_text;
-  text += "\"";
-  for (uoffset_t i = 0; i < length; i++) {
-    char c = s[i];
-    switch (c) {
-      case '\n': text += "\\n"; break;
-      case '\t': text += "\\t"; break;
-      case '\r': text += "\\r"; break;
-      case '\b': text += "\\b"; break;
-      case '\f': text += "\\f"; break;
-      case '\"': text += "\\\""; break;
-      case '\\': text += "\\\\"; break;
-      default:
-        if (c >= ' ' && c <= '~') {
-          text += c;
-        } else {
-          // Not printable ASCII data. Let's see if it's valid UTF-8 first:
-          const char *utf8 = s + i;
-          int ucc = FromUTF8(&utf8);
-          if (ucc < 0) {
-            if (allow_non_utf8) {
-              text += "\\x";
-              text += IntToStringHex(static_cast<uint8_t>(c), 2);
-            } else {
-              // There are two cases here:
-              //
-              // 1) We reached here by parsing an IDL file. In that case,
-              // we previously checked for non-UTF-8, so we shouldn't reach
-              // here.
-              //
-              // 2) We reached here by someone calling GenText()
-              // on a previously-serialized flatbuffer. The data might have
-              // non-UTF-8 Strings, or might be corrupt.
-              //
-              // In both cases, we have to give up and inform the caller
-              // they have no JSON.
-              return false;
-            }
-          } else {
-            if (natural_utf8) {
-              // utf8 points to past all utf-8 bytes parsed
-              text.append(s + i, static_cast<size_t>(utf8 - s - i));
-            } else if (ucc <= 0xFFFF) {
-              // Parses as Unicode within JSON's \uXXXX range, so use that.
-              text += "\\u";
-              text += IntToStringHex(ucc, 4);
-            } else if (ucc <= 0x10FFFF) {
-              // Encode Unicode SMP values to a surrogate pair using two \u
-              // escapes.
-              uint32_t base = ucc - 0x10000;
-              auto high_surrogate = (base >> 10) + 0xD800;
-              auto low_surrogate = (base & 0x03FF) + 0xDC00;
-              text += "\\u";
-              text += IntToStringHex(high_surrogate, 4);
-              text += "\\u";
-              text += IntToStringHex(low_surrogate, 4);
-            }
-            // Skip past characters recognized.
-            i = static_cast<uoffset_t>(utf8 - s - 1);
-          }
-        }
-        break;
-    }
-  }
-  text += "\"";
-  return true;
-}
-
-inline std::string BufferToHexText(const void *buffer, size_t buffer_size,
-                                   size_t max_length,
-                                   const std::string &wrapped_line_prefix,
-                                   const std::string &wrapped_line_suffix) {
-  std::string text = wrapped_line_prefix;
-  size_t start_offset = 0;
-  const char *s = reinterpret_cast<const char *>(buffer);
-  for (size_t i = 0; s && i < buffer_size; i++) {
-    // Last iteration or do we have more?
-    bool have_more = i + 1 < buffer_size;
-    text += "0x";
-    text += IntToStringHex(static_cast<uint8_t>(s[i]), 2);
-    if (have_more) { text += ','; }
-    // If we have more to process and we reached max_length
-    if (have_more &&
-        text.size() + wrapped_line_suffix.size() >= start_offset + max_length) {
-      text += wrapped_line_suffix;
-      text += '\n';
-      start_offset = text.size();
-      text += wrapped_line_prefix;
-    }
-  }
-  text += wrapped_line_suffix;
-  return text;
-}
-
-// Remove paired quotes in a string: "text"|'text' -> text.
-std::string RemoveStringQuotes(const std::string &s);
-
-// Change th global C-locale to locale with name <locale_name>.
-// Returns an actual locale name in <_value>, useful if locale_name is "" or
-// null.
-bool SetGlobalTestLocale(const char *locale_name,
-                         std::string *_value = nullptr);
-
-// Read (or test) a value of environment variable.
-bool ReadEnvironmentVariable(const char *var_name,
-                             std::string *_value = nullptr);
-
-enum class Case {
-  kUnknown = 0,
-  // TheQuickBrownFox
-  kUpperCamel = 1,
-  // theQuickBrownFox
-  kLowerCamel = 2,
-  // the_quick_brown_fox
-  kSnake = 3,
-  // THE_QUICK_BROWN_FOX
-  kScreamingSnake = 4,
-  // THEQUICKBROWNFOX
-  kAllUpper = 5,
-  // thequickbrownfox
-  kAllLower = 6,
-  // the-quick-brown-fox
-  kDasher = 7,
-  // THEQuiCKBr_ownFox (or whatever you want, we won't change it)
-  kKeep = 8,
-  // the_quick_brown_fox123 (as opposed to the_quick_brown_fox_123)
-  kSnake2 = 9,
+ private:
+  Data data_;
 };
 
-// Convert the `input` string of case `input_case` to the specified
-// `output_case`.
-std::string ConvertCase(const std::string &input, Case output_case,
-                        Case input_case = Case::kSnake);
+template<typename T, typename IT, typename SizeT = uoffset_t>
+using VectorConstIterator = VectorIterator<T, IT, const uint8_t *, SizeT>;
+
+template<typename Iterator> struct VectorReverseIterator : public std::reverse_iterator<Iterator> {
+  explicit VectorReverseIterator(Iterator iter) : std::reverse_iterator<Iterator>(iter) {}
+
+  // Note: return type is incompatible with the standard
+  // `reference operator*()`.
+  typename Iterator::value_type operator*() const {
+    auto tmp = std::reverse_iterator<Iterator>::current;
+    return *--tmp;
+  }
+
+  // Note: return type is incompatible with the standard
+  // `pointer operator->()`.
+  typename Iterator::value_type operator->() const {
+    auto tmp = std::reverse_iterator<Iterator>::current;
+    return *--tmp;
+  }
+};
+
+// This is used as a helper type for accessing vectors.
+// Vector::data() assumes the vector elements start after the length field.
+template<typename T, typename SizeT = uoffset_t> class Vector {
+ public:
+  typedef VectorIterator<T, typename IndirectHelper<T>::mutable_return_type, uint8_t *, SizeT> iterator;
+  typedef VectorConstIterator<T, typename IndirectHelper<T>::return_type, SizeT> const_iterator;
+  typedef VectorReverseIterator<iterator> reverse_iterator;
+  typedef VectorReverseIterator<const_iterator> const_reverse_iterator;
+
+  typedef typename flatbuffers::bool_constant<flatbuffers::is_scalar<T>::value> scalar_tag;
+
+  static FLATBUFFERS_CONSTEXPR bool is_span_observable =
+      scalar_tag::value && (FLATBUFFERS_LITTLEENDIAN || sizeof(T) == 1);
+
+  SizeT size() const { return EndianScalar(length_); }
+
+  // Deprecated: use size(). Here for backwards compatibility.
+  FLATBUFFERS_ATTRIBUTE([[deprecated("use size() instead")]])
+  SizeT Length() const { return size(); }
+
+  typedef SizeT size_type;
+  typedef typename IndirectHelper<T>::return_type return_type;
+  typedef typename IndirectHelper<T>::mutable_return_type mutable_return_type;
+  typedef return_type value_type;
+
+  return_type Get(SizeT i) const {
+    FLATBUFFERS_ASSERT(i < size());
+    return IndirectHelper<T>::Read(Data(), i);
+  }
+
+  return_type operator[](SizeT i) const { return Get(i); }
+
+  // If this is a Vector of enums, T will be its storage type, not the enum
+  // type. This function makes it convenient to retrieve value with enum
+  // type E.
+  template<typename E> E GetEnum(SizeT i) const { return static_cast<E>(Get(i)); }
+
+  // If this a vector of unions, this does the cast for you. There's no check
+  // to make sure this is the right type!
+  template<typename U> const U *GetAs(SizeT i) const { return reinterpret_cast<const U *>(Get(i)); }
+
+  // If this a vector of unions, this does the cast for you. There's no check
+  // to make sure this is actually a string!
+  const String *GetAsString(SizeT i) const { return reinterpret_cast<const String *>(Get(i)); }
+
+  const void *GetStructFromOffset(size_t o) const { return reinterpret_cast<const void *>(Data() + o); }
+
+  iterator begin() { return iterator(Data(), 0); }
+  const_iterator begin() const { return const_iterator(Data(), 0); }
+
+  iterator end() { return iterator(Data(), size()); }
+  const_iterator end() const { return const_iterator(Data(), size()); }
+
+  reverse_iterator rbegin() { return reverse_iterator(end()); }
+  const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
+
+  reverse_iterator rend() { return reverse_iterator(begin()); }
+  const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+
+  const_iterator cbegin() const { return begin(); }
+
+  const_iterator cend() const { return end(); }
+
+  const_reverse_iterator crbegin() const { return rbegin(); }
+
+  const_reverse_iterator crend() const { return rend(); }
+
+  // Change elements if you have a non-const pointer to this object.
+  // Scalars only. See reflection.h, and the documentation.
+  void Mutate(SizeT i, const T &val) {
+    FLATBUFFERS_ASSERT(i < size());
+    WriteScalar(data() + i, val);
+  }
+
+  // Change an element of a vector of tables (or strings).
+  // "val" points to the new table/string, as you can obtain from
+  // e.g. reflection::AddFlatBuffer().
+  void MutateOffset(SizeT i, const uint8_t *val) {
+    FLATBUFFERS_ASSERT(i < size());
+    static_assert(sizeof(T) == sizeof(SizeT), "Unrelated types");
+    WriteScalar(data() + i, static_cast<SizeT>(val - (Data() + i * sizeof(SizeT))));
+  }
+
+  // Get a mutable pointer to tables/strings inside this vector.
+  mutable_return_type GetMutableObject(SizeT i) const {
+    FLATBUFFERS_ASSERT(i < size());
+    return const_cast<mutable_return_type>(IndirectHelper<T>::Read(Data(), i));
+  }
+
+  // The raw data in little endian format. Use with care.
+  const uint8_t *Data() const { return reinterpret_cast<const uint8_t *>(&length_ + 1); }
+
+  uint8_t *Data() { return reinterpret_cast<uint8_t *>(&length_ + 1); }
+
+  // Similarly, but typed, much like std::vector::data
+  const T *data() const { return reinterpret_cast<const T *>(Data()); }
+  T *data() { return reinterpret_cast<T *>(Data()); }
+
+  template<typename K> return_type LookupByKey(K key) const {
+    void *search_result = std::bsearch(&key, Data(), size(), IndirectHelper<T>::element_stride, KeyCompare<K>);
+
+    if (!search_result) {
+      return nullptr;  // Key not found.
+    }
+
+    const uint8_t *element = reinterpret_cast<const uint8_t *>(search_result);
+
+    return IndirectHelper<T>::Read(element, 0);
+  }
+
+  template<typename K> mutable_return_type MutableLookupByKey(K key) {
+    return const_cast<mutable_return_type>(LookupByKey(key));
+  }
+
+ protected:
+  // This class is only used to access pre-existing data. Don't ever
+  // try to construct these manually.
+  Vector();
+
+  SizeT length_;
+
+ private:
+  // This class is a pointer. Copying will therefore create an invalid object.
+  // Private and unimplemented copy constructor.
+  Vector(const Vector &);
+  Vector &operator=(const Vector &);
+
+  template<typename K> static int KeyCompare(const void *ap, const void *bp) {
+    const K *key = reinterpret_cast<const K *>(ap);
+    const uint8_t *data = reinterpret_cast<const uint8_t *>(bp);
+    auto table = IndirectHelper<T>::Read(data, 0);
+
+    // std::bsearch compares with the operands transposed, so we negate the
+    // result here.
+    return -table->KeyCompareWithValue(*key);
+  }
+};
+
+template<typename T> using Vector64 = Vector<T, uoffset64_t>;
+
+template<class U> FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<U> make_span(Vector<U> &vec) FLATBUFFERS_NOEXCEPT {
+  static_assert(Vector<U>::is_span_observable, "wrong type U, only LE-scalar, or byte types are allowed");
+  return span<U>(vec.data(), vec.size());
+}
+
+template<class U>
+FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<const U> make_span(const Vector<U> &vec) FLATBUFFERS_NOEXCEPT {
+  static_assert(Vector<U>::is_span_observable, "wrong type U, only LE-scalar, or byte types are allowed");
+  return span<const U>(vec.data(), vec.size());
+}
+
+template<class U>
+FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<uint8_t> make_bytes_span(Vector<U> &vec) FLATBUFFERS_NOEXCEPT {
+  static_assert(Vector<U>::scalar_tag::value, "wrong type U, only LE-scalar, or byte types are allowed");
+  return span<uint8_t>(vec.Data(), vec.size() * sizeof(U));
+}
+
+template<class U>
+FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<const uint8_t> make_bytes_span(const Vector<U> &vec)
+    FLATBUFFERS_NOEXCEPT {
+  static_assert(Vector<U>::scalar_tag::value, "wrong type U, only LE-scalar, or byte types are allowed");
+  return span<const uint8_t>(vec.Data(), vec.size() * sizeof(U));
+}
+
+// Convenient helper functions to get a span of any vector, regardless
+// of whether it is null or not (the field is not set).
+template<class U> FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<U> make_span(Vector<U> *ptr) FLATBUFFERS_NOEXCEPT {
+  static_assert(Vector<U>::is_span_observable, "wrong type U, only LE-scalar, or byte types are allowed");
+  return ptr ? make_span(*ptr) : span<U>();
+}
+
+template<class U>
+FLATBUFFERS_CONSTEXPR_CPP11 flatbuffers::span<const U> make_span(const Vector<U> *ptr) FLATBUFFERS_NOEXCEPT {
+  static_assert(Vector<U>::is_span_observable, "wrong type U, only LE-scalar, or byte types are allowed");
+  return ptr ? make_span(*ptr) : span<const U>();
+}
+
+// Represent a vector much like the template above, but in this case we
+// don't know what the element types are (used with reflection.h).
+class VectorOfAny {
+ public:
+  uoffset_t size() const { return EndianScalar(length_); }
+
+  const uint8_t *Data() const { return reinterpret_cast<const uint8_t *>(&length_ + 1); }
+  uint8_t *Data() { return reinterpret_cast<uint8_t *>(&length_ + 1); }
+
+ protected:
+  VectorOfAny();
+
+  uoffset_t length_;
+
+ private:
+  VectorOfAny(const VectorOfAny &);
+  VectorOfAny &operator=(const VectorOfAny &);
+};
+
+template<typename T, typename U> Vector<Offset<T>> *VectorCast(Vector<Offset<U>> *ptr) {
+  static_assert(std::is_base_of<T, U>::value, "Unrelated types");
+  return reinterpret_cast<Vector<Offset<T>> *>(ptr);
+}
+
+template<typename T, typename U> const Vector<Offset<T>> *VectorCast(const Vector<Offset<U>> *ptr) {
+  static_assert(std::is_base_of<T, U>::value, "Unrelated types");
+  return reinterpret_cast<const Vector<Offset<T>> *>(ptr);
+}
+
+// Convenient helper function to get the length of any vector, regardless
+// of whether it is null or not (the field is not set).
+template<typename T> static inline size_t VectorLength(const Vector<T> *v) { return v ? v->size() : 0; }
 
 }  // namespace flatbuffers
 
-#endif  // FLATBUFFERS_UTIL_H_
+#endif  // FLATBUFFERS_VERIFIER_H_

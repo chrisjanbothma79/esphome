@@ -1,88 +1,48 @@
-/*
- * SPDX-FileCopyrightText: 2020-2023 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+// Copyright 2020-2021 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <esp_log.h>
+/* int8_t ops tests */
+void esp_nn_add_elementwise_s8_test();
+void esp_nn_mul_elementwise_s8_test();
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
+void esp_nn_depthwise_conv_s8_test();
+void esp_nn_conv_s8_test();
 
-#include <test_functions.h>
-#include <esp_timer.h>
+void esp_nn_avg_pool_s8_test();
+void esp_nn_max_pool_s8_test();
 
+void esp_nn_fully_connected_s8_test();
+void esp_nn_fully_connected_per_ch_s8_test();
 
-#if __has_include("esp_idf_version.h")
-#include <esp_idf_version.h>
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-#define esp_cpu_get_ccount esp_cpu_get_cycle_count
-#endif
-#endif
+void esp_nn_relu6_s8_test();
 
-static const char *TAG = "test_app";
-static uint32_t start_c, start_opt, total_c, total_opt;
+void esp_nn_softmax_s8_test();
 
-void profile_c_start()
-{
-    /* initiate profiling */
-    start_c = esp_cpu_get_ccount();
-}
+/* uint8_t ops tests */
+void esp_nn_add_elementwise_u8_test();
 
-uint32_t profile_c_end()
-{
-    /* record profile number */
-    total_c = esp_cpu_get_ccount() - start_c;
-    return total_c;
-}
+void esp_nn_depthwise_conv_u8_test();
+void esp_nn_conv_u8_test();
 
-void profile_opt_start()
-{
-    /* initiate profiling */
-    start_opt = esp_cpu_get_ccount();
-}
+void esp_nn_avg_pool_u8_test();
+void esp_nn_max_pool_u8_test();
 
-uint32_t profile_opt_end()
-{
-    /* record profile number */
-    total_opt = esp_cpu_get_ccount() - start_opt;
-    return total_opt;
-}
+void esp_nn_fully_connected_u8_test();
 
-void app_main()
-{
-    /* s8 tests */
-    ESP_LOGI(TAG, "Running s8 tests...");
-    esp_nn_add_elementwise_s8_test();
-    printf("add, c %"PRIu32" opt %"PRIu32"\n", total_c, total_opt);
-    esp_nn_mul_elementwise_s8_test();
-    printf("mul, c %"PRIu32" opt %"PRIu32"\n", total_c, total_opt);
-    esp_nn_depthwise_conv_s8_test();
-    esp_nn_conv_s8_test();
-
-    esp_nn_relu6_s8_test();
-    printf("relu, c %"PRIu32" opt %"PRIu32"\n", total_c, total_opt);
-    esp_nn_avg_pool_s8_test();
-    printf("avg_pool, c %"PRIu32" opt %"PRIu32"\n", total_c, total_opt);
-    esp_nn_max_pool_s8_test();
-    printf("max_pool, c %"PRIu32" opt %"PRIu32"\n", total_c, total_opt);
-    esp_nn_fully_connected_s8_test();
-    esp_nn_fully_connected_per_ch_s8_test();
-    esp_nn_softmax_s8_test();
-    printf("softmax, c %"PRIu32" opt %"PRIu32"\n", total_c, total_opt);
-    ESP_LOGI(TAG, "s8 tests done!\n");
-
-    /* u8 tests */
-    //ESP_LOGI(TAG, "Running u8 tests...");
-    //esp_nn_add_elementwise_u8_test();
-    //esp_nn_depthwise_conv_u8_test();
-    //esp_nn_conv_u8_test();
-    //esp_nn_avg_pool_u8_test();
-    //esp_nn_max_pool_u8_test();
-    //esp_nn_fully_connected_u8_test();
-    //ESP_LOGI(TAG, "u8 tests done!\n");
-}
+/* instructions test functions */
+void compare_instructions_test();
+void arith_instructions_test();
+void min_max_instructions_test();
+void bitwise_instructions_test();
+void load_store_instructions_test();

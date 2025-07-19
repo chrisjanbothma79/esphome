@@ -17,27 +17,26 @@ limitations under the License.
 #include <stdint.h>
 
 #include "signal/src/complex.h"
-#include "signal/src/kiss_fft_wrappers/kiss_fft_float.h"
+#include "signal/src/kiss_fft_wrappers/kiss_fft_int16.h"
 #include "signal/src/rfft.h"
 
 // TODO(b/286250473): remove namespace once de-duped libraries
 namespace tflm_signal {
 
-size_t RfftFloatGetNeededMemory(int32_t fft_length) {
+size_t RfftInt16GetNeededMemory(int32_t fft_length) {
   size_t state_size = 0;
-  kiss_fft_float::kiss_fftr_alloc(fft_length, 0, nullptr, &state_size);
+  kiss_fft_fixed16::kiss_fftr_alloc(fft_length, 0, nullptr, &state_size);
   return state_size;
 }
 
-void* RfftFloatInit(int32_t fft_length, void* state, size_t state_size) {
-  return kiss_fft_float::kiss_fftr_alloc(fft_length, 0, state, &state_size);
+void *RfftInt16Init(int32_t fft_length, void *state, size_t state_size) {
+  return kiss_fft_fixed16::kiss_fftr_alloc(fft_length, 0, state, &state_size);
 }
 
-void RfftFloatApply(void* state, const float* input, Complex<float>* output) {
-  kiss_fft_float::kiss_fftr(
-      static_cast<kiss_fft_float::kiss_fftr_cfg>(state),
-      reinterpret_cast<const kiss_fft_scalar*>(input),
-      reinterpret_cast<kiss_fft_float::kiss_fft_cpx*>(output));
+void RfftInt16Apply(void *state, const int16_t *input, Complex<int16_t> *output) {
+  kiss_fft_fixed16::kiss_fftr(static_cast<kiss_fft_fixed16::kiss_fftr_cfg>(state),
+                              reinterpret_cast<const kiss_fft_scalar *>(input),
+                              reinterpret_cast<kiss_fft_fixed16::kiss_fft_cpx *>(output));
 }
 
 }  // namespace tflm_signal

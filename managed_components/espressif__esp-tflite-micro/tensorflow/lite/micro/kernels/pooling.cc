@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,98 +12,104 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/kernels/internal/reference/pooling.h"
+
+#ifndef TENSORFLOW_LITE_MICRO_KERNELS_POOLING_H_
+#define TENSORFLOW_LITE_MICRO_KERNELS_POOLING_H_
+
+#include <cstdint>
 
 #include "tensorflow/lite/c/builtin_op_data.h"
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/reference/integer_ops/pooling.h"
+#include "tensorflow/lite/kernels/internal/reference/pooling.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
+#include "tensorflow/lite/kernels/padding.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/pooling.h"
+#include "tensorflow/lite/micro/kernels/micro_ops.h"
 #include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
 
-namespace {
+extern const int kPoolingInputTensor;
+extern const int kPoolingOutputTensor;
 
-TfLiteStatus AverageEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->builtin_data != nullptr);
-  auto* params = reinterpret_cast<TfLitePoolParams*>(node->builtin_data);
+struct OpDataPooling {
+  TfLitePaddingValues padding;
+  int32_t activation_min;
+  int32_t activation_max;
+  float activation_min_f32;
+  float activation_max_f32;
+};
 
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpDataPooling* data =
-      static_cast<const OpDataPooling*>(node->user_data);
+TfLiteStatus CalculateOpDataPooling(const TfLiteContext *context, const TfLitePoolParams *params,
+                                    const TfLiteTensor *input, const TfLiteTensor *output, OpDataPooling *data);
 
-  const TfLiteEvalTensor* input =
-      micro::GetEvalInput(context, node, kPoolingInputTensor);
-  TfLiteEvalTensor* output =
-      micro::GetEvalOutput(context, node, kPoolingOutputTensor);
+TfLiteStatus PoolingPrepare(TfLiteContext *context, TfLiteNode *node);
 
-  // Inputs and outputs share the same type, guaranteed by the converter.
-  switch (input->type) {
-    case kTfLiteFloat32:
-      AveragePoolingEvalFloat(context, node, params, data, input, output);
-      break;
-    case kTfLiteInt8:
-      AveragePoolingEvalQuantized<int8_t>(context, node, params, data, input,
-                                          output);
-      break;
-    case kTfLiteInt16:
-      AveragePoolingEvalQuantized<int16_t>(context, node, params, data, input,
-                                           output);
-      break;
-    default:
-      MicroPrintf("Input type %s is not currently supported",
-                  TfLiteTypeGetName(input->type));
-      return kTfLiteError;
-  }
-  return kTfLiteOk;
+void AveragePoolingEvalFloat(const TfLiteContext *context, const TfLiteNode *node, const TfLitePoolParams *params,
+                             const OpDataPooling *data, const TfLiteEvalTensor *input, TfLiteEvalTensor *output);
+
+template<typename T>
+void AveragePoolingEvalQuantized(TfLiteContext *context, const TfLiteNode *node, const TfLitePoolParams *params,
+                                 const OpDataPooling *data, const TfLiteEvalTensor *input, TfLiteEvalTensor *output) {
+  TFLITE_DCHECK(input->type == kTfLiteInt8 || input->type == kTfLiteInt16);
+
+  PoolParams op_params;
+  op_params.stride_height = params->stride_height;
+  op_params.stride_width = params->stride_width;
+  op_params.filter_height = params->filter_height;
+  op_params.filter_width = params->filter_width;
+  op_params.padding_values.height = data->padding.height;
+  op_params.padding_values.width = data->padding.width;
+  op_params.quantized_activation_min = data->activation_min;
+  op_params.quantized_activation_max = data->activation_max;
+
+  reference_integer_ops::AveragePool(op_params, tflite::micro::GetTensorShape(input),
+                                     tflite::micro::GetTensorData<T>(input), tflite::micro::GetTensorShape(output),
+                                     tflite::micro::GetTensorData<T>(output));
 }
 
-TfLiteStatus MaxEval(TfLiteContext* context, TfLiteNode* node) {
-  TFLITE_DCHECK(node->builtin_data != nullptr);
-  auto* params = reinterpret_cast<TfLitePoolParams*>(node->builtin_data);
+void MaxPoolingEvalFloat(TfLiteContext *context, TfLiteNode *node, TfLitePoolParams *params, const OpDataPooling *data,
+                         const TfLiteEvalTensor *input, TfLiteEvalTensor *output);
 
-  TFLITE_DCHECK(node->user_data != nullptr);
-  const OpDataPooling* data =
-      static_cast<const OpDataPooling*>(node->user_data);
+template<typename T>
+void MaxPoolingEvalQuantized(TfLiteContext *context, TfLiteNode *node, TfLitePoolParams *params,
+                             const OpDataPooling *data, const TfLiteEvalTensor *input, TfLiteEvalTensor *output) {
+  TFLITE_DCHECK(input->type == kTfLiteInt8 || input->type == kTfLiteInt16);
 
-  const TfLiteEvalTensor* input =
-      micro::GetEvalInput(context, node, kPoolingInputTensor);
-  TfLiteEvalTensor* output =
-      micro::GetEvalOutput(context, node, kPoolingOutputTensor);
+  tflite::PoolParams op_params;
+  op_params.stride_height = params->stride_height;
+  op_params.stride_width = params->stride_width;
+  op_params.filter_height = params->filter_height;
+  op_params.filter_width = params->filter_width;
+  op_params.padding_values.height = data->padding.height;
+  op_params.padding_values.width = data->padding.width;
+  op_params.quantized_activation_min = data->activation_min;
+  op_params.quantized_activation_max = data->activation_max;
 
-  switch (input->type) {
-    case kTfLiteFloat32:
-      MaxPoolingEvalFloat(context, node, params, data, input, output);
-      break;
-    case kTfLiteInt8:
-      MaxPoolingEvalQuantized<int8_t>(context, node, params, data, input,
-                                      output);
-      break;
-    case kTfLiteInt16:
-      MaxPoolingEvalQuantized<int16_t>(context, node, params, data, input,
-                                       output);
-      break;
-    default:
-      MicroPrintf("Type %s not currently supported.",
-                  TfLiteTypeGetName(input->type));
-      return kTfLiteError;
-  }
-  return kTfLiteOk;
+  reference_integer_ops::MaxPool(op_params, tflite::micro::GetTensorShape(input),
+                                 tflite::micro::GetTensorData<T>(input), tflite::micro::GetTensorShape(output),
+                                 tflite::micro::GetTensorData<T>(output));
 }
 
-void* PoolInit(TfLiteContext* context, const char* buffer, size_t length) {
-  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
-  return context->AllocatePersistentBuffer(context, sizeof(OpDataPooling));
-}
+#if defined(CMSIS_NN) || defined(XTENSA)
+TFLMRegistration Register_AVERAGE_POOL_2D_INT8();
 
-}  // namespace
+TFLMRegistration Register_MAX_POOL_2D_INT8();
 
-TFLMRegistration Register_AVERAGE_POOL_2D() {
-  return tflite::micro::RegisterOp(PoolInit, PoolingPrepare, AverageEval);
-}
+TFLMRegistration Register_AVERAGE_POOL_2D_INT16();
 
-TFLMRegistration Register_MAX_POOL_2D() {
-  return tflite::micro::RegisterOp(PoolInit, PoolingPrepare, MaxEval);
-}
+TFLMRegistration Register_MAX_POOL_2D_INT16();
+#else
+inline TFLMRegistration Register_AVERAGE_POOL_2D_INT8() { return tflite::Register_AVERAGE_POOL_2D(); }
 
+inline TFLMRegistration Register_MAX_POOL_2D_INT8() { return tflite::Register_MAX_POOL_2D(); }
+
+inline TFLMRegistration Register_AVERAGE_POOL_2D_INT16() { return tflite::Register_AVERAGE_POOL_2D(); }
+
+inline TFLMRegistration Register_MAX_POOL_2D_INT16() { return tflite::Register_MAX_POOL_2D(); }
+#endif
 }  // namespace tflite
+
+#endif  // TENSORFLOW_LITE_MICRO_KERNELS_POOLING_H_

@@ -1,251 +1,268 @@
-// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 /*
- * Example Use
+ * This file is part of the OpenMV project.
+ * Copyright (c) 2013/2014 Ibrahim Abdelkader <i.abdalkader@gmail.com>
+ * This work is licensed under the MIT license, see the file LICENSE for details.
  *
-    static camera_config_t camera_example_config = {
-        .pin_pwdn       = PIN_PWDN,
-        .pin_reset      = PIN_RESET,
-        .pin_xclk       = PIN_XCLK,
-        .pin_sccb_sda   = PIN_SIOD,
-        .pin_sccb_scl   = PIN_SIOC,
-        .pin_d7         = PIN_D7,
-        .pin_d6         = PIN_D6,
-        .pin_d5         = PIN_D5,
-        .pin_d4         = PIN_D4,
-        .pin_d3         = PIN_D3,
-        .pin_d2         = PIN_D2,
-        .pin_d1         = PIN_D1,
-        .pin_d0         = PIN_D0,
-        .pin_vsync      = PIN_VSYNC,
-        .pin_href       = PIN_HREF,
-        .pin_pclk       = PIN_PCLK,
-
-        .xclk_freq_hz   = 20000000,
-        .ledc_timer     = LEDC_TIMER_0,
-        .ledc_channel   = LEDC_CHANNEL_0,
-        .pixel_format   = PIXFORMAT_JPEG,
-        .frame_size     = FRAMESIZE_SVGA,
-        .jpeg_quality   = 10,
-        .fb_count       = 2,
-        .grab_mode      = CAMERA_GRAB_WHEN_EMPTY
-    };
-
-    esp_err_t camera_example_init(){
-        return esp_camera_init(&camera_example_config);
-    }
-
-    esp_err_t camera_example_capture(){
-        //capture a frame
-        camera_fb_t * fb = esp_camera_fb_get();
-        if (!fb) {
-            ESP_LOGE(TAG, "Frame buffer could not be acquired");
-            return ESP_FAIL;
-        }
-
-        //replace this with your own function
-        display_image(fb->width, fb->height, fb->pixformat, fb->buf, fb->len);
-
-        //return the frame buffer back to be reused
-        esp_camera_fb_return(fb);
-
-        return ESP_OK;
-    }
-*/
-
-#pragma once
-
-#include "esp_err.h"
-#include "driver/ledc.h"
-#include "sensor.h"
-#include "sys/time.h"
-#include "sdkconfig.h"
-
-/**
- * @brief define for if chip supports camera
+ * Sensor abstraction layer.
+ *
  */
-#define ESP_CAMERA_SUPPORTED (CONFIG_IDF_TARGET_ESP32 | CONFIG_IDF_TARGET_ESP32S3 | \
-                             CONFIG_IDF_TARGET_ESP32S2)
+#ifndef __SENSOR_H__
+#define __SENSOR_H__
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * @brief Configuration structure for camera initialization
- */
 typedef enum {
-    CAMERA_GRAB_WHEN_EMPTY,         /*!< Fills buffers when they are empty. Less resources but first 'fb_count' frames might be old */
-    CAMERA_GRAB_LATEST              /*!< Except when 1 frame buffer is used, queue will always contain the last 'fb_count' frames */
-} camera_grab_mode_t;
+  OV9650_PID = 0x96,
+  OV7725_PID = 0x77,
+  OV2640_PID = 0x26,
+  OV3660_PID = 0x3660,
+  OV5640_PID = 0x5640,
+  OV7670_PID = 0x76,
+  NT99141_PID = 0x1410,
+  GC2145_PID = 0x2145,
+  GC032A_PID = 0x232a,
+  GC0308_PID = 0x9b,
+  BF3005_PID = 0x30,
+  BF20A6_PID = 0x20a6,
+  SC101IOT_PID = 0xda4a,
+  SC030IOT_PID = 0x9a46,
+  SC031GS_PID = 0x0031,
+  MEGA_CCM_PID = 0x039E,
+} camera_pid_t;
 
-/**
- * @brief Camera frame buffer location
- */
 typedef enum {
-    CAMERA_FB_IN_PSRAM,         /*!< Frame buffer is placed in external PSRAM */
-    CAMERA_FB_IN_DRAM           /*!< Frame buffer is placed in internal DRAM */
-} camera_fb_location_t;
+  CAMERA_OV7725,
+  CAMERA_OV2640,
+  CAMERA_OV3660,
+  CAMERA_OV5640,
+  CAMERA_OV7670,
+  CAMERA_NT99141,
+  CAMERA_GC2145,
+  CAMERA_GC032A,
+  CAMERA_GC0308,
+  CAMERA_BF3005,
+  CAMERA_BF20A6,
+  CAMERA_SC101IOT,
+  CAMERA_SC030IOT,
+  CAMERA_SC031GS,
+  CAMERA_MEGA_CCM,
+  CAMERA_MODEL_MAX,
+  CAMERA_NONE,
+} camera_model_t;
 
-#if CONFIG_CAMERA_CONVERTER_ENABLED
-/**
- * @brief Camera RGB\YUV conversion mode
- */
 typedef enum {
-    CONV_DISABLE,
-    RGB565_TO_YUV422,
+  OV2640_SCCB_ADDR = 0x30,   // 0x60 >> 1
+  OV5640_SCCB_ADDR = 0x3C,   // 0x78 >> 1
+  OV3660_SCCB_ADDR = 0x3C,   // 0x78 >> 1
+  OV7725_SCCB_ADDR = 0x21,   // 0x42 >> 1
+  OV7670_SCCB_ADDR = 0x21,   // 0x42 >> 1
+  NT99141_SCCB_ADDR = 0x2A,  // 0x54 >> 1
+  GC2145_SCCB_ADDR = 0x3C,   // 0x78 >> 1
+  GC032A_SCCB_ADDR = 0x21,   // 0x42 >> 1
+  GC0308_SCCB_ADDR = 0x21,   // 0x42 >> 1
+  BF3005_SCCB_ADDR = 0x6E,
+  BF20A6_SCCB_ADDR = 0x6E,
+  SC101IOT_SCCB_ADDR = 0x68,  // 0xd0 >> 1
+  SC030IOT_SCCB_ADDR = 0x68,  // 0xd0 >> 1
+  SC031GS_SCCB_ADDR = 0x30,
+  MEGA_CCM_SCCB_ADDR = 0x1F,  // 0x3E >> 1
+} camera_sccb_addr_t;
 
-    YUV422_TO_RGB565,
-    YUV422_TO_YUV420
-} camera_conv_mode_t;
-#endif
+typedef enum {
+  PIXFORMAT_RGB565,     // 2BPP/RGB565
+  PIXFORMAT_YUV422,     // 2BPP/YUV422
+  PIXFORMAT_YUV420,     // 1.5BPP/YUV420
+  PIXFORMAT_GRAYSCALE,  // 1BPP/GRAYSCALE
+  PIXFORMAT_JPEG,       // JPEG/COMPRESSED
+  PIXFORMAT_RGB888,     // 3BPP/RGB888
+  PIXFORMAT_RAW,        // RAW
+  PIXFORMAT_RGB444,     // 3BP2P/RGB444
+  PIXFORMAT_RGB555,     // 3BP2P/RGB555
+} pixformat_t;
 
-/**
- * @brief Configuration structure for camera initialization
- */
+typedef enum {
+  FRAMESIZE_96X96,    // 96x96
+  FRAMESIZE_QQVGA,    // 160x120
+  FRAMESIZE_128X128,  // 128x128
+  FRAMESIZE_QCIF,     // 176x144
+  FRAMESIZE_HQVGA,    // 240x176
+  FRAMESIZE_240X240,  // 240x240
+  FRAMESIZE_QVGA,     // 320x240
+  FRAMESIZE_320X320,  // 320x320
+  FRAMESIZE_CIF,      // 400x296
+  FRAMESIZE_HVGA,     // 480x320
+  FRAMESIZE_VGA,      // 640x480
+  FRAMESIZE_SVGA,     // 800x600
+  FRAMESIZE_XGA,      // 1024x768
+  FRAMESIZE_HD,       // 1280x720
+  FRAMESIZE_SXGA,     // 1280x1024
+  FRAMESIZE_UXGA,     // 1600x1200
+  // 3MP Sensors
+  FRAMESIZE_FHD,    // 1920x1080
+  FRAMESIZE_P_HD,   //  720x1280
+  FRAMESIZE_P_3MP,  //  864x1536
+  FRAMESIZE_QXGA,   // 2048x1536
+  // 5MP Sensors
+  FRAMESIZE_QHD,    // 2560x1440
+  FRAMESIZE_WQXGA,  // 2560x1600
+  FRAMESIZE_P_FHD,  // 1080x1920
+  FRAMESIZE_QSXGA,  // 2560x1920
+  FRAMESIZE_5MP,    // 2592x1944
+  FRAMESIZE_INVALID
+} framesize_t;
+
 typedef struct {
-    int pin_pwdn;                   /*!< GPIO pin for camera power down line */
-    int pin_reset;                  /*!< GPIO pin for camera reset line */
-    int pin_xclk;                   /*!< GPIO pin for camera XCLK line */
-    union {
-        int pin_sccb_sda;           /*!< GPIO pin for camera SDA line */
-        int pin_sscb_sda __attribute__((deprecated("please use pin_sccb_sda instead")));           /*!< GPIO pin for camera SDA line (legacy name) */
-    };
-    union {
-        int pin_sccb_scl;           /*!< GPIO pin for camera SCL line */
-        int pin_sscb_scl __attribute__((deprecated("please use pin_sccb_scl instead")));           /*!< GPIO pin for camera SCL line (legacy name) */
-    };
-    int pin_d7;                     /*!< GPIO pin for camera D7 line */
-    int pin_d6;                     /*!< GPIO pin for camera D6 line */
-    int pin_d5;                     /*!< GPIO pin for camera D5 line */
-    int pin_d4;                     /*!< GPIO pin for camera D4 line */
-    int pin_d3;                     /*!< GPIO pin for camera D3 line */
-    int pin_d2;                     /*!< GPIO pin for camera D2 line */
-    int pin_d1;                     /*!< GPIO pin for camera D1 line */
-    int pin_d0;                     /*!< GPIO pin for camera D0 line */
-    int pin_vsync;                  /*!< GPIO pin for camera VSYNC line */
-    int pin_href;                   /*!< GPIO pin for camera HREF line */
-    int pin_pclk;                   /*!< GPIO pin for camera PCLK line */
+  const camera_model_t model;
+  const char *name;
+  const camera_sccb_addr_t sccb_addr;
+  const camera_pid_t pid;
+  const framesize_t max_size;
+  const bool support_jpeg;
+} camera_sensor_info_t;
 
-    int xclk_freq_hz;               /*!< Frequency of XCLK signal, in Hz. EXPERIMENTAL: Set to 16MHz on ESP32-S2 or ESP32-S3 to enable EDMA mode */
+typedef enum {
+  ASPECT_RATIO_4X3,
+  ASPECT_RATIO_3X2,
+  ASPECT_RATIO_16X10,
+  ASPECT_RATIO_5X3,
+  ASPECT_RATIO_16X9,
+  ASPECT_RATIO_21X9,
+  ASPECT_RATIO_5X4,
+  ASPECT_RATIO_1X1,
+  ASPECT_RATIO_9X16
+} aspect_ratio_t;
 
-    ledc_timer_t ledc_timer;        /*!< LEDC timer to be used for generating XCLK  */
-    ledc_channel_t ledc_channel;    /*!< LEDC channel to be used for generating XCLK  */
+typedef enum {
+  GAINCEILING_2X,
+  GAINCEILING_4X,
+  GAINCEILING_8X,
+  GAINCEILING_16X,
+  GAINCEILING_32X,
+  GAINCEILING_64X,
+  GAINCEILING_128X,
+} gainceiling_t;
 
-    pixformat_t pixel_format;       /*!< Format of the pixel data: PIXFORMAT_ + YUV422|GRAYSCALE|RGB565|JPEG  */
-    framesize_t frame_size;         /*!< Size of the output image: FRAMESIZE_ + QVGA|CIF|VGA|SVGA|XGA|SXGA|UXGA  */
-
-    int jpeg_quality;               /*!< Quality of JPEG output. 0-63 lower means higher quality  */
-    size_t fb_count;                /*!< Number of frame buffers to be allocated. If more than one, then each frame will be acquired (double speed)  */
-    camera_fb_location_t fb_location; /*!< The location where the frame buffer will be allocated */
-    camera_grab_mode_t grab_mode;   /*!< When buffers should be filled */
-#if CONFIG_CAMERA_CONVERTER_ENABLED
-    camera_conv_mode_t conv_mode;   /*!< RGB<->YUV Conversion mode */
-#endif
-
-    int sccb_i2c_port;              /*!< If pin_sccb_sda is -1, use the already configured I2C bus by number */
-} camera_config_t;
-
-/**
- * @brief Data structure of camera frame buffer
- */
 typedef struct {
-    uint8_t * buf;              /*!< Pointer to the pixel data */
-    size_t len;                 /*!< Length of the buffer in bytes */
-    size_t width;               /*!< Width of the buffer in pixels */
-    size_t height;              /*!< Height of the buffer in pixels */
-    pixformat_t format;         /*!< Format of the pixel data */
-    struct timeval timestamp;   /*!< Timestamp since boot of the first DMA buffer of the frame */
-} camera_fb_t;
+  uint16_t max_width;
+  uint16_t max_height;
+  uint16_t start_x;
+  uint16_t start_y;
+  uint16_t end_x;
+  uint16_t end_y;
+  uint16_t offset_x;
+  uint16_t offset_y;
+  uint16_t total_x;
+  uint16_t total_y;
+} ratio_settings_t;
 
-#define ESP_ERR_CAMERA_BASE 0x20000
-#define ESP_ERR_CAMERA_NOT_DETECTED             (ESP_ERR_CAMERA_BASE + 1)
-#define ESP_ERR_CAMERA_FAILED_TO_SET_FRAME_SIZE (ESP_ERR_CAMERA_BASE + 2)
-#define ESP_ERR_CAMERA_FAILED_TO_SET_OUT_FORMAT (ESP_ERR_CAMERA_BASE + 3)
-#define ESP_ERR_CAMERA_NOT_SUPPORTED            (ESP_ERR_CAMERA_BASE + 4)
+typedef struct {
+  const uint16_t width;
+  const uint16_t height;
+  const aspect_ratio_t aspect_ratio;
+} resolution_info_t;
 
-/**
- * @brief Initialize the camera driver
- *
- * @note call camera_probe before calling this function
- *
- * This function detects and configures camera over I2C interface,
- * allocates framebuffer and DMA buffers,
- * initializes parallel I2S input, and sets up DMA descriptors.
- *
- * Currently this function can only be called once and there is
- * no way to de-initialize this module.
- *
- * @param config  Camera configuration parameters
- *
- * @return ESP_OK on success
- */
-esp_err_t esp_camera_init(const camera_config_t* config);
+// Resolution table (in sensor.c)
+extern const resolution_info_t resolution[];
+// camera sensor table (in sensor.c)
+extern const camera_sensor_info_t camera_sensor[];
 
-/**
- * @brief Deinitialize the camera driver
- *
- * @return
- *      - ESP_OK on success
- *      - ESP_ERR_INVALID_STATE if the driver hasn't been initialized yet
- */
-esp_err_t esp_camera_deinit(void);
+typedef struct {
+  uint8_t MIDH;
+  uint8_t MIDL;
+  uint16_t PID;
+  uint8_t VER;
+} sensor_id_t;
 
-/**
- * @brief Obtain pointer to a frame buffer.
- *
- * @return pointer to the frame buffer
- */
-camera_fb_t* esp_camera_fb_get(void);
+typedef struct {
+  framesize_t framesize;  // 0 - 10
+  bool scale;
+  bool binning;
+  uint8_t quality;    // 0 - 63
+  int8_t brightness;  //-2 - 2
+  int8_t contrast;    //-2 - 2
+  int8_t saturation;  //-2 - 2
+  int8_t sharpness;   //-2 - 2
+  uint8_t denoise;
+  uint8_t special_effect;  // 0 - 6
+  uint8_t wb_mode;         // 0 - 4
+  uint8_t awb;
+  uint8_t awb_gain;
+  uint8_t aec;
+  uint8_t aec2;
+  int8_t ae_level;     //-2 - 2
+  uint16_t aec_value;  // 0 - 1200
+  uint8_t agc;
+  uint8_t agc_gain;     // 0 - 30
+  uint8_t gainceiling;  // 0 - 6
+  uint8_t bpc;
+  uint8_t wpc;
+  uint8_t raw_gma;
+  uint8_t lenc;
+  uint8_t hmirror;
+  uint8_t vflip;
+  uint8_t dcw;
+  uint8_t colorbar;
+} camera_status_t;
 
-/**
- * @brief Return the frame buffer to be reused again.
- *
- * @param fb    Pointer to the frame buffer
- */
-void esp_camera_fb_return(camera_fb_t * fb);
+typedef struct _sensor sensor_t;
+typedef struct _sensor {
+  sensor_id_t id;    // Sensor ID.
+  uint8_t slv_addr;  // Sensor I2C slave address.
+  pixformat_t pixformat;
+  camera_status_t status;
+  int xclk_freq_hz;
 
-/**
- * @brief Get a pointer to the image sensor control structure
- *
- * @return pointer to the sensor
- */
-sensor_t * esp_camera_sensor_get(void);
+  // Sensor function pointers
+  int (*init_status)(sensor_t *sensor);
+  int (*reset)(sensor_t *sensor);  // Reset the configuration of the sensor, and return ESP_OK if reset is successful
+  int (*set_pixformat)(sensor_t *sensor, pixformat_t pixformat);
+  int (*set_framesize)(sensor_t *sensor, framesize_t framesize);
+  int (*set_contrast)(sensor_t *sensor, int level);
+  int (*set_brightness)(sensor_t *sensor, int level);
+  int (*set_saturation)(sensor_t *sensor, int level);
+  int (*set_sharpness)(sensor_t *sensor, int level);
+  int (*set_denoise)(sensor_t *sensor, int level);
+  int (*set_gainceiling)(sensor_t *sensor, gainceiling_t gainceiling);
+  int (*set_quality)(sensor_t *sensor, int quality);
+  int (*set_colorbar)(sensor_t *sensor, int enable);
+  int (*set_whitebal)(sensor_t *sensor, int enable);
+  int (*set_gain_ctrl)(sensor_t *sensor, int enable);
+  int (*set_exposure_ctrl)(sensor_t *sensor, int enable);
+  int (*set_hmirror)(sensor_t *sensor, int enable);
+  int (*set_vflip)(sensor_t *sensor, int enable);
 
-/**
- * @brief Save camera settings to non-volatile-storage (NVS)
- *
- * @param key   A unique nvs key name for the camera settings
- */
-esp_err_t esp_camera_save_to_nvs(const char *key);
+  int (*set_aec2)(sensor_t *sensor, int enable);
+  int (*set_awb_gain)(sensor_t *sensor, int enable);
+  int (*set_agc_gain)(sensor_t *sensor, int gain);
+  int (*set_aec_value)(sensor_t *sensor, int gain);
 
-/**
- * @brief Load camera settings from non-volatile-storage (NVS)
- *
- * @param key   A unique nvs key name for the camera settings
- */
-esp_err_t esp_camera_load_from_nvs(const char *key);
+  int (*set_special_effect)(sensor_t *sensor, int effect);
+  int (*set_wb_mode)(sensor_t *sensor, int mode);
+  int (*set_ae_level)(sensor_t *sensor, int level);
 
-/**
- * @brief Return all frame buffers to be reused again.
- */
-void esp_camera_return_all(void);
+  int (*set_dcw)(sensor_t *sensor, int enable);
+  int (*set_bpc)(sensor_t *sensor, int enable);
+  int (*set_wpc)(sensor_t *sensor, int enable);
 
+  int (*set_raw_gma)(sensor_t *sensor, int enable);
+  int (*set_lenc)(sensor_t *sensor, int enable);
+
+  int (*get_reg)(sensor_t *sensor, int reg, int mask);
+  int (*set_reg)(sensor_t *sensor, int reg, int mask, int value);
+  int (*set_res_raw)(sensor_t *sensor, int startX, int startY, int endX, int endY, int offsetX, int offsetY, int totalX,
+                     int totalY, int outputX, int outputY, bool scale, bool binning);
+  int (*set_pll)(sensor_t *sensor, int bypass, int mul, int sys, int root, int pre, int seld5, int pclken, int pclk);
+  int (*set_xclk)(sensor_t *sensor, int timer, int xclk);
+} sensor_t;
+
+camera_sensor_info_t *esp_camera_sensor_get_info(sensor_id_t *id);
 
 #ifdef __cplusplus
 }
 #endif
 
-#include "img_converters.h"
-
+#endif /* __SENSOR_H__ */

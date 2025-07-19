@@ -16,68 +16,45 @@
 
 #include <common_functions.h>
 
-void esp_nn_fully_connected_s8_ansi(const int8_t *input_data,
-                                    const int32_t input_offset,
-                                    const uint16_t row_len,
-                                    const int8_t *filter_data,
-                                    const int32_t filter_offset,
-                                    const int32_t *bias,
-                                    int8_t *out_data,
-                                    const uint16_t out_channels,
-                                    const int32_t out_offset,
-                                    const int32_t out_shift,
-                                    const int32_t out_mult,
-                                    const int32_t activation_min,
-                                    const int32_t activation_max)
-{
-    for (int32_t out_c = 0; out_c < out_channels; ++out_c) {
+void esp_nn_avg_pool_s8_ansi(const int8_t *input, const uint16_t input_wd, const uint16_t input_ht, int8_t *output,
+                             const uint16_t output_wd, const uint16_t output_ht, const uint16_t stride_wd,
+                             const uint16_t stride_ht, const uint16_t filter_wd, const uint16_t filter_ht,
+                             const uint16_t pad_wd, const uint16_t pad_ht, const int32_t activation_min,
+                             const int32_t activation_max, const uint16_t channels) {
+  int32_t base_y = -pad_ht;
+  for (int32_t out_y = 0; out_y < output_ht; out_y++, base_y += stride_ht) {
+    int32_t base_x = -pad_wd;
+    for (int32_t out_x = 0; out_x < output_wd; out_x++, base_x += stride_wd) {
+      for (int32_t ch_idx = 0; ch_idx < channels; ch_idx++) {
         int32_t result = 0;
-        for (int32_t data_idx = 0; data_idx < row_len; data_idx++) {
-            int32_t filter_index = row_len * out_c + data_idx;
-            int32_t input_val = input_data[data_idx];
-            int32_t filter_val = filter_data[filter_index];
-            result += (filter_val + filter_offset) * (input_val + input_offset);
-        }
-        if (bias) {
-            result += bias[out_c];
-        }
-        result = esp_nn_multiply_by_quantized_mult(result, out_mult, out_shift);
-        result += out_offset;
-        result = max(result, activation_min);
-        result = min(result, activation_max);
-        out_data[out_c] = (int8_t) result;
-    }
-}
+        int32_t filter_cnt = 0;
+        /* Make sure filter does not cross the input box */
+        int32_t filter_y_start = max(0, -base_y);
+        int32_t filter_x_start = max(0, -base_x);
 
-void esp_nn_fully_connected_per_ch_s8_ansi(const int8_t *input_data,
-                                    const int32_t input_offset,
-                                    const uint16_t row_len,
-                                    const int8_t *filter_data,
-                                    const int32_t filter_offset,
-                                    const int32_t *bias,
-                                    int8_t *out_data,
-                                    const uint16_t out_channels,
-                                    const int32_t out_offset,
-                                    const int32_t* out_shift,
-                                    const int32_t* out_mult,
-                                    const int32_t activation_min,
-                                    const int32_t activation_max)
-{
-    for (int32_t out_c = 0; out_c < out_channels; ++out_c) {
-        int32_t result = 0;
-        for (int32_t data_idx = 0; data_idx < row_len; data_idx++) {
-            int32_t filter_index = row_len * out_c + data_idx;
-            int32_t input_val = input_data[data_idx];
-            int32_t filter_val = filter_data[filter_index];
-            result += (filter_val + filter_offset) * (input_val + input_offset);
+        int32_t filter_y_end = min(filter_ht, input_ht - base_y);
+        int32_t filter_x_end = min(filter_wd, input_wd - base_x);
+
+        for (int32_t filter_y = filter_y_start; filter_y < filter_y_end; filter_y++) {
+          for (int32_t filter_x = filter_x_start; filter_x < filter_x_end; filter_x++) {
+            int32_t in_x_idx = base_x + filter_x;
+            int32_t in_y_idx = base_y + filter_y;
+            int32_t input_index = (in_y_idx * input_wd + in_x_idx) * channels + ch_idx;
+            result += input[input_index];
+            filter_cnt++;
+          }
         }
-        if (bias) {
-            result += bias[out_c];
-        }
-        result = esp_nn_multiply_by_quantized_mult(result, out_mult[out_c], out_shift[out_c]);
-        result += out_offset;
+
+        /* Rounded average */
+        result = result > 0 ? (result + filter_cnt / 2) / filter_cnt : (result - filter_cnt / 2) / filter_cnt;
+
+        /* Activation function */
         result = max(result, activation_min);
         result = min(result, activation_max);
-        out_data[out_c] = (int8_t) result;
+
+        int32_t output_index = (out_y * output_wd + out_x) * channels + ch_idx;
+        output[output_index] = (int8_t) result;
+      }
     }
+  }
 }

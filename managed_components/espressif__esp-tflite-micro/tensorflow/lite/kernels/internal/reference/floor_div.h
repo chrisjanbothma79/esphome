@@ -12,24 +12,27 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FLOOR_DIV_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FLOOR_DIV_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FLOOR_MOD_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FLOOR_MOD_H_
 
 #include <cmath>
 #include <functional>
 
-#include "tensorflow/lite/kernels/internal/types.h"
-
 namespace tflite {
+
 namespace reference_ops {
 
-template <typename T>
-T FloorDiv(T input1, T input2) {
-  return std::floor(std::divides<double>()(static_cast<double>(input1),
-                                           static_cast<double>(input2)));
+template<typename T> T FloorMod(T input1, T input2) {
+  struct FloatMod {
+    float operator()(const float lhs, const float rhs) const { return std::fmod(lhs, rhs); }
+  };
+  using ModFunc = typename std::conditional<std::is_integral<T>::value, std::modulus<T>, FloatMod>::type;
+  ModFunc mod_func;
+  T trunc_mod = mod_func(input1, input2);
+  return (trunc_mod != 0) && ((input2 < 0) != (trunc_mod < 0)) ? (trunc_mod + input2) : trunc_mod;
 }
 
 }  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FLOOR_DIV_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_FLOOR_MOD_H_

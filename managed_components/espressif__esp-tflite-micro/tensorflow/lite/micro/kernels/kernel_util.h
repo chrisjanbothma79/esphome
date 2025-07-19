@@ -1,4 +1,4 @@
-/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,190 +12,119 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#include <stddef.h>
+#include <stdint.h>
 
-#ifndef TENSORFLOW_LITE_MICRO_KERNELS_KERNEL_UTIL_H_
-#define TENSORFLOW_LITE_MICRO_KERNELS_KERNEL_UTIL_H_
-
-#include <cstdint>
-
-#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/compatibility.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/internal/reference/pooling.h"
 #include "tensorflow/lite/kernels/internal/types.h"
-#include "tensorflow/lite/micro/micro_context.h"
-
-#ifdef USE_TFLM_COMPRESSION
-
-#include "tensorflow/lite/micro/micro_arena_constants.h"
-#include "tensorflow/lite/micro/micro_utils.h"
-
-#endif  // USE_TFLM_COMPRESSION
+#include "tensorflow/lite/kernels/kernel_util.h"
+#include "tensorflow/lite/kernels/padding.h"
+#include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
-namespace micro {
+namespace {
 
-TFLMRegistration RegisterOp(
-    void* (*init)(TfLiteContext* context, const char* buffer, size_t length),
-    TfLiteStatus (*prepare)(TfLiteContext* context, TfLiteNode* node),
-    TfLiteStatus (*invoke)(TfLiteContext* context, TfLiteNode* node),
-    void (*free)(TfLiteContext* context, void* buffer) = nullptr,
-    void (*reset)(TfLiteContext* context, void* buffer) = nullptr);
+// Input/output tensor index.
+constexpr int kInputTensor = 0;
+constexpr int kOutputTensor = 0;
 
-TFLMInferenceRegistration RegisterOp(
-    TfLiteStatus (*invoke)(TfLiteContext* context, TfLiteNode* node),
-    void (*reset)(TfLiteContext* context, void* buffer) = nullptr);
+// required rank for input/output tensor shape
+constexpr int kTensorShapeRank = 4;
 
-// Prints out n bytes in a int8_t buffer as hex
-void PrintNBytes(const int8_t* tensor_data, int n_bytes,
-                 const char* prefix = nullptr);
+// input/output tensor shape rank associations
+enum { kBatchRank = 0, kHeightRank, kWidthRank, kChannelRank };
 
-// Prints out the n bytes in a TfLiteEvalTensor as hex
-void PrintNBytes(const TfLiteEvalTensor* tensor, int n_bytes,
-                 const char* prefix = nullptr);
+TfLiteStatus L2Prepare(TfLiteContext *context, TfLiteNode *node) {
+  MicroContext *micro_context = GetMicroContext(context);
 
-// Prints out n bytes in a TfLiteTensor as hex
-void PrintNBytes(const TfLiteTensor* tensor, int n_bytes,
-                 const char* prefix = nullptr);
+  auto *params = static_cast<TfLitePoolParams *>(node->builtin_data);
 
-// Returns a mutable tensor for a given input index. is_variable must be checked
-// during prepare when the full TfLiteTensor is available.
-TfLiteEvalTensor* GetMutableEvalInput(const TfLiteContext* context,
-                                      const TfLiteNode* node, int index);
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 1);
+  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TF_LITE_ENSURE(context, output != nullptr);
+  TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, kInputTensor);
+  TF_LITE_ENSURE(context, input != nullptr);
+  TF_LITE_ENSURE_EQ(context, NumDimensions(input), kTensorShapeRank);
+  TF_LITE_ENSURE_EQ(context, NumDimensions(output), kTensorShapeRank);
+  TF_LITE_ENSURE_TYPES_EQ(context, input->type, output->type);
 
-// Returns the TfLiteEvalTensor struct for a given input index in a node.
-const TfLiteEvalTensor* GetEvalInput(const TfLiteContext* context,
-                                     const TfLiteNode* node, int index);
+  int batches = SizeOfDimension(input, kBatchRank);
+  int height = SizeOfDimension(input, kHeightRank);
+  int width = SizeOfDimension(input, kWidthRank);
+  int channels_out = SizeOfDimension(input, kChannelRank);
 
-// Returns the TfLiteEvalTensor struct for a given output index in a node.
-TfLiteEvalTensor* GetEvalOutput(const TfLiteContext* context,
-                                const TfLiteNode* node, int index);
+  // Matching GetWindowedOutputSize in TensorFlow.
+  auto padding = params->padding;
+  int out_width, out_height;
 
-// Returns data for a TfLiteEvalTensor struct that are expected to exist.
-template <typename T>
-T* GetTensorData(TfLiteEvalTensor* tensor) {
-  TFLITE_DCHECK(tensor != nullptr);
-  return reinterpret_cast<T*>(tensor->data.raw);
+  params->computed.padding =
+      ComputePaddingHeightWidth(params->stride_height, params->stride_width, 1, 1, height, width, params->filter_height,
+                                params->filter_width, padding, &out_height, &out_width);
+
+  // We currently don't have a quantized implementation of L2Pool
+  TF_LITE_ENSURE_TYPES_EQ(context, input->type, kTfLiteFloat32);
+
+  // We must update the output tensor dimensions.
+  // The dims storage is expected to be the same area in memory
+  // for both TfLiteTensor and TfLiteEvalTensor.  This is important
+  // because TfLiteTensor in the MicroInterpreter is a temporary
+  // allocation.  For the KernelRunner interpreter, TfLiteEvalTensor
+  // is a temporary allocation.  We must therefore relocate the dims
+  // from the FlatBuffer to the persistent storage arena.
+  TfLiteEvalTensor *output_eval = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  TF_LITE_ENSURE_OK(context, tflite::micro::CreateWritableTensorDimsWithCopy(context, output, output_eval));
+  output->dims->data[kBatchRank] = batches;
+  output->dims->data[kHeightRank] = out_height;
+  output->dims->data[kWidthRank] = out_width;
+  output->dims->data[kChannelRank] = channels_out;
+
+  micro_context->DeallocateTempTfLiteTensor(output);
+  micro_context->DeallocateTempTfLiteTensor(input);
+
+  return kTfLiteOk;
 }
 
-// Returns const data for a TfLiteEvalTensor struct that are expected to exist.
-template <typename T>
-const T* GetTensorData(const TfLiteEvalTensor* tensor) {
-  TFLITE_DCHECK(tensor != nullptr);
-  return reinterpret_cast<const T*>(tensor->data.raw);
+void L2EvalFloat(const TfLitePoolParams &params, const TfLiteEvalTensor &input, tflite::PoolParams *op_params,
+                 TfLiteEvalTensor *output) {
+  float activation_min, activation_max;
+  CalculateActivationRange(params.activation, &activation_min, &activation_max);
+
+  op_params->float_activation_min = activation_min;
+  op_params->float_activation_max = activation_max;
+  reference_ops::L2Pool(*op_params, tflite::micro::GetTensorShape(&input), tflite::micro::GetTensorData<float>(&input),
+                        tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<float>(output));
 }
 
-// Returns data for a TfLiteEvalTensor struct that could be null.
-template <typename T>
-T* GetOptionalTensorData(TfLiteEvalTensor* tensor) {
-  return tensor == nullptr ? nullptr : reinterpret_cast<T*>(tensor->data.raw);
-}
+TfLiteStatus L2Eval(TfLiteContext *context, TfLiteNode *node) {
+  auto *params = static_cast<const TfLitePoolParams *>(node->builtin_data);
 
-// Returns const data for a TfLiteEvalTensor struct that could be null.
-template <typename T>
-const T* GetOptionalTensorData(const TfLiteEvalTensor* tensor) {
-  return tensor == nullptr ? nullptr
-                           : reinterpret_cast<const T*>(tensor->data.raw);
-}
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kInputTensor);
 
-#ifdef USE_TFLM_COMPRESSION
+  tflite::PoolParams op_params;
+  op_params.stride_height = params->stride_height;
+  op_params.stride_width = params->stride_width;
+  op_params.filter_height = params->filter_height;
+  op_params.filter_width = params->filter_width;
+  op_params.padding_values.height = params->computed.padding.height;
+  op_params.padding_values.width = params->computed.padding.width;
 
-// Overloads existing GetOptionalTensorData. If not compressed, this will return
-// tensor->data.
-template <typename T>
-const T* GetOptionalTensorData(MicroContext* micro_context,
-                               const TfLiteEvalTensor* tensor,
-                               const CompressionTensorData* compression_data,
-                               int scratch_buffer_handle) {
-  if (tensor == nullptr) {
-    return nullptr;
+  switch (input->type) {  // Already know in/out types are same.
+    case kTfLiteFloat32:
+      L2EvalFloat(*params, *input, &op_params, output);
+      break;
+    default:
+      MicroPrintf("L2_POOL_2D only supports float32 currently, got %s.", TfLiteTypeGetName(input->type));
+      return kTfLiteError;
   }
-  if (compression_data == nullptr) {
-    return reinterpret_cast<const T*>(tensor->data.data);
-  }
-
-  void* scratch_buffer = nullptr;
-  if (scratch_buffer_handle != -1) {
-    scratch_buffer = micro_context->GetScratchBuffer(scratch_buffer_handle);
-  } else {
-    size_t bytes_to_allocate = EvalTensorBytes(tensor);
-    scratch_buffer = micro_context->AllocateDecompressionMemory(
-        bytes_to_allocate, MicroArenaBufferAlignment());
-  }
-  TFLITE_DCHECK(scratch_buffer != nullptr);
-  void* uncompressed_data = micro_context->DecompressTensorToBuffer(
-      *tensor, *compression_data, scratch_buffer);
-  return reinterpret_cast<const T*>(uncompressed_data);
+  return kTfLiteOk;
 }
 
-// Overloads existing GetTensorData. If not compressed, this will return
-// tensor->data.
-template <typename T>
-const T* GetTensorData(MicroContext* micro_context,
-                       const TfLiteEvalTensor* tensor,
-                       const CompressionTensorData* compression_data,
-                       int scratch_buffer_handle) {
-  TFLITE_DCHECK(tensor != nullptr);
-  return GetOptionalTensorData<T>(micro_context, tensor, compression_data,
-                                  scratch_buffer_handle);
-}
+}  // namespace
 
-#endif  // USE_TFLM_COMPRESSION
+TFLMRegistration Register_L2_POOL_2D() { return tflite::micro::RegisterOp(nullptr, L2Prepare, L2Eval); }
 
-// Returns the shape of a TfLiteEvalTensor struct.
-const RuntimeShape GetTensorShape(const TfLiteEvalTensor* tensor);
-
-// Return true if the given tensors have the same shape.
-bool HaveSameShapes(const TfLiteEvalTensor* input1,
-                    const TfLiteEvalTensor* input2);
-
-PaddingType RuntimePaddingType(TfLitePadding padding);
-
-// Relocate tensor dims from FlatBuffer to the persistent storage arena.
-// The old dims data is copied to the new storage area.
-// The tensor and eval_tensor must be the same tensor.
-// Only use during Prepare phase.
-TfLiteStatus CreateWritableTensorDimsWithCopy(TfLiteContext* context,
-                                              TfLiteTensor* tensor,
-                                              TfLiteEvalTensor* eval_tensor);
-
-// Copy all op input tensors to op output tensors. Requires all op input tensor
-// shapes and types to be identical to op output tensor shapes and types.
-TfLiteStatus CopyOpInputsToOpOutputs(TfLiteContext* context, TfLiteNode* node);
-
-// Copy all op input tensors to subgraph input tensors. Requires all op input
-// tensor shapes and types to be identical to subgraph input tensor shapes and
-// types.
-TfLiteStatus CopyOpInputsToSubgraphInputs(TfLiteContext* context,
-                                          TfLiteNode* node,
-                                          MicroGraph* graph_info,
-                                          int subgraph_idx,
-                                          int first_tensor_idx);
-
-// Copy all op output tensors to subgraph input tensors. Requires all op output
-// tensor shapes and types to be identical to subgraph input tensor shapes and
-// types.
-TfLiteStatus CopyOpOutputsToSubgraphInputs(TfLiteContext* context,
-                                           TfLiteNode* node,
-                                           MicroGraph* graph_info,
-                                           int subgraph_idx);
-
-// Copy all subgraph output tensors to op outputs. Requires all subgraph output
-// tensor shapes and types to be identical to op output tensor shapes and types.
-TfLiteStatus CopySubgraphOutputsToOpOutputs(TfLiteContext* context,
-                                            TfLiteNode* node,
-                                            MicroGraph* graph_info,
-                                            int subgraph_idx);
-
-// If tensor is INT4, make a new TfLiteEvalTensor with data unpacked into
-// a scratch buffer. The returned tensor will have the kTfLiteInt8 type.
-// Assume scratch buffer is previously requested in Prepare, and
-// scratch_buffer_index can be used to retrieve that buffer.
-// If the tensor is not INT4, a shallow copy is returned.
-TfLiteEvalTensor MakeUnpackedInt4Tensor(TfLiteContext* context,
-                                        int scratch_buffer_index,
-                                        const TfLiteEvalTensor* tensor);
-}  // namespace micro
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_KERNELS_KERNEL_UTIL_H_

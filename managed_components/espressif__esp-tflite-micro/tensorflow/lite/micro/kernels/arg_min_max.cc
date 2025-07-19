@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,106 +13,130 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/lite/kernels/internal/reference/arg_min_max.h"
+#include <stddef.h>
+
+#include <cstring>
 
 #include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/reference/comparisons.h"
-#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/internal/compatibility.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
+#include "tensorflow/lite/micro/memory_helpers.h"
+#include "tensorflow/lite/micro/micro_graph.h"
 #include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_resource_variable.h"
+#include "tensorflow/lite/micro/micro_utils.h"
+#include "tensorflow/lite/schema/schema_generated.h"
 
 namespace tflite {
 
 namespace {
 
-constexpr int kInputTensor = 0;
-constexpr int kAxis = 1;
-constexpr int kOutputTensor = 0;
+constexpr int kInputVariableId = 0;
+constexpr int kInputValue = 1;
 
-template <typename T1, typename T2, typename T3>
-inline void ArgMinMaxHelper(const RuntimeShape& input1_shape,
-                            const T1* input1_data, const T3* input2_data,
-                            const RuntimeShape& output_shape, T2* output_data,
-                            bool is_arg_max) {
-  // Use Greater/Less from comparisons.h (formerly from kernels/micro_utils.h
-  // which was deprecated). Same as gtl::Greater but used here to reduce
-  // dependencies and binary size for micro environment.
-  if (is_arg_max) {
-    reference_ops::ArgMinMax(input1_shape, input1_data, input2_data,
-                             output_shape, output_data,
-                             reference_ops::GreaterFn<T1>);
-  } else {
-    reference_ops::ArgMinMax(input1_shape, input1_data, input2_data,
-                             output_shape, output_data,
-                             reference_ops::LessFn<T1>);
-  }
+#ifdef USE_TFLM_COMPRESSION
+
+struct OpData {
+  // scratch buffer for compressed input tensor
+  int scratch_index;
+};
+
+void *Init(TfLiteContext *context, const char *buffer, size_t length) {
+  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
+  return context->AllocatePersistentBuffer(context, sizeof(OpData));
 }
 
-TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node, bool is_arg_max) {
-  const TfLiteEvalTensor* input =
-      tflite::micro::GetEvalInput(context, node, kInputTensor);
-  const TfLiteEvalTensor* axis =
-      tflite::micro::GetEvalInput(context, node, kAxis);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+#endif  // USE_TFLM_COMPRESSION
 
-#define TF_LITE_ARG_MIN_MAX(data_type, axis_type, output_type)       \
-  ArgMinMaxHelper(tflite::micro::GetTensorShape(input),              \
-                  tflite::micro::GetTensorData<data_type>(input),    \
-                  tflite::micro::GetTensorData<axis_type>(axis),     \
-                  tflite::micro::GetTensorShape(output),             \
-                  tflite::micro::GetTensorData<output_type>(output), \
-                  is_arg_max)
-  if (axis->type == kTfLiteInt32) {
-    if (output->type == kTfLiteInt32) {
-      switch (input->type) {
-        case kTfLiteFloat32:
-          TF_LITE_ARG_MIN_MAX(float, int32_t, int32_t);
-          break;
-        case kTfLiteInt8:
-          TF_LITE_ARG_MIN_MAX(int8_t, int32_t, int32_t);
-          break;
-        default:
-          MicroPrintf(
-              "Only float32, uint8_t and int8_t are "
-              "supported currently, got %s.",
-              TfLiteTypeGetName(input->type));
-          return kTfLiteError;
-      }
-    } else {
-      MicroPrintf("Only int32_t are supported currently, got %s.",
-                  TfLiteTypeGetName(output->type));
-      return kTfLiteError;
-    }
-  } else {
-    MicroPrintf("Only int32_t are supported currently, got %s.",
-                TfLiteTypeGetName(axis->type));
-    return kTfLiteError;
+TfLiteStatus Prepare(TfLiteContext *context, TfLiteNode *node) {
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 2);
+  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 0);
+
+  // This must be a TfLiteEvalTensor despite this being in Prepare, because
+  // CreateTensor allocates a temp tensor from the flatbuffer, which does not
+  // contain the correct ID generated within the VAR_HANDLE op. EvalTensors are
+  // all allocated during StartModelAllocation which happens before
+  // init/prepare, and VAR_HANDLE Prepare() references its own op_data in the
+  // TfLiteEvalTensor, so reading the ID here is valid.
+  const TfLiteEvalTensor *input_resource_id_tensor = tflite::micro::GetEvalInput(context, node, kInputVariableId);
+  TFLITE_DCHECK(input_resource_id_tensor != nullptr);
+  TF_LITE_ENSURE(context,
+                 (input_resource_id_tensor->type == kTfLiteResource || input_resource_id_tensor->type == kTfLiteInt32));
+  TF_LITE_ENSURE_EQ(context, NumElements(input_resource_id_tensor->dims), 1);
+
+  tflite::MicroContext *micro_context = tflite::GetMicroContext(context);
+  TfLiteTensor *input_value = micro_context->AllocateTempInputTensor(node, kInputValue);
+  TFLITE_DCHECK(input_value != nullptr);
+
+  MicroGraph &graph_info = micro_context->graph();
+
+  MicroResourceVariables *resources = graph_info.GetResourceVariables();
+  // If the data field of this tensor is nullptr, we assume that this is a case
+  // of using resource variables in another subgraph, and the resource_id
+  // will be valid during Eval time. In case it wasn't valid, this will
+  // still be caught during Invoke. More info in b/277231654.
+  if (input_resource_id_tensor->data.i32 != nullptr) {
+    TF_LITE_ENSURE_OK(context, resources->Allocate(input_resource_id_tensor->data.i32[0], context, input_value));
   }
 
-#undef TF_LITE_ARG_MIN_MAX
+#ifdef USE_TFLM_COMPRESSION
 
+  TFLITE_DCHECK(node->user_data != nullptr);
+  OpData *data = static_cast<OpData *>(node->user_data);
+  // Compression scratch buffers.
+  // These will only be allocated if the tensor is compressed.
+  data->scratch_index = micro_context->AllocateDecompressionScratchBuffer(node, kInputValue);
+
+#endif  // USE_TFLM_COMPRESSION
+
+  micro_context->DeallocateTempTfLiteTensor(input_value);
   return kTfLiteOk;
 }
 
-TfLiteStatus ArgMinEval(TfLiteContext* context, TfLiteNode* node) {
-  return Eval(context, node, false);
+TfLiteStatus Eval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *input_id = tflite::micro::GetEvalInput(context, node, kInputVariableId);
+  TFLITE_DCHECK(input_id != nullptr);
+
+  const TfLiteEvalTensor *input_value = tflite::micro::GetEvalInput(context, node, kInputValue);
+  TFLITE_DCHECK(input_value != nullptr);
+
+  tflite::MicroContext *micro_context = tflite::GetMicroContext(context);
+  MicroGraph &graph_info = micro_context->graph();
+
+  MicroResourceVariables *resources = graph_info.GetResourceVariables();
+  if (resources == nullptr) {
+    MicroPrintf("ASSIGN_VARIABLE requires resource variables. Please create "
+                "ResourceVariables and pass it to the interpreter.");
+    return kTfLiteError;
+  }
+
+#ifdef USE_TFLM_COMPRESSION
+  OpData *data = static_cast<OpData *>(node->user_data);
+  const CompressionTensorData *comp_td = micro_context->GetTensorCompressionData(node, kInputValue);
+  const void *buffer = tflite::micro::GetTensorData<void>(micro_context, input_value, comp_td, data->scratch_index);
+#else   // USE_TFLM_COMPRESSION
+  const void *buffer = tflite::micro::GetTensorData<void>(input_value);
+#endif  // USE_TFLM_COMPRESSION
+
+  TF_LITE_ENSURE_OK(context, resources->Assign(input_id->data.i32[0], EvalTensorBytes(input_value), buffer));
+  return kTfLiteOk;
 }
 
-TfLiteStatus ArgMaxEval(TfLiteContext* context, TfLiteNode* node) {
-  return Eval(context, node, true);
-}
+}  // namespace.
 
-}  // namespace
+#ifdef USE_TFLM_COMPRESSION
 
-TFLMRegistration Register_ARG_MAX() {
-  return tflite::micro::RegisterOp(nullptr, nullptr, ArgMaxEval);
-}
+TFLMRegistration Register_ASSIGN_VARIABLE() {
+  return tflite::micro::RegisterOp(Init, Prepare, Eval);
 
-TFLMRegistration Register_ARG_MIN() {
-  return tflite::micro::RegisterOp(nullptr, nullptr, ArgMinEval);
+#else  // USE_TFLM_COMPRESSION
+
+TFLMRegistration Register_ASSIGN_VARIABLE() {
+  return tflite::micro::RegisterOp(nullptr, Prepare, Eval);
+
+#endif  // USE_TFLM_COMPRESSION
 }
 
 }  // namespace tflite

@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,47 +12,62 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_
-#define TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_
 
-#include <cstddef>
-#include <cstdint>
+#include "tensorflow/lite/micro/arena_allocator/recording_single_arena_buffer_allocator.h"
 
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/micro/arena_allocator/ibuffer_allocator.h"
-#include "tensorflow/lite/micro/compatibility.h"
+#include <new>
+
+#include "tensorflow/lite/kernels/internal/compatibility.h"
 
 namespace tflite {
 
-// PersistentArenaBufferAllocator is an implementatation of
-// IPersistentBufferAllocator interface on an arena that is dedicated for
-// persistent buffers.
-class PersistentArenaBufferAllocator : public IPersistentBufferAllocator {
- public:
-  PersistentArenaBufferAllocator(uint8_t* buffer, size_t buffer_size);
-  virtual ~PersistentArenaBufferAllocator();
+RecordingSingleArenaBufferAllocator::RecordingSingleArenaBufferAllocator(uint8_t *buffer_head, size_t buffer_size)
+    : SingleArenaBufferAllocator(buffer_head, buffer_size),
+      requested_head_bytes_(0),
+      requested_tail_bytes_(0),
+      used_bytes_(0),
+      alloc_count_(0) {}
 
-  // Allocates persistent memory. The persistent buffer is never freed.
-  // Returns nullptr if errors occured.
-  uint8_t* AllocatePersistentBuffer(size_t size, size_t alignment) override;
+RecordingSingleArenaBufferAllocator::~RecordingSingleArenaBufferAllocator() {}
 
-  // Returns the size of all persistent allocations in bytes.
-  size_t GetPersistentUsedBytes() const override;
+RecordingSingleArenaBufferAllocator *RecordingSingleArenaBufferAllocator::Create(uint8_t *buffer_head,
+                                                                                 size_t buffer_size) {
+  TFLITE_DCHECK(buffer_head != nullptr);
+  RecordingSingleArenaBufferAllocator tmp = RecordingSingleArenaBufferAllocator(buffer_head, buffer_size);
 
-  TF_LITE_REMOVE_VIRTUAL_DELETE
- private:
-  // The memory arena that this allocator manages.
-  uint8_t* const buffer_head_;
-  uint8_t* const buffer_tail_;
+  uint8_t *allocator_buffer = tmp.AllocatePersistentBuffer(sizeof(RecordingSingleArenaBufferAllocator),
+                                                           alignof(RecordingSingleArenaBufferAllocator));
+  // Use the default copy constructor to populate internal states.
+  return new (allocator_buffer) RecordingSingleArenaBufferAllocator(tmp);
+}
 
-  // The whole region is split into two parts:
-  // tail_temp_ to buffer_tail_ contains allocated buffers;
-  // buffer_head_ to tail_temp_ - 1 belongs to still available spaces.
-  // So in essence, the allocated region grows from the bottom and emulates
-  // SingleArenaBufferAllocator's persistent part.
-  uint8_t* tail_temp_;
-};
+size_t RecordingSingleArenaBufferAllocator::GetRequestedBytes() const {
+  return requested_head_bytes_ + requested_tail_bytes_;
+}
+
+size_t RecordingSingleArenaBufferAllocator::GetUsedBytes() const { return used_bytes_; }
+
+size_t RecordingSingleArenaBufferAllocator::GetAllocatedCount() const { return alloc_count_; }
+
+TfLiteStatus RecordingSingleArenaBufferAllocator::ResizeBuffer(uint8_t *resizable_buf, size_t size, size_t alignment) {
+  const uint8_t *previous_head = head();
+  TfLiteStatus status = SingleArenaBufferAllocator::ResizeBuffer(resizable_buf, size, alignment);
+  if (status == kTfLiteOk) {
+    used_bytes_ += head() - previous_head;
+    requested_head_bytes_ = size;
+  }
+  return status;
+}
+
+uint8_t *RecordingSingleArenaBufferAllocator::AllocatePersistentBuffer(size_t size, size_t alignment) {
+  const uint8_t *previous_tail = tail();
+  uint8_t *result = SingleArenaBufferAllocator::AllocatePersistentBuffer(size, alignment);
+  if (result != nullptr) {
+    used_bytes_ += previous_tail - tail();
+    requested_tail_bytes_ += size;
+    alloc_count_++;
+  }
+  return result;
+}
 
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_ARENA_ALLOCATOR_PERSISTENT_ARENA_BUFFER_ALLOCATOR_H_

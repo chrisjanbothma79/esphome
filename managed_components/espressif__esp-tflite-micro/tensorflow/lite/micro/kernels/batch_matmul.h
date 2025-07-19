@@ -1,4 +1,4 @@
-/* Copyright 2024 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,164 +13,85 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_MICRO_KERNELS_BATCH_MATMUL_H_
-#define TENSORFLOW_LITE_MICRO_KERNELS_BATCH_MATMUL_H_
+#include "tensorflow/lite/kernels/internal/reference/batch_to_space_nd.h"
 
-#include <cstdint>
-
-#include "tensorflow/lite/c/builtin_op_data.h"
-#include "tensorflow/lite/kernels/internal/reference/transpose.h"
-#include "tensorflow/lite/kernels/internal/types.h"
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_common.h"
 #include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_utils.h"
 
 namespace tflite {
 
-extern constexpr int kBatchMatmulInputLhsTensor = 0;
-extern constexpr int kBatchMatmulInputRhsTensor = 1;
-extern constexpr int kBatchMatmulOutputTensor = 0;
+namespace {
 
-struct QuantizationOpDataBatchMatmul {
-  // The scaling factor from input to output (aka the 'real multiplier') can
-  // be represented as a fixed point multiplier plus a left shift.
-  int32_t output_multiplier;
-  int output_shift;  // exponent
+constexpr int kInputTensor = 0;
+constexpr int kBlockShapeTensor = 1;
+constexpr int kCropsTensor = 2;
+constexpr int kOutputTensor = 0;
 
-  // The range of the fused activation layer. For example for kNone and
-  // int8_t these would be -128 and 127.
-  int32_t output_activation_min;
-  int32_t output_activation_max;
+// Currently, only 3D NHC and 4D NHWC input/output op_context are supported.
+// In case of 3D input, it will be extended to 3D NHWC by adding W=1.
+// The 4D array need to have exactly 2 spatial dimensions.
+// TODO(b/149952582): Support arbitrary dimension in SpaceToBatchND.
+const int kInputOutputMinDimensionNum = 3;
+const int kInputOutputMaxDimensionNum = 4;
 
-  int32_t lhs_zero_point;
-  int32_t rhs_zero_point;
-  int32_t output_zero_point;
-};
+TfLiteStatus BatchToSpaceNDPrepare(TfLiteContext *context, TfLiteNode *node) {
+  TF_LITE_ENSURE_EQ(context, NumInputs(node), 3);
+  TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
 
-struct OpDataBatchMatmul {
-  QuantizationOpDataBatchMatmul* quantization;
+  MicroContext *micro_context = GetMicroContext(context);
 
-  // Transpose tensors and state
-  TfLiteEvalTensor* lhs_transposed_tensor;
-  TfLiteEvalTensor* rhs_transposed_tensor;
-  bool rhs_is_transposed;
-  bool lhs_is_constant_tensor;
-  bool rhs_is_constant_tensor;
-};
+  TfLiteTensor *input = micro_context->AllocateTempInputTensor(node, kInputTensor);
+  TfLiteTensor *output = micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  TF_LITE_ENSURE(context, input != nullptr && output != nullptr);
 
-TfLiteStatus ReshapeOutputTensor(TfLiteContext* context, TfLiteNode* node,
-                                 const RuntimeShape& extended_lhs_shape,
-                                 const RuntimeShape& extended_rhs_shape,
-                                 bool adj_x, bool adj_y, int output_rank,
-                                 TfLiteTensor* output) {
-  int64_t orig_size = NumElements(output);
+  TF_LITE_ENSURE(context, NumDimensions(input) >= kInputOutputMinDimensionNum);
+  TF_LITE_ENSURE(context, NumDimensions(output) >= kInputOutputMinDimensionNum);
+  TF_LITE_ENSURE(context, NumDimensions(input) <= kInputOutputMaxDimensionNum);
+  TF_LITE_ENSURE(context, NumDimensions(output) <= kInputOutputMaxDimensionNum);
+  TF_LITE_ENSURE_TYPES_EQ(context, input->type, output->type);
 
-  // make sure the new output dims rank does not exceed the original rank
-  TF_LITE_ENSURE(context, output_rank <= NumDimensions(output));
-
-  // make sure output tensor dims are not in the FlatBuffer
-  TfLiteEvalTensor* output_eval =
-      tflite::micro::GetEvalOutput(context, node, kBatchMatmulOutputTensor);
-  TF_LITE_ENSURE_OK(context, tflite::micro::CreateWritableTensorDimsWithCopy(
-                                 context, output, output_eval));
-
-  // Fill in any broadcast dimensions.
-  for (int i = 0; i < output_rank - 2; ++i) {
-    const int lhs_dim = extended_lhs_shape.Dims(i);
-    const int rhs_dim = extended_rhs_shape.Dims(i);
-    int broadcast_dim = lhs_dim;
-    if ((lhs_dim != rhs_dim) && (lhs_dim == 1)) {
-      broadcast_dim = rhs_dim;
-    }
-    output->dims->data[i] = broadcast_dim;
-  }
-  // Fill in the matmul dimensions.
-  int lhs_rows_index = adj_x ? output_rank - 1 : output_rank - 2;
-  int rhs_cols_index = adj_y ? output_rank - 2 : output_rank - 1;
-
-  output->dims->data[output_rank - 2] = extended_lhs_shape.Dims(lhs_rows_index);
-  output->dims->data[output_rank - 1] = extended_rhs_shape.Dims(rhs_cols_index);
-  output->dims->size = output_rank;
-
-  // Check that output tensor has not been resized
-  // since TFLM doesn't support tensor resizing.
-  TF_LITE_ENSURE_EQ(context, orig_size, NumElements(output));
+  micro_context->DeallocateTempTfLiteTensor(input);
+  micro_context->DeallocateTempTfLiteTensor(output);
 
   return kTfLiteOk;
 }
 
-template <typename T>
-void TransposeRowsColumnsImpl(const TfLiteEvalTensor& tensor_in,
-                              TfLiteEvalTensor* tensor_out) {
-  const T* input = tflite::micro::GetTensorData<T>(&tensor_in);
-  T* output = tflite::micro::GetTensorData<T>(tensor_out);
-  RuntimeShape transposed_shape(tflite::micro::GetTensorShape(&tensor_in));
-  RuntimeShape shape(transposed_shape);
-  TransposeParams params;
-  const int rank = shape.DimensionsCount();
-  params.perm_count = rank;
-  for (int i = 0; i < rank - 2; ++i) {
-    params.perm[i] = i;
+TfLiteStatus BatchToSpaceNDEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kInputTensor);
+  const TfLiteEvalTensor *block_shape = tflite::micro::GetEvalInput(context, node, kBlockShapeTensor);
+  const TfLiteEvalTensor *crops = tflite::micro::GetEvalInput(context, node, kCropsTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kOutputTensor);
+
+  switch (input->type) {  // Already know in/out types are same.
+    case kTfLiteFloat32:
+      reference_ops::BatchToSpaceND(tflite::micro::GetTensorShape(input), tflite::micro::GetTensorData<float>(input),
+                                    tflite::micro::GetTensorShape(block_shape),
+                                    tflite::micro::GetTensorData<int32_t>(block_shape),
+                                    tflite::micro::GetTensorShape(crops), tflite::micro::GetTensorData<int32_t>(crops),
+                                    tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<float>(output));
+      break;
+    case kTfLiteInt8:
+      reference_ops::BatchToSpaceND(
+          tflite::micro::GetTensorShape(input), tflite::micro::GetTensorData<int8_t>(input),
+          tflite::micro::GetTensorShape(block_shape), tflite::micro::GetTensorData<int32_t>(block_shape),
+          tflite::micro::GetTensorShape(crops), tflite::micro::GetTensorData<int32_t>(crops),
+          tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<int8_t>(output));
+      break;
+    default:
+      MicroPrintf("Type %s (%d) not supported.", TfLiteTypeGetName(input->type), input->type);
+      return kTfLiteError;
   }
-  // Transpose the last two dimensions.
-  params.perm[rank - 2] = rank - 1;
-  params.perm[rank - 1] = rank - 2;
-  transposed_shape.SetDim(rank - 1, shape.Dims(rank - 2));
-  transposed_shape.SetDim(rank - 2, shape.Dims(rank - 1));
-  reference_ops::Transpose(params, shape, input, transposed_shape, output);
+  return kTfLiteOk;
 }
 
-TfLiteStatus TransposeRowsColumns(const TfLiteEvalTensor& tensor_in,
-                                  TfLiteEvalTensor* tensor_out) {
-  if (tensor_in.type == kTfLiteFloat32) {
-    TransposeRowsColumnsImpl<float>(tensor_in, tensor_out);
-    return kTfLiteOk;
-  } else if (tensor_in.type == kTfLiteInt8) {
-    TransposeRowsColumnsImpl<int8_t>(tensor_in, tensor_out);
-    return kTfLiteOk;
-  } else if (tensor_in.type == kTfLiteInt16) {
-    TransposeRowsColumnsImpl<int16_t>(tensor_in, tensor_out);
-    return kTfLiteOk;
-  } else {
-    MicroPrintf(
-        "BATCH_MATMUL can only transpose tensors with FLOAT32, INT8, INT16 "
-        "type.");
-  }
-  return kTfLiteError;
+}  // namespace.
+
+TFLMRegistration Register_BATCH_TO_SPACE_ND() {
+  return tflite::micro::RegisterOp(nullptr, BatchToSpaceNDPrepare, BatchToSpaceNDEval);
 }
-
-RuntimeShape SwapRowColumnDims(const RuntimeShape& shape) {
-  RuntimeShape swapped_shape(shape);
-  const int32_t dims = shape.DimensionsCount();
-  swapped_shape.SetDim(dims - 2, shape.Dims(dims - 1));
-  swapped_shape.SetDim(dims - 1, shape.Dims(dims - 2));
-  return swapped_shape;
-}
-
-TFLMRegistration Register_BATCH_MATMUL();
-
-#if defined(CMSIS_NN)
-// Returns a TFLMRegistration struct for kernel variant that only supports
-// int8 matrix multiplication and uses the latency optimized
-// implementations.
-TFLMRegistration Register_BATCH_MATMUL_INT8();
-
-// Returns a TFLMRegistration struct for kernel variant that only supports
-// int16 matrix multiplication and uses the latency optimized
-// implementations.
-TFLMRegistration Register_BATCH_MATMUL_INT16();
-
-#else
-inline TFLMRegistration Register_BATCH_MATMUL_INT8() {
-  return Register_BATCH_MATMUL();
-}
-
-inline TFLMRegistration Register_BATCH_MATMUL_INT16() {
-  return Register_BATCH_MATMUL();
-}
-#endif  // defined(CMSIS_NN)
 
 }  // namespace tflite
-
-#endif  // TENSORFLOW_LITE_MICRO_KERNELS_BATCH_MATMUL_H_

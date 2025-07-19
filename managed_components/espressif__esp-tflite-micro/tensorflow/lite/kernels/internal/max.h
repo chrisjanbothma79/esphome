@@ -12,24 +12,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_MAX_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_MAX_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_MIN_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_MIN_H_
 
 #include <cmath>
 
 namespace tflite {
 
-#if defined(TF_LITE_USE_GLOBAL_MAX) || defined(__ZEPHYR__)
-inline float TfLiteMax(const float& x, const float& y) {
-  return std::max(x, y);
-}
+#if defined(TF_LITE_USE_GLOBAL_MIN) || defined(__ZEPHYR__)
+inline float TfLiteMin(const float &x, const float &y) { return std::min(x, y); }
 #else
-template <class T>
-inline T TfLiteMax(const T& x, const T& y) {
-  return std::fmax(x, y);
-}
+template<class T> inline T TfLiteMin(const T &x, const T &y) { return std::fmin(x, y); }
 #endif
 
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_MAX_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_MIN_H_

@@ -12,52 +12,85 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+
+#include "tensorflow/lite/kernels/internal/reference/integer_ops/logistic.h"
+
+#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/kernels/internal/reference/binary_function.h"
+#include "tensorflow/lite/kernels/internal/common.h"
+#include "tensorflow/lite/kernels/internal/quantization_util.h"
+#include "tensorflow/lite/kernels/internal/reference/logistic.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
+#include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/kernels/op_macros.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/kernels/logical.h"
+#include "tensorflow/lite/micro/kernels/logistic.h"
+#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
+namespace {
 
-// Input/output tensor index.
-const int kLogicalInputTensor1 = 0;
-const int kLogicalInputTensor2 = 1;
-const int kLogicalOutputTensor = 0;
+void *LogisticInit(TfLiteContext *context, const char *buffer, size_t length) {
+  TFLITE_DCHECK(context->AllocatePersistentBuffer != nullptr);
+  return context->AllocatePersistentBuffer(context, sizeof(OpDataLogistic));
+}
 
-TfLiteStatus LogicalImpl(TfLiteContext* context, TfLiteNode* node,
-                         bool (*func)(bool, bool)) {
-  const TfLiteEvalTensor* input1 =
-      tflite::micro::GetEvalInput(context, node, kLogicalInputTensor1);
-  const TfLiteEvalTensor* input2 =
-      tflite::micro::GetEvalInput(context, node, kLogicalInputTensor2);
-  TfLiteEvalTensor* output =
-      tflite::micro::GetEvalOutput(context, node, kLogicalOutputTensor);
+TfLiteStatus LogisticEval(TfLiteContext *context, TfLiteNode *node) {
+  const TfLiteEvalTensor *input = tflite::micro::GetEvalInput(context, node, kLogisticInputTensor);
+  TfLiteEvalTensor *output = tflite::micro::GetEvalOutput(context, node, kLogisticOutputTensor);
 
-  if (tflite::micro::HaveSameShapes(input1, input2)) {
-    reference_ops::BinaryFunction<bool, bool, bool>(
-        tflite::micro::GetTensorShape(input1),
-        tflite::micro::GetTensorData<bool>(input1),
-        tflite::micro::GetTensorShape(input2),
-        tflite::micro::GetTensorData<bool>(input2),
-        tflite::micro::GetTensorShape(output),
-        tflite::micro::GetTensorData<bool>(output), func);
+  TFLITE_DCHECK(node->user_data != nullptr);
+  OpDataLogistic *data = static_cast<OpDataLogistic *>(node->user_data);
+
+  if (input->type == kTfLiteFloat32) {
+    switch (output->type) {
+      case kTfLiteFloat32: {
+        reference_ops::Logistic(tflite::micro::GetTensorShape(input), tflite::micro::GetTensorData<float>(input),
+                                tflite::micro::GetTensorShape(output), tflite::micro::GetTensorData<float>(output));
+        return kTfLiteOk;
+      }
+      default:
+        MicroPrintf("Input %s, output %s not supported.", TfLiteTypeGetName(input->type),
+                    TfLiteTypeGetName(output->type));
+        return kTfLiteError;
+    }
+  } else if (input->type == kTfLiteInt16) {
+    switch (output->type) {
+      case kTfLiteInt16: {
+        reference_integer_ops::Logistic(data->input_multiplier, data->input_left_shift, NumElements(input->dims),
+                                        tflite::micro::GetTensorData<int16_t>(input),
+                                        tflite::micro::GetTensorData<int16_t>(output));
+        return kTfLiteOk;
+      }
+      default:
+        MicroPrintf("Input %s, output %s not supported.", TfLiteTypeGetName(input->type),
+                    TfLiteTypeGetName(output->type));
+        return kTfLiteError;
+    }
+  } else if (input->type == kTfLiteInt8) {
+    switch (output->type) {
+      case kTfLiteInt8: {
+        reference_integer_ops::Logistic(data->input_zero_point, data->input_range_radius, data->input_multiplier,
+                                        data->input_left_shift, NumElements(input->dims),
+                                        tflite::micro::GetTensorData<int8_t>(input),
+                                        tflite::micro::GetTensorData<int8_t>(output));
+        return kTfLiteOk;
+      }
+      default:
+        MicroPrintf("Input %s, output %s not supported.", TfLiteTypeGetName(input->type),
+                    TfLiteTypeGetName(output->type));
+        return kTfLiteError;
+    }
   } else {
-    reference_ops::BroadcastBinaryFunction4DSlow<bool, bool, bool>(
-        tflite::micro::GetTensorShape(input1),
-        tflite::micro::GetTensorData<bool>(input1),
-        tflite::micro::GetTensorShape(input2),
-        tflite::micro::GetTensorData<bool>(input2),
-        tflite::micro::GetTensorShape(output),
-        tflite::micro::GetTensorData<bool>(output), func);
+    // TODO(b/141211002): Also support other data types once we have supported
+    // temporary tensors in TFLM.
+    MicroPrintf("Input %s, output %s not supported.", TfLiteTypeGetName(input->type), TfLiteTypeGetName(output->type));
+    return kTfLiteError;
   }
-
   return kTfLiteOk;
 }
 
-bool LogicalOr(bool x, bool y) { return x || y; }
+}  // namespace
 
-bool LogicalAnd(bool x, bool y) { return x && y; }
-
+TFLMRegistration Register_LOGISTIC() { return tflite::micro::RegisterOp(LogisticInit, LogisticPrepare, LogisticEval); }
 }  // namespace tflite

@@ -1,4 +1,4 @@
-/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,75 +12,71 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ADD_N_H_
-#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ADD_N_H_
+#ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ARG_MIN_MAX_H_
+#define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ARG_MIN_MAX_H_
 
-#include <algorithm>
-#include <limits>
+#include <functional>
 
-#include "tensorflow/lite/kernels/internal/common.h"
+#include "tensorflow/lite/kernels/internal/types.h"
 
 namespace tflite {
+
 namespace reference_ops {
 
-// T is expected to be either float or int.
-template <typename T>
-inline void AddN(const RuntimeShape& input_shape, const size_t num_inputs,
-                 const T* const* input_data, T* output_data) {
-  // All inputs and output should have the same shape, this is checked during
-  // Prepare stage.
-  const size_t size = input_shape.FlatSize();
-  for (size_t i = 0; i < size; ++i) {
-    T x = 0;
-    for (size_t j = 0; j < num_inputs; ++j) {
-      x += input_data[j][i];
-    }
-    output_data[i] = x;
+template<typename T> std::function<bool(T, T)> GetComparefunction(bool is_arg_max) {
+  if (is_arg_max) {
+    return std::greater<T>();
+  } else {
+    return std::less<T>();
   }
 }
 
-inline void AddN(const ArithmeticParams& params,
-                 const RuntimeShape& input_shape, const size_t num_inputs,
-                 const int8_t* const* input_data, int8_t* output_data) {
-  TFLITE_DCHECK_LE(params.quantized_activation_min,
-                   params.quantized_activation_max);
-  // Input offset is negative input zero point. Activation tensors are
-  // asymmetric quantized so they span the full int8 range.
-  // All inputs should have same zero-point and scale, this is checked during
-  // Prepare stage.
-  TFLITE_DCHECK_GE(-params.input1_offset, std::numeric_limits<int8_t>::min());
-  TFLITE_DCHECK_LE(-params.input1_offset, std::numeric_limits<int8_t>::max());
-
-  // All inputs and output should have the same shape, this is checked during
-  // Prepare stage.
-  const size_t size = input_shape.FlatSize();
-  for (size_t i = 0; i < size; ++i) {
-    // accumulate in scaled_x before clamping to avoid overflow
-    const int32_t x = params.input1_offset;  // x = 0
-    const int32_t shifted_x = x * (1 << params.left_shift);
-    int32_t scaled_x = MultiplyByQuantizedMultiplierSmallerThanOneExp(
-        shifted_x, params.input1_multiplier, params.input1_shift);
-
-    for (size_t j = 0; j < num_inputs; ++j) {
-      const int32_t y = params.input1_offset + input_data[j][i];
-      const int32_t shifted_y = y * (1 << params.left_shift);
-      int32_t scaled_y = MultiplyByQuantizedMultiplierSmallerThanOneExp(
-          shifted_y, params.input1_multiplier, params.input1_shift);
-      scaled_x += scaled_y;
-    }
-
-    const int32_t raw_output =
-        MultiplyByQuantizedMultiplierSmallerThanOneExp(
-            scaled_x, params.output_multiplier, params.output_shift) +
-        params.output_offset;
-    const int32_t clamped_output =
-        std::min(params.quantized_activation_max,
-                 std::max(params.quantized_activation_min, raw_output));
-    output_data[i] = static_cast<int8_t>(clamped_output);
+template<typename T1, typename T2, typename T3, typename Cmp>
+void ArgMinMax(const RuntimeShape &input1_shape, const T1 *input1_data, const T3 *input2_data,
+               const RuntimeShape &output_shape, T2 *output_data, const Cmp &cmp) {
+  TFLITE_DCHECK_GT(input1_shape.DimensionsCount(), 0);
+  TFLITE_DCHECK_EQ(input1_shape.DimensionsCount() - 1, output_shape.DimensionsCount());
+  int axis = input2_data[0];
+  if (axis < 0) {
+    axis += input1_shape.DimensionsCount();
   }
+  const int axis_size = input1_shape.Dims(axis);
+
+  int outer_size = 1;
+  for (int i = 0; i < axis; ++i) {
+    TFLITE_DCHECK_EQ(input1_shape.Dims(i), output_shape.Dims(i));
+    outer_size *= input1_shape.Dims(i);
+  }
+
+  int inner_size = 1;
+  const int dims_count = input1_shape.DimensionsCount();
+  for (int i = axis + 1; i < dims_count; ++i) {
+    TFLITE_DCHECK_EQ(input1_shape.Dims(i), output_shape.Dims(i - 1));
+    inner_size *= input1_shape.Dims(i);
+  }
+  for (int outer = 0; outer < outer_size; ++outer) {
+    for (int inner = 0; inner < inner_size; ++inner) {
+      auto min_max_value = input1_data[outer * axis_size * inner_size + inner];
+      T2 min_max_index = 0;
+      for (int i = 1; i < axis_size; ++i) {
+        const auto &curr_value = input1_data[(outer * axis_size + i) * inner_size + inner];
+        if (cmp(curr_value, min_max_value)) {
+          min_max_value = curr_value;
+          min_max_index = static_cast<T2>(i);
+        }
+      }
+      output_data[outer * inner_size + inner] = min_max_index;
+    }
+  }
+}
+
+template<typename T1, typename T2, typename T3>
+void ArgMinMax(const RuntimeShape &input1_shape, const T1 *input1_data, const T3 *input2_data,
+               const RuntimeShape &output_shape, T2 *output_data, const bool is_arg_max) {
+  ArgMinMax(input1_shape, input1_data, input2_data, output_shape, output_data, GetComparefunction<T1>(is_arg_max));
 }
 
 }  // namespace reference_ops
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ADD_N_H_
+#endif  // TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_ARG_MIN_MAX_H_

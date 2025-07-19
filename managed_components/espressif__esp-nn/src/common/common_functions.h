@@ -12,244 +12,137 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#include <esp_nn_defs.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
+#include <common_functions.h>
+
+int esp_nn_get_conv_scratch_size_ansi(const data_dims_t *input_dims, const data_dims_t *filter_dims,
+                                      const data_dims_t *output_dims, const conv_params_t *conv_params) {
+  return 0;
+}
+
+void esp_nn_set_conv_scratch_buf_ansi(const void *buf) {}
 
 /**
- * c99 standard still doesn't strictly inline functions
- * We need to use attribute as well to do this.
+ * Assumption 1: i/p channels == o/p channels
+ * Assumption 2: Pointers are valid
+ * Assumption 3: dialation width = 1
  */
-#define __NN_FORCE_INLINE__ __attribute((always_inline)) static inline
+void esp_nn_conv_u8_ansi(const uint8_t *input_data, const uint16_t input_wd, const uint16_t input_ht,
+                         const uint16_t in_channels, const int32_t input_offset, const uint16_t pad_wd,
+                         const uint16_t pad_ht, const uint16_t stride_wd, const uint16_t stride_ht,
+                         const uint8_t *filter_data, const uint16_t filter_wd, const uint16_t filter_ht,
+                         const int32_t filter_offset, const int32_t *bias, uint8_t *out_data, const uint16_t out_wd,
+                         const uint16_t out_ht, const uint16_t out_channels, const int32_t out_offset,
+                         const int32_t out_shift, const int32_t out_mult, const int32_t activation_min,
+                         const int32_t activation_max) {
+  for (int out_y = 0; out_y < out_ht; out_y++) {  // height loop
+    const int16_t base_y = (out_y * stride_ht) - pad_ht;
+    for (int out_x = 0; out_x < out_wd; out_x++) {  // width_loop
+      const int16_t base_x = (out_x * stride_wd) - pad_wd;
+      for (int out_ch_idx = 0; out_ch_idx < out_channels; out_ch_idx++) {  // channel_loop
+        int32_t result = 0;
 
-/* min/max macros */
-#ifndef max
-#define max(a, b) ({            \
-    __typeof__ (a) _a = (a);    \
-    __typeof__ (b) _b = (b);    \
-    _a > _b ? _a : _b;          \
-})
+        /* Select filter so as the point doesn't lie outside block */
+        int filter_y_start = max(0, -base_y);
+        int filter_x_start = max(0, -base_x);
+        int filter_y_end = min(filter_ht, input_ht - base_y);
+        int filter_x_end = min(filter_wd, input_wd - base_x);
 
-#define min(a, b) ({            \
-    __typeof__ (a) _a = (a);    \
-    __typeof__ (b) _b = (b);    \
-    _a < _b ? _a : _b;          \
-})
-#endif
-
-__NN_FORCE_INLINE__ int32_t esp_nn_clz32(uint32_t in)
-{
-#if CONFIG_IDF_TARGET_ARCH_XTENSA
-    __asm__ volatile("nsau %0, %0" : "+r" (in));
-    return in;
-#elif defined(__GNUC__)
-    return __builtin_clz(in);
-#else
-    int32_t count = 32;
-    uint32_t x = in, y = in >> 16;
-    if (y != 0) {
-        count -= 16;
-        x = y;
-    }
-    y = x >> 8;
-    if (y != 0) {
-        count -= 8;
-        x = y;
-    }
-    y = x >> 4;
-    if (y != 0) {
-        count -= 4;
-        x = y;
-    }
-    y = x >> 2;
-    if (y != 0) {
-        count -= 2;
-        x = y;
-    }
-    y = x >> 1;
-    if (y != 0) {
-        return count - 2;
-    }
-    return count - x;
-#endif
-}
-
-/**
- * Signed saturate a 32 bit value to 8 bits keeping output in 32 bit variable.
- */
-__NN_FORCE_INLINE__ int32_t esp_nn_saturate8(int32_t in)
-{
-#if CONFIG_IDF_TARGET_ARCH_XTENSA
-    __asm__ volatile("clamps %0, %0, 7" : "+a"(in));
-    return in;
-#else
-    return max(INT8_MIN, min(in, INT8_MAX));
-#endif
-}
-
-__NN_FORCE_INLINE__ int32_t esp_nn_pick_sat_high32_of64(int64_t val64)
-{
-    int32_t sign = (int32_t) (val64 >> 63);
-    int32_t to_add = sign & ((1ul << 31) - 1);
-    return (int32_t) ((int64_t) (val64 + to_add) >> 31);
-}
-
-__NN_FORCE_INLINE__ int32_t esp_nn_sat_round_doubling_high_mul(int32_t in0, int32_t in1)
-{
-    int32_t result;
-    int64_t in0_64 = (int64_t) in0;
-    bool overflow = (in0 == in1) && (in0 == (int32_t) INT32_MIN);
-
-    /* Nudge value */
-    int64_t nudge_val = 1 << 30;
-    if ((in0 < 0) ^ (in1 < 0)) {
-        nudge_val = 1 - nudge_val;
-    }
-
-    /* Multiply and add nudge */
-    int64_t mult = in0_64 * in1 + nudge_val;
-
-    /* Round and pickup 32 bits */
-    result = esp_nn_pick_sat_high32_of64(mult);
-
-    return overflow ? INT32_MAX : result;
-}
-
-/**
- * fast version
- * this will fail for values closer to INT32_MAX and INT32_MIN by `1 << (exponent - 1)`.
- * We can afford to do this because we are at the very last stage of filter.
- * Also it is pretty rare condition as our output is going to be 8 bit.
- */
-__NN_FORCE_INLINE__ int32_t esp_nn_div_by_power_of_two_fast(int32_t val, int32_t exponent)
-{
-    int32_t to_add = (1 << (exponent - 1)) - (val < 0);
-    return (int32_t) ((val + to_add) >> exponent);
-}
-
-__NN_FORCE_INLINE__ int32_t esp_nn_div_by_power_of_two(int32_t val, int32_t exponent)
-{
-    int32_t result;
-
-    const int32_t mask = (1 << exponent) - 1;
-    const int32_t remainder = val & mask;
-
-    result = val >> exponent;
-    int32_t threshold = (mask >> 1) + (result < 0);
-
-    if (remainder > threshold) {
-        result += 1;
-    }
-    return result;
-}
-
-__NN_FORCE_INLINE__ int32_t esp_nn_multiply_by_quantized_mult(int32_t x, int32_t mult, int32_t shift)
-{
-    int32_t left_shift = shift > 0 ? shift : 0;
-    int32_t right_shift = shift > 0 ? 0 : -shift;
-    int32_t result = esp_nn_sat_round_doubling_high_mul(x * (1 << left_shift), mult);
-    return esp_nn_div_by_power_of_two(result, right_shift);
-}
-
-__NN_FORCE_INLINE__ int32_t esp_nn_multiply_by_quantized_mult_fast(int32_t x, int32_t mult, int32_t shift)
-{
-    int32_t left_shift = max(shift, 0);
-    int32_t right_shift = left_shift - shift;
-
-    int64_t nudge_val = 1 << 30;
-    int64_t in0_64 = (int64_t) (x << left_shift);
-
-    /* Multiply and add nudge */
-    int64_t mult_64 = in0_64 * mult + nudge_val;
-    int32_t result = (int32_t) (mult_64 >> 31);
-    if (right_shift) {
-        result = esp_nn_div_by_power_of_two_fast(result, right_shift);
-    }
-    return result;
-}
-
-static void esp_nn_aligned_s8_pad_with_value(const int8_t *src, int8_t *dst,
-                                             const uint16_t input_wd,
-                                             const uint16_t input_ht,
-                                             const uint16_t channels,
-                                             const int32_t pad_val,
-                                             const uint16_t pad_wd,
-                                             const uint16_t pad_ht)
-{
-    /* memset with pad_val */
-    memset(dst, pad_val, ((input_wd + 2 * pad_wd) * (input_ht + 2 * pad_ht)) * channels);
-    dst += (pad_wd + input_wd + pad_wd) * pad_ht * channels;
-
-    for (int i = 0; i < input_ht; i++) {
-        dst += pad_wd * channels;
-        for (int j = 0; j < input_wd * channels; j++) {
-            *dst++ = *src++;
+        for (int filter_y_idx = filter_y_start; filter_y_idx < filter_y_end; filter_y_idx++) {
+          const int32_t idx_y = base_y + filter_y_idx;
+          for (int filter_x_idx = filter_x_start; filter_x_idx < filter_x_end; filter_x_idx++) {
+            const int32_t idx_x = base_x + filter_x_idx;
+            for (int in_ch_idx = 0; in_ch_idx < in_channels; in_ch_idx++) {
+              int32_t input_index = (idx_y * input_wd + idx_x) * in_channels + in_ch_idx;
+              int32_t filter_index =
+                  ((out_ch_idx * filter_ht + filter_y_idx) * filter_wd + filter_x_idx) * in_channels + in_ch_idx;
+              int32_t input_val = input_data[input_index] + input_offset;
+              int32_t filter_val = filter_data[filter_index] + filter_offset;
+              result += input_val * filter_val;
+            }
+          }
         }
-        dst += pad_wd * channels;
-    }
-}
+        if (bias) {
+          result += bias[out_ch_idx];
+        }
+        result = esp_nn_multiply_by_quantized_mult(result, out_mult, out_shift);
+        result += out_offset;
+        result = max(result, activation_min);
+        result = min(result, activation_max);
 
-static void esp_nn_aligned_s8_pad_end_with_value(const int8_t *src, int8_t *dst,
-                                                 const uint16_t input_wd,
-                                                 const uint16_t input_ht,
-                                                 const uint16_t channels,
-                                                 const int32_t pad_val,
-                                                 const uint16_t pad_wd,
-                                                 const uint16_t pad_ht)
-{
-    for (int i = 0; i < input_ht; i++) {
-        for (int j = 0; j < input_wd * channels; j++) {
-            *dst++ = *src++;
-        }
-        if (pad_wd) {
-            memset(dst, pad_val, pad_wd * channels);
-            dst += pad_wd * channels;
-        }
+        int out_index = (out_y * out_wd + out_x) * out_channels + out_ch_idx;
+        out_data[out_index] = (uint8_t) result;
+      }
     }
-    /* pad end `pad_ht` lines at end */
-    if (pad_ht) {
-        memset(dst, pad_val, (input_wd + pad_wd) * pad_ht * channels);
-    }
+  }
 }
 
 /**
- * @brief       convert 8 bit input data to 16 bit
- *
- * @param       src int8_t source data
- * @param       dst int16_t dst data
- * @param       size length of data
- * @param       offset  offset to be added to src data. Range: [-128, 127]
+ * Assumption 1: i/p channels == o/p channels
+ * Assumption 2: Pointers are valid
+ * Assumption 3: dialation width = 1
  */
-__NN_FORCE_INLINE__ void esp_nn_s8_to_s16_with_offset(const int8_t *src, int16_t *dst,
-                                                      const int size, const int32_t offset)
-{
-    int i = 0;
-    for (; i < size; i += 2) {
-        dst[i + 0] = src[i + 0] + offset;
-        dst[i + 1] = src[i + 1] + offset;
-    }
-    if(i < size) {
-        dst[i] = src[i] + offset;
-    }
-}
+void esp_nn_conv_s8_ansi(const data_dims_t *input_dims, const int8_t *input_data, const data_dims_t *filter_dims,
+                         const int8_t *filter_data, const int32_t *bias, const data_dims_t *output_dims,
+                         int8_t *out_data, const conv_params_t *conv_params, const quant_data_t *quant_data) {
+  const uint16_t input_wd = input_dims->width;
+  const uint16_t input_ht = input_dims->height;
+  const uint16_t in_channels = input_dims->channels;
+  const int32_t input_offset = conv_params->in_offset;
+  const int32_t out_offset = conv_params->out_offset;
+  const uint16_t pad_wd = conv_params->padding.width;
+  const uint16_t pad_ht = conv_params->padding.height;
+  const uint16_t stride_wd = conv_params->stride.width;
+  const uint16_t stride_ht = conv_params->stride.height;
+  const uint16_t filter_wd = filter_dims->width;
+  const uint16_t filter_ht = filter_dims->height;
+  const uint16_t out_wd = output_dims->width;
+  const uint16_t out_ht = output_dims->height;
+  const uint16_t out_channels = output_dims->channels;
+  const int32_t *out_shift = quant_data->shift;
+  const int32_t *out_mult = quant_data->mult;
+  const int32_t activation_min = conv_params->activation.min;
+  const int32_t activation_max = conv_params->activation.max;
 
-/**
- * @brief       convert 8 bit input data to 16 bit
- *
- * @param       src int8_t source data
- * @param       dst int16_t dst data
- * @param       size length of data
- */
-__NN_FORCE_INLINE__ void esp_nn_s8_to_s16(const int8_t *src, int16_t *dst, const int size)
-{
-    int i = 0;
-    for (; i < size; i += 2) {
-        dst[i + 0] = src[i + 0];
-        dst[i + 1] = src[i + 1];
+  int32_t out_ch_idx, out_y, out_x, in_ch_idx, filter_y_idx, filter_x_idx;
+
+  for (out_y = 0; out_y < out_ht; out_y++) {
+    for (out_x = 0; out_x < out_wd; out_x++) {
+      for (out_ch_idx = 0; out_ch_idx < out_channels; out_ch_idx++) {
+        int32_t conv_out = 0;
+
+        const int32_t base_y = stride_ht * out_y - pad_ht;
+        const int32_t base_x = stride_wd * out_x - pad_wd;
+
+        const int32_t filter_y_start = max(0, -base_y);
+        const int32_t filter_x_start = max(0, -base_x);
+
+        const int32_t filter_y_end = min(filter_ht, input_ht - base_y);
+        const int32_t filter_x_end = min(filter_wd, input_wd - base_x);
+
+        for (filter_y_idx = filter_y_start; filter_y_idx < filter_y_end; filter_y_idx++) {
+          for (filter_x_idx = filter_x_start; filter_x_idx < filter_x_end; filter_x_idx++) {
+            const int32_t in_row = base_y + filter_y_idx;
+            const int32_t in_col = base_x + filter_x_idx;
+            int32_t input_base_offset = (in_row * input_wd + in_col) * in_channels;
+            int32_t filter_base_offset = out_ch_idx * in_channels * filter_ht * filter_wd +
+                                         (filter_y_idx * filter_wd + filter_x_idx) * in_channels;
+            for (in_ch_idx = 0; in_ch_idx < in_channels; in_ch_idx++) {
+              conv_out += (input_data[input_base_offset + in_ch_idx] + input_offset) *
+                          filter_data[filter_base_offset + in_ch_idx];
+            }
+          }
+        }
+        if (bias) {
+          conv_out += bias[out_ch_idx];
+        }
+        conv_out = esp_nn_multiply_by_quantized_mult(conv_out, out_mult[out_ch_idx], out_shift[out_ch_idx]);
+        conv_out += out_offset;
+        conv_out = max(conv_out, activation_min);
+        conv_out = min(conv_out, activation_max);
+        *out_data++ = (int8_t) conv_out;
+      }
     }
-    if(i < size) {
-        dst[i] = src[i];
-    }
+  }
 }

@@ -13,30 +13,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "signal/src/fft_auto_scale.h"
+#ifndef SIGNAL_SRC_FFT_AUTO_SCALE_H_
+#define SIGNAL_SRC_FFT_AUTO_SCALE_H_
 
 #include <stddef.h>
 #include <stdint.h>
-
-#include "signal/src/max_abs.h"
-#include "signal/src/msb.h"
 
 // TODO(b/286250473): remove namespace once de-duped libraries
 namespace tflite {
 namespace tflm_signal {
 
-int FftAutoScale(const int16_t* input, int size, int16_t* output) {
-  const int16_t max = MaxAbs16(input, size);
-  int scale_bits = (sizeof(int16_t) * 8) - MostSignificantBit32(max) - 1;
-  if (scale_bits <= 0) {
-    scale_bits = 0;
-  }
-  for (int i = 0; i < size; i++) {
-    // (input[i] << scale_bits) is undefined if input[i] is negative.
-    // Multiply explicitly to make the code portable.
-    output[i] = input[i] * (1 << scale_bits);
-  }
-  return scale_bits;
-}
+// Auto scales `input` and write the result to `output`
+// Elements in `input` are left shifted to maximize the amplitude without
+// clipping,
+// * both `input` and `output` must be of size `size`
+int FftAutoScale(const int16_t *input, int size, int16_t *output);
+
 }  // namespace tflm_signal
 }  // namespace tflite
+
+#endif  // SIGNAL_SRC_FFT_AUTO_SCALE_H_

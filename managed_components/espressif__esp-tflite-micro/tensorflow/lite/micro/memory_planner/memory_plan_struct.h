@@ -1,4 +1,4 @@
-/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,61 +13,78 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_MICRO_MEMORY_PLANNER_MEMORY_PLAN_STRUCT_H_
-#define TENSORFLOW_LITE_MICRO_MEMORY_PLANNER_MEMORY_PLAN_STRUCT_H_
+#ifndef TENSORFLOW_LITE_MICRO_MICRO_MEMORY_PLANNER_MEMORY_PLANNER_H_
+#define TENSORFLOW_LITE_MICRO_MICRO_MEMORY_PLANNER_MEMORY_PLANNER_H_
 
-#include <stddef.h>
-#include <stdint.h>
-
-#include "tensorflow/lite/micro/micro_utils.h"
+#include "tensorflow/lite/c/common.h"
 
 namespace tflite {
 
-// This is an experimental feature and subjected to change.
-// More description is available at
-// tensorflow/lite/micro/docs/offline_memory_plan.md.
+// Interface class for planning the layout of memory buffers during the
+// execution of a graph.
+// It's designed to be used by a client that iterates in any order through the
+// buffers it wants to lay out, and then calls the getter functions for
+// information about the calculated layout. For example:
+//
+// SomeMemoryPlanner planner;
+// planner.AddBuffer(100, 0, 1);  // Buffer 0
+// planner.AddBuffer(50, 2, 3);   // Buffer 1
+// planner.AddBuffer(50, 2, 3);   // Buffer 2
+//
+// int offset0;
+// TF_EXPECT_OK(planner.GetOffsetForBuffer(0, &offset0));
+// int offset1;
+// TF_EXPECT_OK(planner.GetOffsetForBuffer(1, &offset1));
+// int offset2;
+// TF_EXPECT_OK(planner.GetOffsetForBuffer(2, &offset2));
+// const int arena_size_needed = planner.GetMaximumMemorySize();
+//
+// The goal is for applications to be able to experiment with different layout
+// strategies without changing their client code, by swapping out classes that
+// implement this interface.=
+class MicroMemoryPlanner {
+ public:
+  MicroMemoryPlanner() {}
+  virtual ~MicroMemoryPlanner() {}
 
-// Describes a buffer's layout inside an arena. This struct should be kept as
-// small as possible for memory footprint sensitive applications and should use
-// only primitive fields, making it easy to adjust offline.
-struct BufferDescriptor {
-  // Starting offset inside an arena for this buffer.
-  // Offset is the minimum information needed for the buffer.  The user knows
-  // the model and the size of each buffer in order to lay out a valid buffer
-  // plan.
-  int32_t offset;
+  // Pass information about a buffer's size and lifetime to the layout
+  // algorithm. The order this is called implicitly assigns an index to the
+  // result, so the buffer information that's passed into the N-th call of
+  // this method will be used as the buffer_index argument to
+  // GetOffsetForBuffer().
+  virtual TfLiteStatus AddBuffer(int size, int first_time_used, int last_time_used) = 0;
+
+  // Record details of an offline planned buffer offset we want to place.
+  // offline_offset is the buffer offset from the start of the arena.
+  // This is to support offline memory planning from the flatbuffer metadata.
+  // By default, it returns an error.
+  virtual TfLiteStatus AddBuffer(int size, int first_time_used, int last_time_used, int offline_offset) {
+    return kTfLiteError;
+  }
+
+  // The largest contiguous block of memory that's needed to hold the layout.
+  virtual size_t GetMaximumMemorySize() = 0;
+  // How many buffers have been added to the planner.
+  virtual int GetBufferCount() = 0;
+  // Calculated layout offset for the N-th buffer added to the planner.
+  virtual TfLiteStatus GetOffsetForBuffer(int buffer_index, int *offset) = 0;
+
+  // Provides the scratch buffer in case that the memory planner needs it.
+  // The lifetime of scratch buffers lifetime lasts until the static memory plan
+  // is committed.
+  // The default implementation is for the memory planner that does not need
+  // scratch buffer and simply returns ok.
+  virtual TfLiteStatus Init(unsigned char *scratch_buffer, int scratch_buffer_size) { return kTfLiteOk; }
+
+  // Method will return True if the MicroMemoryPlanner preserves all tensors
+  // after invocation, and False if it doesn't.
+  virtual bool preserves_all_tensors() const = 0;
+
+  virtual void PrintMemoryPlan() {
+    // Default does nothing.
+  }
 };
-
-// A structure describing the lay out of buffers inside an arena.
-struct BufferPlan {
-  // Number of buffers described in this plan.
-  int32_t buffer_count;
-
-  // Each element describes one buffer.
-  // Buffer index is implicit by the order of AddBuffer() call.
-  // Specifically, indices of activation tensors are 0 … N-1 where N is the
-  // number of activation tensors.
-  // The rest are based on the order of OP requests.
-  //
-  // This is a flexible array member and should ideally be
-  // arena_entries[]; However, in order to support a variety
-  // of compilers (and without needing to add ifdef's), we
-  // are implementing the flexible array member with an array of
-  // length 1 as the last member of the struct. When the size of a BufferPlan
-  // is needed, use the provided SizeOfBufferPlan(buffer_count) that
-  // accounts for this implemenatation caveat.
-  BufferDescriptor buffer_plan_entries[1];
-};
-
-// Returns size of a BufferPlan given a buffer count. This size is compile time
-// known if buffer_count is a compile time constant.
-constexpr size_t SizeOfBufferPlan(int32_t buffer_count) {
-  // Minus 1 because a BufferPlan struct have a BufferDescriptor already.
-  // Max to provide a lower bound for the corner case of buffer_count = 0.
-  return sizeof(BufferPlan) +
-         sizeof(BufferDescriptor) * Max(buffer_count - 1, 0);
-}
 
 }  // namespace tflite
 
-#endif  // TENSORFLOW_LITE_MICRO_MEMORY_PLANNER_MEMORY_PLAN_STRUCT_H_
+#endif  // TENSORFLOW_LITE_MICRO_MICRO_MEMORY_PLANNER_MEMORY_PLANNER_H_

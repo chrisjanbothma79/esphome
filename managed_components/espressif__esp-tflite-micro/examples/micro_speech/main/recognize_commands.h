@@ -1,4 +1,4 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,139 +13,318 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_RECOGNIZE_COMMANDS_H_
-#define TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_RECOGNIZE_COMMANDS_H_
+#include "ringbuf.h"
 
-#include <cstdint>
+#include <esp_heap_caps.h>
+#include <sdkconfig.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "tensorflow/lite/c/common.h"
-#include "micro_model_settings.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
+#include "freertos/task.h"
 
-// Partial implementation of std::dequeue, just providing the functionality
-// that's needed to keep a record of previous neural network results over a
-// short time period, so they can be averaged together to produce a more
-// accurate overall prediction. This doesn't use any dynamic memory allocation
-// so it's a better fit for microcontroller applications, but this does mean
-// there are hard limits on the number of results it can store.
-class PreviousResultsQueue {
- public:
-  PreviousResultsQueue() : front_index_(0), size_(0) {}
+#define RB_TAG "RINGBUF"
 
-  // Data structure that holds an inference result, and the time when it
-  // was recorded.
-  struct Result {
-    Result() : time_(0), scores() {}
-    Result(int32_t time, int8_t* input_scores) : time_(time) {
-      for (int i = 0; i < kCategoryCount; ++i) {
-        scores[i] = input_scores[i];
+ringbuf_t *rb_init(const char *name, uint32_t size) {
+  ringbuf_t *r;
+  unsigned char *buf;
+
+  if (size < 2 || !name) {
+    return NULL;
+  }
+
+  r = malloc(sizeof(ringbuf_t));
+  assert(r);
+#if (CONFIG_SPIRAM_SUPPORT && (CONFIG_SPIRAM_USE_CAPS_ALLOC || CONFIG_SPIRAM_USE_MALLOC))
+  buf = heap_caps_calloc(1, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+#else
+  buf = calloc(1, size);
+#endif
+  assert(buf);
+
+  r->name = (char *) name;
+  r->base = r->readptr = r->writeptr = buf;
+  r->fill_cnt = 0;
+  r->size = size;
+
+  r->can_read = xSemaphoreCreateBinary();
+  assert(r->can_read);
+  r->can_write = xSemaphoreCreateBinary();
+  assert(r->can_write);
+  r->lock = xSemaphoreCreateMutex();
+  assert(r->lock);
+
+  r->abort_read = 0;
+  r->abort_write = 0;
+  r->writer_finished = 0;
+  r->reader_unblock = 0;
+
+  return r;
+}
+
+void rb_cleanup(ringbuf_t *rb) {
+  free(rb->base);
+  rb->base = NULL;
+  vSemaphoreDelete(rb->can_read);
+  rb->can_read = NULL;
+  vSemaphoreDelete(rb->can_write);
+  rb->can_write = NULL;
+  vSemaphoreDelete(rb->lock);
+  rb->lock = NULL;
+  free(rb);
+}
+
+/*
+ * @brief: get the number of filled bytes in the buffer
+ */
+ssize_t rb_filled(ringbuf_t *rb) { return rb->fill_cnt; }
+
+/*
+ * @brief: get the number of empty bytes available in the buffer
+ */
+ssize_t rb_available(ringbuf_t *rb) {
+  ESP_LOGD(RB_TAG, "rb leftover %d bytes", rb->size - rb->fill_cnt);
+  return (rb->size - rb->fill_cnt);
+}
+
+int rb_read(ringbuf_t *rb, uint8_t *buf, int buf_len, uint32_t ticks_to_wait) {
+  int read_size;
+  int total_read_size = 0;
+
+  /**
+   * In case where we are able to read buf_len in one go,
+   * we are not able to check for abort and keep returning buf_len as bytes
+   * read. Check for argument validity check and abort case before entering
+   * memcpy loop.
+   */
+
+  if (rb == NULL || rb->abort_read == 1) {
+    return ESP_FAIL;
+  }
+
+  xSemaphoreTake(rb->lock, portMAX_DELAY);
+
+  while (buf_len) {
+    if (rb->fill_cnt < buf_len) {
+      read_size = rb->fill_cnt;
+    } else {
+      read_size = buf_len;
+    }
+    if ((rb->readptr + read_size) > (rb->base + rb->size)) {
+      int rlen1 = rb->base + rb->size - rb->readptr;
+      int rlen2 = read_size - rlen1;
+      if (buf) {
+        memcpy(buf, rb->readptr, rlen1);
+        memcpy(buf + rlen1, rb->base, rlen2);
+      }
+      rb->readptr = rb->base + rlen2;
+    } else {
+      if (buf) {
+        memcpy(buf, rb->readptr, read_size);
+      }
+      rb->readptr = rb->readptr + read_size;
+    }
+
+    buf_len -= read_size;
+    rb->fill_cnt -= read_size;
+    total_read_size += read_size;
+    if (buf) {
+      buf += read_size;
+    }
+
+    xSemaphoreGive(rb->can_write);
+
+    if (buf_len == 0) {
+      break;
+    }
+
+    xSemaphoreGive(rb->lock);
+    if (!rb->writer_finished && !rb->abort_read && !rb->reader_unblock) {
+      if (xSemaphoreTake(rb->can_read, ticks_to_wait) != pdTRUE) {
+        goto out;
       }
     }
-    int32_t time_;
-    int8_t scores[kCategoryCount];
-  };
-
-  int size() { return size_; }
-  bool empty() { return size_ == 0; }
-  Result& front() { return results_[front_index_]; }
-  Result& back() {
-    int back_index = front_index_ + (size_ - 1);
-    if (back_index >= kMaxResults) {
-      back_index -= kMaxResults;
+    if (rb->abort_read == 1) {
+      total_read_size = RB_ABORT;
+      goto out;
     }
-    return results_[back_index];
+    if (rb->writer_finished == 1) {
+      goto out;
+    }
+    if (rb->reader_unblock == 1) {
+      if (total_read_size == 0) {
+        total_read_size = RB_READER_UNBLOCK;
+      }
+      goto out;
+    }
+
+    xSemaphoreTake(rb->lock, portMAX_DELAY);
   }
 
-  void push_back(const Result& entry) {
-    if (size() >= kMaxResults) {
-      MicroPrintf("Couldn't push_back latest result, too many already!");
-      return;
-    }
-    size_ += 1;
-    back() = entry;
+  xSemaphoreGive(rb->lock);
+out:
+  if (rb->writer_finished == 1 && total_read_size == 0) {
+    total_read_size = RB_WRITER_FINISHED;
+  }
+  rb->reader_unblock = 0; /* We are anyway unblocking reader */
+  return total_read_size;
+}
+
+int rb_write(ringbuf_t *rb, const uint8_t *buf, int buf_len, uint32_t ticks_to_wait) {
+  int write_size;
+  int total_write_size = 0;
+
+  /**
+   * In case where we are able to write buf_len in one go,
+   * we are not able to check for abort and keep returning buf_len as bytes
+   * written. Check for arguments' validity and abort case before entering
+   * memcpy loop.
+   */
+
+  if (rb == NULL || buf == NULL || rb->abort_write == 1) {
+    return RB_FAIL;
   }
 
-  Result pop_front() {
-    if (size() <= 0) {
-      MicroPrintf("Couldn't pop_front result, none present!");
-      return Result();
+  xSemaphoreTake(rb->lock, portMAX_DELAY);
+
+  while (buf_len) {
+    if ((rb->size - rb->fill_cnt) < buf_len) {
+      write_size = rb->size - rb->fill_cnt;
+    } else {
+      write_size = buf_len;
     }
-    Result result = front();
-    front_index_ += 1;
-    if (front_index_ >= kMaxResults) {
-      front_index_ = 0;
+    if ((rb->writeptr + write_size) > (rb->base + rb->size)) {
+      int wlen1 = rb->base + rb->size - rb->writeptr;
+      int wlen2 = write_size - wlen1;
+      memcpy(rb->writeptr, buf, wlen1);
+      memcpy(rb->base, buf + wlen1, wlen2);
+      rb->writeptr = rb->base + wlen2;
+    } else {
+      memcpy(rb->writeptr, buf, write_size);
+      rb->writeptr = rb->writeptr + write_size;
     }
-    size_ -= 1;
-    return result;
+
+    buf_len -= write_size;
+    rb->fill_cnt += write_size;
+    total_write_size += write_size;
+    buf += write_size;
+
+    xSemaphoreGive(rb->can_read);
+
+    if (buf_len == 0) {
+      break;
+    }
+
+    xSemaphoreGive(rb->lock);
+    if (rb->writer_finished) {
+      return write_size > 0 ? write_size : RB_WRITER_FINISHED;
+    }
+    if (xSemaphoreTake(rb->can_write, ticks_to_wait) != pdTRUE) {
+      goto out;
+    }
+    if (rb->abort_write == 1) {
+      goto out;
+    }
+    xSemaphoreTake(rb->lock, portMAX_DELAY);
   }
 
-  // Most of the functions are duplicates of dequeue containers, but this
-  // is a helper that makes it easy to iterate through the contents of the
-  // queue.
-  Result& from_front(int offset) {
-    if ((offset < 0) || (offset >= size_)) {
-      MicroPrintf("Attempt to read beyond the end of the queue!");
-      offset = size_ - 1;
-    }
-    int index = front_index_ + offset;
-    if (index >= kMaxResults) {
-      index -= kMaxResults;
-    }
-    return results_[index];
+  xSemaphoreGive(rb->lock);
+out:
+  return total_write_size;
+}
+
+/**
+ * abort and set abort_read and abort_write to asked values.
+ */
+static void _rb_reset(ringbuf_t *rb, int abort_read, int abort_write) {
+  if (rb == NULL) {
+    return;
   }
+  xSemaphoreTake(rb->lock, portMAX_DELAY);
+  rb->readptr = rb->writeptr = rb->base;
+  rb->fill_cnt = 0;
+  rb->writer_finished = 0;
+  rb->reader_unblock = 0;
+  rb->abort_read = abort_read;
+  rb->abort_write = abort_write;
+  xSemaphoreGive(rb->lock);
+}
 
- private:
-  static constexpr int kMaxResults = 50;
-  Result results_[kMaxResults];
+void rb_reset(ringbuf_t *rb) { _rb_reset(rb, 0, 0); }
 
-  int front_index_;
-  int size_;
-};
+void rb_abort_read(ringbuf_t *rb) {
+  if (rb == NULL) {
+    return;
+  }
+  rb->abort_read = 1;
+  xSemaphoreGive(rb->can_read);
+  xSemaphoreGive(rb->lock);
+}
 
-// This class is designed to apply a very primitive decoding model on top of the
-// instantaneous results from running an audio recognition model on a single
-// window of samples. It applies smoothing over time so that noisy individual
-// label scores are averaged, increasing the confidence that apparent matches
-// are real.
-// To use it, you should create a class object with the configuration you
-// want, and then feed results from running a TensorFlow model into the
-// processing method. The timestamp for each subsequent call should be
-// increasing from the previous, since the class is designed to process a stream
-// of data over time.
-class RecognizeCommands {
- public:
-  // labels should be a list of the strings associated with each one-hot score.
-  // The window duration controls the smoothing. Longer durations will give a
-  // higher confidence that the results are correct, but may miss some commands.
-  // The detection threshold has a similar effect, with high values increasing
-  // the precision at the cost of recall. The minimum count controls how many
-  // results need to be in the averaging window before it's seen as a reliable
-  // average. This prevents erroneous results when the averaging window is
-  // initially being populated for example. The suppression argument disables
-  // further recognitions for a set time after one has been triggered, which can
-  // help reduce spurious recognitions.
-  explicit RecognizeCommands(int32_t average_window_duration_ms = 1000,
-                             float detection_threshold = .8,
-                             int32_t suppression_ms = 1500,
-                             int32_t minimum_count = 3);
+void rb_abort_write(ringbuf_t *rb) {
+  if (rb == NULL) {
+    return;
+  }
+  rb->abort_write = 1;
+  xSemaphoreGive(rb->can_write);
+  xSemaphoreGive(rb->lock);
+}
 
-  // Call this with the results of running a model on sample data.
-  TfLiteStatus ProcessLatestResults(const TfLiteTensor* latest_results,
-                                    const int32_t current_time_ms,
-                                    const char** found_command, float* score,
-                                    bool* is_new_command);
+void rb_abort(ringbuf_t *rb) {
+  if (rb == NULL) {
+    return;
+  }
+  rb->abort_read = 1;
+  rb->abort_write = 1;
+  xSemaphoreGive(rb->can_read);
+  xSemaphoreGive(rb->can_write);
+  xSemaphoreGive(rb->lock);
+}
 
- private:
-  // Configuration
-  int32_t average_window_duration_ms_;
-  float detection_threshold_;
-  int32_t suppression_ms_;
-  int32_t minimum_count_;
+/**
+ * Reset the ringbuffer and keep rb_write aborted.
+ * Note that we are taking lock before even toggling `abort_write` variable.
+ * This serves a special purpose to not allow this abort to be mixed with
+ * rb_write.
+ */
+void rb_reset_and_abort_write(ringbuf_t *rb) {
+  _rb_reset(rb, 0, 1);
+  xSemaphoreGive(rb->can_write);
+}
 
-  // Working variables
-  PreviousResultsQueue previous_results_;
-  const char* previous_top_label_;
-  int32_t previous_top_label_time_;
-};
+void rb_signal_writer_finished(ringbuf_t *rb) {
+  if (rb == NULL) {
+    return;
+  }
+  rb->writer_finished = 1;
+  xSemaphoreGive(rb->can_read);
+}
 
-#endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_RECOGNIZE_COMMANDS_H_
+int rb_is_writer_finished(ringbuf_t *rb) {
+  if (rb == NULL) {
+    return RB_FAIL;
+  }
+  return (rb->writer_finished);
+}
+
+void rb_wakeup_reader(ringbuf_t *rb) {
+  if (rb == NULL) {
+    return;
+  }
+  rb->reader_unblock = 1;
+  xSemaphoreGive(rb->can_read);
+}
+
+void rb_stat(ringbuf_t *rb) {
+  xSemaphoreTake(rb->lock, portMAX_DELAY);
+  ESP_LOGI(RB_TAG, "filled: %d, base: %p, read_ptr: %p, write_ptr: %p, size: %d\n", rb->fill_cnt, rb->base, rb->readptr,
+           rb->writeptr, rb->size);
+  xSemaphoreGive(rb->lock);
+}
