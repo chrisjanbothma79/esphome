@@ -116,12 +116,13 @@ class APIFrameHelper {
 
   // Buffer containing data to be sent
   struct SendBuffer {
-    std::vector<uint8_t> data;
-    uint16_t offset{0};  // Current offset within the buffer (uint16_t to reduce memory usage)
+    std::unique_ptr<uint8_t[]> data;
+    uint16_t size{0};    // Total size of the buffer
+    uint16_t offset{0};  // Current offset within the buffer
 
     // Using uint16_t reduces memory usage since ESPHome API messages are limited to UINT16_MAX (65535) bytes
-    uint16_t remaining() const { return static_cast<uint16_t>(data.size()) - offset; }
-    const uint8_t *current_data() const { return data.data() + offset; }
+    uint16_t remaining() const { return size - offset; }
+    const uint8_t *current_data() const { return data.get() + offset; }
   };
 
   // Common implementation for writing raw data to socket
