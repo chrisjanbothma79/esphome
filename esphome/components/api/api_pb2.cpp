@@ -1754,69 +1754,6 @@ void MediaPlayerSupportedFormat::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->purpose));
   ProtoSize::add_uint32_field(total_size, 1, this->sample_bytes);
 }
-bool ListEntitiesMediaPlayerResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 6: {
-      this->disabled_by_default = value.as_bool();
-      return true;
-    }
-    case 7: {
-      this->entity_category = static_cast<enums::EntityCategory>(value.as_uint32());
-      return true;
-    }
-    case 8: {
-      this->supports_pause = value.as_bool();
-      return true;
-    }
-    case 10: {
-      this->device_id = value.as_uint32();
-      return true;
-    }
-    case 11: {
-      this->supports_turn_off_on = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
-}
-bool ListEntitiesMediaPlayerResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->object_id = value.as_string();
-      return true;
-    }
-    case 3: {
-      this->name = value.as_string();
-      return true;
-    }
-    case 4: {
-      this->unique_id = value.as_string();
-      return true;
-    }
-    case 5: {
-      this->icon = value.as_string();
-      return true;
-    }
-    case 9: {
-      this->supported_formats.emplace_back();
-      value.decode_to_message(this->supported_formats.back());
-      return true;
-    }
-    default:
-      return false;
-  }
-}
-bool ListEntitiesMediaPlayerResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 2: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
-}
 void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
@@ -1832,6 +1769,7 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
   }
 #ifdef USE_DEVICES
   buffer.encode_uint32(10, this->device_id);
+#endif
   buffer.encode_bool(11, this->supports_turn_off_on);
 }
 void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const {
@@ -1847,39 +1785,8 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
   ProtoSize::add_repeated_message(total_size, 1, this->supported_formats);
 #ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
   ProtoSize::add_bool_field(total_size, 1, this->supports_turn_off_on);
-}
-bool MediaPlayerStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->state = static_cast<enums::MediaPlayerState>(value.as_uint32());
-      return true;
-    }
-    case 4: {
-      this->muted = value.as_bool();
-      return true;
-    }
-    case 5: {
-      this->device_id = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
-}
-bool MediaPlayerStateResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 3: {
-      this->volume = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
 }
 void MediaPlayerStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);

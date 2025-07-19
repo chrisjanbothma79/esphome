@@ -2983,6 +2983,7 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#endif
   out.append("  supports_turn_off_on: ");
   out.append(YESNO(this->supports_turn_off_on));
   out.append("\n");
