@@ -19,6 +19,8 @@ namespace api {
 // Keepalive timeout in milliseconds
 static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
 // Maximum number of entities to process in a single batch during initial state/info sending
+// This was increased from 20 to 24 after removing the unique_id field from entity info messages,
+// which reduced message sizes allowing more entities per batch without exceeding packet limits
 static constexpr size_t MAX_INITIAL_PER_BATCH = 24;
 // Maximum number of packets to process in a single batch (platform-dependent)
 // This limit exists to prevent stack overflow from the PacketInfo array in process_batch_
