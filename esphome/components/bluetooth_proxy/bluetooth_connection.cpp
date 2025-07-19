@@ -60,7 +60,7 @@ void BluetoothConnection::reset_connection_(esp_err_t reason) {
 void BluetoothConnection::send_service_for_discovery_() {
   if (this->send_service_ == this->service_count_) {
     this->send_service_ = DONE_SENDING_SERVICES;
-    this->proxy_->send_gatt_services_done(this->get_address());
+    this->proxy_->send_gatt_services_done(this->address_);
     if (this->connection_type_ == espbt::ConnectionType::V3_WITH_CACHE ||
         this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
       this->release_services();
@@ -94,7 +94,7 @@ void BluetoothConnection::send_service_for_discovery_() {
   }
 
   api::BluetoothGATTGetServicesResponse resp;
-  resp.address = this->get_address();
+  resp.address = this->address_;
   resp.services.reserve(1);  // Always one service per response in this implementation
   api::BluetoothGATTService service_resp;
   service_resp.uuid = get_128bit_uuid_vec(service_result.uuid);
