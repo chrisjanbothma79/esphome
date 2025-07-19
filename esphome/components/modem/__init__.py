@@ -17,9 +17,11 @@ from esphome.const import (
     CONF_ON_DISCONNECT,
     CONF_PASSWORD,
     CONF_REBOOT_TIMEOUT,
+    CONF_RX_BUFFER_SIZE,
     CONF_RX_PIN,
     CONF_SAFE_MODE,
     CONF_TRIGGER_ID,
+    CONF_TX_BUFFER_SIZE,
     CONF_TX_PIN,
     CONF_USE_ADDRESS,
     CONF_USERNAME,
@@ -49,6 +51,7 @@ CONF_INIT_AT = "init_at"
 CONF_ON_NOT_RESPONDING = "on_not_responding"
 CONF_ON_START_PPP = "on_start_ppp"
 CONF_ENABLE_CMUX = "enable_cmux"
+CONF_DTE_BUFFER_SIZE = "dte_buffer_size"
 
 MODEM_MODELS = ["BG96", "SIM800", "SIM7000", "SIM7600", "SIM7670", "GENERIC"]
 MODEM_MODELS_POWER = {
@@ -130,6 +133,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ENABLE_ON_BOOT, default=True): cv.boolean,
             cv.Optional(CONF_ENABLE_CMUX, default=False): cv.boolean,
             cv.Optional(CONF_DEBUG, default=False): cv.boolean,
+            cv.Optional(CONF_TX_BUFFER_SIZE, default=1024): cv.positive_int,
+            cv.Optional(CONF_RX_BUFFER_SIZE, default=1024): cv.positive_int,
+            cv.Optional(CONF_DTE_BUFFER_SIZE, default=1024): cv.positive_int,
             cv.Optional(
                 CONF_REBOOT_TIMEOUT, default="10min"
             ): cv.positive_time_period_milliseconds,
@@ -309,6 +315,15 @@ async def to_code(config):
     if power_pin := config.get(CONF_POWER_PIN, None):
         pin = await cg.gpio_pin_expression(power_pin)
         cg.add(var.set_power_pin(pin))
+
+    if rx_buffer_size := config.get(CONF_RX_BUFFER_SIZE, None):
+        cg.add(var.set_rx_buffer_size(rx_buffer_size))
+
+    if tx_buffer_size := config.get(CONF_TX_BUFFER_SIZE, None):
+        cg.add(var.set_tx_buffer_size(tx_buffer_size))
+
+    if dte_buffer_size := config.get(CONF_DTE_BUFFER_SIZE, None):
+        cg.add(var.set_dte_buffer_size(dte_buffer_size))
 
     for conf in config.get(CONF_ON_NOT_RESPONDING, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)

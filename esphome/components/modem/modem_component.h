@@ -69,6 +69,9 @@ class ModemComponent : public Component {
   void set_power_toff_delay(uint32_t toff_delay) { this->power_toff_delay_ = toff_delay; }
   void set_status_pin(GPIOPin *status_pin) { this->status_pin_ = status_pin; }
   void set_pin_code(const std::string &pin_code) { this->pin_code_ = pin_code; }
+  void set_tx_buffer_size(uint16_t tx_buffer_size) { this->tx_buffer_size_ = tx_buffer_size; }
+  void set_rx_buffer_size(uint16_t rx_buffer_size) { this->rx_buffer_size_ = rx_buffer_size; }
+  void set_dte_buffer_size(uint16_t dte_buffer_size) { this->dte_buffer_size_ = dte_buffer_size; }
   void set_apn(const std::string &apn) { this->apn_ = apn; }
   void enable_cmux() { this->cmux_ = true; }
   void enable_debug();
@@ -144,6 +147,10 @@ class ModemComponent : public Component {
   uint32_t power_toff_pulse_delay_;
   uint32_t power_toff_delay_;
   GPIOPin *power_pin_{nullptr};
+  uint16_t tx_buffer_size_ = 512;
+  uint16_t rx_buffer_size_ = 512;
+  uint16_t dte_buffer_size_ = 512;
+
   std::string pin_code_;
   std::string apn_;
   std::vector<std::string> init_at_commands_;
@@ -153,8 +160,6 @@ class ModemComponent : public Component {
   CallbackManager<void(ModemComponentState, ModemComponentState)> on_state_callback_;
 
   // Allow changes from YAML?
-  size_t uart_rx_buffer_size_ = 2048;         // 256-2048
-  size_t uart_tx_buffer_size_ = 1024;         // 256-2048
   uint8_t uart_event_queue_size_ = 10;        // 10-40
   size_t uart_event_task_stack_size_ = 4096;  // 2000-6000
   uint8_t uart_event_task_priority_ = 5;      // 3-22

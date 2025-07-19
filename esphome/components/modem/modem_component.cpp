@@ -205,6 +205,9 @@ void ModemComponent::setup() {
   ESP_LOGCONFIG(TAG, "  Use CMUX  : %s", this->cmux_ ? "Yes" : "No");
   if (this->baud_rate_ != 0)
     ESP_LOGCONFIG(TAG, "  Baud rate : %d", this->baud_rate_);
+  ESP_LOGCONFIG(TAG, "  TX  buffer size     : %d", this->tx_buffer_size_);
+  ESP_LOGCONFIG(TAG, "  RX  buffer size     : %d", this->rx_buffer_size_);
+  ESP_LOGCONFIG(TAG, "  DTE buffer size     : %d", this->dte_buffer_size_);
 
   if (CONFIG_ESP_TASK_WDT_TIMEOUT_S <= 10) {
     ESP_LOGW(TAG, "WDT timeout (%d s) may be too low for modem. Increase if WDT triggers.",
@@ -612,8 +615,8 @@ void ModemComponent::modem_create_dte_dce_(int baud_rate) {
 
   dte_config.uart_config.tx_io_num = this->tx_pin_->get_pin();
   dte_config.uart_config.rx_io_num = this->rx_pin_->get_pin();
-  dte_config.uart_config.rx_buffer_size = this->uart_rx_buffer_size_;
-  dte_config.uart_config.tx_buffer_size = this->uart_tx_buffer_size_;
+  dte_config.uart_config.rx_buffer_size = this->rx_buffer_size_;
+  dte_config.uart_config.tx_buffer_size = this->tx_buffer_size_;
   dte_config.uart_config.event_queue_size = this->uart_event_queue_size_;
   if (baud_rate != 0) {
     ESP_LOGD(TAG, "DTE baud rate: %d", baud_rate);
@@ -622,7 +625,7 @@ void ModemComponent::modem_create_dte_dce_(int baud_rate) {
 
   dte_config.task_stack_size = this->uart_event_task_stack_size_;
   dte_config.task_priority = this->uart_event_task_priority_;
-  dte_config.dte_buffer_size = this->uart_rx_buffer_size_ / 2;
+  dte_config.dte_buffer_size = this->dte_buffer_size_;
 
   this->dce.reset();
   this->dte_.reset();
