@@ -279,7 +279,7 @@ void ModemComponent::handle_state_syncing_() {
       this->modem_handler->current_baud_rate != 0) {
     ESP_LOGW(TAG, "Autodetect failed. Retrying with default baud rate.");
     this->modem_handler->modem_create_dte_dce(0);
-    delay(100);
+    delay(100);  // NOLINT
     this->modem_handler->dce->set_mode(esp_modem::modem_mode::AUTODETECT);
   }
 
@@ -307,7 +307,7 @@ void ModemComponent::handle_state_syncing_() {
       ESP_LOGW(TAG, "Modem in unhandled mode: %d", static_cast<int>(this->modem_handler->dce->get_mode()));
   }
 
-  delay(100);
+  delay(100);  // NOLINT
   if (this->modem_handler->dce->sync() != esp_modem::command_result::OK) {
     ESP_LOGE(TAG, "Unable to sync modem");
     this->component_state_ = ModemComponentState::NOT_RESPONDING;
@@ -320,10 +320,10 @@ void ModemComponent::handle_state_syncing_() {
     this->modem_handler->flush_uart();
     if (this->modem_handler->dce->set_baud(this->modem_handler->baud_rate) == esp_modem::command_result::OK) {
       ESP_LOGD(TAG, "Modem baud rate set to %d.", this->modem_handler->baud_rate);
-      delay(200);
+      delay(200);  // NOLINT
       this->modem_handler->modem_create_dte_dce(this->modem_handler->baud_rate);
       App.feed_wdt();
-      delay(200);
+      delay(200);  // NOLINT
       this->modem_handler->flush_uart();
       if (this->modem_handler->dce->sync() == esp_modem::command_result::OK) {
         ESP_LOGI(TAG, "Modem synced at baud rate %d.", this->modem_handler->current_baud_rate);

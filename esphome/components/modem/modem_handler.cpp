@@ -144,7 +144,7 @@ void ModemHandler::send_init_at() {
     } else {
       ESP_LOGW(TAG, "init_at %s: %s", cmd.c_str(), command_result_to_string(result.esp_modem_command_result).c_str());
     }
-    delay(200);
+    delay(200);  // NOLINT
   }
   this->flush_uart();
 }
@@ -160,7 +160,7 @@ void ModemHandler::update_network_state() {
       ESP_LOGE(TAG, "Unable to check pin: %s",
                command_result_to_string(sim_status_res.esp_modem_command_result).c_str());
     }
-    delay(200);
+    delay(200);  // NOLINT
 
     ESPMODEM_ERROR_CHECK(this->dce->get_radio_state(this->cfun), "get_radio_state");
     ESPMODEM_ERROR_CHECK(this->dce->get_network_attachment_state(this->network_attached),
