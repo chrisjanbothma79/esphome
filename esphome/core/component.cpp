@@ -9,6 +9,9 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#ifdef USE_RUNTIME_STATS
+#include "esphome/components/runtime_stats/runtime_stats.h"
+#endif
 
 namespace esphome {
 
@@ -252,10 +255,10 @@ void Component::defer(const char *name, std::function<void()> &&f) {  // NOLINT
   App.scheduler.set_timeout(this, name, 0, std::move(f));
 }
 void Component::set_timeout(uint32_t timeout, std::function<void()> &&f) {  // NOLINT
-  App.scheduler.set_timeout(this, "", timeout, std::move(f));
+  App.scheduler.set_timeout(this, static_cast<const char *>(nullptr), timeout, std::move(f));
 }
 void Component::set_interval(uint32_t interval, std::function<void()> &&f) {  // NOLINT
-  App.scheduler.set_interval(this, "", interval, std::move(f));
+  App.scheduler.set_interval(this, static_cast<const char *>(nullptr), interval, std::move(f));
 }
 void Component::set_retry(uint32_t initial_wait_time, uint8_t max_attempts, std::function<RetryResult(uint8_t)> &&f,
                           float backoff_increase_factor) {  // NOLINT
@@ -264,6 +267,7 @@ void Component::set_retry(uint32_t initial_wait_time, uint8_t max_attempts, std:
 bool Component::is_failed() const { return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_FAILED; }
 bool Component::is_ready() const {
   return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP ||
+         (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP_DONE ||
          (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_SETUP;
 }
 bool Component::can_proceed() { return true; }
@@ -395,6 +399,13 @@ uint32_t WarnIfComponentBlockingGuard::finish() {
   uint32_t curr_time = millis();
 
   uint32_t blocking_time = curr_time - this->started_;
+
+#ifdef USE_RUNTIME_STATS
+  // Record component runtime stats
+  if (global_runtime_stats != nullptr) {
+    global_runtime_stats->record_component_time(this->component_, blocking_time, curr_time);
+  }
+#endif
   bool should_warn;
   if (this->component_ != nullptr) {
     should_warn = this->component_->should_warn_of_blocking(blocking_time);

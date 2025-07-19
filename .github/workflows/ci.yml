@@ -20,8 +20,8 @@ permissions:
   contents: read
 
 env:
-  DEFAULT_PYTHON: "3.10"
-  PYUPGRADE_TARGET: "--py310-plus"
+  DEFAULT_PYTHON: "3.11"
+  PYUPGRADE_TARGET: "--py311-plus"
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -84,29 +84,6 @@ jobs:
         run: script/ci-suggest-changes
         if: always()
 
-  pyupgrade:
-    name: Check pyupgrade
-    runs-on: ubuntu-24.04
-    needs:
-      - common
-      - determine-jobs
-    if: needs.determine-jobs.outputs.python-linters == 'true'
-    steps:
-      - name: Check out code from GitHub
-        uses: actions/checkout@v4.2.2
-      - name: Restore Python
-        uses: ./.github/actions/restore-python
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
-          cache-key: ${{ needs.common.outputs.cache-key }}
-      - name: Run pyupgrade
-        run: |
-          . venv/bin/activate
-          pyupgrade ${{ env.PYUPGRADE_TARGET }} `find esphome -name "*.py" -type f`
-      - name: Suggested changes
-        run: script/ci-suggest-changes
-        if: always()
-
   ci-custom:
     name: Run script/ci-custom
     runs-on: ubuntu-24.04
@@ -135,7 +112,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
@@ -151,13 +127,9 @@ jobs:
             os: windows-latest
           - python-version: "3.12"
             os: windows-latest
-          - python-version: "3.10"
-            os: windows-latest
           - python-version: "3.13"
             os: macOS-latest
           - python-version: "3.12"
-            os: macOS-latest
-          - python-version: "3.10"
             os: macOS-latest
     runs-on: ${{ matrix.os }}
     needs:
@@ -269,30 +241,13 @@ jobs:
           . venv/bin/activate
           pytest -vv --no-cov --tb=native -n auto tests/integration/
 
-  clang-tidy-deps:
-    name: Clang-tidy dependencies
-    runs-on: ubuntu-24.04
-    needs:
-      - common
-      - ci-custom
-      - pytest
-      - determine-jobs
-    if: |
-      always() &&
-      needs.determine-jobs.outputs.clang-tidy == 'true'
-    steps:
-      - run: echo "All clang-tidy dependencies ready"
-
   clang-tidy:
     name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
     needs:
-      - clang-tidy-deps
+      - common
       - determine-jobs
-    if: |
-      always() &&
-      needs.determine-jobs.outputs.clang-tidy == 'true' &&
-      needs.clang-tidy-deps.result == 'success'
+    if: needs.determine-jobs.outputs.clang-tidy == 'true'
     env:
       GH_TOKEN: ${{ github.token }}
     strategy:
@@ -512,7 +467,7 @@ jobs:
           cache-key: ${{ needs.common.outputs.cache-key }}
       - uses: pre-commit/action@v3.0.1
         env:
-          SKIP: pylint,clang-tidy-hash,yamllint
+          SKIP: pylint,clang-tidy-hash
       - uses: pre-commit-ci/lite-action@v1.1.0
         if: always()
 
@@ -525,8 +480,6 @@ jobs:
       - pylint
       - pytest
       - integration-tests
-      - pyupgrade
-      - clang-tidy-deps
       - clang-tidy
       - determine-jobs
       - test-build-components
