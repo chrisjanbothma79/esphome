@@ -1671,6 +1671,10 @@ ProtoWriteBuffer APIConnection::allocate_batch_message_buffer(uint16_t size) {
 }
 
 void APIConnection::process_batch_() {
+  // Ensure PacketInfo remains trivially destructible for our placement new approach
+  static_assert(std::is_trivially_destructible<PacketInfo>::value,
+                "PacketInfo must remain trivially destructible with this placement-new approach");
+
   if (this->deferred_batch_.empty()) {
     this->flags_.batch_scheduled = false;
     return;
