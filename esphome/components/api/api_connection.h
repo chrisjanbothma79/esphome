@@ -19,7 +19,15 @@ namespace api {
 // Keepalive timeout in milliseconds
 static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
 // Maximum number of entities to process in a single batch during initial state/info sending
-static constexpr size_t MAX_INITIAL_PER_BATCH = 20;
+static constexpr size_t MAX_INITIAL_PER_BATCH = 24;
+// Maximum number of packets to process in a single batch (platform-dependent)
+// This limit exists to prevent stack overflow from the PacketInfo array in process_batch_
+// Each PacketInfo is 8 bytes, so 64 * 8 = 512 bytes, 32 * 8 = 256 bytes
+#if defined(USE_ESP32) || defined(USE_HOST)
+static constexpr size_t MAX_PACKETS_PER_BATCH = 64;  // ESP32 has 8KB+ stack, HOST has plenty
+#else
+static constexpr size_t MAX_PACKETS_PER_BATCH = 32;  // ESP8266/RP2040/etc have smaller stacks
+#endif
 
 class APIConnection : public APIServerConnection {
  public:
