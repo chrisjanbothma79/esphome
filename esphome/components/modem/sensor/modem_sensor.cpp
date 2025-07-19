@@ -39,7 +39,7 @@ using namespace esp_modem;
 void ModemSensor::setup() { ESP_LOGI(TAG, "Setting up Modem Sensor..."); }
 
 void ModemSensor::update() {
-  if (global_modem_component->dce) {
+  if (global_modem_component->modem_handler->dce) {
     ESP_LOGV(TAG, "Modem sensor update");
     this->update_signal_sensors_();
     App.feed_wdt();
@@ -51,7 +51,7 @@ void ModemSensor::update_signal_sensors_() {
   if (this->rssi_sensor_ || this->ber_sensor_) {
     float rssi;
     float ber;
-    global_modem_component->get_signal_quality(rssi, ber);
+    global_modem_component->modem_handler->get_signal_quality(rssi, ber);
     if (this->rssi_sensor_)
       this->rssi_sensor_->publish_state(rssi);
     if (this->ber_sensor_)

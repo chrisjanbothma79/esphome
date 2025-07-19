@@ -63,8 +63,7 @@ def _final_validate_gnss(config):
         if modem_model := modem_config.get(CONF_MODEL, None):
             if modem_model not in MODEM_MODELS_GNSS_COMMAND:
                 raise cv.Invalid(
-                    f"GNSS not supported for modem '{modem_model}'. Supported models are %s",
-                    ", ".join(MODEM_MODELS_GNSS_COMMAND.keys()),
+                    f"GNSS not supported for modem '{modem_model}'. Supported models are {' '.join(MODEM_MODELS_GNSS_COMMAND.keys())}"
                 )
 
             # is it allowed to add config option?

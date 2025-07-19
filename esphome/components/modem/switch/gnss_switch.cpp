@@ -34,7 +34,7 @@ static const char *const TAG = "modem.switch";
 optional<bool> GnssSwitch::get_modem_gnss_state() {
   // Ask the modem if GNSS is enabled
   optional<bool> gnss_state = nullopt;
-  if (!global_modem_component->dce) {
+  if (!global_modem_component->modem_handler->dce) {
     // Will have to wait for DCE to be created
     return gnss_state;  // return empty optional
   }
@@ -81,7 +81,7 @@ void GnssSwitch::loop() {
     next_loop_millis = millis() + 5000;  // soft delay
   } else {
     if ((this->state != this->modem_state_.value())) {
-      if (global_modem_component->dce &&
+      if (global_modem_component->modem_handler->dce &&
           global_modem_component->send_at(this->command_ + (this->state ? "=1" : "=0"))) {
         ESP_LOGV(TAG, "Modem GNSS switch state changed to %s", this->state ? "ON" : "OFF");
         this->modem_state_ = nullopt;

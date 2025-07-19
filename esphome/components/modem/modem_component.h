@@ -8,25 +8,16 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/preferences.h"
 #include "esphome/components/network/util.h"
+#include "modem_handler.h"
 
-// esp_modem will use the ESPHome logger (needed if other components include esphome/core/log.h).
-// This is necessary because "cxx_include/esp_modem_api.hpp" is not a pure C++ header and uses logging.
-// Error: "using declarations in the global namespace in headers are prohibited"
-// [google-global-names-in-headers,-warnings-as-errors]
 using esphome::esp_log_printf_;  // NOLINT(google-global-names-in-headers)
 
 #include <driver/gpio.h>
-
-#include <cxx_include/esp_modem_api.hpp>
-#include <esp_modem_config.h>
-
 #include <unordered_map>
 #include <utility>
 
 namespace esphome {
 namespace modem {
-
-using namespace esp_modem;
 
 enum class ModemComponentState {
   POWERING_ON,
@@ -42,14 +33,6 @@ enum class ModemComponentState {
   POWERING_OFF,
 };
 
-struct AtCommandResult {
-  std::string output{};
-  bool success{false};
-  command_result esp_modem_command_result{command_result::TIMEOUT};
-  operator bool() const { return success; }
-  const char *c_str() const { return output.c_str(); }
-};
-
 struct ModemRestoreState {
   int baud_rate{0};
 } __attribute__((packed));
@@ -58,35 +41,36 @@ class ModemComponent : public Component {
  public:
   void set_reboot_timeout(uint32_t timeout) { this->timeout_ = timeout; }
   void set_use_address(const std::string &use_address) { this->use_address_ = use_address; }
-  void set_rx_pin(InternalGPIOPin *rx_pin) { this->rx_pin_ = rx_pin; }
-  void set_tx_pin(InternalGPIOPin *tx_pin) { this->tx_pin_ = tx_pin; }
-  void set_baud_rate(int baud_rate) { this->baud_rate_ = baud_rate; }
-  void set_model(const std::string &model) { this->model_ = model; }
-  void set_power_pin(GPIOPin *power_pin) { this->power_pin_ = power_pin; }
-  void set_power_ton_pulse_delay(uint32_t ton_pulse_delay) { this->power_ton_pulse_delay_ = ton_pulse_delay; }
-  void set_power_ton_delay(uint32_t ton_delay) { this->power_ton_delay_ = ton_delay; }
-  void set_power_toff_pulse_delay(uint32_t toff_pulse_delay) { this->power_toff_pulse_delay_ = toff_pulse_delay; }
-  void set_power_toff_delay(uint32_t toff_delay) { this->power_toff_delay_ = toff_delay; }
-  void set_status_pin(GPIOPin *status_pin) { this->status_pin_ = status_pin; }
-  void set_pin_code(const std::string &pin_code) { this->pin_code_ = pin_code; }
-  void set_tx_buffer_size(uint16_t tx_buffer_size) { this->tx_buffer_size_ = tx_buffer_size; }
-  void set_rx_buffer_size(uint16_t rx_buffer_size) { this->rx_buffer_size_ = rx_buffer_size; }
-  void set_dte_buffer_size(uint16_t dte_buffer_size) { this->dte_buffer_size_ = dte_buffer_size; }
-  void set_apn(const std::string &apn) { this->apn_ = apn; }
-  void enable_cmux() { this->cmux_ = true; }
-  void enable_debug();
-  void add_init_at_command(const std::string &cmd) { this->init_at_commands_.push_back(cmd); }
-  bool is_connected() { return this->component_state_ == ModemComponentState::CONNECTED; }
-  bool is_disabled() {
-    return this->component_state_ == ModemComponentState::DISABLED && this->internal_state_.disable_wanted;
+  // Setters now modify the handler's attributes
+  void set_rx_pin(InternalGPIOPin *rx_pin) { this->modem_handler->rx_pin = rx_pin; }
+  void set_tx_pin(InternalGPIOPin *tx_pin) { this->modem_handler->tx_pin = tx_pin; }
+  void set_baud_rate(int baud_rate) { this->modem_handler->baud_rate = baud_rate; }
+  void set_model(const std::string &model) { this->modem_handler->model = model; }
+  void set_power_pin(GPIOPin *power_pin) { this->modem_handler->power_pin = power_pin; }
+  void set_power_ton_pulse_delay(uint32_t ton_pulse_delay) {
+    this->modem_handler->power_ton_pulse_delay = ton_pulse_delay;
   }
+  void set_power_ton_delay(uint32_t ton_delay) { this->modem_handler->power_ton_delay = ton_delay; }
+  void set_power_toff_pulse_delay(uint32_t toff_pulse_delay) {
+    this->modem_handler->power_toff_pulse_delay = toff_pulse_delay;
+  }
+  void set_power_toff_delay(uint32_t toff_delay) { this->modem_handler->power_toff_delay = toff_delay; }
+  void set_status_pin(GPIOPin *status_pin) { this->modem_handler->status_pin = status_pin; }
+  void set_pin_code(const std::string &pin_code) { this->modem_handler->pin_code = pin_code; }
+  void set_tx_buffer_size(uint16_t tx_buffer_size) { this->modem_handler->tx_buffer_size = tx_buffer_size; }
+  void set_rx_buffer_size(uint16_t rx_buffer_size) { this->modem_handler->rx_buffer_size = rx_buffer_size; }
+  void set_dte_buffer_size(uint16_t dte_buffer_size) { this->modem_handler->dte_buffer_size = dte_buffer_size; }
+  void set_apn(const std::string &apn) { this->modem_handler->apn = apn; }
+  void enable_cmux() { this->modem_handler->cmux = true; }
+  void enable_debug() { this->modem_handler->enable_debug(); }
+  void add_init_at_command(const std::string &cmd) { this->modem_handler->init_at_commands.push_back(cmd); }
+  bool is_connected() { return this->component_state_ == ModemComponentState::CONNECTED; }
+  bool is_disabled() { return this->component_state_ == ModemComponentState::DISABLED && this->disable_wanted_; }
+  // Delegated methods
   AtCommandResult send_at(const std::string &cmd, uint32_t timeout = 0, bool verbose = false);
-  bool get_power_status();
   void enable();
   void disable();
   void reset();
-  bool get_signal_quality(float &rssi, float &ber);
-  std::string modem_network_status_string();
 
   network::IPAddresses get_ip_addresses();
   std::string get_use_address() const;
@@ -104,9 +88,7 @@ class ModemComponent : public Component {
   void add_on_state_callback(std::function<void(ModemComponentState, ModemComponentState)> &&callback) {
     this->on_state_callback_.add(std::move(callback));
   }
-  // Main esp_modem object
-  // https://docs.espressif.com/projects/esp-protocols/esp_modem/docs/latest/internal_docs.html#dce-internal-implementation
-  std::unique_ptr<DCE> dce{nullptr};
+  std::unique_ptr<ModemHandler> modem_handler{nullptr};
 
  protected:
   // ===== State handler methods =====
@@ -122,87 +104,27 @@ class ModemComponent : public Component {
   void handle_state_disabled_();
   void handle_state_powering_off_();
 
-  void modem_create_dte_dce_(int baud_rate);
-  void modem_create_dte_dce_() { this->modem_create_dte_dce_(this->internal_state_.current_baud_rate); }
-  void send_init_at_();
-  void update_network_state_();
-  bool prepare_sim_();
   void abort_(const std::string &message);
   void loop_delay_(uint32_t delay_ms);
-  static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
   void dump_connect_params_();
-  std::string flush_uart_(uint32_t timeout);
-  std::string flush_uart_() { return this->flush_uart_(this->command_delay_); }
 
   // Attributes from YAML config
   uint32_t timeout_;
-  InternalGPIOPin *tx_pin_;
-  InternalGPIOPin *rx_pin_;
-  std::string model_;
-  GPIOPin *status_pin_{nullptr};
-  uint32_t power_ton_pulse_delay_;
-  uint32_t power_ton_delay_;
-  uint32_t power_toff_pulse_delay_;
-  uint32_t power_toff_delay_;
-  GPIOPin *power_pin_{nullptr};
-  uint16_t tx_buffer_size_ = 512;
-  uint16_t rx_buffer_size_ = 512;
-  uint16_t dte_buffer_size_ = 512;
-
-  std::string pin_code_;
-  std::string apn_;
-  std::vector<std::string> init_at_commands_;
   std::string use_address_;
-  int baud_rate_ = 0;  // Automatically set to 115200 if not specified
-  bool cmux_{false};
   CallbackManager<void(ModemComponentState, ModemComponentState)> on_state_callback_;
-
-  // Allow changes from YAML?
-  uint8_t uart_event_queue_size_ = 10;        // 10-40
-  size_t uart_event_task_stack_size_ = 4096;  // 2000-6000
-  uint8_t uart_event_task_priority_ = 5;      // 3-22
-  uint32_t command_delay_ = 1000;             // Timeout for AT commands
-  uint32_t connect_retry_delay_ = 5000;       // Delay before retrying connection
 
   // Changes will trigger user callback
   ModemComponentState component_state_{ModemComponentState::DISABLED};
 
-  // The UART DTE
-  // https://docs.espressif.com/projects/esp-protocols/esp_modem/docs/latest/internal_docs.html#_CPPv4N9esp_modem3DCEE
-  std::shared_ptr<DTE> dte_{nullptr};
-  esp_netif_t *ppp_netif_{nullptr};
-
-  struct InternalState {
-    esp_netif_ip_info_t ip_info{};
-    esp_netif_dns_info_t dns_main{};
-    esp_netif_dns_info_t dns_backup{};
-    uint32_t last_health_check{0};
-    uint32_t next_loop_millis{0};
-    // Guessed power state
-    bool powered_on{false};
-    // Request modem to reconnect
-    int current_baud_rate{0};
-    bool got_ip{false};
-    // if false the component wil be reenabled if disabled (ie power cycle or reset)
-    bool disable_wanted{true};
-    // Will be set by update_network_state_(): those are from the modem side, not PPP
-    float rssi{NAN};
-    float ber{NAN};
-    int network_attached{0};
-    int network_mode{0};
-    bool modem_connected{false};
-    int cfun{0};
-    std::string sim_status = "None";
-    bool synced{false};
-  };
-  InternalState internal_state_;
+  uint32_t last_health_check_{0};
+  uint32_t next_loop_millis_{0};
+  bool disable_wanted_{true};
 
   ModemRestoreState modem_restore_state_{};
   ESPPreferenceObject pref_;
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-extern ModemComponent *global_modem_component;
+extern ModemComponent *global_modem_component;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace modem
 }  // namespace esphome
