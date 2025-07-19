@@ -9,6 +9,7 @@
 namespace esphome {
 namespace modem {
 
+// Triggers
 class ModemOnNotRespondingTrigger : public Trigger<> {
  public:
   explicit ModemOnNotRespondingTrigger(ModemComponent *parent) {
@@ -53,6 +54,46 @@ class ModemOnStartPPPTrigger : public Trigger<> {
         this->trigger();
       }
     });
+  }
+};
+
+template<typename... Ts> class ModemSendAtAction : public Action<Ts...> {
+ public:
+  void set_command(const std::string &command) { this->command_ = command; }
+  void play(Ts... x) override {
+    if (global_modem_component) {
+      global_modem_component->send_at(this->command_, 1000, true);
+    }
+  }
+
+ protected:
+  std::string command_;
+};
+
+// Actions
+template<typename... Ts> class ModemEnableAction : public Action<Ts...> {
+ public:
+  void play(Ts... x) override { global_modem_component->enable(); }
+};
+
+template<typename... Ts> class ModemDisableAction : public Action<Ts...> {
+ public:
+  void play(Ts... x) override { global_modem_component->disable(); }
+};
+
+template<typename... Ts> class ModemResetAction : public Action<Ts...> {
+ public:
+  void play(Ts... x) override { global_modem_component->reset(); }
+};
+
+// Conditions
+template<typename... Ts> class ModemIsConnectedCondition : public Condition<Ts...> {
+ public:
+  bool check(Ts... x) override {
+    if (global_modem_component) {
+      return global_modem_component->is_connected();
+    }
+    return false;
   }
 };
 

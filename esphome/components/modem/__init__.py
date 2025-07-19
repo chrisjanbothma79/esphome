@@ -89,11 +89,10 @@ MODEM_MODELS_POWER = {
 
 MODEM_MODELS_POWER["SIM7670"] = MODEM_MODELS_POWER["SIM7600"]
 
-KEY_MODEM_MODEL = "modem_model"
-KEY_MODEM_CMUX = "modem_cmux"
-
 modem_ns = cg.esphome_ns.namespace("modem")
 ModemComponent = modem_ns.class_("ModemComponent", cg.Component)
+
+# Triggers
 ModemComponentState = modem_ns.enum("ModemComponentState")
 ModemOnNotRespondingTrigger = modem_ns.class_(
     "ModemOnNotRespondingTrigger", automation.Trigger.template()
@@ -107,6 +106,18 @@ ModemOnDisconnectTrigger = modem_ns.class_(
 ModemOnStartPPPTrigger = modem_ns.class_(
     "ModemOnStartPPPTrigger", automation.Trigger.template()
 )
+
+# Actions
+ModemEnableAction = modem_ns.class_("ModemEnableAction", automation.Action)
+ModemDisableAction = modem_ns.class_("ModemDisableAction", automation.Action)
+ModemResetAction = modem_ns.class_("ModemResetAction", automation.Action)
+ModemSendAtAction = modem_ns.class_("ModemSendAtAction", automation.Action)
+
+# Conditions
+ModemIsConnectedCondition = modem_ns.class_(
+    "ModemIsConnectedCondition", automation.Condition.template()
+)
+
 
 MODEM_COMPONENT_SCHEMA = cv.Schema(
     {cv.GenerateID(CONF_MODEM_ID): cv.use_id(ModemComponent)}
@@ -231,6 +242,48 @@ def _final_validate(config):
 
 
 FINAL_VALIDATE_SCHEMA = _final_validate
+
+
+# Register actions
+
+
+@automation.register_action("modem.enable", ModemEnableAction, cv.Schema({}))
+async def modem_enable_to_code(config, action_id, template_arg, args):
+    return cg.new_Pvariable(action_id, template_arg)
+
+
+@automation.register_action("modem.disable", ModemDisableAction, cv.Schema({}))
+async def modem_disable_to_code(config, action_id, template_arg, args):
+    return cg.new_Pvariable(action_id, template_arg)
+
+
+@automation.register_action("modem.reset", ModemResetAction, cv.Schema({}))
+async def modem_reset_to_code(config, action_id, template_arg, args):
+    return cg.new_Pvariable(action_id, template_arg)
+
+
+@automation.register_action(
+    "modem.send_at",
+    ModemSendAtAction,
+    cv.templatable(cv.string),
+)
+async def modem_send_at_action_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    template_ = await cg.templatable(config, args, str)
+    cg.add(var.set_command(template_))
+    return var
+
+
+# Register conditions
+
+
+@automation.register_condition(
+    "modem.is_connected",
+    ModemIsConnectedCondition,
+    cv.Schema({}),
+)
+async def modem_is_connected_to_code(config, condition_id, template_arg, args):
+    return cg.new_Pvariable(condition_id, template_arg)
 
 
 @coroutine_with_priority(60.0)

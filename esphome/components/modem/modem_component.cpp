@@ -71,20 +71,32 @@ std::string ModemComponent::modem_network_status_string() {
   return status_string;
 }
 
-AtCommandResult ModemComponent::send_at(const std::string &cmd, uint32_t timeout) {
+AtCommandResult ModemComponent::send_at(const std::string &cmd, uint32_t timeout, bool verbose) {
+  const uint32_t cmd_timeout = timeout == 0 ? this->command_delay_ : timeout;
   AtCommandResult at_command_result;
   at_command_result.success = false;
   at_command_result.esp_modem_command_result = command_result::TIMEOUT;
   if (this->dce) {
-    at_command_result.esp_modem_command_result = this->dce->at(cmd, at_command_result.output, timeout);
-    ESP_LOGVV(TAG, "Result for command %s: %s (status %s)", cmd.c_str(), at_command_result.c_str(),
-              command_result_to_string(at_command_result.esp_modem_command_result).c_str());
+    at_command_result.esp_modem_command_result = this->dce->at(cmd, at_command_result.output, cmd_timeout);
+    at_command_result.success = at_command_result.esp_modem_command_result == command_result::OK;
+
+    auto level = ESPHOME_LOG_LEVEL_VERY_VERBOSE;
+    if (verbose) {
+      if (at_command_result.success) {
+        level = ESPHOME_LOG_LEVEL_INFO;
+      } else {
+        level = ESPHOME_LOG_LEVEL_ERROR;
+      }
+    }
+
+    esp_log_printf_(level, TAG, __LINE__, "Result for command %s: %s (status %s)", cmd.c_str(),
+                    at_command_result.c_str(),
+                    command_result_to_string(at_command_result.esp_modem_command_result).c_str());
   } else {
     ESP_LOGE(TAG, "Modem DCE not ready, cannot send AT command: %s", cmd.c_str());
     at_command_result.esp_modem_command_result = command_result::FAIL;
   }
 
-  at_command_result.success = at_command_result.esp_modem_command_result == command_result::OK;
   return at_command_result;
 }
 
@@ -100,21 +112,23 @@ bool ModemComponent::get_power_status() {
 }
 
 void ModemComponent::enable() {
-  ESP_LOGI(TAG, "Enabling modem");
-  set_timeout("modem timeout", this->timeout_, [this]() { this->abort_("Modem was not able to connect (timeout)"); });
-  this->enable_loop();
-  if (this->status_pin_) {
-    // Check status pin for power state.
-    if (this->get_power_status()) {
-      ESP_LOGV(TAG, "Modem already ON (status pin HIGH).");
-      this->component_state_ = ModemComponentState::INIT_NETWORK;
-      return;
+  if (this->component_state_ == ModemComponentState::DISABLED) {
+    ESP_LOGI(TAG, "Enabling modem");
+    set_timeout("modem timeout", this->timeout_, [this]() { this->abort_("Modem was not able to connect (timeout)"); });
+    this->enable_loop();
+    if (this->status_pin_) {
+      // Check status pin for power state.
+      if (this->get_power_status()) {
+        ESP_LOGV(TAG, "Modem already ON (status pin HIGH).");
+        this->component_state_ = ModemComponentState::INIT_NETWORK;
+        return;
+      }
     }
-  }
-  if (this->power_pin_) {
-    this->component_state_ = ModemComponentState::POWERING_ON;
-  } else {
-    this->component_state_ = ModemComponentState::INIT_NETWORK;
+    if (this->power_pin_) {
+      this->component_state_ = ModemComponentState::POWERING_ON;
+    } else {
+      this->component_state_ = ModemComponentState::INIT_NETWORK;
+    }
   }
 }
 
@@ -340,7 +354,8 @@ void ModemComponent::handle_state_powering_off_() {
 void ModemComponent::handle_state_syncing_() {
   // Goal is to have modem synced at wanted baud rate
 
-  // Create or recreate DTE and DCE using the guessed baud rate (0, ie default on cold boot, or last used on warm boot)
+  // Create or recreate DTE and DCE using the guessed baud rate (0, ie default on cold boot, or last used on warm
+  // boot)
   this->modem_create_dte_dce_(this->internal_state_.current_baud_rate);
 
   ESP_LOGD(TAG, "Autodetecting modem mode...");

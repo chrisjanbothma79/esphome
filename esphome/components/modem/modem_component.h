@@ -80,9 +80,7 @@ class ModemComponent : public Component {
   bool is_disabled() {
     return this->component_state_ == ModemComponentState::DISABLED && this->internal_state_.disable_wanted;
   }
-  AtCommandResult send_at(const std::string &cmd) { return this->send_at(cmd, this->command_delay_); }
-  AtCommandResult send_at(const std::string &cmd, uint32_t timeout);
-  AtCommandResult get_imei();
+  AtCommandResult send_at(const std::string &cmd, uint32_t timeout = 0, bool verbose = false);
   bool get_power_status();
   void enable();
   void disable();
