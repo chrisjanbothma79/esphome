@@ -2,6 +2,8 @@
 
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/json/json_util.h"
+
 // Conditionally include sensor
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
