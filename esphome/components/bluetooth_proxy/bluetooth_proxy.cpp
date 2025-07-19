@@ -159,6 +159,11 @@ void BluetoothProxy::loop() {
     return;
   }
 
+  // Early return if no advertisements pending
+  if (this->advertisement_count_ == 0) {
+    return;
+  }
+
   // Flush any pending BLE advertisements that have been accumulated but not yet sent
   uint32_t now = App.get_loop_component_start_time();
 
