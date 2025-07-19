@@ -209,6 +209,8 @@ class Scheduler {
   // Single-core platforms don't need the defer queue and save 40 bytes of RAM
   std::deque<std::unique_ptr<SchedulerItem>> defer_queue_;  // FIFO queue for defer() calls
 #endif                                                      /* ESPHOME_SINGLE_CORE */
+  uint32_t to_remove_{0};
+
 #ifdef ESPHOME_MULTI_CORE_ATOMICS
   /*
    * Multi-threaded platforms with atomic support: last_millis_ needs atomic for lock-free updates
@@ -225,6 +227,7 @@ class Scheduler {
   // Platforms without atomic support or single-threaded platforms
   uint32_t last_millis_{0};
 #endif /* else ESPHOME_MULTI_CORE_ATOMICS */
+
   /*
    * Upper 16 bits of the 64-bit millis counter. Incremented only while holding
    * `lock_`; read concurrently. Atomic (relaxed) avoids a formal data race.
@@ -236,7 +239,6 @@ class Scheduler {
 #else  /* not ESPHOME_MULTI_CORE_ATOMICS */
   uint16_t millis_major_{0};
 #endif /* else ESPHOME_MULTI_CORE_ATOMICS */
-  uint32_t to_remove_{0};
 };
 
 }  // namespace esphome
