@@ -11,7 +11,6 @@ CODEOWNERS = ["@mikelawrence"]
 MULTI_CONF = True
 
 CONF_DFROBOT_C4001_ID = "dfrobot_c4001_id"
-MODE = ""
 
 dfrobot_c4001_ns = cg.esphome_ns.namespace("dfrobot_c4001")
 DFRobotC4001Hub = dfrobot_c4001_ns.class_(
@@ -65,8 +64,7 @@ async def to_code(config):
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
-    if CONF_MODE in config:
-        cg.add(var.set_mode(config[CONF_MODE]))
+    cg.add(var.set_mode(config[CONF_MODE]))
 
 
 @automation.register_action(
