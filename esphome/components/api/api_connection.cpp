@@ -79,14 +79,16 @@ APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *pa
 #if defined(USE_API_PLAINTEXT) && defined(USE_API_NOISE)
   auto noise_ctx = parent->get_noise_ctx();
   if (noise_ctx->has_psk()) {
-    this->helper_ = std::unique_ptr<APIFrameHelper>{new APINoiseFrameHelper(std::move(sock), noise_ctx)};
+    this->helper_ =
+        std::unique_ptr<APIFrameHelper>{new APINoiseFrameHelper(std::move(sock), noise_ctx, &this->client_info_)};
   } else {
-    this->helper_ = std::unique_ptr<APIFrameHelper>{new APIPlaintextFrameHelper(std::move(sock))};
+    this->helper_ = std::unique_ptr<APIFrameHelper>{new APIPlaintextFrameHelper(std::move(sock), &this->client_info_)};
   }
 #elif defined(USE_API_PLAINTEXT)
-  this->helper_ = std::unique_ptr<APIFrameHelper>{new APIPlaintextFrameHelper(std::move(sock))};
+  this->helper_ = std::unique_ptr<APIFrameHelper>{new APIPlaintextFrameHelper(std::move(sock), &this->client_info_)};
 #elif defined(USE_API_NOISE)
-  this->helper_ = std::unique_ptr<APIFrameHelper>{new APINoiseFrameHelper(std::move(sock), parent->get_noise_ctx())};
+  this->helper_ = std::unique_ptr<APIFrameHelper>{
+      new APINoiseFrameHelper(std::move(sock), parent->get_noise_ctx(), &this->client_info_)};
 #else
 #error "No frame helper defined"
 #endif
@@ -111,7 +113,6 @@ void APIConnection::start() {
   }
   this->client_info_.peername = helper_->getpeername();
   this->client_info_.name = this->client_info_.peername;
-  this->helper_->set_client_info(&this->client_info_);
 }
 
 APIConnection::~APIConnection() {
