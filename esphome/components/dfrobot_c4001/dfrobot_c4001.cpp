@@ -71,16 +71,21 @@ void DFRobotC4001Hub::set_target_energy(float value) {
 }
 
 void DFRobotC4001Hub::set_max_range(float max, bool needs_save) {
-  this->max_range_ = max;
 #ifdef USE_NUMBER
-  // range check against min_range only if min_range number is in the config
+  if (this->max_range_number_ != nullptr) {
+    this->max_range_number_->publish_state(max);
+  }
   if (this->min_range_number_ != nullptr) {
-    if (this->max_range_ < this->min_range_) {
-      this->max_range_ = this->min_range_;
+    if (this->min_range_ > max) {
+      this->min_range_ = max;
+      this->min_range_number_->publish_state(max);
     }
   }
-  if (this->max_range_number_ != nullptr) {
-    this->max_range_number_->publish_state(this->max_range_);
+  if (this->trigger_range_number_ != nullptr) {
+    if (this->trigger_range_ > max) {
+      this->trigger_range_ = max;
+      this->trigger_range_number_->publish_state(max);
+    }
   }
 #endif
   this->max_range_ = max;
@@ -90,36 +95,48 @@ void DFRobotC4001Hub::set_max_range(float max, bool needs_save) {
 }
 
 void DFRobotC4001Hub::set_min_range(float min, bool needs_save) {
-  this->min_range_ = min;
 #ifdef USE_NUMBER
-  // range check against min_range only if max_range number is in the config
+  if (this->min_range_number_ != nullptr) {
+    this->min_range_number_->publish_state(min);
+  }
   if (this->max_range_number_ != nullptr) {
-    if (this->min_range_ > this->max_range_) {
-      this->min_range_ = this->max_range_;
+    if (this->max_range_ < min) {
+      this->max_range_ = min;
+      this->max_range_number_->publish_state(min);
     }
   }
-  if (this->min_range_number_ != nullptr) {
-    this->min_range_number_->publish_state(this->min_range_);
+  if (this->trigger_range_number_ != nullptr) {
+    if (this->trigger_range_ < min) {
+      this->trigger_range_ = min;
+      this->trigger_range_number_->publish_state(min);
+    }
   }
 #endif
+  this->min_range_ = min;
   if (needs_save) {
     this->set_needs_save(true);
   }
 }
 void DFRobotC4001Hub::set_trigger_range(float trig, bool needs_save) {
   if (this->mode_ == MODE_PRESENCE) {
-    this->trigger_range_ = trig;
 #ifdef USE_NUMBER
-    // range check against min_range only if max_range number is in the config
-    if (this->max_range_number_ != nullptr) {
-      if (this->trigger_range_ > this->max_range_) {
-        this->trigger_range_ = this->max_range_;
-      }
-    }
     if (this->trigger_range_number_ != nullptr) {
       this->trigger_range_number_->publish_state(trig);
     }
+    if (this->min_range_number_ != nullptr) {
+      if (this->min_range_ > trig) {
+        this->min_range_ = trig;
+        this->min_range_number_->publish_state(trig);
+      }
+    }
+    if (this->max_range_number_ != nullptr) {
+      if (this->max_range_ < trig) {
+        this->max_range_ = trig;
+        this->max_range_number_->publish_state(trig);
+      }
+    }
 #endif
+    this->trigger_range_ = trig;
     if (needs_save) {
       this->set_needs_save(true);
     }
@@ -250,7 +267,7 @@ void DFRobotC4001Hub::set_hardware_version(char *version) {
   std::string new_string(version);
   if (str_startswith(new_string, "JYSJ_428")) {
     this->model_ = MODEL_SEN0609;
-  } else if (str_startswith(new_string, "JYSJ_426")) {
+  } else if (str_startswith(new_string, "JYSJ_427")) {
     this->model_ = MODEL_SEN0610;
   } else {
     this->model_ = MODEL_UNKNOWN;
