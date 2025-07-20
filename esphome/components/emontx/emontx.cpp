@@ -11,6 +11,8 @@ static const char *const TAG = "emontx";
  * @brief Initializes the EmonTx.
  */
 void EmonTx::setup() {
+  state_ = OFF;
+
   ESP_LOGCONFIG(TAG, "Setting up EmonTx component");
 
 #ifdef USE_SENSOR
@@ -29,8 +31,51 @@ void EmonTx::setup() {
  */
 void EmonTx::update() {
   ESP_LOGD(TAG, "Updating EmonTx state...");
-  buffer_.clear();  // Clear the buffer for new data
+
+  if (state_ == OFF) {
+    buffer_.clear();  // Clear the buffer for new data
+    state_ = WAITING_FOR_START;
+  }
+
   ESP_LOGD(TAG, "EmonTx is now ready to receive data.");
+}
+
+bool EmonTx::read_chars_until_(bool drop, uint8_t c) {
+  uint8_t received;
+  int j = 0;
+
+  while (available() > 0 && j < 128) {
+    j++;
+    received = read();
+
+    // If we're collecting JSON data (not dropping) and receive a newline,
+    // consider this invalid and signal to discard the buffer
+    if (!drop && (received == '\r' || received == '\n')) {
+      ESP_LOGW(TAG, "Newline found within JSON data, discarding buffer");
+      buffer_.clear();
+      state_ = WAITING_FOR_START;
+      return false;
+    }
+
+    if (drop)
+      continue;
+
+    // Prevent buffer overflow
+    if (buffer_.length() > 1024) {
+      ESP_LOGW(TAG, "Buffer overflow, clearing buffer");
+      buffer_.clear();
+      state_ = OFF;
+      return false;
+    }
+
+    buffer_ += received;
+
+    if (received == c) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -43,24 +88,29 @@ void EmonTx::update() {
  * - END_FRAME_RECEIVED: Processes the buffer to extract groups, validate CRC, and publish values.
  */
 void EmonTx::loop() {
-  while (available()) {
-    char c = read();
-
-    if (c == '\n' || c == '\r') {
-      if (!buffer_.empty()) {
-        ESP_LOGI(TAG, "Received data: %s", buffer_.c_str());
-        parse_json_(buffer_);
-
+  switch (state_) {
+    case OFF:
+      // Do nothing, waiting for setup
+      break;
+    case WAITING_FOR_START:
+      if (read_chars_until_(true, '{')) {
+        // Start of JSON object detected
         buffer_.clear();
+        state_ = COLLECTING_JSON;
       }
-    } else {
-      buffer_ += c;
-      // Prevent buffer overflow
-      if (buffer_.length() > 1024) {
-        ESP_LOGW(TAG, "Buffer overflow, clearing buffer");
-        buffer_.clear();
+      // Ignore any other characters
+      break;
+
+    case COLLECTING_JSON:
+      if (read_chars_until_(false, '}')) {
+        state_ = JSON_COLLECTED;
       }
-    }
+      break;
+
+    case JSON_COLLECTED:
+      parse_json_(buffer_);
+      state_ = OFF;  // Reset state to OFF after processing
+      break;
   }
 }
 
