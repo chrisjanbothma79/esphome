@@ -60,7 +60,7 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   void add_on_json_callback(const EmonTxJsonCallback &callback) { this->json_callbacks_.push_back(callback); }
 
   // Add method to get the current buffer
-  std::string get_buffer() const { return this->buffer_; }
+  std::string get_buffer() const { return this->last_valid_json_; }
 
 #ifdef USE_SENSOR
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
@@ -71,6 +71,8 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   std::map<std::string, sensor::Sensor *> sensors_{};
 #endif
   std::string buffer_;
+  std::string last_valid_json_;
+
   void parse_json_(const std::string &data);
   void publish_value_(const std::string &tag, const std::string &val);
 

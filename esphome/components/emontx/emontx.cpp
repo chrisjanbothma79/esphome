@@ -68,7 +68,7 @@ void EmonTx::parse_json_(const std::string &data) {
   ESP_LOGV(TAG, "Parsing JSON: %s", data.c_str());
   ESP_LOGV(TAG, "Listener list contains '%d' items", (int) this->emontx_listeners_.size());
 
-  bool success = json::parse_json(data, [this](JsonObject root) {
+  bool success = json::parse_json(data, [this, &data](JsonObject root) {
 #ifdef USE_SENSOR
     // Update all registered sensors
     for (auto &sensor_pair : this->sensors_) {
@@ -94,6 +94,9 @@ void EmonTx::parse_json_(const std::string &data) {
         listener->publish_val(value);
       }
     }
+
+    // Save the valid JSON data for callbacks
+    this->last_valid_json_ = data;
 
     // Execute all registered JSON callbacks
     if (!this->json_callbacks_.empty()) {
