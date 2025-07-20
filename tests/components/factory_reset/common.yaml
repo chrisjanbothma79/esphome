@@ -1,3 +1,7 @@
 button:
   - platform: factory_reset
     name: Reset to Factory Default Settings
+
+factory_reset:
+  reset_after_fast_power_cycles: 5
+  max_delay_between_power_cycles: 10s

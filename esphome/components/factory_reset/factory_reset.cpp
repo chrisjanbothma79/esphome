@@ -6,11 +6,13 @@
 
 #include <cinttypes>
 
+#if !defined(USE_RP2040) && !defined(USE_HOST)
+
 namespace esphome {
 namespace factory_reset {
 
 static const char *const TAG = "factory_reset";
-static const uint32_t FAST_BOOT_MAGIC = 0xFA57B007;
+static const uint32_t POWER_CYCLES_KEY = 0xFA5C0DE;
 
 void FactoryResetComponent::dump_config() {
   uint8_t count = 0;
@@ -30,7 +32,7 @@ void FactoryResetComponent::save_(uint8_t count) {
 }
 
 void FactoryResetComponent::setup() {
-  this->flash_ = global_preferences->make_preference<uint8_t>(FAST_BOOT_MAGIC + 1, true);
+  this->flash_ = global_preferences->make_preference<uint8_t>(POWER_CYCLES_KEY, true);
   uint8_t count = 0;
   if (was_power_cycled()) {
     // this is a power on reset
@@ -54,3 +56,5 @@ void FactoryResetComponent::setup() {
 
 }  // namespace factory_reset
 }  // namespace esphome
+
+#endif  // !defined(USE_RP2040) && !defined(USE_HOST)

@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/preferences.h"
+#if !defined(USE_RP2040) && !defined(USE_HOST)
 
 #ifdef USE_ESP32
 #include <esp_system.h>
@@ -10,7 +11,6 @@
 
 namespace esphome {
 namespace factory_reset {
-
 static bool was_power_cycled() {
 #ifdef USE_ESP32
   return esp_reset_reason() == ESP_RST_POWERON;
@@ -38,8 +38,8 @@ class FactoryResetComponent : public Component {
   ~FactoryResetComponent() = default;
   void save_(uint8_t count);
   ESPPreferenceObject flash_{};  // saves the number of fast power cycles
-  uint32_t max_interval_;        // max interval between power cycles
   uint8_t required_count_;       // The number of boot attempts before fast boot is enabled
+  uint32_t max_interval_;        // max interval between power cycles
   CallbackManager<void(uint8_t, uint8_t)> increment_callback_{};
 };
 
@@ -51,3 +51,5 @@ class FastBootTrigger : public Trigger<uint8_t, uint8_t> {
 };
 }  // namespace factory_reset
 }  // namespace esphome
+
+#endif  // !defined(USE_RP2040) && !defined(USE_HOST)
