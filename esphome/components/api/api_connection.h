@@ -275,6 +275,8 @@ class APIConnection : public APIServerConnection {
   bool try_to_clear_buffer(bool log_out_of_space);
   bool send_buffer(ProtoWriteBuffer buffer, uint8_t message_type) override;
 
+  std::string get_client_combined_info() const { return this->client_info_.get_combined_info(); }
+
   // Buffer allocator methods for batch processing
   ProtoWriteBuffer allocate_single_message_buffer(uint16_t size);
   ProtoWriteBuffer allocate_batch_message_buffer(uint16_t size);
