@@ -1,6 +1,13 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_HEIGHT, CONF_ID, CONF_TYPE, CONF_WIDTH
+from esphome.const import (
+    CONF_FLIP_X,
+    CONF_FLIP_Y,
+    CONF_HEIGHT,
+    CONF_ID,
+    CONF_TYPE,
+    CONF_WIDTH,
+)
 
 CODEOWNERS = ["@DT-art1"]
 
@@ -10,16 +17,14 @@ CONF_ALGORITHM = "algorithm"
 CONF_CAMERA_ID = "camera_id"
 CONF_CLEAR = "clear"
 CONF_DEFAULT_SCALER_ID = "default_scaler_id"
-CONF_FLIP_X = "flip_x"
-CONF_FLIP_Y = "flip_y"
 CONF_IMAGE_FORMAT = "image_format"
 CONF_IMAGE_FORMAT_ID = "image_format_id"
 CONF_IMAGE_ID = "image_id"
 CONF_MARGINS = "margins"
-CONF_MARGIN_LEFT = "left"
-CONF_MARGIN_TOP = "top"
-CONF_MARGIN_RIGHT = "right"
-CONF_MARGIN_BOTTOM = "bottom"
+CONF_LEFT = "left"
+CONF_TOP = "top"
+CONF_RIGHT = "right"
+CONF_BOTTOM = "bottom"
 
 DEFAULT_SCALER = "default"
 
@@ -46,10 +51,10 @@ CONF_ALGORITHM_SELECTS = {
 }
 
 margin_parameters = {
-    cv.Optional(CONF_MARGIN_LEFT): cv.int_range(0),
-    cv.Optional(CONF_MARGIN_TOP): cv.int_range(0),
-    cv.Optional(CONF_MARGIN_RIGHT): cv.int_range(0),
-    cv.Optional(CONF_MARGIN_BOTTOM): cv.int_range(0),
+    cv.Optional(CONF_LEFT): cv.int_range(0),
+    cv.Optional(CONF_TOP): cv.int_range(0),
+    cv.Optional(CONF_RIGHT): cv.int_range(0),
+    cv.Optional(CONF_BOTTOM): cv.int_range(0),
 }
 
 BASE_SCHEMA = cv.Schema(
@@ -106,14 +111,14 @@ async def to_code(config):
             cg.add(scaler.set_clear(config[CONF_CLEAR]))
         if CONF_MARGINS in config:
             for margin in config[CONF_MARGINS]:
-                if CONF_MARGIN_LEFT in margin:
-                    cg.add(scaler.set_margin_left(margin[CONF_MARGIN_LEFT]))
-                if CONF_MARGIN_RIGHT in margin:
-                    cg.add(scaler.set_margin_right(margin[CONF_MARGIN_RIGHT]))
-                if CONF_MARGIN_TOP in margin:
-                    cg.add(scaler.set_margin_top(margin[CONF_MARGIN_TOP]))
-                if CONF_MARGIN_BOTTOM in margin:
-                    cg.add(scaler.set_margin_bottom(margin[CONF_MARGIN_BOTTOM]))
+                if CONF_LEFT in margin:
+                    cg.add(scaler.set_margin_left(margin[CONF_LEFT]))
+                if CONF_RIGHT in margin:
+                    cg.add(scaler.set_margin_right(margin[CONF_RIGHT]))
+                if CONF_TOP in margin:
+                    cg.add(scaler.set_margin_top(margin[CONF_TOP]))
+                if CONF_BOTTOM in margin:
+                    cg.add(scaler.set_margin_bottom(margin[CONF_BOTTOM]))
 
         camera = await cg.get_variable(config[CONF_CAMERA_ID])
         cg.add(camera.append_processor(scaler))

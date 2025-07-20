@@ -98,7 +98,7 @@ uint8_t DefaultScaler::get_pixel_grayscale_bilinear_(camera::CameraImageSpec *in
   float py0 = p00 * (1.0f - dx) + p01 * dx;
   float py1 = p10 * (1.0f - dx) + p11 * dx;
 
-  return py0 * (1.0f - dy) + py1 * dy + 0.5f;
+  return static_cast<uint8_t>(lroundf(py0 * (1.0f - dy) + py1 * dy));
 }
 
 void DefaultScaler::set_pixel_grayscale_(uint8_t pixel, uint16_t x, uint16_t y) {

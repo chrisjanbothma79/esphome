@@ -19,21 +19,20 @@ class CameraOverlayDisplay : public display::Display {
   void setup() override {
     this->set_auto_clear(false);
     this->disable_loop();
-    Camera::instance()->add_overlay_callback([this](const std::shared_ptr<camera::CameraImage> &image,
-                                                    camera::CameraImageSpec spec,
-                                                    camera::CameraIncrementalContext &context) {
-      this->context_ = &context;
-      this->data_buffer_ = image->get_data_buffer();
-      this->spec_ = spec;
-      this->bpr_ = spec.bytes_per_row();
-      if (spec.format == camera::IMAGE_FORMAT_GRAYSCALE) {
-        this->display_type_ = display::DISPLAY_TYPE_GRAYSCALE;
-      } else {
-        this->display_type_ = display::DISPLAY_TYPE_COLOR;
-      }
+    Camera::instance()->add_overlay_callback(
+        [this](camera::CameraImage &image, camera::CameraImageSpec spec, camera::CameraIncrementalContext &context) {
+          this->context_ = &context;
+          this->data_buffer_ = image.get_data_buffer();
+          this->spec_ = spec;
+          this->bpr_ = spec.bytes_per_row();
+          if (spec.format == camera::IMAGE_FORMAT_GRAYSCALE) {
+            this->display_type_ = display::DISPLAY_TYPE_GRAYSCALE;
+          } else {
+            this->display_type_ = display::DISPLAY_TYPE_COLOR;
+          }
 
-      do_update_();
-    });
+          do_update_();
+        });
   }
 
   // ---- Display interface ----
