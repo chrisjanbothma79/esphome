@@ -96,7 +96,6 @@ void EmonTx::loop() {
     case WAITING_FOR_START:
       if (read_chars_until_(true, '{')) {
         // Start of JSON object detected
-        buffer_.clear();
         state_ = COLLECTING_JSON;
       }
       // Ignore any other characters
