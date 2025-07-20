@@ -76,6 +76,16 @@ APIError APIFrameHelper::loop() {
   return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
 }
 
+// Common socket write error handling
+APIError APIFrameHelper::handle_socket_write_error_() {
+  if (errno == EWOULDBLOCK || errno == EAGAIN) {
+    return APIError::WOULD_BLOCK;
+  }
+  ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
+  this->state_ = State::FAILED;
+  return APIError::SOCKET_WRITE_FAILED;
+}
+
 // Helper method to buffer data from IOVs
 void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len) {
   SendBuffer buffer;
@@ -124,15 +134,13 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   ssize_t sent = this->socket_->writev(iov, iovcnt);
 
   if (sent == -1) {
-    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+    APIError err = this->handle_socket_write_error_();
+    if (err == APIError::WOULD_BLOCK) {
       // Socket would block, buffer the data
       this->buffer_data_from_iov_(iov, iovcnt, total_write_len);
       return APIError::OK;  // Success, data buffered
     }
-    // Socket error
-    ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
-    this->state_ = State::FAILED;
-    return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
+    return err;  // Socket write failed
   } else if (static_cast<uint16_t>(sent) < total_write_len) {
     // Partially sent, buffer the remaining data
     SendBuffer buffer;
@@ -173,14 +181,7 @@ APIError APIFrameHelper::try_send_tx_buf_() {
     ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
 
     if (sent == -1) {
-      if (errno != EWOULDBLOCK && errno != EAGAIN) {
-        // Real socket error (not just would block)
-        ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
-        this->state_ = State::FAILED;
-        return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
-      }
-      // Socket would block, we'll try again later
-      return APIError::WOULD_BLOCK;
+      return this->handle_socket_write_error_();
     } else if (sent == 0) {
       // Nothing sent but not an error
       return APIError::WOULD_BLOCK;
@@ -305,11 +306,11 @@ APIError APINoiseFrameHelper::loop() {
   // WOULD_BLOCK when no more data is available to read
   while (state_ != State::DATA && this->socket_->ready()) {
     APIError err = state_action_();
-    if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
-      return err;
-    }
     if (err == APIError::WOULD_BLOCK) {
       break;
+    }
+    if (err != APIError::OK) {
+      return err;
     }
   }
 

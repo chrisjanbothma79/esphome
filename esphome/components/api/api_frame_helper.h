@@ -132,6 +132,9 @@ class APIFrameHelper {
 
   // Helper method to buffer data from IOVs
   void buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len);
+
+  // Common socket write error handling
+  APIError handle_socket_write_error_();
   template<typename StateEnum>
   APIError write_raw_(const struct iovec *iov, int iovcnt, socket::Socket *socket, std::vector<uint8_t> &tx_buf,
                       const std::string &info, StateEnum &state, StateEnum failed_state);
