@@ -168,6 +168,7 @@ class APIFrameHelper {
   std::vector<uint8_t> rx_buf_;
 
   // Pointer to client info (4 bytes on 32-bit)
+  // Note: The pointed-to ClientInfo object must outlive this APIFrameHelper instance.
   const ClientInfo *client_info_{nullptr};
 
   // Group smaller types together
