@@ -11,22 +11,10 @@
 
 namespace esphome {
 namespace factory_reset {
-static bool was_power_cycled() {
-#ifdef USE_ESP32
-  return esp_reset_reason() == ESP_RST_POWERON;
-#endif
-#ifdef USE_ESP8266
-  return ESP.getResetReason() == "Power on";
-#endif
-#ifdef USE_LIBRETINY
-  return lt_reboot_get_reboot_reason() == REBOOT_REASON_POWER;
-#endif
-}
-
 class FactoryResetComponent : public Component {
  public:
-  FactoryResetComponent(uint8_t required_count, uint32_t max_interval)
-      : required_count_(required_count), max_interval_(max_interval) {}
+  FactoryResetComponent(uint8_t required_count, uint32_t max_interval, bool count_external_resets)
+      : required_count_(required_count), max_interval_(max_interval), count_external_resets_(count_external_resets) {}
 
   void dump_config() override;
   void setup() override;
@@ -40,6 +28,7 @@ class FactoryResetComponent : public Component {
   ESPPreferenceObject flash_{};  // saves the number of fast power cycles
   uint8_t required_count_;       // The number of boot attempts before fast boot is enabled
   uint32_t max_interval_;        // max interval between power cycles
+  bool count_external_resets_;   // include external reset in the count
   CallbackManager<void(uint8_t, uint8_t)> increment_callback_{};
 };
 
