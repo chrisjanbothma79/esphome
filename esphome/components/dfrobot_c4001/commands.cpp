@@ -60,13 +60,13 @@ uint8_t Command::execute(DFRobotC4001Hub *parent) {
               this->retries_left_ -= 1;
               this->error_count_ -= 1;
               if (this->retry_power_stop) {
-                ESP_LOGD(TAG, "Command Error: Sensor not stopped, Retrying");
+                ESP_LOGD(TAG, "Command Retry: Sensor not stopped");
                 // allow command to be used again
                 this->state_ = STATE_CMD_SEND;
                 // this command is done, but the queue needs to send a commandStop first
                 return this->error_count_ < 0 ? this->error_count_ : true;
               } else {
-                ESP_LOGD(TAG, "Command Error: Retrying");
+                ESP_LOGD(TAG, "Command Retry");
                 // reset state to send command again
                 this->state_ = STATE_CMD_SEND;
                 return false;  // command not done

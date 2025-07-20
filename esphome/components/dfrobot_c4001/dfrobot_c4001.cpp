@@ -338,7 +338,7 @@ void DFRobotC4001Hub::config_load() {
   // have to be in the right mode to read that mode's parameters
   this->enqueue(make_unique<GetHWVCommand>());
   this->enqueue(make_unique<GetSWVCommand>());
-  if ((this->min_range_number_ != nullptr) || (this->min_range_number_ != nullptr)) {
+  if ((this->min_range_number_ != nullptr) || (this->max_range_number_ != nullptr)) {
     this->enqueue(make_unique<GetRangeCommand>());
   }
   if (this->mode_ == MODE_PRESENCE) {
@@ -417,11 +417,18 @@ void DFRobotC4001Hub::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "DFRobot C4001 mmWave Radar:\n"
                 "  SW Version: %s\n"
-                "  HW Version: %s, infers %s\n"
+                "  HW Version: %s\n"
                 "  Model: %s\n"
                 "  Mode: %s\n",
-                this->sw_version_.c_str(), this->hw_version_.c_str(), model_to_str(this->hw_model_),
-                model_to_str(this->model_), mode_to_str(this->mode_));
+                this->sw_version_.c_str(), this->hw_version_.c_str(), model_to_str(this->model_),
+                mode_to_str(this->mode_));
+  bool models_good = this->model_ == this->hw_model_;
+  if (this->hw_model_ == MODEL_UNKNOWN) {
+    models_good = true;
+  }
+  if (!models_good) {
+    ESP_LOGW(TAG, "HW Version indicates a %s, could be an issue", model_to_str(this->model_));
+  }
 #ifdef USE_BUTTON
   ESP_LOGCONFIG(TAG, "Buttons:");
   LOG_BUTTON("  ", "Config Save", this->config_save_button_);
@@ -501,7 +508,7 @@ void DFRobotC4001Hub::loop() {
   int8_t result = this->cmd_queue_.process(this);
   if (result) {
     if (this->cmd_queue_.is_retry_power_stop()) {
-      // add PowerCommand to the beginning of the queue tostop the sensor
+      // add PowerCommand to the beginning of the queue to stop the sensor
       this->enqueue(make_unique<PowerCommand>(false), true);
       ESP_LOGV(TAG, "Queue: Retrying command after stopping sensor");
     } else {
