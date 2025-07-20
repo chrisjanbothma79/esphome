@@ -92,6 +92,7 @@ void EmonTx::loop() {
     case OFF:
       // Do nothing, waiting for setup
       break;
+
     case WAITING_FOR_START:
       if (read_chars_until_(true, '{')) {
         // Start of JSON object detected
@@ -108,7 +109,12 @@ void EmonTx::loop() {
       break;
 
     case JSON_COLLECTED:
-      parse_json_(buffer_);
+      if (!buffer_.empty()) {
+        ESP_LOGI(TAG, "Received data: %s", buffer_.c_str());
+        parse_json_(buffer_);
+      } else {
+        ESP_LOGW(TAG, "Received empty buffer, skipping JSON parsing");
+      }
       state_ = OFF;  // Reset state to OFF after processing
       break;
   }
