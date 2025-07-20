@@ -21,6 +21,10 @@ body:
 
         Provide a clear and concise description of what the problem is.
 
+        ⚠️ **WARNING: Do NOT paste logs, stack traces, or error messages here!**
+        Use the "Logs" section below instead. Issues with logs
+        in this field will be automatically closed.
+
   - type: markdown
     attributes:
       value: |
@@ -79,7 +83,7 @@ body:
   - type: textarea
     id: logs
     attributes:
-      label: Anything in the logs that might be useful for us?
+      label: Logs
       description: For example, error message, or stack traces. Serial or USB logs are much more useful than WiFi logs.
       render: txt
   - type: textarea

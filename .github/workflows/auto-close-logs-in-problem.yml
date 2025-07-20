@@ -1,0 +1,248 @@
+name: Auto-close issues with logs in problem field
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to check for logs'
+        required: true
+        type: number
+
+jobs:
+  check-logs-in-problem:
+    runs-on: ubuntu-latest
+    if: github.event.issue.state == 'open' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@esphomebot reopen')) || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Check for logs and handle issue state
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            // Handle different trigger types
+            let issue, isReassessment;
+
+            if (context.eventName === 'workflow_dispatch') {
+              // Manual dispatch - get issue from input
+              const issueNumber = ${{ github.event.inputs.issue_number }};
+              console.log('Manual dispatch for issue:', issueNumber);
+
+              const issueResponse = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(issueNumber)
+              });
+
+              issue = issueResponse.data;
+              isReassessment = false; // Treat manual dispatch as initial check
+            } else {
+              // Normal event-driven flow
+              issue = context.payload.issue;
+              isReassessment = context.eventName === 'issue_comment' && context.payload.comment.body.includes('@esphomebot reopen');
+            }
+
+            console.log('Event type:', context.eventName);
+            console.log('Is reassessment:', isReassessment);
+            console.log('Issue state:', issue.state);
+
+            // Extract the problem section from the issue body
+            const body = issue.body || '';
+
+            // Look for the problem section between "### The problem" and the next section
+            const problemMatch = body.match(/### The problem\s*\n([\s\S]*?)(?=\n### |$)/i);
+
+            if (!problemMatch) {
+              console.log('Could not find problem section');
+              if (isReassessment) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: '❌ Could not find the "The problem" section in the issue template. Please make sure you are using the proper issue template format.'
+                });
+              }
+              return;
+            }
+
+            const problemText = problemMatch[1].trim();
+            console.log('Problem text length:', problemText.length);
+
+            // Function to check if text contains logs
+            function checkForLogs(text) {
+              // Patterns that indicate logs/stack traces/error messages
+              const logPatterns = [
+                // ESPHome specific log patterns with brackets
+                /^\[[DIWEVC]\]\[[^\]]+(?::\d+)?\]:/m,     // [D][component:123]: message
+                /^\[\d{2}:\d{2}:\d{2}\]\[[DIWEVC]\]\[[^\]]+(?::\d+)?\]:/m, // [12:34:56][D][component:123]: message
+                /^\[\d{2}:\d{2}:\d{2}\.\d{3}\]\[[DIWEVC]\]\[[^\]]+(?::\d+)?\]:/m, // [12:34:56.123][D][component:123]: message
+
+                // Common log prefixes
+                /^\[[\d\s\-:\.]+\]/m,                    // [timestamp] format
+                /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/m,  // YYYY-MM-DD HH:MM:SS
+                /^\w+\s+\d{2}:\d{2}:\d{2}/m,             // INFO 12:34:56
+
+                // Error indicators
+                /^(ERROR|WARN|WARNING|FATAL|DEBUG|INFO|TRACE)[\s:]/mi,
+                /^(Exception|Error|Traceback|Stack trace)/mi,
+                /at\s+[\w\.]+\([^)]*:\d+:\d+\)/m,        // Stack trace format
+                /^\s*File\s+"[^"]*",\s+line\s+\d+/m,     // Python traceback
+
+                // Legacy ESPHome log patterns
+                /^\[\d{2}:\d{2}:\d{2}\]\[/m,             // [12:34:56][component]
+                /^WARNING\s+[^:\s]+:/m,                  // WARNING component:
+                /^ERROR\s+[^:\s]+:/m,                    // ERROR component:
+
+                // Multiple consecutive lines starting with similar patterns
+                /(^(INFO|DEBUG|WARN|ERROR)[^\n]*\n){3,}/mi,
+                /(^\[[DIWEVC]\]\[[^\]]+\][^\n]*\n){3,}/mi, // Multiple ESPHome log lines
+
+                // Hex dumps or binary data
+                /0x[0-9a-f]{4,}/i,
+                /[0-9a-f]{8,}/,
+
+                // Compilation errors
+                /error:\s+/i,
+                /:\d+:\d+:\s+(error|warning):/i,
+
+                // Very long lines (often log output)
+                /.{200,}/
+              ];
+
+              const hasLogs = logPatterns.some(pattern => {
+                const matches = pattern.test(text);
+                if (matches) {
+                  console.log('Pattern matched:', pattern.toString());
+                }
+                return matches;
+              });
+
+              // Additional heuristics
+              const lineCount = text.split('\n').length;
+              const hasLotsOfLines = lineCount > 20; // More than 20 lines might be logs
+
+              const hasCodeBlocks = (text.match(/```/g) || []).length >= 2;
+              const longCodeBlock = hasCodeBlocks && text.length > 1000;
+
+              console.log(`Lines: ${lineCount}, Has logs: ${hasLogs}, Long code block: ${longCodeBlock}`);
+
+              return hasLogs || (hasLotsOfLines && longCodeBlock);
+            }
+
+            const hasLogsInProblem = checkForLogs(problemText);
+
+            // Handle reassessment (when @esphomebot is mentioned)
+            if (isReassessment) {
+              if (!hasLogsInProblem) {
+                // No logs found, check if issue was auto-closed and reopen it
+                if (issue.state === 'closed') {
+                  // Check if it has the auto-closed label
+                  const labels = issue.labels.map(label => label.name);
+                  if (labels.includes('auto-closed')) {
+                    console.log('Reopening issue - logs have been moved');
+
+                    await github.rest.issues.update({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      state: 'open'
+                    });
+
+                    // Remove auto-closed and invalid labels
+                    await github.rest.issues.removeLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      name: 'auto-closed'
+                    });
+
+                    await github.rest.issues.removeLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      name: 'invalid'
+                    });
+
+                    // Find and edit the original auto-close comment
+                    const comments = await github.rest.issues.listComments({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number
+                    });
+
+                    const autoCloseComment = comments.data.find(comment =>
+                      comment.user.login === 'github-actions[bot]' &&
+                      comment.body.includes('automatically closed because it appears to contain logs')
+                    );
+
+                    if (autoCloseComment) {
+                      const updatedComment = `✅ **ISSUE REOPENED**
+
+                      Thank you for helping us maintain organized issue reports! 🙏`;
+
+                      await github.rest.issues.updateComment({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        comment_id: autoCloseComment.id,
+                        body: updatedComment
+                      });
+                    }
+                  }
+                }
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: '❌ Logs are still detected in the "The problem" section. Please move them to the "Logs" section and try again.'
+                });
+              }
+              return;
+            }
+
+            // Handle initial issue opening
+            if (!hasLogsInProblem) {
+              console.log('No logs detected in problem field');
+              return;
+            }
+
+            console.log('Logs detected in problem field, closing issue');
+
+            // Close the issue
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              state: 'closed'
+            });
+
+            // Add a comment explaining why it was closed
+            const comment = `This issue has been automatically closed because it appears to contain logs, stack traces, or error messages in the "The problem" field.
+
+            ⚠️ **Please follow the issue template correctly:**
+            - Use the "The problem" field to **describe** your issue in plain English
+            - Put logs, error messages, and stack traces in the "Logs" section instead
+
+            To reopen this issue:
+            1. Edit your original issue description
+            2. Move any logs/error messages to the appropriate "Logs" section
+            3. Rewrite the "The problem" section with a clear description of what you were trying to do and what went wrong
+            4. Comment exactly \`@esphomebot reopen\` to reassess and automatically reopen if fixed
+
+            Thank you for helping us maintain organized issue reports! 🙏`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: comment
+            });
+
+            // Add labels
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: ['invalid', 'auto-closed']
+            });
