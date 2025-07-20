@@ -195,6 +195,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       this->on_home_assistant_state_response(msg);
       break;
     }
+#ifdef USE_API_SERVICES
     case 42: {
       ExecuteServiceRequest msg;
       msg.decode(msg_data, msg_size);
@@ -204,6 +205,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       this->on_execute_service_request(msg);
       break;
     }
+#endif
 #ifdef USE_CAMERA
     case 45: {
       CameraImageRequest msg;
@@ -596,32 +598,32 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
 
 void APIServerConnection::on_hello_request(const HelloRequest &msg) {
   HelloResponse ret = this->hello(msg);
-  if (!this->send_message(ret)) {
+  if (!this->send_message(ret, HelloResponse::MESSAGE_TYPE)) {
     this->on_fatal_error();
   }
 }
 void APIServerConnection::on_connect_request(const ConnectRequest &msg) {
   ConnectResponse ret = this->connect(msg);
-  if (!this->send_message(ret)) {
+  if (!this->send_message(ret, ConnectResponse::MESSAGE_TYPE)) {
     this->on_fatal_error();
   }
 }
 void APIServerConnection::on_disconnect_request(const DisconnectRequest &msg) {
   DisconnectResponse ret = this->disconnect(msg);
-  if (!this->send_message(ret)) {
+  if (!this->send_message(ret, DisconnectResponse::MESSAGE_TYPE)) {
     this->on_fatal_error();
   }
 }
 void APIServerConnection::on_ping_request(const PingRequest &msg) {
   PingResponse ret = this->ping(msg);
-  if (!this->send_message(ret)) {
+  if (!this->send_message(ret, PingResponse::MESSAGE_TYPE)) {
     this->on_fatal_error();
   }
 }
 void APIServerConnection::on_device_info_request(const DeviceInfoRequest &msg) {
   if (this->check_connection_setup_()) {
     DeviceInfoResponse ret = this->device_info(msg);
-    if (!this->send_message(ret)) {
+    if (!this->send_message(ret, DeviceInfoResponse::MESSAGE_TYPE)) {
       this->on_fatal_error();
     }
   }
@@ -655,21 +657,23 @@ void APIServerConnection::on_subscribe_home_assistant_states_request(const Subsc
 void APIServerConnection::on_get_time_request(const GetTimeRequest &msg) {
   if (this->check_connection_setup_()) {
     GetTimeResponse ret = this->get_time(msg);
-    if (!this->send_message(ret)) {
+    if (!this->send_message(ret, GetTimeResponse::MESSAGE_TYPE)) {
       this->on_fatal_error();
     }
   }
 }
+#ifdef USE_API_SERVICES
 void APIServerConnection::on_execute_service_request(const ExecuteServiceRequest &msg) {
   if (this->check_authenticated_()) {
     this->execute_service(msg);
   }
 }
+#endif
 #ifdef USE_API_NOISE
 void APIServerConnection::on_noise_encryption_set_key_request(const NoiseEncryptionSetKeyRequest &msg) {
   if (this->check_authenticated_()) {
     NoiseEncryptionSetKeyResponse ret = this->noise_encryption_set_key(msg);
-    if (!this->send_message(ret)) {
+    if (!this->send_message(ret, NoiseEncryptionSetKeyResponse::MESSAGE_TYPE)) {
       this->on_fatal_error();
     }
   }
@@ -863,7 +867,7 @@ void APIServerConnection::on_subscribe_bluetooth_connections_free_request(
     const SubscribeBluetoothConnectionsFreeRequest &msg) {
   if (this->check_authenticated_()) {
     BluetoothConnectionsFreeResponse ret = this->subscribe_bluetooth_connections_free(msg);
-    if (!this->send_message(ret)) {
+    if (!this->send_message(ret, BluetoothConnectionsFreeResponse::MESSAGE_TYPE)) {
       this->on_fatal_error();
     }
   }
@@ -895,7 +899,7 @@ void APIServerConnection::on_subscribe_voice_assistant_request(const SubscribeVo
 void APIServerConnection::on_voice_assistant_configuration_request(const VoiceAssistantConfigurationRequest &msg) {
   if (this->check_authenticated_()) {
     VoiceAssistantConfigurationResponse ret = this->voice_assistant_get_configuration(msg);
-    if (!this->send_message(ret)) {
+    if (!this->send_message(ret, VoiceAssistantConfigurationResponse::MESSAGE_TYPE)) {
       this->on_fatal_error();
     }
   }

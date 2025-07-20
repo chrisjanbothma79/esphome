@@ -1,3 +1,5 @@
+import logging
+
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import camera, i2c
@@ -8,6 +10,7 @@ from esphome.const import (
     CONF_CONTRAST,
     CONF_DATA_PINS,
     CONF_FREQUENCY,
+    CONF_I2C,
     CONF_I2C_ID,
     CONF_ID,
     CONF_PIN,
@@ -19,6 +22,9 @@ from esphome.const import (
 )
 from esphome.core import CORE
 from esphome.core.entity_helpers import setup_entity
+import esphome.final_validate as fv
+
+_LOGGER = logging.getLogger(__name__)
 
 DEPENDENCIES = ["esp32"]
 
@@ -99,6 +105,12 @@ ENUM_SPECIAL_EFFECT = {
     "SEPIA": ESP32SpecialEffect.ESP32_SPECIAL_EFFECT_SEPIA,
 }
 
+camera_fb_location_t = cg.global_ns.enum("camera_fb_location_t")
+ENUM_FB_LOCATION = {
+    "PSRAM": cg.global_ns.CAMERA_FB_IN_PSRAM,
+    "DRAM": cg.global_ns.CAMERA_FB_IN_DRAM,
+}
+
 # pin assignment
 CONF_HREF_PIN = "href_pin"
 CONF_PIXEL_CLOCK_PIN = "pixel_clock_pin"
@@ -129,6 +141,7 @@ CONF_MAX_FRAMERATE = "max_framerate"
 CONF_IDLE_FRAMERATE = "idle_framerate"
 # frame buffer
 CONF_FRAME_BUFFER_COUNT = "frame_buffer_count"
+CONF_FRAME_BUFFER_LOCATION = "frame_buffer_location"
 
 camera_range_param = cv.int_range(min=-2, max=2)
 
@@ -205,12 +218,31 @@ CONFIG_SCHEMA = cv.All(
                 cv.framerate, cv.Range(min=0, max=1)
             ),
             cv.Optional(CONF_FRAME_BUFFER_COUNT, default=1): cv.int_range(min=1, max=2),
+            cv.Optional(CONF_FRAME_BUFFER_LOCATION, default="PSRAM"): cv.enum(
+                ENUM_FB_LOCATION, upper=True
+            ),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
     .extend(camera.CAMERA_AUTOMATION_SCHEMA),
     cv.has_exactly_one_key(CONF_I2C_PINS, CONF_I2C_ID),
 )
+
+
+def _final_validate(config):
+    if CONF_I2C_PINS not in config:
+        return
+    fconf = fv.full_config.get()
+    if fconf.get(CONF_I2C):
+        raise cv.Invalid(
+            "The `i2c_pins:` config option is incompatible with an dedicated `i2c:` block, use `i2c_id` instead"
+        )
+    _LOGGER.warning(
+        "The `i2c_pins:` config option is deprecated. Use `i2c_id:` with a dedicated `i2c:` definition instead."
+    )
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 SETTERS = {
     # pin assignment
@@ -241,6 +273,7 @@ SETTERS = {
     CONF_WB_MODE: "set_wb_mode",
     # test pattern
     CONF_TEST_PATTERN: "set_test_pattern",
+    CONF_FRAME_BUFFER_LOCATION: "set_frame_buffer_location",
 }
 
 
@@ -269,6 +302,7 @@ async def to_code(config):
     else:
         cg.add(var.set_idle_update_interval(1000 / config[CONF_IDLE_FRAMERATE]))
     cg.add(var.set_frame_buffer_count(config[CONF_FRAME_BUFFER_COUNT]))
+    cg.add(var.set_frame_buffer_location(config[CONF_FRAME_BUFFER_LOCATION]))
     cg.add(var.set_frame_size(config[CONF_RESOLUTION]))
 
     if CORE.using_esp_idf:
