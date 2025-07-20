@@ -42,7 +42,7 @@ void CameraImpl::stop_stream(CameraRequester requester) {
 }
 
 void CameraImpl::setup() {
-  this->pixels_ = std::make_shared<CameraImageImpl>();
+  this->pixels_ = new CameraImageImpl();
   if (!this->pixels_->set_data_length(this->camera_image_spec_.bytes_per_image())) {
     this->status_set_error("Failed to allocate memory for image buffer.");
     this->mark_failed();
@@ -92,7 +92,7 @@ bool CameraImpl::camera_loop() {
 
   if (state_ == CAMERA_STATE_CAPTURING) {
     this->camera_incremental_context_.done = true;
-    this->image_capture_callback_.call(this->pixels_, this->camera_image_spec_, this->camera_incremental_context_);
+    this->image_capture_callback_.call(*this->pixels_, this->camera_image_spec_, this->camera_incremental_context_);
     // Incremental image capture
     if (!this->camera_incremental_context_.done)
       return true;
@@ -103,8 +103,20 @@ bool CameraImpl::camera_loop() {
                this->pixels_->get_data_length());
       state_ = CAMERA_STATE_CLEAR_REQUEST;
     } else {
-      state_ = CAMERA_STATE_OVERLAY_BEGIN;
+      state_ = CAMERA_STATE_PROCESSING;
+      this->input_image_ = this->pixels_;
+      this->input_image_spec_ = &this->camera_image_spec_;
     }
+  }
+
+  if (state_ == CAMERA_STATE_PROCESSING) {
+    for (Processor *processor : this->processors_) {
+      processor->process_pixels(this->input_image_spec_, this->input_image_);
+      this->input_image_ = processor->get_output_image();
+      this->input_image_spec_ = processor->get_output_image_spec();
+    }
+
+    state_ = CAMERA_STATE_OVERLAY_BEGIN;
   }
 
   if (state_ == CAMERA_STATE_OVERLAY_BEGIN) {
@@ -114,7 +126,7 @@ bool CameraImpl::camera_loop() {
 
   if (state_ == CAMERA_STATE_OVERLAYING) {
     this->camera_incremental_context_.done = true;
-    this->overlay_callback_.call(this->pixels_, this->camera_image_spec_, this->camera_incremental_context_);
+    this->overlay_callback_.call(*this->input_image_, *this->input_image_spec_, this->camera_incremental_context_);
     // Incremental image overlay
     if (!this->camera_incremental_context_.done)
       return true;
@@ -135,7 +147,7 @@ bool CameraImpl::camera_loop() {
 
   if (state_ == CAMERA_STATE_ENCODING) {
     // Encodes the pixels and returns the number of bytes written.
-    size_t length = this->encoder_->encode_pixels(&camera_image_spec_, this->pixels_.get(), this->jpeg_.get());
+    size_t length = this->encoder_->encode_pixels(this->input_image_spec_, this->input_image_, this->jpeg_.get());
     switch (this->encoder_->get_last_error()) {
       case ENCODER_ERROR_SUCCESS: {
         // Incremental image encoding

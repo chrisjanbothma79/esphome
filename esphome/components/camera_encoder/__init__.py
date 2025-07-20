@@ -16,7 +16,7 @@ camera_ns = cg.esphome_ns.namespace("camera")
 camera_encoder_ns = cg.esphome_ns.namespace("camera_encoder")
 
 Encoder = camera_ns.class_("Encoder")
-DefaultEncoder = camera_encoder_ns.class_("DefaultJPEGEncoder")
+DefaultEncoder = camera_encoder_ns.class_("DefaultJPEGEncoder", Encoder)
 
 DefaultQuality = camera_encoder_ns.enum("DefaultQuality")
 DefaultSubsampling = camera_encoder_ns.enum("DefaultSubsampling")
@@ -32,24 +32,17 @@ CONF_DEFAULT_QUALITY_SELECTS = {
     "LOW": DefaultQuality.QUALITY_LOW,
 }
 
-BASE_SCHEMA = cv.Schema(
+DEFAULT_ENCODER_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(): cv.declare_id(Encoder),
+        cv.GenerateID(): cv.declare_id(DefaultEncoder),
+        cv.Optional(CONF_QUALITY, default="HIGH"): cv.enum(
+            CONF_DEFAULT_QUALITY_SELECTS, upper=True
+        ),
+        cv.Optional(CONF_SUBSAMPLING, default="444"): cv.enum(
+            CONF_DEFAULT_SUBSAMPLING_SELECTS, upper=True
+        ),
+        cv.Optional(CONF_MCU_COUNT, default=0): cv.int_range(0),
     }
-)
-
-DEFAULT_ENCODER_SCHEMA = BASE_SCHEMA.extend(
-    cv.Schema(
-        {
-            cv.Optional(CONF_QUALITY, default="HIGH"): cv.enum(
-                CONF_DEFAULT_QUALITY_SELECTS, upper=True
-            ),
-            cv.Optional(CONF_SUBSAMPLING, default="444"): cv.enum(
-                CONF_DEFAULT_SUBSAMPLING_SELECTS, upper=True
-            ),
-            cv.Optional(CONF_MCU_COUNT, default=0): cv.int_range(0),
-        }
-    )
 )
 
 
@@ -66,11 +59,9 @@ async def to_code(config):
     cg.add_library("dt-art1/jpegenc-pio", "1.0.0")
 
     if config[CONF_TYPE] == DEFAULT_ENCODER:
-        cg.Pvariable(
+        cg.new_Pvariable(
             config[CONF_ID],
-            DefaultEncoder.new(
-                config[CONF_QUALITY],
-                config[CONF_SUBSAMPLING],
-                config[CONF_MCU_COUNT],
-            ),
+            config[CONF_QUALITY],
+            config[CONF_SUBSAMPLING],
+            config[CONF_MCU_COUNT],
         )

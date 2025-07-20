@@ -17,12 +17,12 @@ Camera::Camera() {
 }
 
 void Camera::add_capture_callback(
-    std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec, CameraIncrementalContext &)> &&callback) {
+    std::function<void(CameraImage &, CameraImageSpec, CameraIncrementalContext &)> &&callback) {
   this->image_capture_callback_.add(std::move(callback));
 }
 
 void Camera::add_overlay_callback(
-    std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec, CameraIncrementalContext &)> &&callback) {
+    std::function<void(CameraImage &, CameraImageSpec, CameraIncrementalContext &)> &&callback) {
   this->overlay_callback_.add(std::move(callback));
 }
 

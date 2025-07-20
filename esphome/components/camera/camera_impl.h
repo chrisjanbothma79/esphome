@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "camera_image_impl.h"
 #include "encoder.h"
+#include "processor.h"
 
 namespace esphome {
 namespace camera {
@@ -16,6 +17,7 @@ class CameraImpl : public Camera {
     CAMERA_STATE_WAIT_FOR_REQUEST,
     CAMERA_STATE_CAPTURE_BEGIN,
     CAMERA_STATE_CAPTURING,
+    CAMERA_STATE_PROCESSING,
     CAMERA_STATE_OVERLAY_BEGIN,
     CAMERA_STATE_OVERLAYING,
     CAMERA_STATE_ENCODE_BEGIN,
@@ -54,21 +56,30 @@ class CameraImpl : public Camera {
   void loop() override;
   void dump_config() override;
   // --------------------------
+  // Appends a processor that will run after image capture, or after any previously
+  // appended processors, but always before any overlays are applied.
+  // This allows chaining multiple processors, such as scalers or colorizers,
+  // in a specific order of execution,
+  void append_processor(Processor *processor) { this->processors_.push_back(processor); }
+
  protected:
-  std::shared_ptr<CameraImageImpl> pixels_;
+  CameraImageImpl *pixels_{};
+  CameraImage *input_image_{};
+  CameraImageSpec *input_image_spec_{};
   std::shared_ptr<CameraImageImpl> jpeg_;
-  CameraImageSpec camera_image_spec_{0};
+  CameraImageSpec camera_image_spec_{};
   CameraIncrementalContext camera_incremental_context_;
   CameraState state_{CAMERA_STATE_INIT};
-  Encoder *encoder_{nullptr};
-  uint8_t image_requesters_{0};
-  uint8_t stream_requesters_{0};
-  size_t encoder_buffer_size_{0};
-  size_t encoder_buffer_grow_{0};
-  uint32_t last_idle_request_{0};
-  uint32_t idle_update_interval_{0};
-  uint32_t last_update_{0};
-  uint32_t max_update_interval_{0};
+  std::vector<Processor *> processors_;
+  Encoder *encoder_{};
+  uint8_t image_requesters_{};
+  uint8_t stream_requesters_{};
+  size_t encoder_buffer_size_{};
+  size_t encoder_buffer_grow_{};
+  uint32_t last_idle_request_{};
+  uint32_t idle_update_interval_{};
+  uint32_t last_update_{};
+  uint32_t max_update_interval_{};
 };
 
 }  // namespace camera
