@@ -28,8 +28,7 @@ const float BME680_GAS_LOOKUP_TABLE_1[16] PROGMEM = {0.0, 0.0, 0.0,  0.0,  0.0, 
 const float BME680_GAS_LOOKUP_TABLE_2[16] PROGMEM = {0.0,  0.0, 0.0, 0.0, 0.1, 0.7, 0.0, -0.8,
                                                      -0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-[[maybe_unused]]
-static const char *oversampling_to_str(BME680Oversampling oversampling) {
+[[maybe_unused]] static const char *oversampling_to_str(BME680Oversampling oversampling) {
   switch (oversampling) {
     case BME680_OVERSAMPLING_NONE:
       return "None";
@@ -48,8 +47,7 @@ static const char *oversampling_to_str(BME680Oversampling oversampling) {
   }
 }
 
-[[maybe_unused]]
-static const char *iir_filter_to_str(BME680IIRFilter filter) {
+[[maybe_unused]] static const char *iir_filter_to_str(BME680IIRFilter filter) {
   switch (filter) {
     case BME680_IIR_FILTER_OFF:
       return "OFF";
