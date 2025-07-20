@@ -111,7 +111,7 @@ class APIConnection : public APIServerConnection {
   void send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
     if (!this->flags_.service_call_subscription)
       return;
-    this->send_message(call);
+    this->send_message(call, HomeassistantServiceResponse::MESSAGE_TYPE);
   }
 #ifdef USE_BLUETOOTH_PROXY
   void subscribe_bluetooth_le_advertisements(const SubscribeBluetoothLEAdvertisementsRequest &msg) override;
@@ -133,7 +133,7 @@ class APIConnection : public APIServerConnection {
 #ifdef USE_HOMEASSISTANT_TIME
   void send_time_request() {
     GetTimeRequest req;
-    this->send_message(req);
+    this->send_message(req, GetTimeRequest::MESSAGE_TYPE);
   }
 #endif
 
@@ -301,8 +301,10 @@ class APIConnection : public APIServerConnection {
     if (entity->has_own_name())
       msg.name = entity->get_name();
 
-    // Set common EntityBase properties
+      // Set common EntityBase properties
+#ifdef USE_ENTITY_ICON
     msg.icon = entity->get_icon();
+#endif
     msg.disabled_by_default = entity->is_disabled_by_default();
     msg.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
 #ifdef USE_DEVICES
