@@ -69,7 +69,7 @@ void DeepSleepComponent::setup_platform_() {
 
 void IRAM_ATTR DeepSleepComponent::gpio_intr(DeepSleepComponent *arg) {
   volatile bool new_state = arg->isr_pin_.digital_read();
-  if ((arg->debounce_timer_ + DEBOUNCE_TIME_MS < millis()) && (arg->last_pin_state_ != new_state)) {
+  if ((millis() - arg->debounce_timer_ >= DEBOUNCE_TIME_MS) && (arg->last_pin_state_ != new_state)) {
     arg->last_pin_state_ = new_state;
     arg->debounce_timer_ = millis();
     arg->defer([arg, new_state]() { arg->set_deep_sleep_prevention(new_state, true); });
