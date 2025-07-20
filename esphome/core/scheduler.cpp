@@ -222,11 +222,8 @@ optional<uint32_t> HOT Scheduler::next_schedule_in(uint32_t now) {
   // It performs cleanup and accesses items_[0] without holding a lock, which is only
   // safe when called from the main thread. Other threads must not call this method.
 
-  // Cleanup removed items first
-  size_t item_count = this->cleanup_();
-
   // If no items, return empty optional
-  if (item_count == 0)
+  if (this->cleanup_() == 0)
     return {};
 
   auto &item = this->items_[0];
