@@ -7,6 +7,7 @@ uart:
 dfrobot_c4001:
   id: mmwave_sensor
   uart_id: mmwave_uart
+  model: SEN0609
   mode: PRESENCE
 
 binary_sensor:
