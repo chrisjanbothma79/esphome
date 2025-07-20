@@ -19,6 +19,9 @@
 namespace esphome {
 namespace api {
 
+// Forward declaration
+struct ClientInfo;
+
 class ProtoWriteBuffer;
 
 struct ReadPacketBuffer {
@@ -94,8 +97,8 @@ class APIFrameHelper {
     }
     return APIError::OK;
   }
-  // Give this helper a name for logging
-  void set_log_info(std::string info) { info_ = std::move(info); }
+  // Set client info for logging
+  void set_client_info(const ClientInfo *client_info) { client_info_ = client_info; }
   virtual APIError write_protobuf_packet(uint8_t type, ProtoWriteBuffer buffer) = 0;
   // Write multiple protobuf packets in a single operation
   // packets contains (message_type, offset, length) for each message in the buffer
@@ -161,9 +164,11 @@ class APIFrameHelper {
 
   // Containers (size varies, but typically 12+ bytes on 32-bit)
   std::deque<SendBuffer> tx_buf_;
-  std::string info_;
   std::vector<struct iovec> reusable_iovs_;
   std::vector<uint8_t> rx_buf_;
+
+  // Pointer to client info (4 bytes on 32-bit)
+  const ClientInfo *client_info_{nullptr};
 
   // Group smaller types together
   uint16_t rx_buf_len_ = 0;

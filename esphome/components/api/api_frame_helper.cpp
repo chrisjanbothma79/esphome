@@ -1,5 +1,6 @@
 #include "api_frame_helper.h"
 #ifdef USE_API
+#include "api_connection.h"  // For ClientInfo struct
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
@@ -12,6 +13,8 @@ namespace esphome {
 namespace api {
 
 static const char *const TAG = "api.socket";
+
+#define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->client_info_->get_combined_info().c_str(), ##__VA_ARGS__)
 
 const char *api_error_to_str(APIError err) {
   // not using switch to ensure compiler doesn't try to build a big table out of it
@@ -130,7 +133,7 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
       return APIError::OK;  // Success, data buffered
     }
     // Socket error
-    ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
+    HELPER_LOG("Socket write failed with errno %d", errno);
     this->state_ = State::FAILED;
     return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
   } else if (static_cast<uint16_t>(sent) < total_write_len) {
@@ -175,7 +178,7 @@ APIError APIFrameHelper::try_send_tx_buf_() {
     if (sent == -1) {
       if (errno != EWOULDBLOCK && errno != EAGAIN) {
         // Real socket error (not just would block)
-        ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
+        HELPER_LOG("Socket write failed with errno %d", errno);
         this->state_ = State::FAILED;
         return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
       }
@@ -203,13 +206,13 @@ APIError APIFrameHelper::try_send_tx_buf_() {
 
 APIError APIFrameHelper::init_common_() {
   if (state_ != State::INITIALIZE || this->socket_ == nullptr) {
-    ESP_LOGVV(TAG, "%s: Bad state for init %d", this->info_.c_str(), (int) state_);
+    HELPER_LOG("Bad state for init %d", (int) state_);
     return APIError::BAD_STATE;
   }
   int err = this->socket_->setblocking(false);
   if (err != 0) {
     state_ = State::FAILED;
-    ESP_LOGVV(TAG, "%s: Setting nonblocking failed with errno %d", this->info_.c_str(), errno);
+    HELPER_LOG("Setting nonblocking failed with errno %d", errno);
     return APIError::TCP_NONBLOCKING_FAILED;
   }
 
@@ -217,13 +220,11 @@ APIError APIFrameHelper::init_common_() {
   err = this->socket_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
   if (err != 0) {
     state_ = State::FAILED;
-    ESP_LOGVV(TAG, "%s: Setting nodelay failed with errno %d", this->info_.c_str(), errno);
+    HELPER_LOG("Setting nodelay failed with errno %d", errno);
     return APIError::TCP_NODELAY_FAILED;
   }
   return APIError::OK;
 }
-
-#define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->info_.c_str(), ##__VA_ARGS__)
 
 APIError APIFrameHelper::handle_socket_read_result_(ssize_t received) {
   if (received == -1) {
