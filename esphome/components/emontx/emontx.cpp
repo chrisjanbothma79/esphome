@@ -44,7 +44,7 @@ bool EmonTx::read_chars_until_(bool drop, uint8_t c) {
   uint8_t received;
   int j = 0;
 
-  while (available() > 0 && j < 128) {
+  while (available() > 0 && j < 512) {
     j++;
     received = read();
 
