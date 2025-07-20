@@ -3,7 +3,7 @@ from esphome.automation import maybe_simple_id
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_MODE
+from esphome.const import CONF_ID, CONF_MODE, CONF_MODEL
 
 DEPENDENCIES = ["uart"]
 
@@ -17,10 +17,16 @@ DFRobotC4001Hub = dfrobot_c4001_ns.class_(
     "DFRobotC4001Hub", cg.Component, uart.UARTDevice
 )
 ModeConfig = dfrobot_c4001_ns.enum("ModeConfig")
+ModelConfig = dfrobot_c4001_ns.enum("ModelConfig")
 
-CONF_MODE_SELECTS = {
+CONF_MODE_ENUM = {
     "PRESENCE": ModeConfig.MODE_PRESENCE,
     "SPEED_AND_DISTANCE": ModeConfig.MODE_SPEED_AND_DISTANCE,
+}
+
+CONF_MODEL_ENUM = {
+    "SEN0609": ModelConfig.MODEL_SEN0609,
+    "SEN0610": ModelConfig.MODEL_SEN0610,
 }
 
 
@@ -43,7 +49,8 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(DFRobotC4001Hub),
-            cv.Required(CONF_MODE): cv.enum(CONF_MODE_SELECTS, upper=True, space="_"),
+            cv.Required(CONF_MODE): cv.enum(CONF_MODE_ENUM, upper=True, space="_"),
+            cv.Required(CONF_MODEL): cv.enum(CONF_MODEL_ENUM, upper=True, space="_"),
         }
     )
     .extend(uart.UART_DEVICE_SCHEMA)
@@ -65,6 +72,7 @@ async def to_code(config):
     await uart.register_uart_device(var, config)
 
     cg.add(var.set_mode(config[CONF_MODE]))
+    cg.add(var.set_model(config[CONF_MODEL]))
 
 
 @automation.register_action(

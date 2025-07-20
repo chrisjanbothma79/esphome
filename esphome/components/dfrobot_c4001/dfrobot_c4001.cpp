@@ -266,25 +266,12 @@ void DFRobotC4001Hub::set_software_version(char *version) {
 void DFRobotC4001Hub::set_hardware_version(char *version) {
   std::string new_string(version);
   if (str_startswith(new_string, "JYSJ_428")) {
-    this->model_ = MODEL_SEN0609;
-  } else if (str_startswith(new_string, "JYSJ_427")) {
-    this->model_ = MODEL_SEN0610;
+    this->hw_model_ = MODEL_SEN0609;
+  } else if (str_startswith(new_string, "JYSJ_426")) {
+    this->hw_model_ = MODEL_SEN0610;
   } else {
-    this->model_ = MODEL_UNKNOWN;
+    this->hw_model_ = MODEL_UNKNOWN;
   }
-#ifdef USE_NUMBER
-  if (this->model_ == MODEL_SEN0610) {
-    if (this->min_range_number_ != nullptr) {
-      this->min_range_number_->traits.set_max_value(12.0);
-    }
-    if (this->max_range_number_ != nullptr) {
-      this->max_range_number_->traits.set_max_value(12.0);
-    }
-    if (this->trigger_range_number_ != nullptr) {
-      this->trigger_range_number_->traits.set_max_value(12.0);
-    }
-  }
-#endif
 #ifdef USE_TEXT_SENSOR
   if (this->hardware_version_text_sensor_ != nullptr) {
     this->hardware_version_text_sensor_->publish_state(new_string);
@@ -304,6 +291,23 @@ void DFRobotC4001Hub::flash_led_enable() {
 }
 
 void DFRobotC4001Hub::set_mode(DFRobotMode value) { this->mode_ = value; }
+
+void DFRobotC4001Hub::set_model(DFRobotModel value) {
+#ifdef USE_NUMBER
+  if (value == MODEL_SEN0610) {
+    if (this->min_range_number_ != nullptr) {
+      this->min_range_number_->traits.set_max_value(12.0);
+    }
+    if (this->max_range_number_ != nullptr) {
+      this->max_range_number_->traits.set_max_value(12.0);
+    }
+    if (this->trigger_range_number_ != nullptr) {
+      this->trigger_range_number_->traits.set_max_value(12.0);
+    }
+  }
+#endif
+  this->model_ = value;
+}
 
 void DFRobotC4001Hub::set_needs_save(bool needs_save) {
   this->needs_save_ = needs_save;
@@ -415,11 +419,11 @@ void DFRobotC4001Hub::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "DFRobot C4001 mmWave Radar:\n"
                 "  SW Version: %s\n"
-                "  HW Version: %s\n"
-                "  Model: %s, inferred from HW Version\n"
+                "  HW Version: %s, infers %s\n"
+                "  Model: %s\n"
                 "  Mode: %s\n",
-                this->sw_version_.c_str(), this->hw_version_.c_str(), model_to_str(this->model_),
-                mode_to_str(this->mode_));
+                this->sw_version_.c_str(), this->hw_version_.c_str(), model_to_str(this->hw_model_),
+                model_to_str(this->model_), mode_to_str(this->mode_));
 #ifdef USE_BUTTON
   ESP_LOGCONFIG(TAG, "Buttons:");
   LOG_BUTTON("  ", "Config Save", this->config_save_button_);

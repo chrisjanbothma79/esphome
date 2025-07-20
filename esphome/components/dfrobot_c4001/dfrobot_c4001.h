@@ -122,6 +122,7 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void set_micro_motion_enable(bool enable, bool needs_save = true);
   void flash_led_enable();
   void set_mode(DFRobotMode value);
+  void set_model(DFRobotModel value);
   void set_software_version(char *version);
   void set_hardware_version(char *version);
   void set_needs_save(bool needs_save);
@@ -157,6 +158,7 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   float target_energy_;
   DFRobotMode mode_{MODE_PRESENCE};
   DFRobotModel model_{MODEL_UNKNOWN};
+  DFRobotModel hw_model_{MODEL_UNKNOWN};
   std::string hw_version_;
   std::string sw_version_;
 
