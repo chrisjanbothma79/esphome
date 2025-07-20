@@ -655,6 +655,7 @@ void DisconnectResponse::dump_to(std::string &out) const { out.append("Disconnec
 void PingRequest::dump_to(std::string &out) const { out.append("PingRequest {}"); }
 void PingResponse::dump_to(std::string &out) const { out.append("PingResponse {}"); }
 void DeviceInfoRequest::dump_to(std::string &out) const { out.append("DeviceInfoRequest {}"); }
+#ifdef USE_AREAS
 void AreaInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("AreaInfo {\n");
@@ -668,6 +669,8 @@ void AreaInfo::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
+#endif
+#ifdef USE_DEVICES
 void DeviceInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DeviceInfo {\n");
@@ -686,6 +689,7 @@ void DeviceInfo::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
+#endif
 void DeviceInfoResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DeviceInfoResponse {\n");

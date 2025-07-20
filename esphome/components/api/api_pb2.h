@@ -457,6 +457,7 @@ class DeviceInfoRequest : public ProtoDecodableMessage {
 
  protected:
 };
+#ifdef USE_AREAS
 class AreaInfo : public ProtoMessage {
  public:
   uint32_t area_id{0};
@@ -469,6 +470,8 @@ class AreaInfo : public ProtoMessage {
 
  protected:
 };
+#endif
+#ifdef USE_DEVICES
 class DeviceInfo : public ProtoMessage {
  public:
   uint32_t device_id{0};
@@ -482,6 +485,7 @@ class DeviceInfo : public ProtoMessage {
 
  protected:
 };
+#endif
 class DeviceInfoResponse : public ProtoMessage {
  public:
   static constexpr uint8_t MESSAGE_TYPE = 10;
