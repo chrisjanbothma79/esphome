@@ -297,11 +297,8 @@ APIError APINoiseFrameHelper::init() {
 APIError APINoiseFrameHelper::handle_handshake_frame_error_(APIError aerr) {
   if (aerr == APIError::BAD_INDICATOR) {
     send_explicit_handshake_reject_("Bad indicator byte");
-    return aerr;
-  }
-  if (aerr == APIError::BAD_HANDSHAKE_PACKET_LEN) {
+  } else if (aerr == APIError::BAD_HANDSHAKE_PACKET_LEN) {
     send_explicit_handshake_reject_("Bad handshake packet len");
-    return aerr;
   }
   return aerr;
 }
@@ -507,11 +504,7 @@ APIError APINoiseFrameHelper::state_action_() {
       err = noise_handshakestate_read_message(handshake_, &mbuf, nullptr);
       if (err != 0) {
         // Special handling for MAC failure
-        if (err == NOISE_ERROR_MAC_FAILURE) {
-          send_explicit_handshake_reject_("Handshake MAC failure");
-        } else {
-          send_explicit_handshake_reject_("Handshake error");
-        }
+        send_explicit_handshake_reject_(err == NOISE_ERROR_MAC_FAILURE ? "Handshake MAC failure" : "Handshake error");
         return handle_noise_error_(err, "noise_handshakestate_read_message", APIError::HANDSHAKESTATE_READ_FAILED);
       }
 
