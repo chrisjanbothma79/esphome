@@ -53,27 +53,24 @@ class ResamplerMicrophone : public Component, public microphone::Microphone {
   /// @brief Sets the Microphone ``audio_stream_info_`` member variable to the configured I2S settings.
   void configure_stream_settings_();
 
+  uint32_t target_sample_rate_;
+  uint32_t buffer_duration_ms_;
+  uint16_t taps_;
+  uint16_t filters_;
+  bool task_stack_in_psram_{false};
+
   EventGroupHandle_t event_group_{nullptr};
   SemaphoreHandle_t active_listeners_semaphore_{nullptr};
 
-  std::weak_ptr<RingBuffer> ring_buffer_;
-
   microphone::MicrophoneSource *microphone_source_{nullptr};
 
-  bool task_stack_in_psram_{false};
-
   TaskHandle_t task_handle_{nullptr};
-  StaticTask_t task_stack_;
   StackType_t *task_stack_buffer_{nullptr};
+  StaticTask_t task_stack_;
+
+  std::weak_ptr<RingBuffer> ring_buffer_;
 
   audio::AudioStreamInfo source_stream_info_;
-
-  uint16_t taps_;
-  uint16_t filters_;
-
-  uint32_t target_sample_rate_;
-
-  uint32_t buffer_duration_ms_;
 };
 
 }  // namespace resampler
