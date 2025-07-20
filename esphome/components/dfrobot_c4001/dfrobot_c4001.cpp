@@ -292,22 +292,7 @@ void DFRobotC4001Hub::flash_led_enable() {
 
 void DFRobotC4001Hub::set_mode(DFRobotMode value) { this->mode_ = value; }
 
-void DFRobotC4001Hub::set_model(DFRobotModel value) {
-#ifdef USE_NUMBER
-  if (value == MODEL_SEN0610) {
-    if (this->min_range_number_ != nullptr) {
-      this->min_range_number_->traits.set_max_value(12.0);
-    }
-    if (this->max_range_number_ != nullptr) {
-      this->max_range_number_->traits.set_max_value(12.0);
-    }
-    if (this->trigger_range_number_ != nullptr) {
-      this->trigger_range_number_->traits.set_max_value(12.0);
-    }
-  }
-#endif
-  this->model_ = value;
-}
+void DFRobotC4001Hub::set_model(DFRobotModel value) { this->model_ = value; }
 
 void DFRobotC4001Hub::set_needs_save(bool needs_save) {
   this->needs_save_ = needs_save;
@@ -320,6 +305,19 @@ void DFRobotC4001Hub::set_needs_save(bool needs_save) {
 
 // initial setup of module
 void DFRobotC4001Hub::setup_module() {
+#ifdef USE_NUMBER
+  if (this->model_ == MODEL_SEN0610) {
+    if (this->min_range_number_ != nullptr) {
+      this->min_range_number_->traits.set_max_value(12.0);
+    }
+    if (this->max_range_number_ != nullptr) {
+      this->max_range_number_->traits.set_max_value(12.0);
+    }
+    if (this->trigger_range_number_ != nullptr) {
+      this->trigger_range_number_->traits.set_max_value(12.0);
+    }
+  }
+#endif
   // stop the module so that configuration can be set
   this->enqueue(make_unique<PowerCommand>(false));
   // put the module is the requested mode
