@@ -146,17 +146,17 @@ def _final_validate(config):
     if CONF_TRIGGER_RANGE in config:
         if (CONF_MIN_RANGE not in config) or (CONF_MAX_RANGE not in config):
             raise cv.Invalid(
-                f"When 'trigger_range' is defined, 'min_range' and 'max_range' must also be defined."
+                "When 'trigger_range' is defined, 'min_range' and 'max_range' must also be defined."
             )
     if CONF_MIN_RANGE in config:
         if CONF_MAX_RANGE not in config:
             raise cv.Invalid(
-                f"When 'min_range' is defined, 'max_range' must also be defined."
+                "When 'min_range' is defined, 'max_range' must also be defined."
             )
     if CONF_MAX_RANGE in config:
         if CONF_MIN_RANGE not in config:
             raise cv.Invalid(
-                f"When 'max_range' is defined, 'min_range' must also be defined."
+                "When 'max_range' is defined, 'min_range' must also be defined."
             )
 
     return config
