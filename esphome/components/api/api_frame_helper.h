@@ -109,11 +109,6 @@ class APIFrameHelper {
   bool is_socket_ready() const { return socket_ != nullptr && socket_->ready(); }
 
  protected:
-  // Struct for holding parsed frame data
-  struct ParsedFrame {
-    std::vector<uint8_t> msg;
-  };
-
   // Buffer containing data to be sent
   struct SendBuffer {
     std::vector<uint8_t> data;
@@ -207,7 +202,7 @@ class APINoiseFrameHelper : public APIFrameHelper {
 
  protected:
   APIError state_action_();
-  APIError try_read_frame_(ParsedFrame *frame);
+  APIError try_read_frame_(std::vector<uint8_t> *frame);
   APIError write_frame_(const uint8_t *data, uint16_t len);
   APIError init_handshake_();
   APIError check_handshake_finished_();
@@ -261,7 +256,7 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
   uint8_t frame_footer_size() override { return frame_footer_size_; }
 
  protected:
-  APIError try_read_frame_(ParsedFrame *frame);
+  APIError try_read_frame_(std::vector<uint8_t> *frame);
 
   // Group 2-byte aligned types
   uint16_t rx_header_parsed_type_ = 0;

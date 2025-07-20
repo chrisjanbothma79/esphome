@@ -355,7 +355,7 @@ APIError APINoiseFrameHelper::loop() {
  * errno API_ERROR_BAD_INDICATOR: Bad indicator byte at start of frame.
  * errno API_ERROR_HANDSHAKE_PACKET_LEN: Packet too big for this phase.
  */
-APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
+APIError APINoiseFrameHelper::try_read_frame_(std::vector<uint8_t> *frame) {
   if (frame == nullptr) {
     HELPER_LOG("Bad argument for try_read_frame_");
     return APIError::BAD_ARG;
@@ -418,7 +418,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
 #ifdef HELPER_LOG_PACKETS
   ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(rx_buf_).c_str());
 #endif
-  frame->msg = std::move(rx_buf_);
+  *frame = std::move(rx_buf_);
   // consume msg
   rx_buf_ = {};
   rx_buf_len_ = 0;
@@ -444,17 +444,17 @@ APIError APINoiseFrameHelper::state_action_() {
   }
   if (state_ == State::CLIENT_HELLO) {
     // waiting for client hello
-    ParsedFrame frame;
+    std::vector<uint8_t> frame;
     aerr = try_read_frame_(&frame);
     if (aerr != APIError::OK) {
       return handle_handshake_frame_error_(aerr);
     }
     // ignore contents, may be used in future for flags
     // Reserve space for: existing prologue + 2 size bytes + frame data
-    prologue_.reserve(prologue_.size() + 2 + frame.msg.size());
-    prologue_.push_back((uint8_t) (frame.msg.size() >> 8));
-    prologue_.push_back((uint8_t) frame.msg.size());
-    prologue_.insert(prologue_.end(), frame.msg.begin(), frame.msg.end());
+    prologue_.reserve(prologue_.size() + 2 + frame.size());
+    prologue_.push_back((uint8_t) (frame.size() >> 8));
+    prologue_.push_back((uint8_t) frame.size());
+    prologue_.insert(prologue_.end(), frame.begin(), frame.end());
 
     state_ = State::SERVER_HELLO;
   }
@@ -492,24 +492,24 @@ APIError APINoiseFrameHelper::state_action_() {
     int action = noise_handshakestate_get_action(handshake_);
     if (action == NOISE_ACTION_READ_MESSAGE) {
       // waiting for handshake msg
-      ParsedFrame frame;
+      std::vector<uint8_t> frame;
       aerr = try_read_frame_(&frame);
       if (aerr != APIError::OK) {
         return handle_handshake_frame_error_(aerr);
       }
 
-      if (frame.msg.empty()) {
+      if (frame.empty()) {
         send_explicit_handshake_reject_("Empty handshake message");
         return APIError::BAD_HANDSHAKE_ERROR_BYTE;
-      } else if (frame.msg[0] != 0x00) {
-        HELPER_LOG("Bad handshake error byte: %u", frame.msg[0]);
+      } else if (frame[0] != 0x00) {
+        HELPER_LOG("Bad handshake error byte: %u", frame[0]);
         send_explicit_handshake_reject_("Bad handshake error byte");
         return APIError::BAD_HANDSHAKE_ERROR_BYTE;
       }
 
       NoiseBuffer mbuf;
       noise_buffer_init(mbuf);
-      noise_buffer_set_input(mbuf, frame.msg.data() + 1, frame.msg.size() - 1);
+      noise_buffer_set_input(mbuf, frame.data() + 1, frame.size() - 1);
       err = noise_handshakestate_read_message(handshake_, &mbuf, nullptr);
       if (err != 0) {
         // Special handling for MAC failure
@@ -583,21 +583,21 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return APIError::WOULD_BLOCK;
   }
 
-  ParsedFrame frame;
+  std::vector<uint8_t> frame;
   aerr = try_read_frame_(&frame);
   if (aerr != APIError::OK)
     return aerr;
 
   NoiseBuffer mbuf;
   noise_buffer_init(mbuf);
-  noise_buffer_set_inout(mbuf, frame.msg.data(), frame.msg.size(), frame.msg.size());
+  noise_buffer_set_inout(mbuf, frame.data(), frame.size(), frame.size());
   err = noise_cipherstate_decrypt(recv_cipher_, &mbuf);
   APIError decrypt_err = handle_noise_error_(err, "noise_cipherstate_decrypt", APIError::CIPHERSTATE_DECRYPT_FAILED);
   if (decrypt_err != APIError::OK)
     return decrypt_err;
 
   uint16_t msg_size = mbuf.size;
-  uint8_t *msg_data = frame.msg.data();
+  uint8_t *msg_data = frame.data();
   if (msg_size < 4) {
     state_ = State::FAILED;
     HELPER_LOG("Bad data packet: size %d too short", msg_size);
@@ -612,7 +612,7 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return APIError::BAD_DATA_PACKET;
   }
 
-  buffer->container = std::move(frame.msg);
+  buffer->container = std::move(frame);
   buffer->data_offset = 4;
   buffer->data_len = data_len;
   buffer->type = type;
@@ -831,7 +831,7 @@ APIError APIPlaintextFrameHelper::loop() {
  *
  * error API_ERROR_BAD_INDICATOR: Bad indicator byte at start of frame.
  */
-APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
+APIError APIPlaintextFrameHelper::try_read_frame_(std::vector<uint8_t> *frame) {
   if (frame == nullptr) {
     HELPER_LOG("Bad argument for try_read_frame_");
     return APIError::BAD_ARG;
@@ -949,7 +949,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
 #ifdef HELPER_LOG_PACKETS
   ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(rx_buf_).c_str());
 #endif
-  frame->msg = std::move(rx_buf_);
+  *frame = std::move(rx_buf_);
   // consume msg
   rx_buf_ = {};
   rx_buf_len_ = 0;
@@ -964,7 +964,7 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return APIError::WOULD_BLOCK;
   }
 
-  ParsedFrame frame;
+  std::vector<uint8_t> frame;
   aerr = try_read_frame_(&frame);
   if (aerr != APIError::OK) {
     if (aerr == APIError::BAD_INDICATOR) {
@@ -989,7 +989,7 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return aerr;
   }
 
-  buffer->container = std::move(frame.msg);
+  buffer->container = std::move(frame);
   buffer->data_offset = 0;
   buffer->data_len = rx_header_parsed_len_;
   buffer->type = rx_header_parsed_type_;
