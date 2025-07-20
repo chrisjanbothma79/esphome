@@ -541,17 +541,22 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 
   // Combine major (high 32 bits) and now (low 32 bits) into 64-bit time
   return now + (static_cast<uint64_t>(major) << 32);
+<<<<<<< HEAD
 #endif  // ESPHOME_CORES_SINGLE
 
 #ifdef ESPHOME_CORES_MULTI_NO_ATOMICS
-  // This is the multi core no atomics implementation.
-  //
-  // Without atomics, this implementation uses locks more aggressively:
-  // 1. Always locks when near the rollover boundary (within 10 seconds)
-  // 2. Always locks when detecting a large backwards jump
-  // 3. Updates without lock in normal forward progression (accepting minor races)
-  // This is less efficient but necessary without atomic operations.
-  uint16_t major = this->millis_major_;
+=======
+
+      #elif defined(ESPHOME_CORES_MULTI_NO_ATOMICS)
+>>>>>>> api_cleanups_2
+      // This is the multi core no atomics implementation.
+      //
+      // Without atomics, this implementation uses locks more aggressively:
+      // 1. Always locks when near the rollover boundary (within 10 seconds)
+      // 2. Always locks when detecting a large backwards jump
+      // 3. Updates without lock in normal forward progression (accepting minor races)
+      // This is less efficient but necessary without atomic operations.
+      uint16_t major = this->millis_major_;
   uint32_t last = this->last_millis_;
 
   // Define a safe window around the rollover point (10 seconds)
@@ -591,19 +596,23 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 
   // Combine major (high 32 bits) and now (low 32 bits) into 64-bit time
   return now + (static_cast<uint64_t>(major) << 32);
+<<<<<<< HEAD
 #endif  // ESPHOME_CORES_MULTI_NO_ATOMICS
-
 #ifdef ESPHOME_CORES_MULTI_ATOMICS
-  // This is the multi core with atomics implementation.
-  //
-  // Uses atomic operations with acquire/release semantics to ensure coherent
-  // reads of millis_major_ and last_millis_ across cores. Features:
-  // 1. Epoch-coherency retry loop to handle concurrent updates
-  // 2. Lock only taken for actual rollover detection and update
-  // 3. Lock-free CAS updates for normal forward time progression
-  // 4. Memory ordering ensures cores see consistent time values
+=======
 
-  for (;;) {
+      #elif defined(ESPHOME_CORES_MULTI_ATOMICS)
+>>>>>>> api_cleanups_2
+      // This is the multi core with atomics implementation.
+      //
+      // Uses atomic operations with acquire/release semantics to ensure coherent
+      // reads of millis_major_ and last_millis_ across cores. Features:
+      // 1. Epoch-coherency retry loop to handle concurrent updates
+      // 2. Lock only taken for actual rollover detection and update
+      // 3. Lock-free CAS updates for normal forward time progression
+      // 4. Memory ordering ensures cores see consistent time values
+
+      for (;;) {
     uint16_t major = this->millis_major_.load(std::memory_order_acquire);
 
     /*
@@ -655,7 +664,15 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   }
   // Unreachable - the loop always returns when major_end == major
   __builtin_unreachable();
+<<<<<<< HEAD
 #endif  // ESPHOME_CORES_MULTI_ATOMICS
+=======
+
+#else
+#error \
+    "No platform threading model defined. One of ESPHOME_CORES_SINGLE, ESPHOME_CORES_MULTI_NO_ATOMICS, or ESPHOME_CORES_MULTI_ATOMICS must be defined."
+#endif
+>>>>>>> api_cleanups_2
 }
 
 bool HOT Scheduler::SchedulerItem::cmp(const std::unique_ptr<SchedulerItem> &a,
