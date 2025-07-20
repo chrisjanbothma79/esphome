@@ -26,7 +26,7 @@ static const uint64_t ESPNOW_MULTICAST_ADDR = 0xFFFFFFFFFFFE;
 class ESPNowTAG {
  public:
   // could be made inline with C++17
-  static const char *const TAG;
+  inline static constexpr const char *TAG = "espnow";
 };
 
 enum class ESPNowTriggers : uint8_t {
@@ -38,7 +38,7 @@ enum class ESPNowTriggers : uint8_t {
   ON_FAILED = 11,
 };
 
-void show_espnow_error(esp_err_t error);
+const LogString *espnow_error_to_str(esp_err_t error);
 
 class ESPNowComponent;
 class ESPNowPacket;
@@ -90,12 +90,12 @@ class ESPNowPacket {
     return static_cast<uint16_t>(this->read(pos, sizeof(uint16_t)), header);
   };
 
-  void write32u(size_t pos, uint16_t value, bool header = false) { this->write(pos, sizeof(uint32_t), value, header); }
+  void write32u(size_t pos, uint32_t value, bool header = false) { this->write(pos, sizeof(uint32_t), value, header); }
   uint32_t read32u(size_t pos, bool header = false) const {
     return static_cast<uint32_t>(this->read(pos, sizeof(uint32_t), header));
   };
 
-  void write64u(size_t pos, uint16_t value, bool header = false) { this->write(pos, sizeof(uint64_t), value, header); }
+  void write64u(size_t pos, uint64_t value, bool header = false) { this->write(pos, sizeof(uint64_t), value, header); }
   uint64_t read64u(size_t pos, bool header = false) const {
     return static_cast<uint64_t>(this->read(pos, sizeof(uint64_t), header));
   };
@@ -130,7 +130,7 @@ class ESPNowInterface : public Parented<ESPNowComponent> {
 
   esp_err_t send(uint64_t peer, std::vector<uint8_t> payload);
 
- private:
+ protected:
   uint64_t get_default_peer_address_();
   void set_default_peer_address_(uint64_t value);
 };
@@ -150,7 +150,6 @@ class ESPNowComponent : public Component {
   void set_wifi_channel(uint8_t channel);
 
   void set_auto_add_peer(bool value) { this->auto_add_peer_ = value; }
-  void set_response_timeout(uint32_t timeout) { this->response_timeout_ = timeout; }
   void set_long_range(bool value) { this->long_range_ = value; }
 
   uint64_t get_default_peer_address() { return this->default_peer_address_; }
@@ -204,8 +203,6 @@ class ESPNowComponent : public Component {
   uint64_t own_peer_address_{0};
   uint64_t default_peer_address_{0};
 
-  uint32_t response_timeout_{5000};
-
   uint8_t wifi_channel_{0};
   esp_err_t last_send_state_{false};
 
@@ -232,8 +229,10 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
     std::vector<uint8_t> payload = this->payload_.value(x...);
     uint64_t peer_address =
         this->peer_address_.has_value() ? this->peer_address_.value(x...) : this->parent_->get_default_peer_address();
-
-    show_espnow_error(this->parent_->send(peer_address, payload));
+    esp_err_t result = this->parent_->send(peer_address, payload);
+    if (result != ESP_OK) {
+      esph_log_w(ESPNowTAG::TAG, espnow_error_to_str(result));
+    }
   }
 };
 

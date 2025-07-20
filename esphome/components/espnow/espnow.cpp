@@ -25,8 +25,7 @@
 namespace esphome {
 namespace espnow {
 
-static const char *const TAG = "espnow";
-const char *const ESPNowTAG::TAG = "espnow";
+static constexpr char *const TAG = ESPNowTAG::TAG;
 
 static const esp_err_t ESP_ERR_ESPNOW_CMP_BASE = (ESP_ERR_ESPNOW_BASE + 20);
 static const esp_err_t ESP_ERR_ESPNOW_FAILED = (ESP_ERR_ESPNOW_CMP_BASE + 1);
@@ -41,27 +40,28 @@ static const esp_err_t CONFIG_ESPNOW_WAKE_INTERVAL = 100;
 
 ESPNowComponent *ESPNowComponent::static_{nullptr};  // NOLINT
 
-void show_espnow_error(esp_err_t error) {
-  if (error == ESP_ERR_ESPNOW_FAILED) {
-    ESP_LOGE(TAG, "Cannot send espnow packet, espnow is in fail mode.");
-  } else if (error == ESP_ERR_ESPNOW_OWN_PEER_ADDRESS) {
-    ESP_LOGE(TAG, "Trying to send a message to your self.");
-  } else if (error == ESP_ERR_ESPNOW_PAYLOAD_SIZE) {
-    ESP_LOGE(TAG, "Trying to send a payload size to large.");
-  } else if (error == ESP_ERR_ESPNOW_PEER_NOT_SET) {
-    ESP_LOGE(TAG, "Peer address not set.");
-  } else if (error == ESP_ERR_ESPNOW_NOT_INIT) {
-    ESP_LOGE(TAG, "ESPNOW not init.");
-  } else if (error == ESP_ERR_ESPNOW_ARG) {
-    ESP_LOGE(TAG, "Invalid argument");
-  } else if (error == ESP_ERR_ESPNOW_INTERNAL) {
-    ESP_LOGE(TAG, "Internal Error");
-  } else if (error == ESP_ERR_ESPNOW_NO_MEM) {
-    ESP_LOGE(TAG, "Our of memory");
-  } else if (error == ESP_ERR_ESPNOW_NOT_FOUND) {
-    ESP_LOGE(TAG, "Peer not found.");
-  } else if (error == ESP_ERR_ESPNOW_IF) {
-    ESP_LOGE(TAG, "Interface does not match.");
+const LogString *espnow_error_to_str(esp_err_t error) {
+  switch (error) {
+    case ESP_ERR_ESPNOW_FAILED:
+      return LOG_STR("Cannot send espnow packet, espnow is in fail mode.");
+    case ESP_ERR_ESPNOW_OWN_PEER_ADDRESS:
+      return LOG_STR("Trying to send a message to your self.");
+    case ESP_ERR_ESPNOW_PAYLOAD_SIZE:
+      return LOG_STR("Trying to send a payload size to large.");
+    case ESP_ERR_ESPNOW_PEER_NOT_SET:
+      return LOG_STR("Peer address not set.");
+    case ESP_ERR_ESPNOW_NOT_INIT:
+      return LOG_STR("ESPNOW not init.");
+    case ESP_ERR_ESPNOW_ARG:
+      return LOG_STR("Invalid argument");
+    case ESP_ERR_ESPNOW_INTERNAL:
+      return LOG_STR("Internal Error");
+    case ESP_ERR_ESPNOW_NO_MEM:
+      return LOG_STR("Our of memory");
+    case ESP_ERR_ESPNOW_NOT_FOUND:
+      return LOG_STR("Peer not found.");
+    case ESP_ERR_ESPNOW_IF:
+      return LOG_STR("Interface does not match.");
   }
 }
 
@@ -69,7 +69,7 @@ void show_espnow_error(esp_err_t error) {
 
 ESPNowPacket::ESPNowPacket(uint64_t peer, const uint8_t *payload, size_t size) {
   if (size > ESP_NOW_MAX_DATA_LEN) {
-    ESP_LOGE(TAG, "Payload size is to large. It should be less then %d instead it is %d", ESP_NOW_MAX_DATA_LEN, size);
+    ESP_LOGE(TAG, "Payload size %zu is larger than max (%d bytes)", size, ESP_NOW_MAX_DATA_LEN);
     return;
   }
   this->peer_id(peer);
@@ -149,16 +149,16 @@ void ESPNowComponent::dump_config() {
   uint32_t version = 0;
   esp_now_get_version(&version);
 
-  ESP_LOGCONFIG(TAG, "esp_now:  V%d", version);
-#ifdef USE_WIFI
-  ESP_LOGE(TAG, "  WIFI enabled        : Yes. (Make sure provided device know how to channel swap)");
-#endif
-  ESP_LOGCONFIG(TAG, "  Wifi channel        : %d.", this->wifi_channel_);
-
-  ESP_LOGCONFIG(TAG, "  Own Mac address    : %s.", this->peer_str(this->own_peer_address_).c_str());
-  ESP_LOGCONFIG(TAG, "  Default Mac Address: %s.", this->peer_str(this->default_peer_address_).c_str());
-
-  ESP_LOGCONFIG(TAG, "  Response timeout: %" PRId32 "ms.", this->response_timeout_);
+  ESP_LOGCONFIG(TAG,
+                "esp_now: V%d %s\n"
+                "  Wifi channel: %d\n"
+                "  WIFI enabled: %s\n"
+                "  Own Mac address: %s\n"
+                "  Default Mac Address: %s\n"
+                "  Long range mode: %s",
+                version, this->enabled_ ? "" : "[Disabled]", this->wifi_channel_, YESNO(this->is_wifi_enabled_()),
+                this->peer_str(this->own_peer_address_).c_str(), this->peer_str(this->default_peer_address_).c_str(),
+                this->response_timeout_, YESNO(this->long_range_), );
 }
 
 bool ESPNowComponent::is_wifi_enabled_() {
@@ -216,7 +216,7 @@ Trigger<std::shared_ptr<ESPNowPacket>> *ESPNowComponent::get_trigger(ESPNowTrigg
 
 void ESPNowComponent::enable() {
   if (this->enabled_ && this->is_ready()) {
-    ESP_LOGE(TAG, "Allready enabled.");
+    ESP_LOGE(TAG, "Already enabled.");
     return;
   }
 
