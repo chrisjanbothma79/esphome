@@ -292,9 +292,13 @@ class InfoResponseProtoMessage : public ProtoMessage {
   uint32_t key{0};
   std::string name{};
   bool disabled_by_default{false};
+#ifdef USE_ENTITY_ICON
   std::string icon{};
+#endif
   enums::EntityCategory entity_category{};
+#ifdef USE_DEVICES
   uint32_t device_id{0};
+#endif
 
  protected:
 };
@@ -303,7 +307,9 @@ class StateResponseProtoMessage : public ProtoMessage {
  public:
   ~StateResponseProtoMessage() override = default;
   uint32_t key{0};
+#ifdef USE_DEVICES
   uint32_t device_id{0};
+#endif
 
  protected:
 };
@@ -312,7 +318,9 @@ class CommandProtoMessage : public ProtoDecodableMessage {
  public:
   ~CommandProtoMessage() override = default;
   uint32_t key{0};
+#ifdef USE_DEVICES
   uint32_t device_id{0};
+#endif
 
  protected:
 };
@@ -1768,7 +1776,8 @@ class BluetoothLERawAdvertisement : public ProtoMessage {
   uint64_t address{0};
   int32_t rssi{0};
   uint32_t address_type{0};
-  std::string data{};
+  uint8_t data[62]{};
+  uint8_t data_len{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
