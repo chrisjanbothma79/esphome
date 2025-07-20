@@ -48,6 +48,9 @@ bool EmonTx::read_chars_until_(bool drop, uint8_t c) {
     j++;
     received = read();
 
+    if (drop && received != c)
+      continue;
+
     // If we're collecting JSON data (not dropping) and receive a newline,
     // consider this invalid and signal to discard the buffer
     if (!drop && (received == '\r' || received == '\n')) {
@@ -56,9 +59,6 @@ bool EmonTx::read_chars_until_(bool drop, uint8_t c) {
       state_ = WAITING_FOR_START;
       return false;
     }
-
-    if (drop)
-      continue;
 
     // Prevent buffer overflow
     if (buffer_.length() > 1024) {
