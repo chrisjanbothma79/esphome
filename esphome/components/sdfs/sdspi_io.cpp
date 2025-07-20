@@ -115,12 +115,12 @@ char sdCommand(uint8_t pdrv, char cmd, unsigned int arg, unsigned int *resp) {
 
     if (token == 0xFF) {
       ESP_LOGW(TAG, "no token received");
-      delay(100);
+      delay(100);  // NOLINT
       sdSelectCard(pdrv);
       continue;
     } else if (token & 0x08) {
       ESP_LOGW(TAG, "crc error");
-      delay(100);
+      delay(100);  // NOLINT
       sdSelectCard(pdrv);
       continue;
     } else if (token > 1) {
@@ -649,70 +649,11 @@ DRESULT ff_sd_ioctl(uint8_t pdrv, uint8_t cmd, void *buff) {
   return RES_PARERR;
 }
 
-// bool sd_read_raw(uint8_t pdrv, uint8_t *buffer, DWORD sector) { return ff_sd_read(pdrv, buffer, sector, 1) == ESP_OK;
-// }
-
-// bool sd_write_raw(uint8_t pdrv, uint8_t *buffer, DWORD sector) {
-//   return ff_sd_write(pdrv, buffer, sector, 1) == ESP_OK;
-// }
-
 /***********************************************************
  *
  *         Public methods
  *
  * */
-
-// uint8_t sdcard_uninit(uint8_t pdrv) {
-//   esp_ardu_sdcard_t *card = s_cards[pdrv];
-//   if (pdrv >= FF_VOLUMES || card == NULL) {
-//     return 1;
-//   }
-//   sdTransaction(pdrv, GO_IDLE_STATE, 0, NULL);
-//   ff_diskio_register(pdrv, NULL);
-//   s_cards[pdrv] = NULL;
-//   esp_err_t err = ESP_OK;
-//   if (card->base_path) {
-//     err = esp_vfs_fat_unregister_path(card->base_path);
-//     free(card->base_path);
-//   }
-//   free(card);
-//   return err;
-// }
-
-// uint8_t sdcard_init(uint8_t cs, SPIClass *spi, int hz) {
-//   uint8_t pdrv = 0xFF;
-//   if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == 0xFF) {
-//     return pdrv;
-//   }
-
-//   ardu_sdcard_t *card = (ardu_sdcard_t *) malloc(sizeof(ardu_sdcard_t));
-//   if (!card) {
-//     return 0xFF;
-//   }
-
-//   card->base_path = NULL;
-//   card->frequency = hz;
-//   card->spi = spi;
-//   card->ssPin = cs;
-
-//   card->supports_crc = true;
-//   card->type = CARD_NONE;
-//   card->status = STA_NOINIT;
-
-//   pinMode(card->ssPin, OUTPUT);
-//   digitalWrite(card->ssPin, HIGH);
-
-//   s_cards[pdrv] = card;
-
-//   static const ff_diskio_impl_t sd_impl = {.init = &ff_sd_initialize,
-//                                            .status = &ff_sd_status,
-//                                            .read = &ff_sd_read,
-//                                            .write = &ff_sd_write,
-//                                            .ioctl = &ff_sd_ioctl};
-//   ff_diskio_register(pdrv, &sd_impl);
-
-//   return pdrv;
-// }
 
 void sdspi_unmount(uint8_t pdrv) {
 #if defined(SPI_CALL_TRACE)
@@ -785,8 +726,9 @@ FATFS *sdspi_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool forma
       }
 
 #if defined(USE_ESP_IDF)
-      const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, alloc_unit_size};
-      res = f_mkfs(drv, &opt, work, workbuf_size);
+      // const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, 0};
+      // res = f_mkfs(drv, &opt, work, workbuf_size);
+      res = f_mkfs(drv, NULL, work, workbuf_size);
 #elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
       const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, 0};
       res = f_mkfs(drv, &opt, (void *) work, workbuf_size);  // workbuf_size  (UINT)sizeof(work)

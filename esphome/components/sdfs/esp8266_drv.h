@@ -5,23 +5,23 @@
 #if defined(USE_SDSPI_MODE) && defined(USE_ESP8266)
 
 #ifdef SD_CHIP_SELECT_MODE
-#define SD_CHIP_SELECT_MODE 2
+#define SD_CHIP_SELECT_MODE 2  // NOLINT
 #endif
 
 #ifndef SPI_DRIVER_SELECT
-#define SPI_DRIVER_SELECT 3
+#define SPI_DRIVER_SELECT 3  // NOLINT
 #endif
 
 #ifndef USE_BLOCK_DEVICE_INTERFACE
-#define USE_BLOCK_DEVICE_INTERFACE 1
+#define USE_BLOCK_DEVICE_INTERFACE 1  // NOLINT
 #endif
 
 #ifndef SDFAT_FILE_TYPE
-#define SDFAT_FILE_TYPE 1
+#define SDFAT_FILE_TYPE 1  // NOLINT
 #endif
 
 #ifndef USE_SD_CRC
-#define USE_SD_CRC 1
+#define USE_SD_CRC 1  // NOLINT
 #endif
 
 #include "spi_connector.h"

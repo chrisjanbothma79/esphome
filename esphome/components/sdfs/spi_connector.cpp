@@ -7,7 +7,14 @@
 namespace esphome {
 namespace sdfs {
 
-// SdFat fs;
+#ifdef SPI_CALL_TRACE
+#define DEBUG_TRACE(msg, ...) \
+  do { \
+    ESP_LOGD(TAG, msg, ##__VA_ARGS__); \
+  } while (0)
+#else
+#define DEBUG_TRACE(msg, ...)
+#endif
 
 static const char *const TAG = "spi_connector";
 

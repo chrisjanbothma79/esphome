@@ -11,33 +11,16 @@
   } while (0)
 
 #define IS_LAST_ERR(x, y) (((this->last_err_ >> 16) == x) && ((this->last_err_ & 0x0000ffff) == y))
-#define SET_RC(x, y, str) \
-  do { \
-    this->last_err_ = (x << 16) | y; \
-    ESP_LOGE(TAG, str " (0x%x)%s.", y, esp_err_to_name(y)); \
-  } while (0)
 
-#ifdef SPI_CALL_TRACE
-#define DEBUG_TRACE(msg, ...) \
-  do { \
-    ESP_LOGD(TAG, msg, ##__VA_ARGS__); \
-  } while (0)
-#else
-#define DEBUG_TRACE(msg, ...)
-#endif
+#define ERR_TYPE_FRAMEWORK 1  // Errors from framework   // NOLINT
+#define ERR_TYPE_FILESYS 2    // Errors from filesysytems // NOLINT
+#define ERR_TYPE_LOCAL 3      // Local errors // NOLINT
 
-// #define RET_STATUS_OK 0
-// #define RET_STATUS_FAIL 1
-// #define RET_STATUS_NOTCRITICAL 2
-
-#define ERR_TYPE_FRAMEWORK 1  // Errors from framework
-#define ERR_TYPE_FILESYS 2    // Errors from filesysytems
-#define ERR_TYPE_LOCAL 3      // Local errors
+namespace esphome {
+namespace sdfs {
 
 typedef enum { C_NONE, C_MMC, C_SD, C_SDHC, C_UNKNOWN } card_type_t;
-
 typedef enum { RET_STATUS_OK = 0, RET_STATUS_FAIL = 1, RET_STATUS_NOCARD = 2 } sdcard_status_t;
-
 typedef enum {
   RC_OK = 1,
   RC_NO_MEM = 2,
@@ -47,6 +30,8 @@ typedef enum {
   RC_UNKNOWN = 6
 } local_rc_t;
 
+}  // namespace sdfs
+}  // namespace esphome
 #if defined(USE_ESP8266)
 #include "FsLib/FsVolume.h"
 typedef FsVolume fsys_t;

@@ -5,7 +5,7 @@
 #ifndef USE_ESP8266
 #include "esp_vfs_fat.h"
 
-//#define 	CONFIG_FATFS_CODEPAGE
+//#define CONFIG_FATFS_CODEPAGE
 /* This option specifies the OEM code page to be used on the target system.
 /  Incorrect code page setting can cause a file open failure.
 */

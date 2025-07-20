@@ -4,11 +4,15 @@ from esphome.components import spi
 from esphome.components.esp32.const import KEY_ESP32, VARIANT_ESP32, VARIANT_ESP32S3
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_DATA,
     # CONF_CLK_PIN,
     # CONF_CS_PIN,
     CONF_ID,
+    CONF_MODE,
+    CONF_ON_STATE,
     CONF_PATH,
     CONF_SIZE,
+    CONF_STATE,
     # PLATFORM_ESP8266,
     CONF_TRIGGER_ID,
     CONF_TYPE,
@@ -21,7 +25,7 @@ from esphome.const import (
 from esphome.core import CORE
 
 CONF_BUS_WIDTH = "bus_width"
-CONF_SCLK_PIN = "clk_pin"
+CONF_SCLK_PIN = "sclk_pin"
 CONF_BUS_SLOT = "bus_slot"
 CONF_CMD_PIN = "cmd_pin"
 CONF_DATA0_PIN = "data0_pin"
@@ -36,12 +40,12 @@ CONF_POWER_CTRL_PIN = "power_ctrl_pin"
 CONF_CD_PIN = "cd_pin"
 CONF_WP_PIN = "wp_pin"
 # CONF_INT_PIN = "int_pin"
-CONF_MISO_PIN = "miso_pin"
-CONF_MOSI_PIN = "mosi_pin"
-CONF_MODE = "mode"
-CONF_DATA = "data"
-CONF_ON_STATE = "on_state"
-CONF_STATE_NUM = "state"
+# CONF_MISO_PIN = "miso_pin"
+# CONF_MOSI_PIN = "mosi_pin"
+# CONF_MODE = "mode"
+# CONF_DATA = "data"
+# CONF_ON_STATE = "on_state"
+# CONF_STATE = "state"
 # CONF_PATH = "file"
 
 
@@ -378,7 +382,7 @@ async def sdfs_write_file_to_code(config, action_id, template_arg, args):
     automation.maybe_simple_id(
         {
             cv.Required(CONF_ID): cv.use_id(SdfsHost),
-            cv.Optional(CONF_STATE_NUM, default=4): cv.templatable(
+            cv.Optional(CONF_STATE, default=4): cv.templatable(
                 cv.int_range(min=0, max=4)
             ),
         }
@@ -387,7 +391,7 @@ async def sdfs_write_file_to_code(config, action_id, template_arg, args):
 async def sd_is_state_to_code(config, condition_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(condition_id, template_arg, paren)
-    templ = await cg.templatable(config[CONF_STATE_NUM], args, cg.int_)
+    templ = await cg.templatable(config[CONF_STATE], args, cg.int_)
     cg.add(var.set_state(templ))
     return var
 

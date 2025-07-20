@@ -27,13 +27,19 @@
 
 void sdCsInit(SdCsPin_t pin) {
   // initCalls++;
-  // pinMode(pin, OUTPUT);
-  DEBUG_TRACE("sdCsInit called");
+  // pinMode(pin, OUTPUT);   // NOLINT
+  // DEBUG_TRACE("sdCsInit called");
+#ifdef SPI_CALL_TRACE
+  ESP_LOGD("esp8266_sdio", "sdCsInit called");
+#endif
 }
 void sdCsWrite(SdCsPin_t pin, bool level) {
   // writeCalls++;
-  // digitalWrite(pin, level);
-  DEBUG_TRACE("sdCsWrite called");
+  // digitalWrite(pin, level); // NOLINT
+  // DEBUG_TRACE("sdCsWrite called");
+#ifdef SPI_CALL_TRACE
+  ESP_LOGD("esp8266_sdio", "sdCsWrite called");
+#endif
 }
 
 namespace esphome {

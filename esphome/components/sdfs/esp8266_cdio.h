@@ -255,10 +255,7 @@ class SdfsSpiCard : public BlockDeviceInterface {
   bool writeData(uint8_t token, const uint8_t *src);
 
   void spiActivate() { m_spiDriverPtr->activate(); }
-  void spiBegin(SdSpiConfig spiConfig) {
-    // ESP_LOGD("test","spiBegin");
-    m_spiDriverPtr->begin();
-  }
+  void spiBegin(SdSpiConfig spiConfig) { m_spiDriverPtr->begin(); }
   void spiDeactivate() { m_spiDriverPtr->deactivate(); }
   uint8_t spiReceive() { return m_spiDriverPtr->receive(); }
   uint8_t spiReceive(uint8_t *buf, size_t n) { return m_spiDriverPtr->receive(buf, n); }

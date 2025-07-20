@@ -74,7 +74,6 @@ template<typename... Ts> class SdIsSizeGECondition : public Condition<Ts...> {
     auto input_size = this->size_.value(x...);
     FsInterface *fs = this->parent_->get_fs();
     if (fs == NULL) {
-      ESP_LOGE(TAG, "FS not mounted");
       return false;
     }
 
@@ -108,7 +107,6 @@ template<typename... Ts> class SdIsSizeLECondition : public Condition<Ts...> {
     FsInterface *fs = this->parent_->get_fs();
     size_t obj_size = 0;
     if (fs == NULL) {
-      ESP_LOGE(TAG, "FS not mounted");
       return false;
     }
 
@@ -139,7 +137,6 @@ template<typename... Ts> class SdIsDirCondition : public Condition<Ts...> {
     auto path = this->path_.value(x...);
     FsInterface *fs = this->parent_->get_fs();
     if (fs == NULL) {
-      ESP_LOGE(TAG, "FS not mounted");
       return false;
     }
 
@@ -162,7 +159,6 @@ template<typename... Ts> class SdIsExistCondition : public Condition<Ts...> {
     auto path = this->path_.value(x...);
     FsInterface *fs = this->parent_->get_fs();
     if (fs == NULL) {
-      ESP_LOGE(TAG, "FS not mounted");
       return false;
     } else {
       return this->parent_->get_fs()->is_exist(path);

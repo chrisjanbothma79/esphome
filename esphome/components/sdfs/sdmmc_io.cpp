@@ -11,6 +11,12 @@
 namespace esphome {
 namespace sdfs {
 
+#define SET_RC(x, y, str) \
+  do { \
+    this->last_err_ = (x << 16) | y; \
+    ESP_LOGE(TAG, str " (0x%x)%s.", y, esp_err_to_name(y)); \
+  } while (0)
+
 // #define FF_DRV_NOT_USED 0xFF
 static const char *TAG = "sdmmc_io";
 

@@ -14,7 +14,7 @@ sdfs:
   type: sdmmc
   bus_width: "1bit"
   bus_slot: ${slot_id_name}
-  clk_pin: ${clk_pin_name}
+  sclk_pin: ${clk_pin_name}
   cmd_pin: ${cmd_pin_name}
   data0_pin: ${data0_pin_name}
   on_state:
