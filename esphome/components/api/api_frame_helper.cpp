@@ -299,6 +299,19 @@ APIError APINoiseFrameHelper::init() {
   state_ = State::CLIENT_HELLO;
   return APIError::OK;
 }
+// Helper for handling handshake frame errors
+APIError APINoiseFrameHelper::handle_handshake_frame_error_(APIError aerr) {
+  if (aerr == APIError::BAD_INDICATOR) {
+    send_explicit_handshake_reject_("Bad indicator byte");
+    return aerr;
+  }
+  if (aerr == APIError::BAD_HANDSHAKE_PACKET_LEN) {
+    send_explicit_handshake_reject_("Bad handshake packet len");
+    return aerr;
+  }
+  return aerr;
+}
+
 /// Run through handshake messages (if in that phase)
 APIError APINoiseFrameHelper::loop() {
   // During handshake phase, process as many actions as possible until we can't progress
@@ -423,16 +436,9 @@ APIError APINoiseFrameHelper::state_action_() {
     // waiting for client hello
     ParsedFrame frame;
     aerr = try_read_frame_(&frame);
-    if (aerr == APIError::BAD_INDICATOR) {
-      send_explicit_handshake_reject_("Bad indicator byte");
-      return aerr;
+    if (aerr != APIError::OK) {
+      return handle_handshake_frame_error_(aerr);
     }
-    if (aerr == APIError::BAD_HANDSHAKE_PACKET_LEN) {
-      send_explicit_handshake_reject_("Bad handshake packet len");
-      return aerr;
-    }
-    if (aerr != APIError::OK)
-      return aerr;
     // ignore contents, may be used in future for flags
     // Reserve space for: existing prologue + 2 size bytes + frame data
     prologue_.reserve(prologue_.size() + 2 + frame.msg.size());
@@ -478,16 +484,9 @@ APIError APINoiseFrameHelper::state_action_() {
       // waiting for handshake msg
       ParsedFrame frame;
       aerr = try_read_frame_(&frame);
-      if (aerr == APIError::BAD_INDICATOR) {
-        send_explicit_handshake_reject_("Bad indicator byte");
-        return aerr;
+      if (aerr != APIError::OK) {
+        return handle_handshake_frame_error_(aerr);
       }
-      if (aerr == APIError::BAD_HANDSHAKE_PACKET_LEN) {
-        send_explicit_handshake_reject_("Bad handshake packet len");
-        return aerr;
-      }
-      if (aerr != APIError::OK)
-        return aerr;
 
       if (frame.msg.empty()) {
         send_explicit_handshake_reject_("Empty handshake message");
