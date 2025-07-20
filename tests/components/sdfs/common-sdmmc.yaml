@@ -36,6 +36,6 @@ script:
               - sdfs.is_state:
                   id: sdfs_1
                   state: 1
-        then:
-          - lambda: |-
-              ESP_LOGD("lambda", "Condition TRUE");
+          then:
+            - lambda: |-
+                ESP_LOGD("lambda", "Condition TRUE");

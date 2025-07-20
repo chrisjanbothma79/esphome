@@ -785,13 +785,15 @@ FATFS *sdspi_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool forma
       }
 
 #if defined(USE_ESP_IDF)
-      size_t alloc_unit_size = esp_vfs_fat_get_allocation_unit_size(FF_SS_SDCARD, allocation_unit_size);
-      // ESP_LOGW(TAG, "formatting card, allocation unit size=%d", alloc_unit_size);
       const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, alloc_unit_size};
       res = f_mkfs(drv, &opt, work, workbuf_size);
+#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+      const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, 0};
+      res = f_mkfs(drv, &opt, (void *) work, workbuf_size);  // workbuf_size  (UINT)sizeof(work)
 #else
       res = f_mkfs(drv, FM_ANY, 0, (void *) work, workbuf_size);  // workbuf_size  (UINT)sizeof(work)
 #endif
+
       free(work);
       if (res != FR_OK) {
         ESP_LOGE(TAG, "f_mkfs failed: %s", sdfs::fs_err2str[res]);

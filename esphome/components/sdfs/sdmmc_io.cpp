@@ -367,9 +367,16 @@ local_rc_t SdmmcIO::format() {
 #ifdef USE_ESP_IDF
   const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, alloc_unit_size};
   res = f_mkfs(drv, &opt, workbuf, workbuf_size);
+#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+  const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, 0};
+  res = f_mkfs(drv, &opt, (void *) workbuf, workbuf_size);  // workbuf_size  (UINT)sizeof(work)
 #else
-  res = f_mkfs(drv, FM_ANY, 0, workbuf, workbuf_size);
+  res = f_mkfs(drv, FM_ANY, 0, (void *) workbuf, workbuf_size);  // workbuf_size  (UINT)sizeof(work)
 #endif
+  // #else
+  //   const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, alloc_unit_size};
+  //   res = f_mkfs(drv, &opt, workbuf, workbuf_size);
+  // #endif
   if (res != FR_OK) {
     SET_RC(ERR_TYPE_FILESYS, res, "Cannot make fs");
     free(workbuf);
