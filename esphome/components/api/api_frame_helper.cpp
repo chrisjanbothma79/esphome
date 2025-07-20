@@ -79,33 +79,56 @@ APIError APIFrameHelper::loop() {
   return APIError::OK;  // Convert WOULD_BLOCK to OK to avoid connection termination
 }
 
+// Common socket write error handling
+APIError APIFrameHelper::handle_socket_write_error_() {
+  if (errno == EWOULDBLOCK || errno == EAGAIN) {
+    return APIError::WOULD_BLOCK;
+  }
+  HELPER_LOG("Socket write failed with errno %d", errno);
+  this->state_ = State::FAILED;
+  return APIError::SOCKET_WRITE_FAILED;
+}
+
 // Helper method to buffer data from IOVs
-void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len) {
+void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len,
+                                           uint16_t offset) {
   SendBuffer buffer;
-  buffer.data.reserve(total_write_len);
+  buffer.size = total_write_len - offset;
+  buffer.data = std::make_unique<uint8_t[]>(buffer.size);
+
+  uint16_t to_skip = offset;
+  uint16_t write_pos = 0;
+
   for (int i = 0; i < iovcnt; i++) {
-    const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base);
-    buffer.data.insert(buffer.data.end(), data, data + iov[i].iov_len);
+    if (to_skip >= iov[i].iov_len) {
+      // Skip this entire segment
+      to_skip -= static_cast<uint16_t>(iov[i].iov_len);
+    } else {
+      // Include this segment (partially or fully)
+      const uint8_t *src = reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_skip;
+      uint16_t len = static_cast<uint16_t>(iov[i].iov_len) - to_skip;
+      std::memcpy(buffer.data.get() + write_pos, src, len);
+      write_pos += len;
+      to_skip = 0;
+    }
   }
   this->tx_buf_.push_back(std::move(buffer));
 }
 
 // This method writes data to socket or buffers it
-APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
+APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, uint16_t total_write_len) {
   // Returns APIError::OK if successful (or would block, but data has been buffered)
   // Returns APIError::SOCKET_WRITE_FAILED if socket write failed, and sets state to FAILED
 
   if (iovcnt == 0)
     return APIError::OK;  // Nothing to do, success
 
-  uint16_t total_write_len = 0;
-  for (int i = 0; i < iovcnt; i++) {
 #ifdef HELPER_LOG_PACKETS
+  for (int i = 0; i < iovcnt; i++) {
     ESP_LOGVV(TAG, "Sending raw: %s",
               format_hex_pretty(reinterpret_cast<uint8_t *>(iov[i].iov_base), iov[i].iov_len).c_str());
-#endif
-    total_write_len += static_cast<uint16_t>(iov[i].iov_len);
   }
+#endif
 
   // Try to send any existing buffered data first if there is any
   if (!this->tx_buf_.empty()) {
@@ -118,7 +141,7 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     // If there is still data in the buffer, we can't send, buffer
     // the new data and return
     if (!this->tx_buf_.empty()) {
-      this->buffer_data_from_iov_(iov, iovcnt, total_write_len);
+      this->buffer_data_from_iov_(iov, iovcnt, total_write_len, 0);
       return APIError::OK;  // Success, data buffered
     }
   }
@@ -127,37 +150,16 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   ssize_t sent = this->socket_->writev(iov, iovcnt);
 
   if (sent == -1) {
-    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+    APIError err = this->handle_socket_write_error_();
+    if (err == APIError::WOULD_BLOCK) {
       // Socket would block, buffer the data
-      this->buffer_data_from_iov_(iov, iovcnt, total_write_len);
+      this->buffer_data_from_iov_(iov, iovcnt, total_write_len, 0);
       return APIError::OK;  // Success, data buffered
     }
-    // Socket error
-    HELPER_LOG("Socket write failed with errno %d", errno);
-    this->state_ = State::FAILED;
-    return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
+    return err;  // Socket write failed
   } else if (static_cast<uint16_t>(sent) < total_write_len) {
     // Partially sent, buffer the remaining data
-    SendBuffer buffer;
-    uint16_t to_consume = static_cast<uint16_t>(sent);
-    uint16_t remaining = total_write_len - static_cast<uint16_t>(sent);
-
-    buffer.data.reserve(remaining);
-
-    for (int i = 0; i < iovcnt; i++) {
-      if (to_consume >= iov[i].iov_len) {
-        // This segment was fully sent
-        to_consume -= static_cast<uint16_t>(iov[i].iov_len);
-      } else {
-        // This segment was partially sent or not sent at all
-        const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_consume;
-        uint16_t len = static_cast<uint16_t>(iov[i].iov_len) - to_consume;
-        buffer.data.insert(buffer.data.end(), data, data + len);
-        to_consume = 0;
-      }
-    }
-
-    this->tx_buf_.push_back(std::move(buffer));
+    this->buffer_data_from_iov_(iov, iovcnt, total_write_len, static_cast<uint16_t>(sent));
   }
 
   return APIError::OK;  // Success, all data sent or buffered
@@ -176,14 +178,7 @@ APIError APIFrameHelper::try_send_tx_buf_() {
     ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
 
     if (sent == -1) {
-      if (errno != EWOULDBLOCK && errno != EAGAIN) {
-        // Real socket error (not just would block)
-        HELPER_LOG("Socket write failed with errno %d", errno);
-        this->state_ = State::FAILED;
-        return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
-      }
-      // Socket would block, we'll try again later
-      return APIError::WOULD_BLOCK;
+      return this->handle_socket_write_error_();
     } else if (sent == 0) {
       // Nothing sent but not an error
       return APIError::WOULD_BLOCK;
@@ -299,6 +294,26 @@ APIError APINoiseFrameHelper::init() {
   state_ = State::CLIENT_HELLO;
   return APIError::OK;
 }
+// Helper for handling handshake frame errors
+APIError APINoiseFrameHelper::handle_handshake_frame_error_(APIError aerr) {
+  if (aerr == APIError::BAD_INDICATOR) {
+    send_explicit_handshake_reject_("Bad indicator byte");
+  } else if (aerr == APIError::BAD_HANDSHAKE_PACKET_LEN) {
+    send_explicit_handshake_reject_("Bad handshake packet len");
+  }
+  return aerr;
+}
+
+// Helper for handling noise library errors
+APIError APINoiseFrameHelper::handle_noise_error_(int err, const char *func_name, APIError api_err) {
+  if (err != 0) {
+    state_ = State::FAILED;
+    HELPER_LOG("%s failed: %s", func_name, noise_err_to_str(err).c_str());
+    return api_err;
+  }
+  return APIError::OK;
+}
+
 /// Run through handshake messages (if in that phase)
 APIError APINoiseFrameHelper::loop() {
   // During handshake phase, process as many actions as possible until we can't progress
@@ -306,11 +321,11 @@ APIError APINoiseFrameHelper::loop() {
   // WOULD_BLOCK when no more data is available to read
   while (state_ != State::DATA && this->socket_->ready()) {
     APIError err = state_action_();
-    if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
-      return err;
-    }
     if (err == APIError::WOULD_BLOCK) {
       break;
+    }
+    if (err != APIError::OK) {
+      return err;
     }
   }
 
@@ -332,7 +347,7 @@ APIError APINoiseFrameHelper::loop() {
  * errno API_ERROR_BAD_INDICATOR: Bad indicator byte at start of frame.
  * errno API_ERROR_HANDSHAKE_PACKET_LEN: Packet too big for this phase.
  */
-APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
+APIError APINoiseFrameHelper::try_read_frame_(std::vector<uint8_t> *frame) {
   if (frame == nullptr) {
     HELPER_LOG("Bad argument for try_read_frame_");
     return APIError::BAD_ARG;
@@ -395,7 +410,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
 #ifdef HELPER_LOG_PACKETS
   ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(rx_buf_).c_str());
 #endif
-  frame->msg = std::move(rx_buf_);
+  *frame = std::move(rx_buf_);
   // consume msg
   rx_buf_ = {};
   rx_buf_len_ = 0;
@@ -421,24 +436,17 @@ APIError APINoiseFrameHelper::state_action_() {
   }
   if (state_ == State::CLIENT_HELLO) {
     // waiting for client hello
-    ParsedFrame frame;
+    std::vector<uint8_t> frame;
     aerr = try_read_frame_(&frame);
-    if (aerr == APIError::BAD_INDICATOR) {
-      send_explicit_handshake_reject_("Bad indicator byte");
-      return aerr;
+    if (aerr != APIError::OK) {
+      return handle_handshake_frame_error_(aerr);
     }
-    if (aerr == APIError::BAD_HANDSHAKE_PACKET_LEN) {
-      send_explicit_handshake_reject_("Bad handshake packet len");
-      return aerr;
-    }
-    if (aerr != APIError::OK)
-      return aerr;
     // ignore contents, may be used in future for flags
     // Reserve space for: existing prologue + 2 size bytes + frame data
-    prologue_.reserve(prologue_.size() + 2 + frame.msg.size());
-    prologue_.push_back((uint8_t) (frame.msg.size() >> 8));
-    prologue_.push_back((uint8_t) frame.msg.size());
-    prologue_.insert(prologue_.end(), frame.msg.begin(), frame.msg.end());
+    prologue_.reserve(prologue_.size() + 2 + frame.size());
+    prologue_.push_back((uint8_t) (frame.size() >> 8));
+    prologue_.push_back((uint8_t) frame.size());
+    prologue_.insert(prologue_.end(), frame.begin(), frame.end());
 
     state_ = State::SERVER_HELLO;
   }
@@ -476,41 +484,29 @@ APIError APINoiseFrameHelper::state_action_() {
     int action = noise_handshakestate_get_action(handshake_);
     if (action == NOISE_ACTION_READ_MESSAGE) {
       // waiting for handshake msg
-      ParsedFrame frame;
+      std::vector<uint8_t> frame;
       aerr = try_read_frame_(&frame);
-      if (aerr == APIError::BAD_INDICATOR) {
-        send_explicit_handshake_reject_("Bad indicator byte");
-        return aerr;
+      if (aerr != APIError::OK) {
+        return handle_handshake_frame_error_(aerr);
       }
-      if (aerr == APIError::BAD_HANDSHAKE_PACKET_LEN) {
-        send_explicit_handshake_reject_("Bad handshake packet len");
-        return aerr;
-      }
-      if (aerr != APIError::OK)
-        return aerr;
 
-      if (frame.msg.empty()) {
+      if (frame.empty()) {
         send_explicit_handshake_reject_("Empty handshake message");
         return APIError::BAD_HANDSHAKE_ERROR_BYTE;
-      } else if (frame.msg[0] != 0x00) {
-        HELPER_LOG("Bad handshake error byte: %u", frame.msg[0]);
+      } else if (frame[0] != 0x00) {
+        HELPER_LOG("Bad handshake error byte: %u", frame[0]);
         send_explicit_handshake_reject_("Bad handshake error byte");
         return APIError::BAD_HANDSHAKE_ERROR_BYTE;
       }
 
       NoiseBuffer mbuf;
       noise_buffer_init(mbuf);
-      noise_buffer_set_input(mbuf, frame.msg.data() + 1, frame.msg.size() - 1);
+      noise_buffer_set_input(mbuf, frame.data() + 1, frame.size() - 1);
       err = noise_handshakestate_read_message(handshake_, &mbuf, nullptr);
       if (err != 0) {
-        state_ = State::FAILED;
-        HELPER_LOG("noise_handshakestate_read_message failed: %s", noise_err_to_str(err).c_str());
-        if (err == NOISE_ERROR_MAC_FAILURE) {
-          send_explicit_handshake_reject_("Handshake MAC failure");
-        } else {
-          send_explicit_handshake_reject_("Handshake error");
-        }
-        return APIError::HANDSHAKESTATE_READ_FAILED;
+        // Special handling for MAC failure
+        send_explicit_handshake_reject_(err == NOISE_ERROR_MAC_FAILURE ? "Handshake MAC failure" : "Handshake error");
+        return handle_noise_error_(err, "noise_handshakestate_read_message", APIError::HANDSHAKESTATE_READ_FAILED);
       }
 
       aerr = check_handshake_finished_();
@@ -523,11 +519,10 @@ APIError APINoiseFrameHelper::state_action_() {
       noise_buffer_set_output(mbuf, buffer + 1, sizeof(buffer) - 1);
 
       err = noise_handshakestate_write_message(handshake_, &mbuf, nullptr);
-      if (err != 0) {
-        state_ = State::FAILED;
-        HELPER_LOG("noise_handshakestate_write_message failed: %s", noise_err_to_str(err).c_str());
-        return APIError::HANDSHAKESTATE_WRITE_FAILED;
-      }
+      APIError aerr_write =
+          handle_noise_error_(err, "noise_handshakestate_write_message", APIError::HANDSHAKESTATE_WRITE_FAILED);
+      if (aerr_write != APIError::OK)
+        return aerr_write;
       buffer[0] = 0x00;  // success
 
       aerr = write_frame_(buffer, mbuf.size + 1);
@@ -576,23 +571,21 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return APIError::WOULD_BLOCK;
   }
 
-  ParsedFrame frame;
+  std::vector<uint8_t> frame;
   aerr = try_read_frame_(&frame);
   if (aerr != APIError::OK)
     return aerr;
 
   NoiseBuffer mbuf;
   noise_buffer_init(mbuf);
-  noise_buffer_set_inout(mbuf, frame.msg.data(), frame.msg.size(), frame.msg.size());
+  noise_buffer_set_inout(mbuf, frame.data(), frame.size(), frame.size());
   err = noise_cipherstate_decrypt(recv_cipher_, &mbuf);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_cipherstate_decrypt failed: %s", noise_err_to_str(err).c_str());
-    return APIError::CIPHERSTATE_DECRYPT_FAILED;
-  }
+  APIError decrypt_err = handle_noise_error_(err, "noise_cipherstate_decrypt", APIError::CIPHERSTATE_DECRYPT_FAILED);
+  if (decrypt_err != APIError::OK)
+    return decrypt_err;
 
   uint16_t msg_size = mbuf.size;
-  uint8_t *msg_data = frame.msg.data();
+  uint8_t *msg_data = frame.data();
   if (msg_size < 4) {
     state_ = State::FAILED;
     HELPER_LOG("Bad data packet: size %d too short", msg_size);
@@ -607,7 +600,7 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return APIError::BAD_DATA_PACKET;
   }
 
-  buffer->container = std::move(frame.msg);
+  buffer->container = std::move(frame);
   buffer->data_offset = 4;
   buffer->data_len = data_len;
   buffer->type = type;
@@ -640,6 +633,7 @@ APIError APINoiseFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer, st
 
   this->reusable_iovs_.clear();
   this->reusable_iovs_.reserve(packets.size());
+  uint16_t total_write_len = 0;
 
   // We need to encrypt each packet in place
   for (const auto &packet : packets) {
@@ -668,23 +662,22 @@ APIError APINoiseFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer, st
                            4 + packet.payload_size + frame_footer_size_);
 
     int err = noise_cipherstate_encrypt(send_cipher_, &mbuf);
-    if (err != 0) {
-      state_ = State::FAILED;
-      HELPER_LOG("noise_cipherstate_encrypt failed: %s", noise_err_to_str(err).c_str());
-      return APIError::CIPHERSTATE_ENCRYPT_FAILED;
-    }
+    APIError aerr = handle_noise_error_(err, "noise_cipherstate_encrypt", APIError::CIPHERSTATE_ENCRYPT_FAILED);
+    if (aerr != APIError::OK)
+      return aerr;
 
     // Fill in the encrypted size
     buf_start[1] = static_cast<uint8_t>(mbuf.size >> 8);
     buf_start[2] = static_cast<uint8_t>(mbuf.size);
 
     // Add iovec for this encrypted packet
-    this->reusable_iovs_.push_back(
-        {buf_start, static_cast<size_t>(3 + mbuf.size)});  // indicator + size + encrypted data
+    size_t packet_len = static_cast<size_t>(3 + mbuf.size);  // indicator + size + encrypted data
+    this->reusable_iovs_.push_back({buf_start, packet_len});
+    total_write_len += packet_len;
   }
 
   // Send all encrypted packets in one writev call
-  return this->write_raw_(this->reusable_iovs_.data(), this->reusable_iovs_.size());
+  return this->write_raw_(this->reusable_iovs_.data(), this->reusable_iovs_.size(), total_write_len);
 }
 
 APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, uint16_t len) {
@@ -697,12 +690,12 @@ APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, uint16_t len) {
   iov[0].iov_base = header;
   iov[0].iov_len = 3;
   if (len == 0) {
-    return this->write_raw_(iov, 1);
+    return this->write_raw_(iov, 1, 3);  // Just header
   }
   iov[1].iov_base = const_cast<uint8_t *>(data);
   iov[1].iov_len = len;
 
-  return this->write_raw_(iov, 2);
+  return this->write_raw_(iov, 2, 3 + len);  // Header + data
 }
 
 /** Initiate the data structures for the handshake.
@@ -723,35 +716,27 @@ APIError APINoiseFrameHelper::init_handshake_() {
   nid_.modifier_ids[0] = NOISE_MODIFIER_PSK0;
 
   err = noise_handshakestate_new_by_id(&handshake_, &nid_, NOISE_ROLE_RESPONDER);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_new_by_id failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SETUP_FAILED;
-  }
+  APIError aerr = handle_noise_error_(err, "noise_handshakestate_new_by_id", APIError::HANDSHAKESTATE_SETUP_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
 
   const auto &psk = ctx_->get_psk();
   err = noise_handshakestate_set_pre_shared_key(handshake_, psk.data(), psk.size());
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_set_pre_shared_key failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SETUP_FAILED;
-  }
+  aerr = handle_noise_error_(err, "noise_handshakestate_set_pre_shared_key", APIError::HANDSHAKESTATE_SETUP_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
 
   err = noise_handshakestate_set_prologue(handshake_, prologue_.data(), prologue_.size());
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_set_prologue failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SETUP_FAILED;
-  }
+  aerr = handle_noise_error_(err, "noise_handshakestate_set_prologue", APIError::HANDSHAKESTATE_SETUP_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
   // set_prologue copies it into handshakestate, so we can get rid of it now
   prologue_ = {};
 
   err = noise_handshakestate_start(handshake_);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_start failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SETUP_FAILED;
-  }
+  aerr = handle_noise_error_(err, "noise_handshakestate_start", APIError::HANDSHAKESTATE_SETUP_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
   return APIError::OK;
 }
 
@@ -767,11 +752,9 @@ APIError APINoiseFrameHelper::check_handshake_finished_() {
     return APIError::HANDSHAKESTATE_BAD_STATE;
   }
   int err = noise_handshakestate_split(handshake_, &send_cipher_, &recv_cipher_);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_split failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SPLIT_FAILED;
-  }
+  APIError aerr = handle_noise_error_(err, "noise_handshakestate_split", APIError::HANDSHAKESTATE_SPLIT_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
 
   frame_footer_size_ = noise_cipherstate_get_mac_length(send_cipher_);
 
@@ -838,7 +821,7 @@ APIError APIPlaintextFrameHelper::loop() {
  *
  * error API_ERROR_BAD_INDICATOR: Bad indicator byte at start of frame.
  */
-APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
+APIError APIPlaintextFrameHelper::try_read_frame_(std::vector<uint8_t> *frame) {
   if (frame == nullptr) {
     HELPER_LOG("Bad argument for try_read_frame_");
     return APIError::BAD_ARG;
@@ -956,7 +939,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
 #ifdef HELPER_LOG_PACKETS
   ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(rx_buf_).c_str());
 #endif
-  frame->msg = std::move(rx_buf_);
+  *frame = std::move(rx_buf_);
   // consume msg
   rx_buf_ = {};
   rx_buf_len_ = 0;
@@ -971,7 +954,7 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return APIError::WOULD_BLOCK;
   }
 
-  ParsedFrame frame;
+  std::vector<uint8_t> frame;
   aerr = try_read_frame_(&frame);
   if (aerr != APIError::OK) {
     if (aerr == APIError::BAD_INDICATOR) {
@@ -991,12 +974,12 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
                          "Bad indicator byte";
       iov[0].iov_base = (void *) msg;
       iov[0].iov_len = 19;
-      this->write_raw_(iov, 1);
+      this->write_raw_(iov, 1, 19);
     }
     return aerr;
   }
 
-  buffer->container = std::move(frame.msg);
+  buffer->container = std::move(frame);
   buffer->data_offset = 0;
   buffer->data_len = rx_header_parsed_len_;
   buffer->type = rx_header_parsed_type_;
@@ -1021,6 +1004,7 @@ APIError APIPlaintextFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer
 
   this->reusable_iovs_.clear();
   this->reusable_iovs_.reserve(packets.size());
+  uint16_t total_write_len = 0;
 
   for (const auto &packet : packets) {
     // Calculate varint sizes for header layout
@@ -1065,12 +1049,13 @@ APIError APIPlaintextFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer
         .encode_to_buffer_unchecked(buf_start + header_offset + 1 + size_varint_len, type_varint_len);
 
     // Add iovec for this packet (header + payload)
-    this->reusable_iovs_.push_back(
-        {buf_start + header_offset, static_cast<size_t>(total_header_len + packet.payload_size)});
+    size_t packet_len = static_cast<size_t>(total_header_len + packet.payload_size);
+    this->reusable_iovs_.push_back({buf_start + header_offset, packet_len});
+    total_write_len += packet_len;
   }
 
   // Send all packets in one writev call
-  return write_raw_(this->reusable_iovs_.data(), this->reusable_iovs_.size());
+  return write_raw_(this->reusable_iovs_.data(), this->reusable_iovs_.size(), total_write_len);
 }
 
 #endif  // USE_API_PLAINTEXT

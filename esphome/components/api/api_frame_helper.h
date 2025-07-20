@@ -111,29 +111,28 @@ class APIFrameHelper {
   bool is_socket_ready() const { return socket_ != nullptr && socket_->ready(); }
 
  protected:
-  // Struct for holding parsed frame data
-  struct ParsedFrame {
-    std::vector<uint8_t> msg;
-  };
-
   // Buffer containing data to be sent
   struct SendBuffer {
-    std::vector<uint8_t> data;
-    uint16_t offset{0};  // Current offset within the buffer (uint16_t to reduce memory usage)
+    std::unique_ptr<uint8_t[]> data;
+    uint16_t size{0};    // Total size of the buffer
+    uint16_t offset{0};  // Current offset within the buffer
 
     // Using uint16_t reduces memory usage since ESPHome API messages are limited to UINT16_MAX (65535) bytes
-    uint16_t remaining() const { return static_cast<uint16_t>(data.size()) - offset; }
-    const uint8_t *current_data() const { return data.data() + offset; }
+    uint16_t remaining() const { return size - offset; }
+    const uint8_t *current_data() const { return data.get() + offset; }
   };
 
   // Common implementation for writing raw data to socket
-  APIError write_raw_(const struct iovec *iov, int iovcnt);
+  APIError write_raw_(const struct iovec *iov, int iovcnt, uint16_t total_write_len);
 
   // Try to send data from the tx buffer
   APIError try_send_tx_buf_();
 
   // Helper method to buffer data from IOVs
-  void buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len);
+  void buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len, uint16_t offset);
+
+  // Common socket write error handling
+  APIError handle_socket_write_error_();
   template<typename StateEnum>
   APIError write_raw_(const struct iovec *iov, int iovcnt, socket::Socket *socket, std::vector<uint8_t> &tx_buf,
                       const std::string &info, StateEnum &state, StateEnum failed_state);
@@ -210,11 +209,13 @@ class APINoiseFrameHelper : public APIFrameHelper {
 
  protected:
   APIError state_action_();
-  APIError try_read_frame_(ParsedFrame *frame);
+  APIError try_read_frame_(std::vector<uint8_t> *frame);
   APIError write_frame_(const uint8_t *data, uint16_t len);
   APIError init_handshake_();
   APIError check_handshake_finished_();
   void send_explicit_handshake_reject_(const std::string &reason);
+  APIError handle_handshake_frame_error_(APIError aerr);
+  APIError handle_noise_error_(int err, const char *func_name, APIError api_err);
 
   // Pointers first (4 bytes each)
   NoiseHandshakeState *handshake_{nullptr};
@@ -263,7 +264,7 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
   uint8_t frame_footer_size() override { return frame_footer_size_; }
 
  protected:
-  APIError try_read_frame_(ParsedFrame *frame);
+  APIError try_read_frame_(std::vector<uint8_t> *frame);
 
   // Group 2-byte aligned types
   uint16_t rx_header_parsed_type_ = 0;
