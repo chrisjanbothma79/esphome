@@ -30,13 +30,10 @@ espnow:
     - E8:6B:EA:24:22:04
   on_new_peer:
     - logger.log:
-        format: "New Peer from: %s = '%s' RSSI: %d"
-        args:
-          [
-            packet->payload(),
-            packet->peer_str().c_str(),
-            packet->rssi(),
-          ]
+        format: "New Peer"
+  on_received:
+    - logger.log:
+        format: "> packet received"
 
 binary_sensor:
   - platform: gpio
