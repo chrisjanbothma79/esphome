@@ -120,11 +120,12 @@ def validate_raw_data(value):
 
 def _validate(config):
     platform = CORE.target_platform
+    variant = PLATFORM_ESP8266
     # CORE.data[KEY_CORE][KEY_TARGET_PLATFORM]
     if platform == PLATFORM_ESP32:
         variant = CORE.data[KEY_ESP32][KEY_VARIANT]
-    elif platform == PLATFORM_ESP8266:
-        variant = PLATFORM_ESP8266
+    # elif platform == PLATFORM_ESP8266:
+    #     variant = PLATFORM_ESP8266
 
     if config[CONF_TYPE] == "sdspi":
         pass
@@ -143,7 +144,7 @@ def _validate(config):
                 raise cv.Invalid(
                     "Useing 8bit bus available only in SLOT_0 on ESP32 chip."
                 )
-            elif config[CONF_BUS_SLOT] != 0:
+            if config[CONF_BUS_SLOT] != 0:
                 raise cv.Invalid("8bit bus with available only on SPI_0 ")
 
             if (
@@ -151,10 +152,6 @@ def _validate(config):
                 or config[CONF_DATA1_PIN] not in config
                 or config[CONF_DATA2_PIN] not in config
                 or config[CONF_DATA3_PIN] not in config
-                or config[CONF_DATA4_PIN] not in config
-                or config[CONF_DATA5_PIN] not in config
-                or config[CONF_DATA6_PIN] not in config
-                or config[CONF_DATA7_PIN] not in config
             ):
                 raise cv.Invalid(
                     f"With 8bit bus definition of {CONF_DATA4_PIN}, {CONF_DATA5_PIN}, {CONF_DATA6_PIN}, {CONF_DATA7_PIN} required."
