@@ -8,7 +8,16 @@ namespace emontx {
 static const char *const TAG = "emontx";
 
 /**
- * @brief Initializes the EmonTx.
+ * @brief Initializes the EmonTx component.
+ *
+ * @details Sets up the initial state of the component by:
+ * 1. Setting the state machine to OFF
+ * 2. Logging the component configuration
+ * 3. Registering and logging all configured sensors (when sensor support is enabled)
+ *
+ * This method is called once during device startup. After setup completes,
+ * the component will wait for update() to be called before starting to
+ * process any incoming data.
  */
 void EmonTx::setup() {
   state_ = OFF;
@@ -27,7 +36,15 @@ void EmonTx::setup() {
 }
 
 /**
- * @brief Updates the EmonTx state. Resets the buffer index and transitions the state from OFF to ON.
+ * @brief Resets the state machine to start looking for new JSON data.
+ *
+ * @details This method is called periodically according to the update_interval configured
+ * in the YAML. It prepares the component to receive new data by:
+ * 1. Clearing the internal buffer
+ * 2. Resetting the state machine from OFF to WAITING_FOR_START
+ *
+ * After this method is called, the state machine will begin actively looking for
+ * the opening brace '{' of a new JSON object in the incoming UART data stream.
  */
 void EmonTx::update() {
   ESP_LOGD(TAG, "Updating EmonTx state...");
@@ -40,6 +57,22 @@ void EmonTx::update() {
   ESP_LOGD(TAG, "EmonTx is now ready to receive data.");
 }
 
+/**
+ * @brief Reads characters from UART until a specific target character is found.
+ *
+ * @details This method is used by the JSON parsing state machine to extract complete JSON objects.
+ * It operates in two modes controlled by the drop parameter:
+ * - When drop=true: Discards all characters except the target (used to find the opening brace)
+ * - When drop=false: Collects all characters until the target is found (used to collect JSON content)
+ *
+ * The method also enforces valid JSON formatting by rejecting any data that contains
+ * newline characters, which should not appear within a properly formatted JSON object.
+ *
+ * @param drop If true, discard all characters except the target character.
+ * @param c The target character to look for.
+ * @return true If the target character was found.
+ * @return false If an error occurred (newline in JSON, buffer overflow) or target not found.
+ */
 bool EmonTx::read_chars_until_(bool drop, uint8_t c) {
   uint8_t received;
   int j = 0;
@@ -79,13 +112,15 @@ bool EmonTx::read_chars_until_(bool drop, uint8_t c) {
 }
 
 /**
- * @brief Implements the main state machine for processing incoming data.
+ * @brief Implements the main state machine for parsing JSON data from the serial port.
  *
  * @details The state machine transitions through the following states:
- * - OFF: Does nothing.
- * - ON: Reads characters until the start frame (0x2) is found.
- * - START_FRAME_RECEIVED: Reads characters until the end frame (0x3) is found.
- * - END_FRAME_RECEIVED: Processes the buffer to extract groups, validate CRC, and publish values.
+ * - OFF: Initial state, waiting for update() to be called.
+ * - WAITING_FOR_START: Looks for the opening brace '{' of a JSON object.
+ * - COLLECTING_JSON: Collects characters until the closing brace '}' is found.
+ *   Any newline characters during this phase will cause the buffer to be discarded.
+ * - JSON_COLLECTED: Processes the complete JSON object, updating sensors and
+ *   executing callbacks before returning to OFF state.
  */
 void EmonTx::loop() {
   switch (state_) {
@@ -119,6 +154,21 @@ void EmonTx::loop() {
   }
 }
 
+/**
+ * @brief Parses a JSON string and updates associated sensors and listeners.
+ *
+ * @details This method takes a string containing JSON data and attempts to parse it.
+ * If parsing is successful, it performs the following operations:
+ * 1. Updates all registered sensors that have matching keys in the JSON
+ * 2. Updates all registered listeners with their corresponding values
+ * 3. Stores the successfully parsed JSON string for use in callbacks
+ * 4. Executes all registered JSON callbacks, passing the parsed JsonObject
+ *
+ * The method handles both sensor updates and general-purpose callbacks, allowing
+ * the component to integrate with multiple parts of the ESPHome system.
+ *
+ * @param data The JSON string to parse
+ */
 void EmonTx::parse_json_(const std::string &data) {
   ESP_LOGV(TAG, "Parsing JSON: %s", data.c_str());
   ESP_LOGV(TAG, "Listener list contains '%d' items", (int) this->emontx_listeners_.size());
@@ -170,9 +220,17 @@ void EmonTx::parse_json_(const std::string &data) {
 }
 
 /**
- * @brief Dumps the EmonTx configuration to the log.
+ * @brief Logs the EmonTx component configuration details.
  *
- * @note Logs the UART settings and other configuration details.
+ * @details This method is called during startup to output the component's
+ * configuration to the log. It provides information about:
+ * - The component identification
+ * - Number of registered sensors (when sensor support is enabled)
+ * - List of all registered sensors with their tag names
+ *
+ * This information is valuable for debugging and verifying that the
+ * component is correctly configured according to the YAML definition.
+ * The method is automatically called by ESPHome's core during device startup.
  */
 void EmonTx::dump_config() {
   ESP_LOGCONFIG(TAG, "EmonTx:");
@@ -192,8 +250,13 @@ void EmonTx::dump_config() {
 /**
  * @brief Publishes a value to all registered listeners that match the given tag.
  *
- * @param tag The tag associated with the value.
- * @param val The value to publish.
+ * @details This method iterates through all registered EmonTx listeners and forwards
+ * the provided value to any listener whose tag matches the specified tag parameter.
+ * This internal helper method is used to distribute received data to the appropriate
+ * components within the ESPHome system.
+ *
+ * @param tag The tag identifier to match against registered listeners.
+ * @param val The string value to publish to matching listeners.
  */
 void EmonTx::publish_value_(const std::string &tag, const std::string &val) {
   for (auto *element : emontx_listeners_) {
@@ -204,9 +267,17 @@ void EmonTx::publish_value_(const std::string &tag, const std::string &val) {
 }
 
 /**
- * @brief Registers a listener to receive updates for specific tags.
+ * @brief Registers a listener to receive updates for specific JSON data tags.
  *
- * @param listener Pointer to the listener to register.
+ * @details This method adds the provided listener to the internal list of EmonTx listeners.
+ * When JSON data is received and successfully parsed, any listener whose tag matches
+ * a key in the JSON will receive the corresponding value through its publish_val() method.
+ *
+ * This registration mechanism allows other ESPHome components to subscribe to specific
+ * data points from the EmonTx JSON stream without having to implement their own parsing logic.
+ *
+ * @param listener Pointer to the listener object to register. The listener must have a 'tag'
+ *                 property that identifies which JSON key it's interested in.
  */
 #ifdef USE_SENSOR
 void EmonTx::register_emontx_listener(EmonTxListener *listener) { emontx_listeners_.push_back(listener); }

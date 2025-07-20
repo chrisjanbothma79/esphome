@@ -79,6 +79,7 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
     COLLECTING_JSON,    // Collecting characters until '}'
     JSON_COLLECTED,     // Waiting for '\r' or '\n' after JSON
   } state_{OFF};
+
   bool read_chars_until_(bool drop, uint8_t c);
 
   void parse_json_(const std::string &data);
