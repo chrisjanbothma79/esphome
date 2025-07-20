@@ -120,8 +120,8 @@ void ESP32TouchComponent::loop() {
         child->publish_state(new_state);
         // Original ESP32: ISR only fires when touched, release is detected by timeout
         // Note: ESP32 v1 uses inverted logic - touched when value < threshold
-        ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 " < threshold: %" PRIu32 ")",
-                 child->get_name().c_str(), event.value, child->get_threshold());
+        ESP_LOGV(TAG, "Touch Pad '%s' state: %s (value: %" PRIu32 " < threshold: %" PRIu32 ")",
+                 child->get_name().c_str(), ONOFF(new_state), event.value, child->get_threshold());
       }
       break;  // Exit inner loop after processing matching pad
     }
