@@ -213,6 +213,7 @@ class APINoiseFrameHelper : public APIFrameHelper {
   APIError check_handshake_finished_();
   void send_explicit_handshake_reject_(const std::string &reason);
   APIError handle_handshake_frame_error_(APIError aerr);
+  APIError handle_noise_error_(int err, const char *func_name, APIError api_err);
 
   // Pointers first (4 bytes each)
   NoiseHandshakeState *handshake_{nullptr};

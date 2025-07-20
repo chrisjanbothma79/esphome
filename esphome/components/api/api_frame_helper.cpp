@@ -312,6 +312,16 @@ APIError APINoiseFrameHelper::handle_handshake_frame_error_(APIError aerr) {
   return aerr;
 }
 
+// Helper for handling noise library errors
+APIError APINoiseFrameHelper::handle_noise_error_(int err, const char *func_name, APIError api_err) {
+  if (err != 0) {
+    state_ = State::FAILED;
+    HELPER_LOG("%s failed: %s", func_name, noise_err_to_str(err).c_str());
+    return api_err;
+  }
+  return APIError::OK;
+}
+
 /// Run through handshake messages (if in that phase)
 APIError APINoiseFrameHelper::loop() {
   // During handshake phase, process as many actions as possible until we can't progress
@@ -502,14 +512,13 @@ APIError APINoiseFrameHelper::state_action_() {
       noise_buffer_set_input(mbuf, frame.msg.data() + 1, frame.msg.size() - 1);
       err = noise_handshakestate_read_message(handshake_, &mbuf, nullptr);
       if (err != 0) {
-        state_ = State::FAILED;
-        HELPER_LOG("noise_handshakestate_read_message failed: %s", noise_err_to_str(err).c_str());
+        // Special handling for MAC failure
         if (err == NOISE_ERROR_MAC_FAILURE) {
           send_explicit_handshake_reject_("Handshake MAC failure");
         } else {
           send_explicit_handshake_reject_("Handshake error");
         }
-        return APIError::HANDSHAKESTATE_READ_FAILED;
+        return handle_noise_error_(err, "noise_handshakestate_read_message", APIError::HANDSHAKESTATE_READ_FAILED);
       }
 
       aerr = check_handshake_finished_();
@@ -522,11 +531,10 @@ APIError APINoiseFrameHelper::state_action_() {
       noise_buffer_set_output(mbuf, buffer + 1, sizeof(buffer) - 1);
 
       err = noise_handshakestate_write_message(handshake_, &mbuf, nullptr);
-      if (err != 0) {
-        state_ = State::FAILED;
-        HELPER_LOG("noise_handshakestate_write_message failed: %s", noise_err_to_str(err).c_str());
-        return APIError::HANDSHAKESTATE_WRITE_FAILED;
-      }
+      APIError aerr_write =
+          handle_noise_error_(err, "noise_handshakestate_write_message", APIError::HANDSHAKESTATE_WRITE_FAILED);
+      if (aerr_write != APIError::OK)
+        return aerr_write;
       buffer[0] = 0x00;  // success
 
       aerr = write_frame_(buffer, mbuf.size + 1);
@@ -584,11 +592,9 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
   noise_buffer_init(mbuf);
   noise_buffer_set_inout(mbuf, frame.msg.data(), frame.msg.size(), frame.msg.size());
   err = noise_cipherstate_decrypt(recv_cipher_, &mbuf);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_cipherstate_decrypt failed: %s", noise_err_to_str(err).c_str());
-    return APIError::CIPHERSTATE_DECRYPT_FAILED;
-  }
+  APIError decrypt_err = handle_noise_error_(err, "noise_cipherstate_decrypt", APIError::CIPHERSTATE_DECRYPT_FAILED);
+  if (decrypt_err != APIError::OK)
+    return decrypt_err;
 
   uint16_t msg_size = mbuf.size;
   uint8_t *msg_data = frame.msg.data();
@@ -667,11 +673,9 @@ APIError APINoiseFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer, st
                            4 + packet.payload_size + frame_footer_size_);
 
     int err = noise_cipherstate_encrypt(send_cipher_, &mbuf);
-    if (err != 0) {
-      state_ = State::FAILED;
-      HELPER_LOG("noise_cipherstate_encrypt failed: %s", noise_err_to_str(err).c_str());
-      return APIError::CIPHERSTATE_ENCRYPT_FAILED;
-    }
+    APIError aerr = handle_noise_error_(err, "noise_cipherstate_encrypt", APIError::CIPHERSTATE_ENCRYPT_FAILED);
+    if (aerr != APIError::OK)
+      return aerr;
 
     // Fill in the encrypted size
     buf_start[1] = static_cast<uint8_t>(mbuf.size >> 8);
@@ -722,35 +726,27 @@ APIError APINoiseFrameHelper::init_handshake_() {
   nid_.modifier_ids[0] = NOISE_MODIFIER_PSK0;
 
   err = noise_handshakestate_new_by_id(&handshake_, &nid_, NOISE_ROLE_RESPONDER);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_new_by_id failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SETUP_FAILED;
-  }
+  APIError aerr = handle_noise_error_(err, "noise_handshakestate_new_by_id", APIError::HANDSHAKESTATE_SETUP_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
 
   const auto &psk = ctx_->get_psk();
   err = noise_handshakestate_set_pre_shared_key(handshake_, psk.data(), psk.size());
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_set_pre_shared_key failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SETUP_FAILED;
-  }
+  aerr = handle_noise_error_(err, "noise_handshakestate_set_pre_shared_key", APIError::HANDSHAKESTATE_SETUP_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
 
   err = noise_handshakestate_set_prologue(handshake_, prologue_.data(), prologue_.size());
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_set_prologue failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SETUP_FAILED;
-  }
+  aerr = handle_noise_error_(err, "noise_handshakestate_set_prologue", APIError::HANDSHAKESTATE_SETUP_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
   // set_prologue copies it into handshakestate, so we can get rid of it now
   prologue_ = {};
 
   err = noise_handshakestate_start(handshake_);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_start failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SETUP_FAILED;
-  }
+  aerr = handle_noise_error_(err, "noise_handshakestate_start", APIError::HANDSHAKESTATE_SETUP_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
   return APIError::OK;
 }
 
@@ -766,11 +762,9 @@ APIError APINoiseFrameHelper::check_handshake_finished_() {
     return APIError::HANDSHAKESTATE_BAD_STATE;
   }
   int err = noise_handshakestate_split(handshake_, &send_cipher_, &recv_cipher_);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("noise_handshakestate_split failed: %s", noise_err_to_str(err).c_str());
-    return APIError::HANDSHAKESTATE_SPLIT_FAILED;
-  }
+  APIError aerr = handle_noise_error_(err, "noise_handshakestate_split", APIError::HANDSHAKESTATE_SPLIT_FAILED);
+  if (aerr != APIError::OK)
+    return aerr;
 
   frame_footer_size_ = noise_cipherstate_get_mac_length(send_cipher_);
 
