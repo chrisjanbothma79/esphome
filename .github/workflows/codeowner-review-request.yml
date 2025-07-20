@@ -198,14 +198,14 @@ jobs:
               // Extract previously mentioned users and teams from workflow comments
               for (const comment of workflowComments) {
                 // Match @username patterns (not team mentions)
-                const userMentions = comment.body.match(/@([a-zA-Z0-9-]+)(?![/])/g) || [];
+                const userMentions = comment.body.match(/@([a-zA-Z0-9_.-]+)(?![/])/g) || [];
                 userMentions.forEach(mention => {
                   const username = mention.slice(1); // remove @
                   previouslyPingedUsers.add(username);
                 });
 
                 // Match @org/team patterns
-                const teamMentions = comment.body.match(/@[a-zA-Z0-9-]+\/([a-zA-Z0-9-]+)/g) || [];
+                const teamMentions = comment.body.match(/@[a-zA-Z0-9_.-]+\/([a-zA-Z0-9_.-]+)/g) || [];
                 teamMentions.forEach(mention => {
                   const teamName = mention.split('/')[1];
                   previouslyPingedTeams.add(teamName);
