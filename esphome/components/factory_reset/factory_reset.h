@@ -1,12 +1,28 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/core/automation.h"
 #include "esphome/core/preferences.h"
+
+#ifdef USE_ESP32
+#include <esp_system.h>
+#endif
 
 namespace esphome {
 namespace factory_reset {
 
-/// FastBootComponent provides a safe way to recover from repeated boot failures
+static bool was_power_cycled() {
+#ifdef USE_ESP32
+  return esp_reset_reason() == ESP_RST_POWERON;
+#endif
+#ifdef USE_ESP8266
+  return ESP.getResetReason() == "Power on";
+#endif
+#ifdef USE_LIBRETINY
+  return lt_reboot_get_reboot_reason() == REBOOT_REASON_POWER;
+#endif
+}
+
 class FactoryResetComponent : public Component {
  public:
   FactoryResetComponent(uint8_t required_count, uint32_t max_interval)
@@ -14,15 +30,24 @@ class FactoryResetComponent : public Component {
 
   void dump_config() override;
   void setup() override;
+  void add_increment_callback(std::function<void(uint8_t, uint8_t)> &&callback) {
+    this->increment_callback_.add(std::move(callback));
+  }
 
  protected:
   ~FactoryResetComponent() = default;
   void save_(uint8_t count);
-  ESPPreferenceObject rtc_{};    // used to distinguish between power cycle and other reboots
   ESPPreferenceObject flash_{};  // saves the number of fast power cycles
   uint32_t max_interval_;        // max interval between power cycles
   uint8_t required_count_;       // The number of boot attempts before fast boot is enabled
+  CallbackManager<void(uint8_t, uint8_t)> increment_callback_{};
 };
 
+class FastBootTrigger : public Trigger<uint8_t, uint8_t> {
+ public:
+  explicit FastBootTrigger(FactoryResetComponent *parent) {
+    parent->add_increment_callback([this](uint8_t current, uint8_t target) { this->trigger(current, target); });
+  }
+};
 }  // namespace factory_reset
 }  // namespace esphome
