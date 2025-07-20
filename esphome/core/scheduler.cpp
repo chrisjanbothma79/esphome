@@ -219,10 +219,16 @@ bool HOT Scheduler::cancel_retry(Component *component, const std::string &name) 
 
 optional<uint32_t> HOT Scheduler::next_schedule_in(uint32_t now) {
   // IMPORTANT: This method should only be called from the main thread (loop task).
-  // It calls empty_() and accesses items_[0] without holding a lock, which is only
+  // It performs cleanup and accesses items_[0] without holding a lock, which is only
   // safe when called from the main thread. Other threads must not call this method.
-  if (this->empty_())
+
+  // Cleanup removed items first
+  size_t item_count = this->cleanup_();
+
+  // If no items, return empty optional
+  if (item_count == 0)
     return {};
+
   auto &item = this->items_[0];
   // Convert the fresh timestamp from caller (usually Application::loop()) to 64-bit
   const auto now_64 = this->millis_64_(now);  // 'now' from parameter - fresh from caller
@@ -281,7 +287,9 @@ void HOT Scheduler::call(uint32_t now) {
     ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now_64,
              this->millis_major_, this->last_millis_);
 #endif
-    while (!this->empty_()) {
+    // Cleanup before debug output
+    this->cleanup_();
+    while (!this->items_.empty()) {
       std::unique_ptr<SchedulerItem> item;
       {
         LockGuard guard{this->lock_};
@@ -332,7 +340,9 @@ void HOT Scheduler::call(uint32_t now) {
     this->to_remove_ = 0;
   }
 
-  while (!this->empty_()) {
+  // Cleanup removed items before processing
+  this->cleanup_();
+  while (!this->items_.empty()) {
     // use scoping to indicate visibility of `item` variable
     {
       // Don't copy-by value yet
@@ -398,8 +408,8 @@ void HOT Scheduler::process_to_add() {
   }
   this->to_add_.clear();
 }
-void HOT Scheduler::cleanup_() {
-  // Fast path: if nothing to remove, just return
+size_t HOT Scheduler::cleanup_() {
+  // Fast path: if nothing to remove, just return the current size
   // Reading to_remove_ without lock is safe because:
   // 1. We only call this from the main thread during call()
   // 2. If it's 0, there's definitely nothing to cleanup
@@ -407,7 +417,7 @@ void HOT Scheduler::cleanup_() {
   // 4. Not all platforms support atomics, so we accept this race in favor of performance
   // 5. The worst case is a one-loop-iteration delay in cleanup, which is harmless
   if (this->to_remove_ == 0)
-    return;
+    return this->items_.size();
 
   // We must hold the lock for the entire cleanup operation because:
   // 1. We're modifying items_ (via pop_raw_) which requires exclusive access
@@ -421,10 +431,11 @@ void HOT Scheduler::cleanup_() {
   while (!this->items_.empty()) {
     auto &item = this->items_[0];
     if (!item->remove)
-      return;
+      break;
     this->to_remove_--;
     this->pop_raw_();
   }
+  return this->items_.size();
 }
 void HOT Scheduler::pop_raw_() {
   std::pop_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
