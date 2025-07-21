@@ -619,16 +619,21 @@ def only_on(platforms):
     return validator_
 
 
-def only_with_framework(frameworks):
+def only_with_framework(
+    frameworks, suggested_alternate=None, suggested_alternate_doc=None
+):
     """Validate that this option can only be specified on the given frameworks."""
     if not isinstance(frameworks, list):
         frameworks = [frameworks]
 
     def validator_(obj):
         if CORE.target_framework not in frameworks:
-            raise Invalid(
-                f"This feature is only available with frameworks {frameworks}"
-            )
+            err_str = f"This feature is only available with frameworks {frameworks}"
+            if suggested_alternate is not None:
+                err_str += f"\nPlease use '{suggested_alternate}'"
+                if suggested_alternate_doc is not None:
+                    err_str += f": {suggested_alternate_doc}"
+            raise Invalid(err_str)
         return obj
 
     return validator_
