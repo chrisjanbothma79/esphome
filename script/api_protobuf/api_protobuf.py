@@ -887,7 +887,11 @@ class SInt64Type(TypeInfo):
 
 
 class FixedArrayRepeatedType(TypeInfo):
-    """Special type for fixed-size repeated fields using std::array."""
+    """Special type for fixed-size repeated fields using std::array.
+
+    Fixed arrays are only supported for encoding (SOURCE_SERVER) since we cannot
+    control how many items we receive when decoding.
+    """
 
     def __init__(self, field: descriptor.FieldDescriptorProto, size: int) -> None:
         super().__init__(field)
@@ -915,42 +919,28 @@ class FixedArrayRepeatedType(TypeInfo):
 
     @property
     def public_content(self) -> list[str]:
-        # Add the array member and a counter for decoding
-        return [
-            f"{self.cpp_type} {self.field_name}{{}};",
-            f"size_t {self.field_name}_index_{{0}};",
-        ]
+        # Just the array member, no index needed since we don't decode
+        return [f"{self.cpp_type} {self.field_name}{{}};"]
 
     @property
     def decode_varint_content(self) -> str:
-        content = self._ti.decode_varint
-        if content is None:
-            return None
-        return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ this->{self.field_name}[this->{self.field_name}_index_++] = {content}; }} break;"
+        # Fixed arrays don't support decoding
+        return None
 
     @property
     def decode_length_content(self) -> str:
-        content = self._ti.decode_length
-        if content is None and isinstance(self._ti, MessageType):
-            # Special handling for non-template message decoding
-            return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ value.decode_to_message(this->{self.field_name}[this->{self.field_name}_index_++]); }} break;"
-        if content is None:
-            return None
-        return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ this->{self.field_name}[this->{self.field_name}_index_++] = {content}; }} break;"
+        # Fixed arrays don't support decoding
+        return None
 
     @property
     def decode_32bit_content(self) -> str:
-        content = self._ti.decode_32bit
-        if content is None:
-            return None
-        return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ this->{self.field_name}[this->{self.field_name}_index_++] = {content}; }} break;"
+        # Fixed arrays don't support decoding
+        return None
 
     @property
     def decode_64bit_content(self) -> str:
-        content = self._ti.decode_64bit
-        if content is None:
-            return None
-        return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ this->{self.field_name}[this->{self.field_name}_index_++] = {content}; }} break;"
+        # Fixed arrays don't support decoding
+        return None
 
     @property
     def _ti_is_bool(self) -> bool:
