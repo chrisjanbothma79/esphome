@@ -1,25 +1,24 @@
-import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome import pins
+import esphome.codegen as cg
 from esphome.components import display
+import esphome.config_validation as cv
 from esphome.const import (
-    CONF_EXTERNAL_VCC,
-    CONF_LAMBDA,
-    CONF_MODEL,
-    CONF_RESET_PIN,
     CONF_BRIGHTNESS,
     CONF_CONTRAST,
+    CONF_EXTERNAL_VCC,
+    CONF_FLIP_X,
+    CONF_FLIP_Y,
     CONF_INVERT,
+    CONF_LAMBDA,
+    CONF_MODEL,
+    CONF_OFFSET_X,
+    CONF_OFFSET_Y,
+    CONF_RESET_PIN,
 )
 
 ssd1306_base_ns = cg.esphome_ns.namespace("ssd1306_base")
 SSD1306 = ssd1306_base_ns.class_("SSD1306", cg.PollingComponent, display.DisplayBuffer)
 SSD1306Model = ssd1306_base_ns.enum("SSD1306Model")
-
-CONF_FLIP_X = "flip_x"
-CONF_FLIP_Y = "flip_y"
-CONF_OFFSET_X = "offset_x"
-CONF_OFFSET_Y = "offset_y"
 
 MODELS = {
     "SSD1306_128X32": SSD1306Model.SSD1306_MODEL_128_32,
