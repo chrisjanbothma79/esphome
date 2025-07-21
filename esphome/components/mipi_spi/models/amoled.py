@@ -90,13 +90,11 @@ T4_S3_AMOLED = RM690B0.extend(
     bus_mode=TYPE_QUAD,
 )
 
-DriverChip(
+CO5300 = DriverChip(
     "CO5300",
     brightness=0xD0,
     color_order=MODE_RGB,
     bus_mode=TYPE_QUAD,
-    width=466,
-    height=466,
     initsequence=(
         (SLPOUT,),
         (PAGESEL, 0x00),
