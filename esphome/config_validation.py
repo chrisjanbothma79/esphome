@@ -674,7 +674,7 @@ def only_with_framework(
 
     def validator_(obj):
         if CORE.target_framework not in frameworks:
-            err_str = f"This feature is only available with frameworks {', '.join([framework.value for framework in frameworks])}"
+            err_str = f"This feature is only available with framework(s) {', '.join([framework.value for framework in frameworks])}"
             if suggestion := suggestions.get(CORE.target_framework, None):
                 (component, docs_path) = suggestion
                 err_str += f"\nPlease use '{component}'"
