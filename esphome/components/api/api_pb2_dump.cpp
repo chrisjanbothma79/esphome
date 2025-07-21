@@ -1679,7 +1679,7 @@ void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("NoiseEncryptionSetKeyRequest {\n");
   out.append("  key: ");
-  out.append(format_hex_pretty(this->key_ptr_, this->key_len_));
+  out.append(format_hex_pretty(reinterpret_cast<const uint8_t *>(this->key.data()), this->key.size()));
   out.append("\n");
   out.append("}");
 }
@@ -3163,7 +3163,7 @@ void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  data: ");
-  out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
+  out.append(format_hex_pretty(reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size()));
   out.append("\n");
   out.append("}");
 }
@@ -3195,7 +3195,7 @@ void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  data: ");
-  out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
+  out.append(format_hex_pretty(reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size()));
   out.append("\n");
   out.append("}");
 }

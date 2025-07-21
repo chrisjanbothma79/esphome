@@ -657,7 +657,11 @@ class BytesType(TypeInfo):
         return f"buffer.encode_bytes({self.number}, this->{self.field_name}_ptr_, this->{self.field_name}_len_);"
 
     def dump(self, name: str) -> str:
-        return f"out.append(format_hex_pretty(this->{self.field_name}_ptr_, this->{self.field_name}_len_));"
+        # Use pointer/length if available (SOURCE_SERVER/SOURCE_BOTH), otherwise use std::string
+        if self.needs_encode:
+            return f"out.append(format_hex_pretty(this->{self.field_name}_ptr_, this->{self.field_name}_len_));"
+        else:
+            return f"out.append(format_hex_pretty(reinterpret_cast<const uint8_t*>(this->{self.field_name}.data()), this->{self.field_name}.size()));"
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return f"ProtoSize::add_bytes_field(total_size, {self.calculate_field_id_size()}, this->{self.field_name}_len_);"
