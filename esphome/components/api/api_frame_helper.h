@@ -15,20 +15,8 @@
 namespace esphome {
 namespace api {
 
-// HELPER_LOG macro - TAG must be defined in the implementation file using this macro
-#define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->client_info_->get_combined_info().c_str(), ##__VA_ARGS__)
-
 // uncomment to log raw packets
 //#define HELPER_LOG_PACKETS
-
-// Packet logging macros
-#ifdef HELPER_LOG_PACKETS
-#define LOG_PACKET_RECEIVED(buffer) ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(buffer).c_str())
-#define LOG_PACKET_SENDING(data, len) ESP_LOGVV(TAG, "Sending raw: %s", format_hex_pretty(data, len).c_str())
-#else
-#define LOG_PACKET_RECEIVED(buffer) ((void) 0)
-#define LOG_PACKET_SENDING(data, len) ((void) 0)
-#endif
 
 // Forward declaration
 struct ClientInfo;

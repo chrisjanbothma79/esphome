@@ -13,6 +13,16 @@ namespace api {
 
 static const char *const TAG = "api.frame_helper";
 
+#define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->client_info_->get_combined_info().c_str(), ##__VA_ARGS__)
+
+#ifdef HELPER_LOG_PACKETS
+#define LOG_PACKET_RECEIVED(buffer) ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(buffer).c_str())
+#define LOG_PACKET_SENDING(data, len) ESP_LOGVV(TAG, "Sending raw: %s", format_hex_pretty(data, len).c_str())
+#else
+#define LOG_PACKET_RECEIVED(buffer) ((void) 0)
+#define LOG_PACKET_SENDING(data, len) ((void) 0)
+#endif
+
 const char *api_error_to_str(APIError err) {
   // not using switch to ensure compiler doesn't try to build a big table out of it
   if (err == APIError::OK) {

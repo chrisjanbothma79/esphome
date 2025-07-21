@@ -15,6 +15,16 @@ namespace api {
 static const char *const TAG = "api.noise";
 static const char *const PROLOGUE_INIT = "NoiseAPIInit";
 
+#define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->client_info_->get_combined_info().c_str(), ##__VA_ARGS__)
+
+#ifdef HELPER_LOG_PACKETS
+#define LOG_PACKET_RECEIVED(buffer) ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(buffer).c_str())
+#define LOG_PACKET_SENDING(data, len) ESP_LOGVV(TAG, "Sending raw: %s", format_hex_pretty(data, len).c_str())
+#else
+#define LOG_PACKET_RECEIVED(buffer) ((void) 0)
+#define LOG_PACKET_SENDING(data, len) ((void) 0)
+#endif
+
 /// Convert a noise error code to a readable error
 std::string noise_err_to_str(int err) {
   if (err == NOISE_ERROR_NO_MEMORY)
