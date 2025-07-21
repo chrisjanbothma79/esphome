@@ -1,5 +1,4 @@
 #pragma once
-#include "api_frame_helper.h"
 #ifdef USE_API
 #ifdef USE_API_NOISE
 #include "noise/protocol.h"
