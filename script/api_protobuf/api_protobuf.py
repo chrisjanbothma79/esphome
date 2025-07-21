@@ -327,6 +327,9 @@ def create_field_type_info(
 ) -> TypeInfo:
     """Create the appropriate TypeInfo instance for a field, handling repeated fields and custom options."""
     if field.label == 3:  # repeated
+        # Check if this repeated field has fixed_array_size option
+        if (fixed_size := get_field_opt(field, pb.fixed_array_size)) is not None:
+            return FixedArrayRepeatedType(field, fixed_size)
         return RepeatedTypeInfo(field)
 
     # Check for fixed_array_size option on bytes fields
@@ -881,6 +884,126 @@ class SInt64Type(TypeInfo):
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
+
+
+class FixedArrayRepeatedType(TypeInfo):
+    """Special type for fixed-size repeated fields using std::array."""
+
+    def __init__(self, field: descriptor.FieldDescriptorProto, size: int) -> None:
+        super().__init__(field)
+        self.array_size = size
+        # Create the element type info
+        validate_field_type(field.type, field.name)
+        self._ti: TypeInfo = TYPE_INFO[field.type](field)
+
+    @property
+    def cpp_type(self) -> str:
+        return f"std::array<{self._ti.cpp_type}, {self.array_size}>"
+
+    @property
+    def reference_type(self) -> str:
+        return f"{self.cpp_type} &"
+
+    @property
+    def const_reference_type(self) -> str:
+        return f"const {self.cpp_type} &"
+
+    @property
+    def wire_type(self) -> WireType:
+        """Get the wire type for this fixed array field."""
+        return self._ti.wire_type
+
+    @property
+    def public_content(self) -> list[str]:
+        # Add the array member and a counter for decoding
+        return [
+            f"{self.cpp_type} {self.field_name}{{}};",
+            f"size_t {self.field_name}_index_{{0}};",
+        ]
+
+    @property
+    def decode_varint_content(self) -> str:
+        content = self._ti.decode_varint
+        if content is None:
+            return None
+        return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ this->{self.field_name}[this->{self.field_name}_index_++] = {content}; }} break;"
+
+    @property
+    def decode_length_content(self) -> str:
+        content = self._ti.decode_length
+        if content is None and isinstance(self._ti, MessageType):
+            # Special handling for non-template message decoding
+            return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ value.decode_to_message(this->{self.field_name}[this->{self.field_name}_index_++]); }} break;"
+        if content is None:
+            return None
+        return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ this->{self.field_name}[this->{self.field_name}_index_++] = {content}; }} break;"
+
+    @property
+    def decode_32bit_content(self) -> str:
+        content = self._ti.decode_32bit
+        if content is None:
+            return None
+        return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ this->{self.field_name}[this->{self.field_name}_index_++] = {content}; }} break;"
+
+    @property
+    def decode_64bit_content(self) -> str:
+        content = self._ti.decode_64bit
+        if content is None:
+            return None
+        return f"case {self.number}: if (this->{self.field_name}_index_ < {self.array_size}) {{ this->{self.field_name}[this->{self.field_name}_index_++] = {content}; }} break;"
+
+    @property
+    def _ti_is_bool(self) -> bool:
+        # std::array doesn't have the same specialization issues as std::vector for bool
+        return False
+
+    @property
+    def encode_content(self) -> str:
+        o = f"for (const auto &it : this->{self.field_name}) {{\n"
+        if isinstance(self._ti, EnumType):
+            o += f"  buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(it), true);\n"
+        else:
+            o += f"  buffer.{self._ti.encode_func}({self.number}, it, true);\n"
+        o += "}"
+        return o
+
+    @property
+    def dump_content(self) -> str:
+        o = f"for (const auto &it : this->{self.field_name}) {{\n"
+        o += f'  out.append("  {self.name}: ");\n'
+        o += indent(self._ti.dump("it")) + "\n"
+        o += '  out.append("\\n");\n'
+        o += "}\n"
+        return o
+
+    def dump(self, _: str):
+        pass
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # For fixed arrays, we always encode all elements
+        # Check if this is a fixed-size type by seeing if it has a fixed byte count
+        num_bytes = self._ti.get_fixed_size_bytes()
+        if num_bytes is not None:
+            # Fixed types have constant size per element, so we can multiply
+            field_id_size = self._ti.calculate_field_id_size()
+            # Pre-calculate the total bytes per element
+            bytes_per_element = field_id_size + num_bytes
+            o = f"total_size += {self.array_size} * {bytes_per_element};"
+        else:
+            # Other types need the actual value
+            o = f"for (const auto &it : {name}) {{\n"
+            o += f"  {self._ti.get_size_calculation('it', True)}\n"
+            o += "}"
+        return o
+
+    def get_estimated_size(self) -> int:
+        # For fixed arrays, estimate underlying type size * array size
+        underlying_size = (
+            self._ti.get_estimated_size()
+            if hasattr(self._ti, "get_estimated_size")
+            else 8
+        )
+        return underlying_size * self.array_size
 
 
 class RepeatedTypeInfo(TypeInfo):
