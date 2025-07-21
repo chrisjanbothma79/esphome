@@ -5,6 +5,7 @@
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 #include "proto.h"
 #include <cstring>
 #include <cinttypes>
