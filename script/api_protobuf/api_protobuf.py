@@ -936,7 +936,20 @@ class FixedArrayRepeatedType(TypeInfo):
             else:
                 return f"buffer.{self._ti.encode_func}({self.number}, this->{self.field_name}[0], true);"
 
-        # Multiple elements need a loop
+        # Special case for 2-element arrays - unroll the loop
+        if self.array_size == 2:
+            if isinstance(self._ti, EnumType):
+                return (
+                    f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}[0]), true);\n"
+                    f"  buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}[1]), true);"
+                )
+            else:
+                return (
+                    f"buffer.{self._ti.encode_func}({self.number}, this->{self.field_name}[0], true);\n"
+                    f"  buffer.{self._ti.encode_func}({self.number}, this->{self.field_name}[1], true);"
+                )
+
+        # 3 or more elements need a loop
         o = f"for (const auto &it : this->{self.field_name}) {{\n"
         if isinstance(self._ti, EnumType):
             o += f"  buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(it), true);\n"
@@ -965,6 +978,14 @@ class FixedArrayRepeatedType(TypeInfo):
         # Special case for single-element arrays - no loop needed
         if self.array_size == 1:
             return self._ti.get_size_calculation(f"{name}[0]", True)
+
+        # Special case for 2-element arrays - unroll the calculation
+        if self.array_size == 2:
+            return (
+                self._ti.get_size_calculation(f"{name}[0]", True)
+                + "\n  "
+                + self._ti.get_size_calculation(f"{name}[1]", True)
+            )
 
         # Check if this is a fixed-size type by seeing if it has a fixed byte count
         num_bytes = self._ti.get_fixed_size_bytes()
