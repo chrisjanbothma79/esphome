@@ -403,7 +403,7 @@ void ESPNowComponent::on_data_received(const esp_now_recv_info_t *info, const ui
 void ESPNowComponent::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet) {
   ESP_LOGI(TAG, "call triggger {%d}", (int) event);
   bool result = false;
-  for (const auto &kv : this->interfaces_) {
+  for (const auto &kv : this->extensions_) {
     result = kv->call_trigger(event, weak_packet);
     if (result) {
       break;
@@ -454,7 +454,7 @@ esp_err_t ESPNowComponent::add_peer(uint64_t peer) {
       result = esp_now_add_peer(&peer_info);
       if (result == ESP_OK) {
         this->defer("Add_peer_trigger", [this, peer]() {
-          for (const auto &kv : this->interfaces_) {
+          for (const auto &kv : this->extensions_) {
             kv->on_add_peer(peer);
           }
         });
@@ -480,7 +480,7 @@ esp_err_t ESPNowComponent::del_peer(uint64_t peer) {
       esp_err_t result = esp_now_del_peer((uint8_t *) &peer);
       if (result == ESP_OK) {
         this->defer("del_peer_trigger", [this, peer]() {
-          for (const auto &kv : this->interfaces_) {
+          for (const auto &kv : this->extensions_) {
             kv->on_del_peer(peer);
           }
         });

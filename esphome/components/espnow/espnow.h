@@ -173,9 +173,9 @@ class ESPNowComponent : public Component {
 
   bool can_proceed() override;
 
-  void register_interface(ESPNowInterface *app) {
+  void register_extension(ESPNowExtension *app) {
     app->set_parent(this);
-    this->interfaces_.push_back(app);
+    this->extensions_.push_back(app);
     app->initialize();
   }
 
@@ -214,7 +214,7 @@ class ESPNowComponent : public Component {
   std::map<ESPNowTriggers, Trigger<std::shared_ptr<ESPNowPacket>> *> triggers_{};
 
   std::vector<uint64_t> peers_{};
-  std::vector<ESPNowInterface *> interfaces_{};
+  std::vector<ESPNowExtension *> extensions_{};
 
   static ESPNowComponent *static_;  // NOLINT
 };
