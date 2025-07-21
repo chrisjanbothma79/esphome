@@ -2283,9 +2283,9 @@ class VoiceAssistantAudio : public ProtoDecodableMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "voice_assistant_audio"; }
 #endif
+  std::string data{};
   const uint8_t *data_ptr_{nullptr};
   size_t data_len_{0};
-  std::string data{};
   void set_data(const uint8_t *data, size_t len) {
     this->data_ptr_ = data;
     this->data_len_ = len;
