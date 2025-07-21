@@ -1670,10 +1670,6 @@ void SubscribeLogsResponse::dump_to(std::string &out) const {
   out.append("  message: ");
   out.append(format_hex_pretty(this->message_ptr_, this->message_len_));
   out.append("\n");
-
-  out.append("  send_failed: ");
-  out.append(YESNO(this->send_failed));
-  out.append("\n");
   out.append("}");
 }
 #ifdef USE_API_NOISE

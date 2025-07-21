@@ -965,7 +965,7 @@ class SubscribeLogsRequest : public ProtoDecodableMessage {
 class SubscribeLogsResponse : public ProtoMessage {
  public:
   static constexpr uint8_t MESSAGE_TYPE = 29;
-  static constexpr uint8_t ESTIMATED_SIZE = 13;
+  static constexpr uint8_t ESTIMATED_SIZE = 11;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "subscribe_logs_response"; }
 #endif
@@ -976,7 +976,6 @@ class SubscribeLogsResponse : public ProtoMessage {
     this->message_ptr_ = data;
     this->message_len_ = len;
   }
-  bool send_failed{false};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
