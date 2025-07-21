@@ -138,8 +138,7 @@ std::string ESPNowPacket::info() const {
   char info[100];
   char mode[2] = {this->is_received_ ? 'R' : 'S', this->is_broadcast_ ? 'U' : 'B'};
 
-  snprintf(info, sizeof(info), "%c%c > %s, Broadcast: %s, Size: %d ", mode[0], mode[1],
-           peer_str(this->peer_id()).c_str(), this->size());
+  snprintf(info, sizeof(info), "%c%c %s, Size: %d ", mode[0], mode[1], peer_str(this->peer_id()).c_str(), this->size());
   return info;
 }
 
