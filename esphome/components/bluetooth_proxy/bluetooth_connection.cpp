@@ -13,16 +13,17 @@ namespace bluetooth_proxy {
 
 static const char *const TAG = "bluetooth_proxy.connection";
 
-static std::vector<uint64_t> get_128bit_uuid_vec(esp_bt_uuid_t uuid_source) {
+static std::array<uint64_t, 2> get_128bit_uuid_array(esp_bt_uuid_t uuid_source) {
   esp_bt_uuid_t uuid = espbt::ESPBTUUID::from_uuid(uuid_source).as_128bit().get_uuid();
-  return std::vector<uint64_t>{((uint64_t) uuid.uuid.uuid128[15] << 56) | ((uint64_t) uuid.uuid.uuid128[14] << 48) |
-                                   ((uint64_t) uuid.uuid.uuid128[13] << 40) | ((uint64_t) uuid.uuid.uuid128[12] << 32) |
-                                   ((uint64_t) uuid.uuid.uuid128[11] << 24) | ((uint64_t) uuid.uuid.uuid128[10] << 16) |
-                                   ((uint64_t) uuid.uuid.uuid128[9] << 8) | ((uint64_t) uuid.uuid.uuid128[8]),
-                               ((uint64_t) uuid.uuid.uuid128[7] << 56) | ((uint64_t) uuid.uuid.uuid128[6] << 48) |
-                                   ((uint64_t) uuid.uuid.uuid128[5] << 40) | ((uint64_t) uuid.uuid.uuid128[4] << 32) |
-                                   ((uint64_t) uuid.uuid.uuid128[3] << 24) | ((uint64_t) uuid.uuid.uuid128[2] << 16) |
-                                   ((uint64_t) uuid.uuid.uuid128[1] << 8) | ((uint64_t) uuid.uuid.uuid128[0])};
+  return std::array<uint64_t, 2>{
+      ((uint64_t) uuid.uuid.uuid128[15] << 56) | ((uint64_t) uuid.uuid.uuid128[14] << 48) |
+          ((uint64_t) uuid.uuid.uuid128[13] << 40) | ((uint64_t) uuid.uuid.uuid128[12] << 32) |
+          ((uint64_t) uuid.uuid.uuid128[11] << 24) | ((uint64_t) uuid.uuid.uuid128[10] << 16) |
+          ((uint64_t) uuid.uuid.uuid128[9] << 8) | ((uint64_t) uuid.uuid.uuid128[8]),
+      ((uint64_t) uuid.uuid.uuid128[7] << 56) | ((uint64_t) uuid.uuid.uuid128[6] << 48) |
+          ((uint64_t) uuid.uuid.uuid128[5] << 40) | ((uint64_t) uuid.uuid.uuid128[4] << 32) |
+          ((uint64_t) uuid.uuid.uuid128[3] << 24) | ((uint64_t) uuid.uuid.uuid128[2] << 16) |
+          ((uint64_t) uuid.uuid.uuid128[1] << 8) | ((uint64_t) uuid.uuid.uuid128[0])};
 }
 
 void BluetoothConnection::dump_config() {
@@ -95,9 +96,8 @@ void BluetoothConnection::send_service_for_discovery_() {
 
   api::BluetoothGATTGetServicesResponse resp;
   resp.address = this->address_;
-  resp.services.emplace_back();
-  auto &service_resp = resp.services.back();
-  service_resp.uuid = get_128bit_uuid_vec(service_result.uuid);
+  auto &service_resp = resp.services[0];
+  service_resp.uuid = get_128bit_uuid_array(service_result.uuid);
   service_resp.handle = service_result.start_handle;
 
   // Get the number of characteristics directly with one call
@@ -136,7 +136,7 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     service_resp.characteristics.emplace_back();
     auto &characteristic_resp = service_resp.characteristics.back();
-    characteristic_resp.uuid = get_128bit_uuid_vec(char_result.uuid);
+    characteristic_resp.uuid = get_128bit_uuid_array(char_result.uuid);
     characteristic_resp.handle = char_result.char_handle;
     characteristic_resp.properties = char_result.properties;
     char_offset++;
@@ -176,7 +176,7 @@ void BluetoothConnection::send_service_for_discovery_() {
 
       characteristic_resp.descriptors.emplace_back();
       auto &descriptor_resp = characteristic_resp.descriptors.back();
-      descriptor_resp.uuid = get_128bit_uuid_vec(desc_result.uuid);
+      descriptor_resp.uuid = get_128bit_uuid_array(desc_result.uuid);
       descriptor_resp.handle = desc_result.handle;
       desc_offset++;
     }
