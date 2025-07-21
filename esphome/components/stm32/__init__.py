@@ -13,7 +13,7 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 
 from .boards import detect_board_series
-from .const import CONF_BOARD_SERIES, KEY_BOARD, KEY_STM32
+from .const import CONF_BOARD_SERIES, KEY_BOARD, KEY_STM32, KEY_UART_INSTANCES
 from .gpio import stm32_pin_to_code  # noqa
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,6 +27,16 @@ def set_core_data(config):
     CORE.data[KEY_CORE][KEY_TARGET_PLATFORM] = PLATFORM_STM32
     CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = "stm32cube"
     CORE.data[KEY_STM32][KEY_BOARD] = config[CONF_BOARD]
+
+    # TODO
+    CORE.data[KEY_STM32][KEY_UART_INSTANCES] = [
+        "USART1",
+        "USART2",
+        "USART3",
+        "UART4",
+        "UART5",
+        "LPUART1",
+    ]
     return config
 
 
