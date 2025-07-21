@@ -201,6 +201,14 @@ jobs:
 
             const addedFiles = prFiles.filter(file => file.status === 'added').map(file => file.filename);
 
+            // Calculate changes excluding root tests directory for too-big calculation
+            const testChanges = prFiles
+              .filter(file => file.filename.startsWith('tests/'))
+              .reduce((sum, file) => sum + (file.additions || 0) + (file.deletions || 0), 0);
+
+            const nonTestChanges = totalChanges - testChanges;
+            console.log(`Test changes: ${testChanges}, Non-test changes: ${nonTestChanges}`);
+
             // Strategy: New Component detection
             for (const file of addedFiles) {
               // Check for new component files: esphome/components/{component}/__init__.py
@@ -385,7 +393,7 @@ jobs:
 
             // Check if PR is too big (either too many labels or too many line changes)
             const tooManyLabels = finalLabels.length > maxLabels;
-            const tooManyChanges = totalChanges > tooBigThreshold;
+            const tooManyChanges = nonTestChanges > tooBigThreshold;
 
             // Get all reviews on this PR (used for both too-big detection and dismissal logic)
             const { data: reviews } = await github.rest.pulls.listReviews({
@@ -396,7 +404,7 @@ jobs:
 
             if ((tooManyLabels || tooManyChanges) && !isMegaPR) {
               const originalLength = finalLabels.length;
-              console.log(`PR is too big - Labels: ${originalLength}, Changes: ${totalChanges}`);
+              console.log(`PR is too big - Labels: ${originalLength}, Changes: ${totalChanges} (non-test: ${nonTestChanges})`);
 
               // Check if there's already an active bot review requesting changes
               const existingBotReview = reviews.find(review =>
@@ -418,11 +426,11 @@ jobs:
                 // Create appropriate review message
                 let reviewBody;
                 if (tooManyLabels && tooManyChanges) {
-                  reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${totalChanges} line changes and affects ${originalLength} different components/areas. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
+                  reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${nonTestChanges} line changes (excluding tests) and affects ${originalLength} different components/areas. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
                 } else if (tooManyLabels) {
                   reviewBody = `${BOT_COMMENT_MARKER}\nThis PR affects ${originalLength} different components/areas. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
                 } else {
-                  reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${totalChanges} line changes. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
+                  reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${nonTestChanges} line changes (excluding tests). Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
                 }
 
                 // Request changes on the PR
