@@ -21,6 +21,15 @@ namespace api {
 // uncomment to log raw packets
 //#define HELPER_LOG_PACKETS
 
+// Packet logging macros
+#ifdef HELPER_LOG_PACKETS
+#define LOG_PACKET_RECEIVED(buffer) ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(buffer).c_str())
+#define LOG_PACKET_SENDING(data, len) ESP_LOGVV(TAG, "Sending raw: %s", format_hex_pretty(data, len).c_str())
+#else
+#define LOG_PACKET_RECEIVED(buffer) ((void) 0)
+#define LOG_PACKET_SENDING(data, len) ((void) 0)
+#endif
+
 // Forward declaration
 struct ClientInfo;
 

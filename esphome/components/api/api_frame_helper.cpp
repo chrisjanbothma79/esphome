@@ -125,8 +125,7 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, uint16_
 
 #ifdef HELPER_LOG_PACKETS
   for (int i = 0; i < iovcnt; i++) {
-    ESP_LOGVV(TAG, "Sending raw: %s",
-              format_hex_pretty(reinterpret_cast<uint8_t *>(iov[i].iov_base), iov[i].iov_len).c_str());
+    LOG_PACKET_SENDING(reinterpret_cast<uint8_t *>(iov[i].iov_base), iov[i].iov_len);
   }
 #endif
 

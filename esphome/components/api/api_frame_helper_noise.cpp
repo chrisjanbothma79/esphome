@@ -179,10 +179,7 @@ APIError APINoiseFrameHelper::try_read_frame_(std::vector<uint8_t> *frame) {
     }
   }
 
-  // uncomment for even more debugging
-#ifdef HELPER_LOG_PACKETS
-  ESP_LOGVV(TAG, "Received frame: %s", format_hex_pretty(rx_buf_).c_str());
-#endif
+  LOG_PACKET_RECEIVED(rx_buf_);
   *frame = std::move(rx_buf_);
   // consume msg
   rx_buf_ = {};
