@@ -3,9 +3,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#ifdef USE_ESP32_FRAMEWORK_ARDUINO
-
-#include <esp32-hal-gpio.h>
+#include <hal/gpio_hal.h>
 
 namespace esphome {
 namespace inkplate6 {
@@ -59,8 +57,8 @@ void Inkplate6::setup() {
  * Allocate buffers. May be called after setup to re-initialise if e.g. greyscale is changed.
  */
 void Inkplate6::initialize_() {
-  ExternalRAMAllocator<uint8_t> allocator(ExternalRAMAllocator<uint8_t>::ALLOW_FAILURE);
-  ExternalRAMAllocator<uint32_t> allocator32(ExternalRAMAllocator<uint32_t>::ALLOW_FAILURE);
+  RAMAllocator<uint8_t> allocator;
+  RAMAllocator<uint32_t> allocator32;
   uint32_t buffer_size = this->get_buffer_length_();
   if (buffer_size == 0)
     return;
@@ -723,5 +721,3 @@ void Inkplate6::pins_as_outputs_() {
 
 }  // namespace inkplate6
 }  // namespace esphome
-
-#endif  // USE_ESP32_FRAMEWORK_ARDUINO

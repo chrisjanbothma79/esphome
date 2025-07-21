@@ -1,8 +1,8 @@
 #include "max7219digit.h"
-#include "esphome/core/log.h"
-#include "esphome/core/helpers.h"
-#include "esphome/core/hal.h"
 #include "esphome/core/application.h"
+#include "esphome/core/hal.h"
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 #include "max7219font.h"
 
 #include <algorithm>
@@ -50,8 +50,8 @@ void MAX7219Component::setup() {
 }
 
 void MAX7219Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "MAX7219DIGIT:");
   ESP_LOGCONFIG(TAG,
+                "MAX7219DIGIT:\n"
                 "  Number of Chips: %u\n"
                 "  Number of Chips Lines: %u\n"
                 "  Chips Lines Style : %u\n"

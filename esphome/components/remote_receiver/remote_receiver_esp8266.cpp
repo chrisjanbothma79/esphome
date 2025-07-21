@@ -1,7 +1,7 @@
 #include "remote_receiver.h"
 #include "esphome/core/hal.h"
-#include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 #ifdef USE_ESP8266
 
@@ -27,7 +27,7 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
   if (time_since_change <= arg->filter_us)
     return;
 
-  arg->buffer[arg->buffer_write_at = next] = now;
+  arg->buffer[arg->buffer_write_at = next] = now;  // NOLINT(clang-diagnostic-deprecated-volatile)
 }
 
 void RemoteReceiverComponent::setup() {
