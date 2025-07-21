@@ -3,35 +3,17 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/component.h"
 
-#ifdef USE_BUTTON
-#include "esphome/components/button/button.h"
-#endif
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
-#ifdef USE_NUMBER
-#include "esphome/components/number/number.h"
-#endif
-#ifdef USE_SENSOR
-#include "esphome/components/sensor/sensor.h"
-#endif
-#ifdef USE_TEXT_SENSOR
-#include "esphome/components/text_sensor/text_sensor.h"
-#endif
 
 #include "esphome/components/uart/uart.h"
-#include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
 
 #include "commands.h"
 
 namespace esphome {
 namespace dfrobot_c4001 {
-enum DFRobotModel : uint8_t {
-  MODEL_SEN0609 = 0,
-  MODEL_SEN0610,
-  MODEL_UNKNOWN,
-};
 
 const uint8_t MMWAVE_READ_BUFFER_LENGTH = 64;
 
@@ -55,30 +37,6 @@ class CircularCommandQueue {
 class DFRobotC4001Hub : public uart::UARTDevice, public Component {
 #ifdef USE_BINARY_SENSOR
   SUB_BINARY_SENSOR(occupancy)
-  SUB_BINARY_SENSOR(config_changed)
-#endif
-
-#ifdef USE_BUTTON
-  SUB_BUTTON(config_save)
-  SUB_BUTTON(factory_reset)
-#endif
-
-#ifdef USE_NUMBER
-  SUB_NUMBER(max_range)
-  SUB_NUMBER(min_range)
-  SUB_NUMBER(trigger_range)
-  SUB_NUMBER(hold_sensitivity)
-  SUB_NUMBER(trigger_sensitivity)
-  SUB_NUMBER(on_latency)
-  SUB_NUMBER(off_latency)
-  SUB_NUMBER(inhibit_time)
-  SUB_NUMBER(threshold_factor)
-#endif
-
-#ifdef USE_SENSOR
-  SUB_SENSOR(target_distance)
-  SUB_SENSOR(target_speed)
-  SUB_SENSOR(target_energy)
 #endif
 
  public:
@@ -86,51 +44,20 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void setup() override;
   void loop() override;
 
-  void set_min_range(float min, bool needs_save = true);
-  void set_max_range(float max, bool needs_save = true);
-  void set_trigger_range(float trig, bool needs_save = true);
-  void set_hold_sensitivity(float value, bool needs_save = true);
-  void set_trigger_sensitivity(float value, bool needs_save = true);
-  void set_on_latency(float value, bool needs_save = true);
-  void set_off_latency(float value, bool needs_save = true);
-  void set_inhibit_time(float value, bool needs_save = true);
-  void set_model(DFRobotModel value);
-  void set_needs_save(bool needs_save);
   void setup_module();
-  void config_load();
-  void config_save();
-  void factory_reset();
   void set_occupancy(bool occupancy);
-  void set_target_distance(float value);
-  void set_target_speed(float value);
-  void set_target_energy(float value);
+
   int8_t enqueue(std::unique_ptr<Command> cmd, bool first = false);
 
  protected:
   bool is_setup_{false};
-  float min_range_{0.6};
-  float max_range_{25.0};
-  float trigger_range_{6.0};
-  float hold_sensitivity_{7};
-  float trigger_sensitivity_{5};
-  float on_latency_{0.05};
-  float off_latency_{15.0};
-  float inhibit_time_{1.0};
-  float threshold_factor_{5};
-  bool needs_save_{false};
   bool occupancy_{false};
-  float target_distance_;
-  float target_speed_;
-  float target_energy_;
-  DFRobotModel model_{MODEL_UNKNOWN};
 
   char read_buffer_[MMWAVE_READ_BUFFER_LENGTH];
   size_t read_pos_{0};
   CircularCommandQueue cmd_queue_;
   uint32_t ts_last_cmd_sent_{0};
   int32_t ts_cmd_error_cnt_{0};
-
-  ESPPreferenceObject pref_;
 
   uint8_t read_message_();
   uint8_t send_cmd_(const char *cmd, uint32_t duration);

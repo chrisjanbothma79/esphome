@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_MODEL
+from esphome.const import CONF_ID
 
 DEPENDENCIES = ["uart"]
 
@@ -14,12 +14,12 @@ dfrobot_c4001_ns = cg.esphome_ns.namespace("dfrobot_c4001")
 DFRobotC4001Hub = dfrobot_c4001_ns.class_(
     "DFRobotC4001Hub", cg.Component, uart.UARTDevice
 )
-ModelConfig = dfrobot_c4001_ns.enum("ModelConfig")
+# ModelConfig = dfrobot_c4001_ns.enum("ModelConfig")
 
-CONF_MODEL_ENUM = {
-    "SEN0609": ModelConfig.MODEL_SEN0609,
-    "SEN0610": ModelConfig.MODEL_SEN0610,
-}
+# CONF_MODEL_ENUM = {
+#     "SEN0609": ModelConfig.MODEL_SEN0609,
+#     "SEN0610": ModelConfig.MODEL_SEN0610,
+# }
 
 HUB_CHILD_SCHEMA = cv.Schema(
     {
@@ -31,7 +31,6 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(DFRobotC4001Hub),
-            cv.Required(CONF_MODEL): cv.enum(CONF_MODEL_ENUM, upper=True, space="_"),
         }
     )
     .extend(uart.UART_DEVICE_SCHEMA)
@@ -52,4 +51,4 @@ async def to_code(config):
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
-    cg.add(var.set_model(config[CONF_MODEL]))
+    # cg.add(var.set_model(config[CONF_MODEL]))
