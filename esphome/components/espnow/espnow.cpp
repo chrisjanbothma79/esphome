@@ -518,13 +518,13 @@ std::string ESPNowComponent::peer_str(uint64_t peer) {
   return mac;
 }
 
-/* ESPNowInterface ********************************************************************** */
+/* ESPNowExtension ********************************************************************** */
 
-esp_err_t ESPNowInterface::send(uint64_t peer, std::vector<uint8_t> payload) {
+esp_err_t ESPNowExtension::send(uint64_t peer, std::vector<uint8_t> payload) {
   return this->parent_->send(peer, std::move(payload));
 }
 
-bool ESPNowInterface::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet) {
+bool ESPNowExtension::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet) {
   switch (event) {
     case ESPNowTriggers::ON_NEW_PEER:
       return this->on_new_peer(weak_packet);
@@ -541,8 +541,8 @@ bool ESPNowInterface::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESP
   }
 }
 
-uint64_t ESPNowInterface::get_default_peer_address_() { return this->parent_->get_default_peer_address(); }
-void ESPNowInterface::set_default_peer_address_(uint64_t value) { this->parent_->set_default_peer_address(value); }
+uint64_t ESPNowExtension::get_default_peer_address_() { return this->parent_->get_default_peer_address(); }
+void ESPNowExtension::set_default_peer_address_(uint64_t value) { this->parent_->set_default_peer_address(value); }
 
 }  // namespace espnow
 }  // namespace esphome

@@ -113,7 +113,7 @@ class ESPNowPacket {
   bool is_received_{false};
 };
 
-class ESPNowInterface : public Parented<ESPNowComponent> {
+class ESPNowExtension : public Parented<ESPNowComponent> {
  public:
   virtual void initialize() {}
 
