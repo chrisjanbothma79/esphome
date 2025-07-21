@@ -199,12 +199,4 @@ class APIFrameHelper {
 }  // namespace api
 }  // namespace esphome
 
-// Include protocol-specific implementations
-#ifdef USE_API_NOISE
-#include "api_frame_helper_noise.h"
-#endif
-#ifdef USE_API_PLAINTEXT
-#include "api_frame_helper_plaintext.h"
-#endif
-
 #endif  // USE_API
