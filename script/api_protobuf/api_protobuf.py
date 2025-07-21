@@ -1021,6 +1021,9 @@ def build_type_usage_map(
             # Track message usage
             elif field.type == 11:  # TYPE_MESSAGE
                 message_usage.setdefault(type_name, set()).add(message.name)
+                # Also track the field_ifdef if present
+                field_ifdef = get_field_opt(field, pb.field_ifdef)
+                message_field_ifdefs.setdefault(type_name, set()).add(field_ifdef)
                 used_messages.add(type_name)
                 # Also track the field_ifdef if present
                 field_ifdef = get_field_opt(field, pb.field_ifdef)
