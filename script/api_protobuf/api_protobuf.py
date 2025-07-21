@@ -1367,20 +1367,6 @@ def build_message_type(
     needs_decode = source in (SOURCE_BOTH, SOURCE_CLIENT)
     needs_encode = source in (SOURCE_BOTH, SOURCE_SERVER)
 
-    # Validate that fixed_array_size is only used in encode-only messages
-    if needs_decode:
-        for field in desc.field:
-            if (
-                field.label == 3
-                and get_field_opt(field, pb.fixed_array_size) is not None
-            ):
-                raise ValueError(
-                    f"Message '{desc.name}' uses fixed_array_size on field '{field.name}' "
-                    f"but has source={['SOURCE_BOTH', 'SOURCE_SERVER', 'SOURCE_CLIENT'][source]}. "
-                    f"Fixed arrays are only supported for SOURCE_SERVER (encode-only) messages "
-                    f"since we cannot trust or control the number of items received from clients."
-                )
-
     # Add MESSAGE_TYPE method if this is a service message
     if message_id is not None:
         # Validate that message_id fits in uint8_t
@@ -1415,6 +1401,19 @@ def build_message_type(
         # Skip deprecated fields completely
         if field.options.deprecated:
             continue
+
+        # Validate that fixed_array_size is only used in encode-only messages
+        if (
+            needs_decode
+            and field.label == 3
+            and get_field_opt(field, pb.fixed_array_size) is not None
+        ):
+            raise ValueError(
+                f"Message '{desc.name}' uses fixed_array_size on field '{field.name}' "
+                f"but has source={SOURCE_NAMES[source]}. "
+                f"Fixed arrays are only supported for SOURCE_SERVER (encode-only) messages "
+                f"since we cannot trust or control the number of items received from clients."
+            )
 
         ti = create_field_type_info(field, needs_decode, needs_encode)
 
@@ -1604,6 +1603,12 @@ def build_message_type(
 SOURCE_BOTH = 0
 SOURCE_SERVER = 1
 SOURCE_CLIENT = 2
+
+SOURCE_NAMES = {
+    SOURCE_BOTH: "SOURCE_BOTH",
+    SOURCE_SERVER: "SOURCE_SERVER",
+    SOURCE_CLIENT: "SOURCE_CLIENT",
+}
 
 RECEIVE_CASES: dict[int, tuple[str, str | None]] = {}
 
