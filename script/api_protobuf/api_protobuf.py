@@ -657,11 +657,22 @@ class BytesType(TypeInfo):
         return f"buffer.encode_bytes({self.number}, this->{self.field_name}_ptr_, this->{self.field_name}_len_);"
 
     def dump(self, name: str) -> str:
-        # Use pointer/length if available (SOURCE_SERVER/SOURCE_BOTH), otherwise use std::string
-        if self.needs_encode:
-            return f"out.append(format_hex_pretty(this->{self.field_name}_ptr_, this->{self.field_name}_len_));"
-        else:
+        # For SOURCE_CLIENT only, always use std::string
+        if not self.needs_encode:
             return f"out.append(format_hex_pretty(reinterpret_cast<const uint8_t*>(this->{self.field_name}.data()), this->{self.field_name}.size()));"
+
+        # For SOURCE_SERVER, always use pointer/length
+        if not self.needs_decode:
+            return f"out.append(format_hex_pretty(this->{self.field_name}_ptr_, this->{self.field_name}_len_));"
+
+        # For SOURCE_BOTH, check if pointer is set (sending) or use string (received)
+        return (
+            f"if (this->{self.field_name}_ptr_ != nullptr) {{\n"
+            f"    out.append(format_hex_pretty(this->{self.field_name}_ptr_, this->{self.field_name}_len_));\n"
+            f"  }} else {{\n"
+            f"    out.append(format_hex_pretty(reinterpret_cast<const uint8_t*>(this->{self.field_name}.data()), this->{self.field_name}.size()));\n"
+            f"  }}"
+        )
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return f"ProtoSize::add_bytes_field(total_size, {self.calculate_field_id_size()}, this->{self.field_name}_len_);"

@@ -3485,7 +3485,11 @@ void VoiceAssistantAudio::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantAudio {\n");
   out.append("  data: ");
-  out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
+  if (this->data_ptr_ != nullptr) {
+    out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
+  } else {
+    out.append(format_hex_pretty(reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size()));
+  }
   out.append("\n");
 
   out.append("  end: ");
