@@ -970,11 +970,7 @@ class FixedArrayRepeatedType(TypeInfo):
 
     def get_estimated_size(self) -> int:
         # For fixed arrays, estimate underlying type size * array size
-        underlying_size = (
-            self._ti.get_estimated_size()
-            if hasattr(self._ti, "get_estimated_size")
-            else 8
-        )
+        underlying_size = self._ti.get_estimated_size()
         return underlying_size * self.array_size
 
 
