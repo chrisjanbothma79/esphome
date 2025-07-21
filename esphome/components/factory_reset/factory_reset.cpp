@@ -19,7 +19,7 @@ static bool was_power_cycled() {
   return esp_reset_reason() == ESP_RST_POWERON;
 #endif
 #ifdef USE_ESP8266
-  auto reset_reason = ESP.getResetReason();
+  auto reset_reason = EspClass::getResetReason();
   return strcasecmp(reset_reason.c_str(), "power On") == 0 || strcasecmp(reset_reason.c_str(), "external system") == 0;
 #endif
 #ifdef USE_LIBRETINY
