@@ -23,6 +23,7 @@ void ADCSensor::setup() {
   }
 }
 
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
 static const LogString *gain_to_str(enum adc_gain gain) {
   switch (gain) {
     case ADC_GAIN_1_6:
@@ -114,10 +115,12 @@ static const LogString *input_to_str(uint8_t input) {
   }
   return LOG_STR("undefined input");
 }
+#endif  // ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
 
 void ADCSensor::dump_config() {
   LOG_SENSOR("", "ADC Sensor", this);
   LOG_PIN("  Pin: ", this->pin_);
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
   ESP_LOGV(TAG,
            "  Name: %s\n"
            "  Channel: %d\n"
@@ -144,45 +147,46 @@ void ADCSensor::dump_config() {
   } else {
     ESP_LOGV(TAG, "  Positive: %s", LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_positive)));
   }
+#endif
 
   LOG_UPDATE_INTERVAL(this);
 }
 
 float ADCSensor::sample() {
-  int16_t buf = 0;
-  struct adc_sequence sequence = {
-      .buffer = &buf,
-      /* buffer size in bytes, not number of samples */
-      .buffer_size = sizeof(buf),
-  };
-  int32_t val_mv;
+  auto aggr = Aggregator<int32_t>(this->sampling_mode_);
+  int err;
+  for (uint8_t sample = 0; sample < this->sample_count_; sample++) {
+    int16_t buf = 0;
+    struct adc_sequence sequence = {
+        .buffer = &buf,
+        /* buffer size in bytes, not number of samples */
+        .buffer_size = sizeof(buf),
+    };
+    int32_t val_raw;
 
-  auto err = adc_sequence_init_dt(this->channel_, &sequence);
-  if (err < 0) {
-    ESP_LOGE(TAG, "Could sequence init %s (%d)", this->channel_->dev->name, err);
-    return 0.0;
-  }
-
-  err = adc_read(this->channel_->dev, &sequence);
-  if (err < 0) {
-    ESP_LOGE(TAG, "Could not read %s (%d)", this->channel_->dev->name, err);
-    return 0.0;
-  }
-
-  /*
-   * If using differential mode, the 16 bit value
-   * in the ADC sample buffer should be a signed 2's
-   * complement value.
-   */
-  if (this->channel_->channel_cfg.differential) {
-    val_mv = (int32_t) ((int16_t) buf);
-  } else {
-    val_mv = (int32_t) buf;
-    // https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/0ed4d9ffc674ae407be7cacf5696a02f5e789861/cores/nRF5/wiring_analog_nRF52.c#L222
-    if (val_mv < 0) {
-      val_mv = 0;
+    err = adc_sequence_init_dt(this->channel_, &sequence);
+    if (err < 0) {
+      ESP_LOGE(TAG, "Could sequence init %s (%d)", this->channel_->dev->name, err);
+      return 0.0;
     }
+
+    err = adc_read(this->channel_->dev, &sequence);
+    if (err < 0) {
+      ESP_LOGE(TAG, "Could not read %s (%d)", this->channel_->dev->name, err);
+      return 0.0;
+    }
+
+    val_raw = (int32_t) buf;
+    if (!this->channel_->channel_cfg.differential) {
+      // https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/0ed4d9ffc674ae407be7cacf5696a02f5e789861/cores/nRF5/wiring_analog_nRF52.c#L222
+      if (val_raw < 0) {
+        val_raw = 0;
+      }
+    }
+    aggr.add_sample(val_raw);
   }
+
+  int32_t val_mv = aggr.aggregate();
 
   if (this->output_raw_) {
     return val_mv;

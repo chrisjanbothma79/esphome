@@ -42,15 +42,15 @@ enum class SamplingMode : uint8_t {
 
 const LogString *sampling_mode_to_str(SamplingMode mode);
 
-class Aggregator {
+template<typename T> class Aggregator {
  public:
   Aggregator(SamplingMode mode);
-  void add_sample(uint32_t value);
-  uint32_t aggregate();
+  void add_sample(T value);
+  T aggregate();
 
  protected:
-  uint32_t aggr_{0};
-  uint32_t samples_{0};
+  T aggr_{0};
+  uint8_t samples_{0};
   SamplingMode mode_{SamplingMode::AVG};
 };
 
