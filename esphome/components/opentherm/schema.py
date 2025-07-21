@@ -843,7 +843,7 @@ INPUTS: dict[str, InputSchema] = {
         keep_updated=True,
         message_data="u8_hb",
         range=(0, 255),
-        #default_mode="restore_default_off"
+        # default_mode="restore_default_off"
     ),
 }
 
