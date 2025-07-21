@@ -387,9 +387,23 @@ jobs:
             const tooManyLabels = finalLabels.length > maxLabels;
             const tooManyChanges = totalChanges > tooBigThreshold;
 
+            // Get all reviews on this PR (used for both too-big detection and dismissal logic)
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner,
+              repo,
+              pull_number: pr_number
+            });
+
             if ((tooManyLabels || tooManyChanges) && !isMegaPR) {
               const originalLength = finalLabels.length;
               console.log(`PR is too big - Labels: ${originalLength}, Changes: ${totalChanges}`);
+
+              // Check if there's already an active bot review requesting changes
+              const existingBotReview = reviews.find(review =>
+                review.user.type === 'Bot' &&
+                review.state === 'CHANGES_REQUESTED' &&
+                review.body && review.body.includes(BOT_COMMENT_MARKER)
+              );
 
               // If too big due to line changes only, keep original labels and add too-big
               // If too big due to too many labels, replace with just too-big
@@ -399,24 +413,30 @@ jobs:
                 finalLabels = ['too-big'];
               }
 
-              // Create appropriate review message
-              let reviewBody;
-              if (tooManyLabels && tooManyChanges) {
-                reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${totalChanges} line changes and affects ${originalLength} different components/areas. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
-              } else if (tooManyLabels) {
-                reviewBody = `${BOT_COMMENT_MARKER}\nThis PR affects ${originalLength} different components/areas. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
-              } else {
-                reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${totalChanges} line changes. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
-              }
+              // Only create a new review if there isn't already an active bot review
+              if (!existingBotReview) {
+                // Create appropriate review message
+                let reviewBody;
+                if (tooManyLabels && tooManyChanges) {
+                  reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${totalChanges} line changes and affects ${originalLength} different components/areas. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
+                } else if (tooManyLabels) {
+                  reviewBody = `${BOT_COMMENT_MARKER}\nThis PR affects ${originalLength} different components/areas. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
+                } else {
+                  reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${totalChanges} line changes. Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
+                }
 
-              // Request changes on the PR
-              await github.rest.pulls.createReview({
-                owner,
-                repo,
-                pull_number: pr_number,
-                body: reviewBody,
-                event: 'REQUEST_CHANGES'
-              });
+                // Request changes on the PR
+                await github.rest.pulls.createReview({
+                  owner,
+                  repo,
+                  pull_number: pr_number,
+                  body: reviewBody,
+                  event: 'REQUEST_CHANGES'
+                });
+                console.log('Created new "too big" review requesting changes');
+              } else {
+                console.log('Skipping review creation - existing bot review already requesting changes');
+              }
             } else {
               // Check if PR was previously too big but is now acceptable
               const wasPreviouslyTooBig = currentLabels.includes('too-big');
@@ -424,14 +444,7 @@ jobs:
               if (wasPreviouslyTooBig || isMegaPR) {
                 console.log('PR is no longer too big or has mega-pr label - dismissing bot reviews');
 
-                // Get all reviews on this PR
-                const { data: reviews } = await github.rest.pulls.listReviews({
-                  owner,
-                  repo,
-                  pull_number: pr_number
-                });
-
-                // Find bot reviews that requested changes
+                // Find bot reviews that requested changes (reuse reviews from above)
                 const botReviews = reviews.filter(review =>
                   review.user.type === 'Bot' &&
                   review.state === 'CHANGES_REQUESTED' &&
