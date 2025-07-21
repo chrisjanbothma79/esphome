@@ -309,6 +309,7 @@ class Version:
         """Check if this version is a beta version."""
         return self.extra.startswith("b")
 
+    @property
     def is_dev(self) -> bool:
         """Check if this version is a development version."""
         return self.extra.startswith("dev")
