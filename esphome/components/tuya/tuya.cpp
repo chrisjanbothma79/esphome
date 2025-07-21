@@ -170,7 +170,7 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
     case TuyaCommandType::HEARTBEAT:
       ESP_LOGV(TAG, "MCU Heartbeat (0x%02X)", buffer[0]);
       if (this->protocol_version_ < version) {
-      this->protocol_version_ = version;
+        this->protocol_version_ = version;
       }
       if (buffer[0] == 0) {
         ESP_LOGI(TAG, "MCU restarted");
