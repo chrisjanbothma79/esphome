@@ -946,6 +946,11 @@ class FixedArrayRepeatedType(TypeInfo):
         o += "}\n"
         return o
 
+    def dump(self, name: str) -> str:
+        # This is used when dumping the array itself (not its elements)
+        # Since dump_content handles the iteration, this is not used directly
+        return ""
+
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # For fixed arrays, we always encode all elements
         # Check if this is a fixed-size type by seeing if it has a fixed byte count
