@@ -325,10 +325,6 @@ def create_field_type_info(field: descriptor.FieldDescriptorProto) -> TypeInfo:
     ):
         return FixedArrayBytesType(field, fixed_size)
 
-    # Check for zero_copy option on bytes fields
-    if field.type == 12 and get_field_opt(field, pb.zero_copy, default=False):
-        return ZeroCopyBytesType(field)
-
     validate_field_type(field.type, field.name)
     return TYPE_INFO[field.type](field)
 
@@ -598,32 +594,6 @@ class BytesType(TypeInfo):
     wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
 
     @property
-    def encode_content(self) -> str:
-        return f"buffer.encode_bytes({self.number}, reinterpret_cast<const uint8_t*>(this->{self.field_name}.data()), this->{self.field_name}.size());"
-
-    def dump(self, name: str) -> str:
-        o = f"out.append(format_hex_pretty({name}));"
-        return o
-
-    def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_simple_size_calculation(name, force, "add_string_field")
-
-    def get_estimated_size(self) -> int:
-        return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical bytes
-
-
-class ZeroCopyBytesType(TypeInfo):
-    """Special type for zero-copy bytes fields that only accepts const uint8_t* data."""
-
-    cpp_type = "std::string"  # Still store as string for compatibility
-    default_value = ""
-    reference_type = "std::string &"
-    const_reference_type = "const std::string &"
-    encode_func = "encode_bytes"
-    wire_type = WireType.LENGTH_DELIMITED
-    decode_length = "value.as_string()"
-
-    @property
     def public_content(self) -> list[str]:
         # Store both pointer and length for zero-copy encoding, plus setter method
         return [
@@ -637,14 +607,12 @@ class ZeroCopyBytesType(TypeInfo):
 
     @property
     def encode_content(self) -> str:
-        # Encode directly from pointer without nullptr check (like original)
         return f"buffer.encode_bytes({self.number}, this->{self.field_name}_ptr_, this->{self.field_name}_len_);"
 
     def dump(self, name: str) -> str:
         return f"out.append(format_hex_pretty(this->{self.field_name}_ptr_, this->{self.field_name}_len_));"
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Use the new add_bytes_field helper
         return f"ProtoSize::add_bytes_field(total_size, {self.calculate_field_id_size()}, this->{self.field_name}_len_);"
 
     def get_estimated_size(self) -> int:

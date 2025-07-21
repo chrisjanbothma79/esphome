@@ -1972,12 +1972,12 @@ bool BluetoothGATTReadRequest::decode_varint(uint32_t field_id, ProtoVarInt valu
 void BluetoothGATTReadResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_uint32(2, this->handle);
-  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  buffer.encode_bytes(3, this->data_ptr_, this->data_len_);
 }
 void BluetoothGATTReadResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address);
   ProtoSize::add_uint32_field(total_size, 1, this->handle);
-  ProtoSize::add_string_field(total_size, 1, this->data);
+  ProtoSize::add_bytes_field(total_size, 1, this->data_len_);
 }
 bool BluetoothGATTWriteRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -2060,12 +2060,12 @@ bool BluetoothGATTNotifyRequest::decode_varint(uint32_t field_id, ProtoVarInt va
 void BluetoothGATTNotifyDataResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_uint32(2, this->handle);
-  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  buffer.encode_bytes(3, this->data_ptr_, this->data_len_);
 }
 void BluetoothGATTNotifyDataResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address);
   ProtoSize::add_uint32_field(total_size, 1, this->handle);
-  ProtoSize::add_string_field(total_size, 1, this->data);
+  ProtoSize::add_bytes_field(total_size, 1, this->data_len_);
 }
 void BluetoothConnectionsFreeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(1, this->free);
@@ -2264,11 +2264,11 @@ bool VoiceAssistantAudio::decode_length(uint32_t field_id, ProtoLengthDelimited 
   return true;
 }
 void VoiceAssistantAudio::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_bytes(1, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  buffer.encode_bytes(1, this->data_ptr_, this->data_len_);
   buffer.encode_bool(2, this->end);
 }
 void VoiceAssistantAudio::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->data);
+  ProtoSize::add_bytes_field(total_size, 1, this->data_len_);
   ProtoSize::add_bool_field(total_size, 1, this->end);
 }
 bool VoiceAssistantTimerEventResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {

@@ -273,7 +273,7 @@ void VoiceAssistant::loop() {
         size_t read_bytes = this->ring_buffer_->read((void *) this->send_buffer_, SEND_BUFFER_SIZE, 0);
         if (this->audio_mode_ == AUDIO_MODE_API) {
           api::VoiceAssistantAudio msg;
-          msg.data.assign((char *) this->send_buffer_, read_bytes);
+          msg.set_data(this->send_buffer_, read_bytes);
           this->api_client_->send_message(msg, api::VoiceAssistantAudio::MESSAGE_TYPE);
         } else {
           if (!this->udp_socket_running_) {
@@ -839,12 +839,12 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
 void VoiceAssistant::on_audio(const api::VoiceAssistantAudio &msg) {
 #ifdef USE_SPEAKER  // We should never get to this function if there is no speaker anyway
   if ((this->speaker_ != nullptr) && (this->speaker_buffer_ != nullptr)) {
-    if (this->speaker_buffer_index_ + msg.data.length() < SPEAKER_BUFFER_SIZE) {
-      memcpy(this->speaker_buffer_ + this->speaker_buffer_index_, msg.data.data(), msg.data.length());
-      this->speaker_buffer_index_ += msg.data.length();
-      this->speaker_buffer_size_ += msg.data.length();
-      this->speaker_bytes_received_ += msg.data.length();
-      ESP_LOGV(TAG, "Received audio: %u bytes from API", msg.data.length());
+    if (this->speaker_buffer_index_ + msg.data_len_ < SPEAKER_BUFFER_SIZE) {
+      memcpy(this->speaker_buffer_ + this->speaker_buffer_index_, msg.data_ptr_, msg.data_len_);
+      this->speaker_buffer_index_ += msg.data_len_;
+      this->speaker_buffer_size_ += msg.data_len_;
+      this->speaker_bytes_received_ += msg.data_len_;
+      ESP_LOGV(TAG, "Received audio: %u bytes from API", msg.data_len_);
     } else {
       ESP_LOGE(TAG, "Cannot receive audio, buffer is full");
     }

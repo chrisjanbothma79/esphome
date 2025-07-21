@@ -235,9 +235,7 @@ bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_ga
       api::BluetoothGATTReadResponse resp;
       resp.address = this->address_;
       resp.handle = param->read.handle;
-      resp.data.reserve(param->read.value_len);
-      // Use bulk insert instead of individual push_backs
-      resp.data.insert(resp.data.end(), param->read.value, param->read.value + param->read.value_len);
+      resp.set_data(param->read.value, param->read.value_len);
       this->proxy_->get_api_connection()->send_message(resp, api::BluetoothGATTReadResponse::MESSAGE_TYPE);
       break;
     }
@@ -288,9 +286,7 @@ bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_ga
       api::BluetoothGATTNotifyDataResponse resp;
       resp.address = this->address_;
       resp.handle = param->notify.handle;
-      resp.data.reserve(param->notify.value_len);
-      // Use bulk insert instead of individual push_backs
-      resp.data.insert(resp.data.end(), param->notify.value, param->notify.value + param->notify.value_len);
+      resp.set_data(param->notify.value, param->notify.value_len);
       this->proxy_->get_api_connection()->send_message(resp, api::BluetoothGATTNotifyDataResponse::MESSAGE_TYPE);
       break;
     }
@@ -337,7 +333,8 @@ esp_err_t BluetoothConnection::read_characteristic(uint16_t handle) {
   return ESP_OK;
 }
 
-esp_err_t BluetoothConnection::write_characteristic(uint16_t handle, const std::string &data, bool response) {
+esp_err_t BluetoothConnection::write_characteristic(uint16_t handle, const uint8_t *data, size_t data_len,
+                                                    bool response) {
   if (!this->connected()) {
     ESP_LOGW(TAG, "[%d] [%s] Cannot write GATT characteristic, not connected.", this->connection_index_,
              this->address_str_.c_str());
@@ -347,7 +344,7 @@ esp_err_t BluetoothConnection::write_characteristic(uint16_t handle, const std::
            handle);
 
   esp_err_t err =
-      esp_ble_gattc_write_char(this->gattc_if_, this->conn_id_, handle, data.size(), (uint8_t *) data.data(),
+      esp_ble_gattc_write_char(this->gattc_if_, this->conn_id_, handle, data_len, const_cast<uint8_t *>(data),
                                response ? ESP_GATT_WRITE_TYPE_RSP : ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
   if (err != ERR_OK) {
     ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_write_char error, err=%d", this->connection_index_,
@@ -375,7 +372,7 @@ esp_err_t BluetoothConnection::read_descriptor(uint16_t handle) {
   return ESP_OK;
 }
 
-esp_err_t BluetoothConnection::write_descriptor(uint16_t handle, const std::string &data, bool response) {
+esp_err_t BluetoothConnection::write_descriptor(uint16_t handle, const uint8_t *data, size_t data_len, bool response) {
   if (!this->connected()) {
     ESP_LOGW(TAG, "[%d] [%s] Cannot write GATT descriptor, not connected.", this->connection_index_,
              this->address_str_.c_str());
@@ -385,7 +382,7 @@ esp_err_t BluetoothConnection::write_descriptor(uint16_t handle, const std::stri
            handle);
 
   esp_err_t err = esp_ble_gattc_write_char_descr(
-      this->gattc_if_, this->conn_id_, handle, data.size(), (uint8_t *) data.data(),
+      this->gattc_if_, this->conn_id_, handle, data_len, const_cast<uint8_t *>(data),
       response ? ESP_GATT_WRITE_TYPE_RSP : ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
   if (err != ERR_OK) {
     ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_write_char_descr error, err=%d", this->connection_index_,
