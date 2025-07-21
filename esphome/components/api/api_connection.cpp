@@ -1,5 +1,11 @@
 #include "api_connection.h"
 #ifdef USE_API
+#ifdef USE_API_NOISE
+#include "api_frame_helper_noise.h"
+#endif
+#ifdef USE_API_PLAINTEXT
+#include "api_frame_helper_plaintext.h"
+#endif
 #include <cerrno>
 #include <cinttypes>
 #include <utility>
@@ -1426,8 +1432,6 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   DeviceInfoResponse resp{};
 #ifdef USE_API_PASSWORD
   resp.uses_password = true;
-#else
-  resp.uses_password = false;
 #endif
   resp.name = App.get_name();
   resp.friendly_name = App.get_friendly_name();
