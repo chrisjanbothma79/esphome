@@ -20,7 +20,7 @@ uint8_t Command::execute(DFRobotC4001Hub *parent) {
     if (this->cmd_ == "resetSystem") {
       // resetSystem command only returns prompt, bypass central part of state machine
       std::string message = "";
-      on_message(message);
+      this->on_message();
       ESP_LOGV(TAG, "Send Cmd: Shortcutting Reset System Command");
       this->state_ = STATE_WAIT_PROMPT;
     }
@@ -48,7 +48,7 @@ uint8_t Command::execute(DFRobotC4001Hub *parent) {
           break;
         }
         // process message
-        on_message(message);
+        this->on_message();
         if (this->done_) {
           this->state_ = STATE_WAIT_PROMPT;
         }
@@ -107,6 +107,11 @@ uint8_t Command::execute(DFRobotC4001Hub *parent) {
   return false;
 }
 
+void Command::on_message() {
+  if (strcmp(this->read_buffer_, "Done") == 0)
+    this->done_ = true;  // command is done
+}
+
 uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
   this->parent_ = parent;
 
@@ -116,12 +121,10 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
     std::string message(this->parent_->read_buffer_);
     if (str_startswith(message, "$DFHPD,0, , , *")) {
       this->parent_->set_occupancy(false);
-      this->parent_->set_enable(true);
       ESP_LOGV(TAG, "Recv Rpt: Occupancy Clear");
       return true;  // Command done
     } else if (str_startswith(message, "$DFHPD,1, , , *")) {
       this->parent_->set_occupancy(true);
-      this->parent_->set_enable(true);
       ESP_LOGV(TAG, "Recv Rpt: Occupancy Detected");
       return true;  // Command done
     } else if (str_startswith(message, "$DFDMD")) {
@@ -143,7 +146,6 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
           this->parent_->set_target_speed(target_speed.value());
           this->parent_->set_target_energy(target_energy.value());
           this->parent_->set_occupancy(true);
-          this->parent_->set_enable(true);
           ESP_LOGV(TAG, "Recv Rpt: Target Detected, Dist=%.3f, Speed=%.3f, Energy=%d", target_distance.value(),
                    target_speed.value(), (uint) target_energy.value());
           return true;  // command completed successfully
@@ -157,7 +159,6 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
         this->parent_->set_target_speed(0.0);
         this->parent_->set_target_energy(0.0);
         this->parent_->set_occupancy(false);
-        this->parent_->set_enable(true);
         ESP_LOGV(TAG, "Recv Rpt: No Target");
         return true;  // command completed successfully
       }
@@ -169,10 +170,9 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
   return 0;  // Command not done yet.
 }
 
-void ReadStateCommand::on_message(std::string &message) {}
+void ReadStateCommand::on_message() {}
 
 PowerCommand::PowerCommand(bool power_on) {
-  this->power_on_ = power_on;
   if (power_on) {
     this->cmd_ = "sensorStart";
   } else {
@@ -180,16 +180,9 @@ PowerCommand::PowerCommand(bool power_on) {
   }
 };
 
-void PowerCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->parent_->set_enable(this->power_on_);
-    this->done_ = true;  // command is done
-  }
-}
-
 GetRangeCommand::GetRangeCommand() { this->cmd_ = "getRange"; }
 
-void GetRangeCommand::on_message(std::string &message) {
+void GetRangeCommand::on_message() {
   char *token;
 
   token = strtok(this->read_buffer_, " ");
@@ -214,15 +207,9 @@ SetRangeCommand::SetRangeCommand(float min_range, float max_range) {
   this->cmd_ = str_sprintf("setRange %.3f %.3f", min_range, max_range);
 };
 
-void SetRangeCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
 GetTrigRangeCommand::GetTrigRangeCommand() { this->cmd_ = "getTrigRange"; }
 
-void GetTrigRangeCommand::on_message(std::string &message) {
+void GetTrigRangeCommand::on_message() {
   char *token;
 
   token = strtok(this->read_buffer_, " ");
@@ -244,15 +231,9 @@ SetTrigRangeCommand::SetTrigRangeCommand(float trigger_range) {
   this->cmd_ = str_sprintf("setTrigRange %.3f", trigger_range);
 };
 
-void SetTrigRangeCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
 GetSensitivityCommand::GetSensitivityCommand() { this->cmd_ = "getSensitivity"; }
 
-void GetSensitivityCommand::on_message(std::string &message) {
+void GetSensitivityCommand::on_message() {
   char *token;
 
   token = strtok(this->read_buffer_, " ");
@@ -277,15 +258,9 @@ SetSensitivityCommand::SetSensitivityCommand(float hold_sensitivity, float trigg
   this->cmd_ = str_sprintf("setSensitivity %.0f %.0f", round(hold_sensitivity), round(trigger_sensitivity));
 };
 
-void SetSensitivityCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
 GetLatencyCommand::GetLatencyCommand() { this->cmd_ = "getLatency"; }
 
-void GetLatencyCommand::on_message(std::string &message) {
+void GetLatencyCommand::on_message() {
   char *token;
 
   token = strtok(this->read_buffer_, " ");
@@ -310,15 +285,9 @@ SetLatencyCommand::SetLatencyCommand(float on_latency, float off_latency) {
   this->cmd_ = str_sprintf("setLatency %.3f %.3f", on_latency, off_latency);
 };
 
-void SetLatencyCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
 GetInhibitTimeCommand::GetInhibitTimeCommand() { this->cmd_ = "getInhibit"; }
 
-void GetInhibitTimeCommand::on_message(std::string &message) {
+void GetInhibitTimeCommand::on_message() {
   char *token;
 
   token = strtok(this->read_buffer_, " ");
@@ -338,136 +307,13 @@ void GetInhibitTimeCommand::on_message(std::string &message) {
 
 SetInhibitTimeCommand::SetInhibitTimeCommand(float inhibit) { this->cmd_ = str_sprintf("setInhibit %.3f", inhibit); };
 
-void SetInhibitTimeCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
-GetThrFactorCommand::GetThrFactorCommand() { this->cmd_ = "getThrFactor"; }
-
-void GetThrFactorCommand::on_message(std::string &message) {
-  char *token;
-
-  token = strtok(this->read_buffer_, " ");
-  if (strcmp(token, "Done") == 0) {
-    if (!this->threshold_factor_.has_value()) {
-      ESP_LOGD(TAG, "Failed to parse response");
-      this->error_ = true;  // command is done
-    } else {
-      this->parent_->set_threshold_factor(this->threshold_factor_.value(), false);
-      this->done_ = true;  // command is done
-    }
-  } else if (strcmp(token, "Response") == 0) {
-    token = strtok(NULL, " ");
-    this->threshold_factor_ = parse_number<float>(token);
-  }
-}
-
-SetThrFactorCommand::SetThrFactorCommand(float threshold_factor) {
-  this->cmd_ = str_sprintf("setThrFactor %.3f", threshold_factor);
-};
-
-void SetThrFactorCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
-SetUartOutputCommand::SetUartOutputCommand(bool enable) {
-  if (enable) {
-    this->cmd_ = "setUartOutput 1 1 1 1.0";
-  } else {
-    this->cmd_ = "setUartOutput 1 0 1 1.0";
-  }
-};
-
-void SetUartOutputCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
-SetLedModeCommand1::SetLedModeCommand1(bool led_mode) {
-  this->led_enable_ = led_mode;
-  if (led_mode) {
-    this->cmd_ = "setLedMode 1 0";
-  } else {
-    this->cmd_ = "setLedMode 1 1";
-  }
-};
-
-void SetLedModeCommand1::on_message(std::string &message) {
-  // this command is not in Communication Protocol document it appears to be a leftover from similar products
-  // this command only controls the green LED which flashes when the sensor is running the blue LED is always on when
-  // powered
-  if (message == "Done") {
-    this->parent_->set_led_enable(this->led_enable_, false);
-    this->done_ = true;  // command is done
-  }
-}
-
-SetLedModeCommand2::SetLedModeCommand2(bool led_mode) {
-  if (led_mode) {
-    this->cmd_ = "setLedMode 2 0";
-  } else {
-    this->cmd_ = "setLedMode 2 1";
-  }
-};
-
-void SetLedModeCommand2::on_message(std::string &message) {
-  // this command is not in Communication Protocol document it appears to be a leftover from similar products
-  // this command only controls the green LED which flashes when the sensor is running the blue LED is always on when
-  // powered
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
-GetMicroMotionCommand::GetMicroMotionCommand() { this->cmd_ = "getMicroMotion"; }
-
-void GetMicroMotionCommand::on_message(std::string &message) {
-  char *token;
-
-  token = strtok(this->read_buffer_, " ");
-  if (strcmp(token, "Done") == 0) {
-    if (!this->micro_motion_.has_value()) {
-      ESP_LOGD(TAG, "Failed to parse response");
-      this->error_ = true;  // command is done
-    } else {
-      this->parent_->set_micro_motion_enable(this->micro_motion_.value(), false);
-      this->done_ = true;  // command is done
-    }
-  } else if (strcmp(token, "Response") == 0) {
-    token = strtok(NULL, " ");
-    this->micro_motion_ = parse_number<bool>(token);
-  }
-}
-
-SetMicroMotionCommand::SetMicroMotionCommand(bool enable) {
-  this->micro_motion_ = enable;
-  if (enable) {
-    this->cmd_ = "setMicroMotion 1";
-  } else {
-    this->cmd_ = "setMicroMotion 0";
-  }
-};
-
-void SetMicroMotionCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->parent_->set_micro_motion_enable(this->micro_motion_, false);
-    this->done_ = true;  // command is done
-  }
-}
+SetUartOutputCommand::SetUartOutputCommand() { this->cmd_ = "setUartOutput 1 1 1 1.0"; };
 
 FactoryResetCommand::FactoryResetCommand() { this->cmd_ = "resetCfg"; }
 
-void FactoryResetCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    // reload settings
-    this->parent_->set_led_enable(true, false);
-    this->parent_->flash_led_enable();
-    this->parent_->setup_module();
+void FactoryResetCommand::on_message() {
+  if (strcmp(this->read_buffer_, "Done") == 0) {
+    this->parent_->setup_module();  // reload settings
     this->parent_->config_load();
     this->done_ = true;  // command is done
   }
@@ -478,75 +324,23 @@ ResetSystemCommand::ResetSystemCommand(bool read_config) {
   this->cmd_ = "resetSystem";
 }
 
-void ResetSystemCommand::on_message(std::string &message) {
-  if (this->read_config_) {
+void ResetSystemCommand::on_message() {
+  // this command responds with nothing, not even a command echo
+  if (this->read_config_)
     this->parent_->config_load();
-  }
   this->done_ = true;  // command is done
 }
 
 SaveCfgCommand::SaveCfgCommand() { this->cmd_ = "saveConfig"; }
 
-void SaveCfgCommand::on_message(std::string &message) {
-  if (message == "no parameter has changed") {
-    ESP_LOGV(TAG, "Send Cmd: Nothing Changed");
-  } else if (message == "Done") {
+void SaveCfgCommand::on_message() {
+  if (strcmp(this->read_buffer_, "Done") == 0) {
     this->parent_->config_load();
     this->done_ = true;  // command is done
   }
 }
 
-SetRunAppCommand::SetRunAppCommand(uint8_t mode) {
-  if (mode == MODE_PRESENCE) {
-    this->cmd_ = "setRunApp 0";
-  } else {
-    this->cmd_ = "setRunApp 1";
-  }
-}
-
-void SetRunAppCommand::on_message(std::string &message) {
-  if (message == "Done") {
-    this->done_ = true;  // command is done
-  }
-}
-
-GetSWVCommand::GetSWVCommand() { this->cmd_ = "getSWV"; }
-
-void GetSWVCommand::on_message(std::string &message) {
-  char *token;
-
-  token = strtok(this->read_buffer_, ":");
-  if (strcmp(token, "Done") == 0) {
-    this->done_ = true;  // command is done
-  } else if (strcmp(token, "SoftwareVersion") == 0) {
-    token = strtok(NULL, ":");
-    if (token != nullptr) {
-      this->parent_->set_software_version(token);
-    } else {
-      ESP_LOGD(TAG, "Failed to parse response");
-      this->error_ = true;  // command is done
-    }
-  }
-}
-
-GetHWVCommand::GetHWVCommand() { this->cmd_ = "getHWV"; }
-
-void GetHWVCommand::on_message(std::string &message) {
-  char *token;
-
-  token = strtok(this->read_buffer_, ":");
-  if (strcmp(token, "Done") == 0) {
-    this->done_ = true;  // command is done
-  } else if (strcmp(token, "HardwareVersion") == 0) {
-    token = strtok(NULL, ":");
-    if (token != nullptr) {
-      this->parent_->set_hardware_version(token);
-    } else {
-      ESP_LOGD(TAG, "Failed to parse response");
-      this->error_ = true;  // command is done
-    }
-  }
-}
+SetRunAppCommand::SetRunAppCommand() { this->cmd_ = "setRunApp 0"; }
 
 }  // namespace dfrobot_c4001
 }  // namespace esphome

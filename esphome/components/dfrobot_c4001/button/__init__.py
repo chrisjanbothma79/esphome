@@ -3,11 +3,9 @@ from esphome.components import button
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_FACTORY_RESET,
-    CONF_RESTART,
     DEVICE_CLASS_RESTART,
     DEVICE_CLASS_UPDATE,
     ENTITY_CATEGORY_CONFIG,
-    ICON_RESTART,
     ICON_RESTART_ALERT,
 )
 
@@ -33,12 +31,6 @@ CONFIG_SCHEMA = (
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_RESTART_ALERT,
             ),
-            cv.Optional(CONF_RESTART): button.button_schema(
-                RestartButton,
-                device_class=DEVICE_CLASS_RESTART,
-                entity_category=ENTITY_CATEGORY_CONFIG,
-                icon=ICON_RESTART,
-            ),
         }
     )
     .extend(HUB_CHILD_SCHEMA)
@@ -56,7 +48,3 @@ async def to_code(config):
         b = await button.new_button(factory_reset)
         await cg.register_parented(b, config[CONF_DFROBOT_C4001_ID])
         cg.add(sens0609_hub.set_factory_reset_button(b))
-    if restart := config.get(CONF_RESTART):
-        b = await button.new_button(restart)
-        await cg.register_parented(b, config[CONF_DFROBOT_C4001_ID])
-        cg.add(sens0609_hub.set_restart_button(b))

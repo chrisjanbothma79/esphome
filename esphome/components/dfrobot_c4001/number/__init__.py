@@ -4,7 +4,6 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_MAX_RANGE,
     CONF_MIN_RANGE,
-    CONF_MODE,
     DEVICE_CLASS_DISTANCE,
     DEVICE_CLASS_DURATION,
     ENTITY_CATEGORY_CONFIG,
@@ -14,7 +13,6 @@ from esphome.const import (
     UNIT_METER,
     UNIT_SECOND,
 )
-import esphome.final_validate as fv
 
 from .. import CONF_DFROBOT_C4001_ID, HUB_CHILD_SCHEMA, dfrobot_c4001_ns
 
@@ -26,7 +24,6 @@ CONF_TRIGGER_SENSITIVITY = "trigger_sensitivity"
 CONF_ON_LATENCY = "on_latency"
 CONF_OFF_LATENCY = "off_latency"
 CONF_INHIBIT_TIME = "inhibit_time"
-CONF_THRESHOLD_FACTOR = "threshold_factor"
 
 MaxRangeNumber = dfrobot_c4001_ns.class_("MaxRangeNumber", number.Number)
 MinRangeNumber = dfrobot_c4001_ns.class_("MinRangeNumber", number.Number)
@@ -39,19 +36,22 @@ OnLatencyNumber = dfrobot_c4001_ns.class_("OnLatencyNumber", number.Number)
 OffLatencyNumber = dfrobot_c4001_ns.class_("OffLatencyNumber", number.Number)
 OffLatencyNumber = dfrobot_c4001_ns.class_("OffLatencyNumber", number.Number)
 InhibitTimeNumber = dfrobot_c4001_ns.class_("InhibitTimeNumber", number.Number)
-ThresholdFactorNumber = dfrobot_c4001_ns.class_("ThresholdFactorNumber", number.Number)
+
+RANGE_GROUP = "Range Group: min_range and max_range"
+SENSITIVITY_GROUP = "Sensitivity Group: hold_sensitivity and trigger_sensitivity"
+LATENCY_GROUP = "Latency Group: on_latency and off_latency"
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.Optional(CONF_MAX_RANGE): number.number_schema(
+            cv.Inclusive(CONF_MAX_RANGE, RANGE_GROUP): number.number_schema(
                 MaxRangeNumber,
                 unit_of_measurement=UNIT_METER,
                 device_class=DEVICE_CLASS_DISTANCE,
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_ARROW_EXPAND_VERTICAL,
             ),
-            cv.Optional(CONF_MIN_RANGE): number.number_schema(
+            cv.Inclusive(CONF_MIN_RANGE, RANGE_GROUP): number.number_schema(
                 MinRangeNumber,
                 unit_of_measurement=UNIT_METER,
                 device_class=DEVICE_CLASS_DISTANCE,
@@ -65,24 +65,28 @@ CONFIG_SCHEMA = (
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_ARROW_EXPAND_VERTICAL,
             ),
-            cv.Optional(CONF_HOLD_SENSITIVITY): number.number_schema(
+            cv.Inclusive(
+                CONF_HOLD_SENSITIVITY, SENSITIVITY_GROUP
+            ): number.number_schema(
                 HoldSensitivityNumber,
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_SCALE,
             ),
-            cv.Optional(CONF_TRIGGER_SENSITIVITY): number.number_schema(
+            cv.Inclusive(
+                CONF_TRIGGER_SENSITIVITY, SENSITIVITY_GROUP
+            ): number.number_schema(
                 TriggerSensitivityNumber,
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_SCALE,
             ),
-            cv.Optional(CONF_ON_LATENCY): number.number_schema(
+            cv.Inclusive(CONF_ON_LATENCY, LATENCY_GROUP): number.number_schema(
                 OnLatencyNumber,
                 unit_of_measurement=UNIT_SECOND,
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 device_class=DEVICE_CLASS_DURATION,
                 icon=ICON_TIMER,
             ),
-            cv.Optional(CONF_OFF_LATENCY): number.number_schema(
+            cv.Inclusive(CONF_OFF_LATENCY, LATENCY_GROUP): number.number_schema(
                 OffLatencyNumber,
                 unit_of_measurement=UNIT_SECOND,
                 entity_category=ENTITY_CATEGORY_CONFIG,
@@ -96,73 +100,11 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_DURATION,
                 icon=ICON_TIMER,
             ),
-            cv.Optional(CONF_THRESHOLD_FACTOR): number.number_schema(
-                ThresholdFactorNumber,
-                entity_category=ENTITY_CATEGORY_CONFIG,
-                icon=ICON_SCALE,
-            ),
         }
     )
     .extend(HUB_CHILD_SCHEMA)
     .extend(cv.COMPONENT_SCHEMA)
 )
-
-
-def _final_validate(config):
-    full_config = fv.full_config.get()
-    hub_path = full_config.get_path_for_id(config[CONF_DFROBOT_C4001_ID])[:-1]
-    hub_conf = full_config.get_config_for_path(hub_path)
-    mode = hub_conf.get(CONF_MODE)
-    if mode == "PRESENCE":
-        if CONF_THRESHOLD_FACTOR in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {mode}, {CONF_THRESHOLD_FACTOR} number is not allowed."
-            )
-    else:
-        if CONF_TRIGGER_RANGE in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {mode}, {CONF_TRIGGER_RANGE} number is not allowed."
-            )
-        if CONF_HOLD_SENSITIVITY in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {mode}, {CONF_HOLD_SENSITIVITY} number is not allowed."
-            )
-        if CONF_TRIGGER_SENSITIVITY in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {mode}, {CONF_TRIGGER_SENSITIVITY} number is not allowed."
-            )
-        if CONF_ON_LATENCY in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {mode}, {CONF_ON_LATENCY} number is not allowed."
-            )
-        if CONF_OFF_LATENCY in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {mode}, {CONF_OFF_LATENCY} number is not allowed."
-            )
-        if CONF_INHIBIT_TIME in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {mode}, {CONF_INHIBIT_TIME} number is not allowed."
-            )
-    if CONF_TRIGGER_RANGE in config:
-        if (CONF_MIN_RANGE not in config) or (CONF_MAX_RANGE not in config):
-            raise cv.Invalid(
-                "When 'trigger_range' is defined, 'min_range' and 'max_range' must also be defined."
-            )
-    if CONF_MIN_RANGE in config:
-        if CONF_MAX_RANGE not in config:
-            raise cv.Invalid(
-                "When 'min_range' is defined, 'max_range' must also be defined."
-            )
-    if CONF_MAX_RANGE in config:
-        if CONF_MIN_RANGE not in config:
-            raise cv.Invalid(
-                "When 'max_range' is defined, 'min_range' must also be defined."
-            )
-
-    return config
-
-
-FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
@@ -210,9 +152,3 @@ async def to_code(config):
         )
         await cg.register_parented(n, config[CONF_DFROBOT_C4001_ID])
         cg.add(sens0609_hub.set_inhibit_time_number(n))
-    if threshold_factor := config.get(CONF_THRESHOLD_FACTOR):
-        n = await number.new_number(
-            threshold_factor, min_value=0.0, max_value=25.0, step=0.1
-        )
-        await cg.register_parented(n, config[CONF_DFROBOT_C4001_ID])
-        cg.add(sens0609_hub.set_threshold_factor_number(n))

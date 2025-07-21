@@ -1,9 +1,7 @@
-from esphome import automation
-from esphome.automation import maybe_simple_id
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_MODE, CONF_MODEL
+from esphome.const import CONF_ID, CONF_MODEL
 
 DEPENDENCIES = ["uart"]
 
@@ -16,28 +14,12 @@ dfrobot_c4001_ns = cg.esphome_ns.namespace("dfrobot_c4001")
 DFRobotC4001Hub = dfrobot_c4001_ns.class_(
     "DFRobotC4001Hub", cg.Component, uart.UARTDevice
 )
-ModeConfig = dfrobot_c4001_ns.enum("ModeConfig")
 ModelConfig = dfrobot_c4001_ns.enum("ModelConfig")
-
-CONF_MODE_ENUM = {
-    "PRESENCE": ModeConfig.MODE_PRESENCE,
-    "SPEED_AND_DISTANCE": ModeConfig.MODE_SPEED_AND_DISTANCE,
-}
 
 CONF_MODEL_ENUM = {
     "SEN0609": ModelConfig.MODEL_SEN0609,
     "SEN0610": ModelConfig.MODEL_SEN0610,
 }
-
-
-# Actions
-DFRobotC4001FactoryResetAction = dfrobot_c4001_ns.class_(
-    "DFRobotC4001FactoryResetAction", automation.Action
-)
-
-DFRobotC4001RestartAction = dfrobot_c4001_ns.class_(
-    "DFRobotC4001RestartAction", automation.Action
-)
 
 HUB_CHILD_SCHEMA = cv.Schema(
     {
@@ -49,7 +31,6 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(DFRobotC4001Hub),
-            cv.Required(CONF_MODE): cv.enum(CONF_MODE_ENUM, upper=True, space="_"),
             cv.Required(CONF_MODEL): cv.enum(CONF_MODEL_ENUM, upper=True, space="_"),
         }
     )
@@ -71,35 +52,4 @@ async def to_code(config):
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
-    cg.add(var.set_mode(config[CONF_MODE]))
     cg.add(var.set_model(config[CONF_MODEL]))
-
-
-@automation.register_action(
-    "dfrobot_c4001.factory_reset",
-    DFRobotC4001FactoryResetAction,
-    maybe_simple_id(
-        {
-            cv.GenerateID(): cv.use_id(DFRobotC4001Hub),
-        }
-    ),
-)
-async def dfrobot_c4001_factory_reset_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg)
-    await cg.register_parented(var, config[CONF_ID])
-    return var
-
-
-@automation.register_action(
-    "dfrobot_c4001.restart",
-    DFRobotC4001RestartAction,
-    maybe_simple_id(
-        {
-            cv.GenerateID(): cv.use_id(DFRobotC4001Hub),
-        }
-    ),
-)
-async def dfrobot_c4001_restart_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg)
-    await cg.register_parented(var, config[CONF_ID])
-    return var

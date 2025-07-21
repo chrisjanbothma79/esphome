@@ -15,9 +15,6 @@
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
-#ifdef USE_SWITCH
-#include "esphome/components/switch/switch.h"
-#endif
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
 #endif
@@ -30,13 +27,6 @@
 
 namespace esphome {
 namespace dfrobot_c4001 {
-// Enumeration for RunApp or Sensor Mode
-enum DFRobotMode : uint8_t {
-  MODE_PRESENCE = 0,
-  MODE_SPEED_AND_DISTANCE,
-  MODE_UNKNOWN,
-};
-
 enum DFRobotModel : uint8_t {
   MODEL_SEN0609 = 0,
   MODEL_SEN0610,
@@ -71,7 +61,6 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
 #ifdef USE_BUTTON
   SUB_BUTTON(config_save)
   SUB_BUTTON(factory_reset)
-  SUB_BUTTON(restart)
 #endif
 
 #ifdef USE_NUMBER
@@ -92,23 +81,11 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   SUB_SENSOR(target_energy)
 #endif
 
-#ifdef USE_SWITCH
-  SUB_SWITCH(led_enable)
-  SUB_SWITCH(micro_motion_enable)
-#endif
-
-#ifdef USE_TEXT_SENSOR
-  SUB_TEXT_SENSOR(software_version)
-  SUB_TEXT_SENSOR(hardware_version)
-#endif
-
  public:
   void dump_config() override;
   void setup() override;
   void loop() override;
 
-  void set_enable(bool enabled) { enabled_ = enabled; };
-  bool is_enabled() { return enabled_; }
   void set_min_range(float min, bool needs_save = true);
   void set_max_range(float max, bool needs_save = true);
   void set_trigger_range(float trig, bool needs_save = true);
@@ -117,20 +94,12 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void set_on_latency(float value, bool needs_save = true);
   void set_off_latency(float value, bool needs_save = true);
   void set_inhibit_time(float value, bool needs_save = true);
-  void set_threshold_factor(float value, bool needs_save = true);
-  void set_led_enable(bool value, bool needs_save = true);
-  void set_micro_motion_enable(bool enable, bool needs_save = true);
-  void flash_led_enable();
-  void set_mode(DFRobotMode value);
   void set_model(DFRobotModel value);
-  void set_software_version(char *version);
-  void set_hardware_version(char *version);
   void set_needs_save(bool needs_save);
   void setup_module();
   void config_load();
   void config_save();
   void factory_reset();
-  void restart();
   void set_occupancy(bool occupancy);
   void set_target_distance(float value);
   void set_target_speed(float value);
@@ -139,7 +108,6 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
 
  protected:
   bool is_setup_{false};
-  bool enabled_{false};
   float min_range_{0.6};
   float max_range_{25.0};
   float trigger_range_{6.0};
@@ -149,18 +117,12 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   float off_latency_{15.0};
   float inhibit_time_{1.0};
   float threshold_factor_{5};
-  bool micro_motion_enable_{false};
-  bool led_enable_{true};
   bool needs_save_{false};
   bool occupancy_{false};
   float target_distance_;
   float target_speed_;
   float target_energy_;
-  DFRobotMode mode_{MODE_PRESENCE};
   DFRobotModel model_{MODEL_UNKNOWN};
-  DFRobotModel hw_model_{MODEL_UNKNOWN};
-  std::string hw_version_;
-  std::string sw_version_;
 
   char read_buffer_[MMWAVE_READ_BUFFER_LENGTH];
   size_t read_pos_{0};

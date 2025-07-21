@@ -4,7 +4,6 @@ import esphome.config_validation as cv
 
 # from esphome import core
 from esphome.const import (
-    CONF_MODE,
     DEVICE_CLASS_DISTANCE,
     DEVICE_CLASS_ENERGY,
     DEVICE_CLASS_SPEED,
@@ -12,7 +11,6 @@ from esphome.const import (
     UNIT_EMPTY,
     UNIT_METER,
 )
-import esphome.final_validate as fv
 
 from . import CONF_DFROBOT_C4001_ID, HUB_CHILD_SCHEMA
 
@@ -54,29 +52,6 @@ CONFIG_SCHEMA = (
     .extend(HUB_CHILD_SCHEMA)
     .extend(cv.COMPONENT_SCHEMA)
 )
-
-
-def _final_validate(config):
-    full_config = fv.full_config.get()
-    hub_path = full_config.get_path_for_id(config[CONF_DFROBOT_C4001_ID])[:-1]
-    hub_conf = full_config.get_config_for_path(hub_path)
-    MODE = hub_conf.get(CONF_MODE)
-    if MODE == "PRESENCE":
-        if CONF_TARGET_DISTANCE in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {MODE}, {CONF_TARGET_DISTANCE} sensor is not allowed."
-            )
-        if CONF_TARGET_SPEED in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {MODE}, {CONF_TARGET_SPEED} sensor is not allowed."
-            )
-        if CONF_TARGET_ENERGY in config:
-            raise cv.Invalid(
-                f"When 'mode' is set to {MODE}, {CONF_TARGET_ENERGY} sensor is not allowed."
-            )
-
-
-FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
