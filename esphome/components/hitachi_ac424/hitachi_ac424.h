@@ -56,7 +56,7 @@ const uint8_t HITACHI_AC424_POWER_ON = 0xF1;
 const uint8_t HITACHI_AC424_POWER_OFF = 0xE1;
 
 const uint8_t HITACHI_AC424_CLEAN_BYTE = 33;
-const uint8_t HITACHI_AC424_CLEAN_OFFSET = 3;     // Mask 0b0000x000
+const uint8_t HITACHI_AC424_CLEAN_OFFSET = 3;  // Mask 0b0000x000
 
 const uint8_t HITACHI_AC424_SWINGH_BYTE = 35;
 const uint8_t HITACHI_AC424_SWINGH_OFFSET = 0;     // Mask 0b00000xxx
@@ -90,6 +90,7 @@ class HitachiClimate : public climate_ir::ClimateIR {
                               {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_HORIZONTAL}) {}
 
   void set_internal_cleaning(bool on) { this->internal_cleaning_enabled_ = on; }
+
  protected:
   uint8_t remote_state_[HITACHI_AC424_STATE_LENGTH]{
       0x01, 0x10, 0x00, 0x40, 0xBF, 0xFF, 0x00, 0xCC, 0x33, 0x92, 0x6D, 0x13, 0xEC, 0x5C, 0xA3, 0x00, 0xFF, 0x00,
