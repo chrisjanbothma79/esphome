@@ -1,5 +1,6 @@
 from esphome.automation import Trigger, build_automation, validate_automation
 import esphome.codegen as cg
+from esphome.components.esp8266 import CONF_RESTORE_FROM_FLASH, KEY_ESP8266
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
@@ -10,6 +11,8 @@ from esphome.const import (
     PLATFORM_LN882X,
     PLATFORM_RTL87XX,
 )
+from esphome.core import CORE
+from esphome.final_validate import full_config
 
 CODEOWNERS = ["@anatoly-savchenkov"]
 
@@ -59,6 +62,19 @@ CONFIG_SCHEMA = cv.All(
     ).extend(cv.COMPONENT_SCHEMA),
     _validate,
 )
+
+
+def _final_validate(config):
+    if CORE.is_esp8266 and CONF_RESETS_REQUIRED in config:
+        fconfig = full_config.get()
+        if not fconfig.get_config_for_path([KEY_ESP8266])[CONF_RESTORE_FROM_FLASH]:
+            raise cv.Invalid(
+                "'resets_required' needs 'restore_from_flash' to be enabled in the  'esp8266' configuration"
+            )
+    return config
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
