@@ -24,7 +24,7 @@ static bool was_power_cycled() {
 #endif
 #ifdef USE_LIBRETINY
   auto reason = lt_get_reboot_reason();
-  return reason == REBOOT_REASON_POWER || reason == REBOOT_REASON_HARDWARE
+  return reason == REBOOT_REASON_POWER || reason == REBOOT_REASON_HARDWARE;
 #endif
 }
 
