@@ -231,9 +231,7 @@ void APIConnection::loop() {
     msg.set_data(this->image_reader_->peek_data_buffer(), to_send);
     msg.done = done;
 
-    bool success = this->send_message_(msg, CameraImageResponse::MESSAGE_TYPE);
-
-    if (success) {
+    if (this->send_message_(msg, CameraImageResponse::MESSAGE_TYPE)) {
       this->image_reader_->consume_data(to_send);
       if (done) {
         this->image_reader_->return_image();
