@@ -16,32 +16,17 @@ espnow:
   on_new_peer:
     - logger.log:
         format: "New Peer from: %s  '%s'  RSSI: %d"
-        args:
-          [
-            packet->info().c_str(),
-            packet->payload(),
-            packet->rssi(),
-          ]
+        args: [packet->info().c_str(), packet->payload(), packet->rssi()]
 
-    - on_received:
-        - logger.log:
-            format: "Received from: %s = '%s'  RSSI: %d"
-            args:
-              [
-                packet->info().c_str(),
-                packet->payload(),
-                packet->rssi(),
-              ]
+  on_received:
+    - logger.log:
+        format: "Received from: %s = '%s'  RSSI: %d"
+        args: [packet->info().c_str(), packet->payload(), packet->rssi()]
 
-      on_broadcasted:
-        - logger.log:
-            format: "Broadcast Received from: '%s' RSSI: %d: %s"
-            args:
-              [
-                packet->peer_str().c_str(),
-                packet->rssi(),
-                packet->payload(),
-              ]
+  on_broadcasted:
+    - logger.log:
+        format: "Broadcast Received from: '%s' RSSI: %d: %s"
+        args: [packet->peer_str().c_str(), packet->rssi(), packet->payload()]
 
 interval:
   - interval: 10sec
