@@ -2,6 +2,8 @@
 
 #include <cinttypes>
 #include <vector>
+#include <deque>
+#include <optional>
 
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
@@ -105,6 +107,7 @@ class Tuya : public Component, public uart::UARTDevice {
   void force_set_string_datapoint_value(uint8_t datapoint_id, const std::string &value);
   void force_set_enum_datapoint_value(uint8_t datapoint_id, uint8_t value);
   void force_set_bitmask_datapoint_value(uint8_t datapoint_id, uint32_t value, uint8_t length);
+  void send_generic_command(const TuyaCommand &command) { send_command_(command); }
   TuyaInitState get_init_state();
 #ifdef USE_TIME
   void set_time_id(time::RealTimeClock *time_id) { this->time_id_ = time_id; }
@@ -117,10 +120,11 @@ class Tuya : public Component, public uart::UARTDevice {
   }
 
  protected:
-  void handle_char_(uint8_t c);
+  void handle_input_buffer_();
   void handle_datapoints_(const uint8_t *buffer, size_t len);
   optional<TuyaDatapoint> get_datapoint_(uint8_t datapoint_id);
-  bool validate_message_();
+  // returns number of bytes to remove from the beginning of rx buffer
+  std::size_t validate_message_();
 
   void handle_command_(uint8_t command, uint8_t version, const uint8_t *buffer, size_t len);
   void send_raw_command_(TuyaCommand command);
@@ -145,7 +149,7 @@ class Tuya : public Component, public uart::UARTDevice {
   TuyaInitState init_state_ = TuyaInitState::INIT_HEARTBEAT;
   bool init_failed_{false};
   int init_retries_{0};
-  uint8_t protocol_version_ = -1;
+  optional<uint8_t> protocol_version_;
   InternalGPIOPin *status_pin_{nullptr};
   int status_pin_reported_ = -1;
   int reset_pin_reported_ = -1;
@@ -154,7 +158,7 @@ class Tuya : public Component, public uart::UARTDevice {
   std::string product_ = "";
   std::vector<TuyaDatapointListener> listeners_;
   std::vector<TuyaDatapoint> datapoints_;
-  std::vector<uint8_t> rx_message_;
+  std::deque<uint8_t> rx_message_;
   std::vector<uint8_t> ignore_mcu_update_on_datapoints_{};
   std::vector<TuyaCommand> command_queue_;
   optional<TuyaCommandType> expected_response_{};
