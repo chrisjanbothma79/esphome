@@ -922,25 +922,8 @@ class FixedArrayRepeatedType(TypeInfo):
         # Just the array member, no index needed since we don't decode
         return [f"{self.cpp_type} {self.field_name}{{}};"]
 
-    @property
-    def decode_varint_content(self) -> str:
-        # Fixed arrays don't support decoding
-        return None
-
-    @property
-    def decode_length_content(self) -> str:
-        # Fixed arrays don't support decoding
-        return None
-
-    @property
-    def decode_32bit_content(self) -> str:
-        # Fixed arrays don't support decoding
-        return None
-
-    @property
-    def decode_64bit_content(self) -> str:
-        # Fixed arrays don't support decoding
-        return None
+    # No decode methods needed - fixed arrays don't support decoding
+    # The base class TypeInfo already returns None for all decode properties
 
     @property
     def _ti_is_bool(self) -> bool:
@@ -1388,6 +1371,20 @@ def build_message_type(
     source = message_source_map[desc.name]
     needs_decode = source in (SOURCE_BOTH, SOURCE_CLIENT)
     needs_encode = source in (SOURCE_BOTH, SOURCE_SERVER)
+
+    # Validate that fixed_array_size is only used in encode-only messages
+    if needs_decode:
+        for field in desc.field:
+            if (
+                field.label == 3
+                and get_field_opt(field, pb.fixed_array_size) is not None
+            ):
+                raise ValueError(
+                    f"Message '{desc.name}' uses fixed_array_size on field '{field.name}' "
+                    f"but has source={['SOURCE_BOTH', 'SOURCE_SERVER', 'SOURCE_CLIENT'][source]}. "
+                    f"Fixed arrays are only supported for SOURCE_SERVER (encode-only) messages "
+                    f"since we cannot trust or control the number of items received from clients."
+                )
 
     # Add MESSAGE_TYPE method if this is a service message
     if message_id is not None:
