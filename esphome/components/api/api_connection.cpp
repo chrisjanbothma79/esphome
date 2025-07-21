@@ -1342,8 +1342,6 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
   SubscribeLogsResponse msg;
   msg.level = static_cast<enums::LogLevel>(level);
   msg.set_message(reinterpret_cast<const uint8_t *>(line), message_len);
-  msg.send_failed = false;
-
   return this->send_message_(msg, SubscribeLogsResponse::MESSAGE_TYPE);
 }
 

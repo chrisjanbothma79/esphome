@@ -823,12 +823,10 @@ bool SubscribeLogsRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
 void SubscribeLogsResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(1, static_cast<uint32_t>(this->level));
   buffer.encode_bytes(3, this->message_ptr_, this->message_len_);
-  buffer.encode_bool(4, this->send_failed);
 }
 void SubscribeLogsResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->level));
   ProtoSize::add_bytes_field(total_size, 1, this->message_len_);
-  ProtoSize::add_bool_field(total_size, 1, this->send_failed);
 }
 #ifdef USE_API_NOISE
 bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
