@@ -957,7 +957,7 @@ class FixedArrayRepeatedType(TypeInfo):
         num_bytes = self._ti.get_fixed_size_bytes()
         if num_bytes is not None:
             # Fixed types have constant size per element, so we can multiply
-            field_id_size = self._ti.calculate_field_id_size()
+            field_id_size = self.calculate_field_id_size()
             # Pre-calculate the total bytes per element
             bytes_per_element = field_id_size + num_bytes
             o = f"total_size += {self.array_size} * {bytes_per_element};"
