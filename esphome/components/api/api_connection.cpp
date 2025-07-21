@@ -230,6 +230,9 @@ void APIConnection::loop() {
     msg.key = camera::Camera::instance()->get_object_id_hash();
     msg.set_data(this->image_reader_->peek_data_buffer(), to_send);
     msg.done = done;
+#ifdef USE_DEVICES
+    msg.device_id = camera::Camera::instance()->get_device_id();
+#endif
 
     if (this->send_message_(msg, CameraImageResponse::MESSAGE_TYPE)) {
       this->image_reader_->consume_data(to_send);
