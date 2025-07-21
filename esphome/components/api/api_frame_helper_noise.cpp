@@ -15,6 +15,7 @@ namespace api {
 
 static const char *const TAG = "api.noise";
 static const char *const PROLOGUE_INIT = "NoiseAPIInit";
+static constexpr size_t PROLOGUE_INIT_LEN = 12;  // strlen("NoiseAPIInit")
 
 #define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->client_info_->get_combined_info().c_str(), ##__VA_ARGS__)
 
@@ -74,9 +75,8 @@ APIError APINoiseFrameHelper::init() {
 
   // init prologue
   size_t old_size = prologue_.size();
-  size_t init_len = strlen(PROLOGUE_INIT);
-  prologue_.resize(old_size + init_len);
-  std::memcpy(prologue_.data() + old_size, PROLOGUE_INIT, init_len);
+  prologue_.resize(old_size + PROLOGUE_INIT_LEN);
+  std::memcpy(prologue_.data() + old_size, PROLOGUE_INIT, PROLOGUE_INIT_LEN);
 
   state_ = State::CLIENT_HELLO;
   return APIError::OK;
