@@ -929,32 +929,26 @@ class FixedArrayRepeatedType(TypeInfo):
 
     @property
     def encode_content(self) -> str:
-        # Special case for single-element arrays - no loop needed
+        # Helper to generate encode statement for a single element
+        def encode_element(element: str) -> str:
+            if isinstance(self._ti, EnumType):
+                return f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>({element}), true);"
+            else:
+                return f"buffer.{self._ti.encode_func}({self.number}, {element}, true);"
+
+        # Unroll small arrays for efficiency
         if self.array_size == 1:
-            if isinstance(self._ti, EnumType):
-                return f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}[0]), true);"
-            else:
-                return f"buffer.{self._ti.encode_func}({self.number}, this->{self.field_name}[0], true);"
+            return encode_element(f"this->{self.field_name}[0]")
+        elif self.array_size == 2:
+            return (
+                encode_element(f"this->{self.field_name}[0]")
+                + "\n  "
+                + encode_element(f"this->{self.field_name}[1]")
+            )
 
-        # Special case for 2-element arrays - unroll the loop
-        if self.array_size == 2:
-            if isinstance(self._ti, EnumType):
-                return (
-                    f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}[0]), true);\n"
-                    f"  buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}[1]), true);"
-                )
-            else:
-                return (
-                    f"buffer.{self._ti.encode_func}({self.number}, this->{self.field_name}[0], true);\n"
-                    f"  buffer.{self._ti.encode_func}({self.number}, this->{self.field_name}[1], true);"
-                )
-
-        # 3 or more elements need a loop
+        # Use loops for larger arrays
         o = f"for (const auto &it : this->{self.field_name}) {{\n"
-        if isinstance(self._ti, EnumType):
-            o += f"  buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(it), true);\n"
-        else:
-            o += f"  buffer.{self._ti.encode_func}({self.number}, it, true);\n"
+        o += f"  {encode_element('it')}\n"
         o += "}"
         return o
 
