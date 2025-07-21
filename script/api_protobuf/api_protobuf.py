@@ -634,12 +634,10 @@ class BytesType(TypeInfo):
         if not self.needs_decode:
             return ""  # No decode needed for SOURCE_SERVER messages
 
-        # Decode into storage and update pointer/length
+        # Decode into storage only - pointer/length are only needed for encoding
         return (
             f"case {self.number}:\n"
             f"  this->{self.field_name} = value.as_string();\n"
-            f"  this->{self.field_name}_ptr_ = reinterpret_cast<const uint8_t*>(this->{self.field_name}.data());\n"
-            f"  this->{self.field_name}_len_ = this->{self.field_name}.size();\n"
             f"  break;"
         )
 
