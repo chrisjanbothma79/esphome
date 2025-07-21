@@ -596,6 +596,8 @@ class MessageType(TypeInfo):
         return self._get_simple_size_calculation(name, force, "add_message_object")
 
     def get_estimated_size(self) -> int:
+        # For message types, we can't easily estimate the submessage size without
+        # access to the actual message definition. This is just a rough estimate.
         return (
             self.calculate_field_id_size() + 16
         )  # field ID + 16 bytes estimated submessage
