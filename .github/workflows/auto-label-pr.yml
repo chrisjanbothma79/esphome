@@ -395,16 +395,16 @@ jobs:
             const tooManyLabels = finalLabels.length > maxLabels;
             const tooManyChanges = nonTestChanges > tooBigThreshold;
 
-            // Get all reviews on this PR (used for both too-big detection and dismissal logic)
-            const { data: reviews } = await github.rest.pulls.listReviews({
-              owner,
-              repo,
-              pull_number: pr_number
-            });
-
             if ((tooManyLabels || tooManyChanges) && !isMegaPR) {
               const originalLength = finalLabels.length;
               console.log(`PR is too big - Labels: ${originalLength}, Changes: ${totalChanges} (non-test: ${nonTestChanges})`);
+
+              // Get all reviews on this PR to check for existing bot reviews
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner,
+                repo,
+                pull_number: pr_number
+              });
 
               // Check if there's already an active bot review requesting changes
               const existingBotReview = reviews.find(review =>
@@ -452,7 +452,14 @@ jobs:
               if (wasPreviouslyTooBig || isMegaPR) {
                 console.log('PR is no longer too big or has mega-pr label - dismissing bot reviews');
 
-                // Find bot reviews that requested changes (reuse reviews from above)
+                // Get all reviews on this PR to find reviews to dismiss
+                const { data: reviews } = await github.rest.pulls.listReviews({
+                  owner,
+                  repo,
+                  pull_number: pr_number
+                });
+
+                // Find bot reviews that requested changes
                 const botReviews = reviews.filter(review =>
                   review.user.type === 'Bot' &&
                   review.state === 'CHANGES_REQUESTED' &&
