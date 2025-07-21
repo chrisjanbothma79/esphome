@@ -818,12 +818,12 @@ bool SubscribeLogsRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
 }
 void SubscribeLogsResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(1, static_cast<uint32_t>(this->level));
-  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->message.data()), this->message.size());
+  buffer.encode_bytes(3, this->message_ptr_, this->message_len_);
   buffer.encode_bool(4, this->send_failed);
 }
 void SubscribeLogsResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->level));
-  ProtoSize::add_string_field(total_size, 1, this->message);
+  ProtoSize::add_bytes_field(total_size, 1, this->message_len_);
   ProtoSize::add_bool_field(total_size, 1, this->send_failed);
 }
 #ifdef USE_API_NOISE
@@ -1030,7 +1030,7 @@ void ListEntitiesCameraResponse::calculate_size(uint32_t &total_size) const {
 }
 void CameraImageResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
-  buffer.encode_bytes(2, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  buffer.encode_bytes(2, this->data_ptr_, this->data_len_);
   buffer.encode_bool(3, this->done);
 #ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
@@ -1038,7 +1038,7 @@ void CameraImageResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void CameraImageResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
-  ProtoSize::add_string_field(total_size, 1, this->data);
+  ProtoSize::add_bytes_field(total_size, 1, this->data_len_);
   ProtoSize::add_bool_field(total_size, 1, this->done);
 #ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);

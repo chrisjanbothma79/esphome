@@ -1666,7 +1666,7 @@ void SubscribeLogsResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  message: ");
-  out.append(format_hex_pretty(this->message));
+  out.append(format_hex_pretty(this->message_ptr_, this->message_len_));
   out.append("\n");
 
   out.append("  send_failed: ");
@@ -1932,7 +1932,7 @@ void CameraImageResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  data: ");
-  out.append(format_hex_pretty(this->data));
+  out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
   out.append("\n");
 
   out.append("  done: ");
