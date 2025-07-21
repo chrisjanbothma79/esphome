@@ -981,19 +981,10 @@ class FixedArrayRepeatedType(TypeInfo):
                 + self._ti.get_size_calculation(f"{name}[1]", True)
             )
 
-        # Check if this is a fixed-size type by seeing if it has a fixed byte count
-        num_bytes = self._ti.get_fixed_size_bytes()
-        if num_bytes is not None:
-            # Fixed types have constant size per element, so we can multiply
-            field_id_size = self.calculate_field_id_size()
-            # Pre-calculate the total bytes per element
-            bytes_per_element = field_id_size + num_bytes
-            o = f"total_size += {self.array_size} * {bytes_per_element};"
-        else:
-            # Other types need the actual value
-            o = f"for (const auto &it : {name}) {{\n"
-            o += f"  {self._ti.get_size_calculation('it', True)}\n"
-            o += "}"
+        # Use loops for larger arrays
+        o = f"for (const auto &it : {name}) {{\n"
+        o += f"  {self._ti.get_size_calculation('it', True)}\n"
+        o += "}"
         return o
 
     def get_estimated_size(self) -> int:
