@@ -41,6 +41,7 @@ class ClimateIR : public Component,
   void set_supports_cool(bool supports_cool) { this->supports_cool_ = supports_cool; }
   void set_supports_heat(bool supports_heat) { this->supports_heat_ = supports_heat; }
   void set_sensor(sensor::Sensor *sensor) { this->sensor_ = sensor; }
+  void set_humidity_sensor(sensor::Sensor *sensor) { this->humidity_sensor_ = sensor; }
 
  protected:
   float minimum_temperature_, maximum_temperature_, temperature_step_;
@@ -65,6 +66,7 @@ class ClimateIR : public Component,
   std::set<climate::ClimatePreset> presets_ = {};
 
   sensor::Sensor *sensor_{nullptr};
+  sensor::Sensor *humidity_sensor_{nullptr};
 };
 
 }  // namespace climate_ir
