@@ -25,7 +25,7 @@
 namespace esphome {
 namespace espnow {
 
-static constexpr char *const TAG = ESPNowTAG::TAG;
+static constexpr const char *TAG = ESPNowTAG::TAG;
 
 static const esp_err_t ESP_ERR_ESPNOW_CMP_BASE = (ESP_ERR_ESPNOW_BASE + 20);
 static const esp_err_t ESP_ERR_ESPNOW_FAILED = (ESP_ERR_ESPNOW_CMP_BASE + 1);
@@ -62,6 +62,8 @@ const LogString *espnow_error_to_str(esp_err_t error) {
       return LOG_STR("Peer not found.");
     case ESP_ERR_ESPNOW_IF:
       return LOG_STR("Interface does not match.");
+    default:
+      return LOG_STR("Unknown Error.");
   }
 }
 
@@ -158,7 +160,7 @@ void ESPNowComponent::dump_config() {
                 "  Long range mode: %s",
                 version, this->enabled_ ? "" : "[Disabled]", this->wifi_channel_, YESNO(this->is_wifi_enabled_()),
                 this->peer_str(this->own_peer_address_).c_str(), this->peer_str(this->default_peer_address_).c_str(),
-                this->response_timeout_, YESNO(this->long_range_), );
+                YESNO(this->long_range_));
 }
 
 bool ESPNowComponent::is_wifi_enabled_() {

@@ -231,7 +231,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
         this->peer_address_.has_value() ? this->peer_address_.value(x...) : this->parent_->get_default_peer_address();
     esp_err_t result = this->parent_->send(peer_address, payload);
     if (result != ESP_OK) {
-      esph_log_w(ESPNowTAG::TAG, espnow_error_to_str(result));
+      esph_log_w(ESPNowTAG::TAG, LOG_STR_ARG(espnow_error_to_str(result)));
     }
   }
 };
