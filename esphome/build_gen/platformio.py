@@ -1,9 +1,9 @@
 import os
 
-from esphome.const import ENV_NOGITIGNORE, __version__
+from esphome.const import __version__
 from esphome.core import CORE
-from esphome.helpers import get_bool_env, mkdir_p, read_file, write_file_if_changed
-from esphome.writer import find_begin_end, update_storage_json, write_gitignore
+from esphome.helpers import mkdir_p, read_file, write_file_if_changed
+from esphome.writer import find_begin_end, update_storage_json
 
 INI_AUTO_GENERATE_BEGIN = "; ========== AUTO GENERATED CODE BEGIN ==========="
 INI_AUTO_GENERATE_END = "; =========== AUTO GENERATED CODE END ============"
@@ -79,8 +79,6 @@ def write_project():
     mkdir_p(CORE.build_path)
 
     content = get_ini_content()
-    if not get_bool_env(ENV_NOGITIGNORE):
-        write_gitignore()
     write_ini(content)
 
     # Write extra script for C++ specific flags
