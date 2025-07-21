@@ -344,7 +344,7 @@ optional<float> DeltaFilter::new_value(float value) {
     }
   }
   float diff = fabsf(value - this->last_value_);
-  if (std::isnan(this->last_value_) || (diff > 0 && diff >= this->current_delta_)) {
+  if (std::isnan(this->last_value_) || (diff > 0.0f && diff >= this->current_delta_)) {
     if (this->percentage_mode_) {
       this->current_delta_ = fabsf(value * this->delta_);
     }
