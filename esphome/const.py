@@ -35,6 +35,14 @@ class Framework(StrEnum):
     ZEPHYR = "zephyr"
 
 
+class CoreModel(StrEnum):
+    """Core model identifiers for ESPHome scheduler."""
+
+    SINGLE = "ESPHOME_CORES_SINGLE"
+    MULTI_NO_ATOMICS = "ESPHOME_CORES_MULTI_NO_ATOMICS"
+    MULTI_ATOMICS = "ESPHOME_CORES_MULTI_ATOMICS"
+
+
 class PlatformFramework(Enum):
     """Combined platform-framework identifiers with tuple values."""
 
@@ -375,6 +383,8 @@ CONF_FINGER_ID = "finger_id"
 CONF_FINGERPRINT_COUNT = "fingerprint_count"
 CONF_FLASH_LENGTH = "flash_length"
 CONF_FLASH_TRANSITION_LENGTH = "flash_transition_length"
+CONF_FLIP_X = "flip_x"
+CONF_FLIP_Y = "flip_y"
 CONF_FLOW = "flow"
 CONF_FLOW_CONTROL_PIN = "flow_control_pin"
 CONF_FONT = "font"
