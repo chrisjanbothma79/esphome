@@ -929,6 +929,14 @@ class FixedArrayRepeatedType(TypeInfo):
 
     @property
     def encode_content(self) -> str:
+        # Special case for single-element arrays - no loop needed
+        if self.array_size == 1:
+            if isinstance(self._ti, EnumType):
+                return f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}[0]), true);"
+            else:
+                return f"buffer.{self._ti.encode_func}({self.number}, this->{self.field_name}[0], true);"
+
+        # Multiple elements need a loop
         o = f"for (const auto &it : this->{self.field_name}) {{\n"
         if isinstance(self._ti, EnumType):
             o += f"  buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(it), true);\n"
@@ -953,6 +961,11 @@ class FixedArrayRepeatedType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # For fixed arrays, we always encode all elements
+
+        # Special case for single-element arrays - no loop needed
+        if self.array_size == 1:
+            return self._ti.get_size_calculation(f"{name}[0]", True)
+
         # Check if this is a fixed-size type by seeing if it has a fixed byte count
         num_bytes = self._ti.get_fixed_size_bytes()
         if num_bytes is not None:
