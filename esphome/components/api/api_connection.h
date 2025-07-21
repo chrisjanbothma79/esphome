@@ -16,10 +16,34 @@
 namespace esphome {
 namespace api {
 
+// Client information structure
+struct ClientInfo {
+  std::string name;      // Client name from Hello message
+  std::string peername;  // IP:port from socket
+
+  std::string get_combined_info() const {
+    if (name == peername) {
+      // Before Hello message, both are the same
+      return name;
+    }
+    return name + " (" + peername + ")";
+  }
+};
+
 // Keepalive timeout in milliseconds
 static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
 // Maximum number of entities to process in a single batch during initial state/info sending
-static constexpr size_t MAX_INITIAL_PER_BATCH = 20;
+// This was increased from 20 to 24 after removing the unique_id field from entity info messages,
+// which reduced message sizes allowing more entities per batch without exceeding packet limits
+static constexpr size_t MAX_INITIAL_PER_BATCH = 24;
+// Maximum number of packets to process in a single batch (platform-dependent)
+// This limit exists to prevent stack overflow from the PacketInfo array in process_batch_
+// Each PacketInfo is 8 bytes, so 64 * 8 = 512 bytes, 32 * 8 = 256 bytes
+#if defined(USE_ESP32) || defined(USE_HOST)
+static constexpr size_t MAX_PACKETS_PER_BATCH = 64;  // ESP32 has 8KB+ stack, HOST has plenty
+#else
+static constexpr size_t MAX_PACKETS_PER_BATCH = 32;  // ESP8266/RP2040/etc have smaller stacks
+#endif
 
 class APIConnection : public APIServerConnection {
  public:
@@ -116,7 +140,6 @@ class APIConnection : public APIServerConnection {
 #ifdef USE_BLUETOOTH_PROXY
   void subscribe_bluetooth_le_advertisements(const SubscribeBluetoothLEAdvertisementsRequest &msg) override;
   void unsubscribe_bluetooth_le_advertisements(const UnsubscribeBluetoothLEAdvertisementsRequest &msg) override;
-  bool send_bluetooth_le_advertisement(const BluetoothLEAdvertisementResponse &msg);
 
   void bluetooth_device_request(const BluetoothDeviceRequest &msg) override;
   void bluetooth_gatt_read(const BluetoothGATTReadRequest &msg) override;
@@ -261,13 +284,7 @@ class APIConnection : public APIServerConnection {
   bool try_to_clear_buffer(bool log_out_of_space);
   bool send_buffer(ProtoWriteBuffer buffer, uint8_t message_type) override;
 
-  std::string get_client_combined_info() const {
-    if (this->client_info_ == this->client_peername_) {
-      // Before Hello message, both are the same (just IP:port)
-      return this->client_info_;
-    }
-    return this->client_info_ + " (" + this->client_peername_ + ")";
-  }
+  std::string get_client_combined_info() const { return this->client_info_.get_combined_info(); }
 
   // Buffer allocator methods for batch processing
   ProtoWriteBuffer allocate_single_message_buffer(uint16_t size);
@@ -473,9 +490,8 @@ class APIConnection : public APIServerConnection {
   std::unique_ptr<camera::CameraImageReader> image_reader_;
 #endif
 
-  // Group 3: Strings (12 bytes each on 32-bit, 4-byte aligned)
-  std::string client_info_;
-  std::string client_peername_;
+  // Group 3: Client info struct (24 bytes on 32-bit: 2 strings × 12 bytes each)
+  ClientInfo client_info_;
 
   // Group 4: 4-byte types
   uint32_t last_traffic_;
