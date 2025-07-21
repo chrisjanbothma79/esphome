@@ -6,7 +6,7 @@
 namespace esphome {
 namespace emontx {
 
-class EmonTxJsonTrigger : public Trigger<JsonObjectConst, std::string> {
+class EmonTxJsonTrigger : public Trigger<JsonObject, std::string> {
  public:
   explicit EmonTxJsonTrigger(EmonTx *parent) {
     parent->add_on_json_callback([this, parent](JsonObject json) {

@@ -12,7 +12,7 @@ EmonTx = emontx_ns.class_("EmonTx", cg.PollingComponent, uart.UARTDevice)
 
 # Add trigger class for on_json
 EmonTxJsonTrigger = emontx_ns.class_(
-    "EmonTxJsonTrigger", automation.Trigger.template(cg.JsonObjectConst)
+    "EmonTxJsonTrigger", automation.Trigger.template(cg.JsonObject)
 )
 
 CONF_EMONTX_ID = "emontx_id"
@@ -68,7 +68,7 @@ async def to_code(config):
             await automation.build_automation(
                 trigger,
                 [
-                    (cg.JsonObjectConst, "json"),
+                    (cg.JsonObject, "json"),
                     (cg.std_string, "raw_json"),
                 ],
                 conf,
