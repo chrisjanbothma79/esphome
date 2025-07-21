@@ -609,6 +609,9 @@ class BytesType(TypeInfo):
         super().__init__(field)
         self.needs_decode = needs_decode
         self.needs_encode = needs_encode
+        # Only set decode_length if we need decoding
+        if needs_decode:
+            self.decode_length = "value.as_string()"
 
     @property
     def public_content(self) -> list[str]:
@@ -639,18 +642,6 @@ class BytesType(TypeInfo):
             )
 
         return content
-
-    @property
-    def decode_length_content(self) -> str:
-        if not self.needs_decode:
-            return ""  # No decode needed for SOURCE_SERVER messages
-
-        # Decode into storage only - pointer/length are only needed for encoding
-        return (
-            f"case {self.number}:\n"
-            f"  this->{self.field_name} = value.as_string();\n"
-            f"  break;"
-        )
 
     @property
     def encode_content(self) -> str:
