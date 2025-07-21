@@ -67,6 +67,22 @@ const LogString *espnow_error_to_str(esp_err_t error) {
   }
 }
 
+std::string peer_str(uint64_t peer) {
+  char mac[24];
+  if (peer == 0) {
+    snprintf(mac, sizeof(mac), "%s", "[Not Set]");
+  } else if (peer == ESPNOW_BROADCAST_ADDR) {
+    snprintf(mac, sizeof(mac), "%s", "[Broadcast]");
+  } else if (peer == ESPNOW_MULTICAST_ADDR) {
+    snprintf(mac, sizeof(mac), "%s", "[Multicast]");
+  } else {
+    uint8_t *ppeer = (uint8_t *) &peer;
+    snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X", ppeer[0], ppeer[1], ppeer[2], ppeer[3], ppeer[4],
+             ppeer[5]);
+  }
+  return mac;
+}
+
 /* ESPNowPacket ********************************************************************** */
 
 ESPNowPacket::ESPNowPacket(uint64_t peer, const uint8_t *payload, size_t size) {
@@ -118,28 +134,12 @@ uint64_t ESPNowPacket::read(size_t pos, size_t length, bool header) const {
   return result;
 }
 
-std::string ESPNowPacket::peer_str() const {
-  char mac[24];
-  uint64_t peer = this->peer_id_;
-  if (peer == 0) {
-    snprintf(mac, sizeof(mac), "%s", "[Not Set]");
-  } else if (peer == ESPNOW_BROADCAST_ADDR) {
-    snprintf(mac, sizeof(mac), "%s", "[Broadcast]");
-  } else if (peer == ESPNOW_MULTICAST_ADDR) {
-    snprintf(mac, sizeof(mac), "%s", "[Multicast]");
-  } else {
-    uint8_t *ppeer = (uint8_t *) &peer;
-    snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X", ppeer[0], ppeer[1], ppeer[2], ppeer[3], ppeer[4],
-             ppeer[5]);
-  }
-  return mac;
-}
-
 std::string ESPNowPacket::info() const {
   char info[100];
-  char mode = this->is_received_ ? 'R' : 'S';
-  snprintf(info, sizeof(info), "%c>%s, Broatcasted: %s, Size: %d ", mode, this->peer_str().c_str(),
-           YESNO(this->is_broadcast_), this->size());
+  char mode[2] = {this->is_received_ ? 'R' : 'S', this->is_broadcast_ ? 'U' : 'B'};
+
+  snprintf(info, sizeof(info), "%c%c > %s, Broadcast: %s, Size: %d ", mode[0], mode[1],
+           peer_str(this->peer_id()).c_str(), this->size());
   return info;
 }
 
@@ -159,7 +159,7 @@ void ESPNowComponent::dump_config() {
                 "  Default Mac Address: %s\n"
                 "  Long range mode: %s",
                 version, this->enabled_ ? "" : "[Disabled]", this->wifi_channel_, YESNO(this->is_wifi_enabled_()),
-                this->peer_str(this->own_peer_address_).c_str(), this->peer_str(this->default_peer_address_).c_str(),
+                peer_str(this->own_peer_address_).c_str(), peer_str(this->default_peer_address_).c_str(),
                 YESNO(this->long_range_));
 }
 
@@ -401,15 +401,8 @@ void ESPNowComponent::on_data_received(const esp_now_recv_info_t *info, const ui
 }
 
 void ESPNowComponent::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet) {
-  ESP_LOGI(TAG, "call triggger {%d}", (int) event);
-  bool result = false;
-  for (const auto &kv : this->extensions_) {
-    result = kv->call_trigger(event, weak_packet);
-    if (result) {
-      break;
-    }
-  }
-  if (!result && this->triggers_[event]) {
+  if (this->triggers_[event]) {
+    ESP_LOGI(TAG, "call triggger {%d}", (int) event);
     auto packet = weak_packet.lock();
     this->triggers_[event]->trigger(packet);
   }
@@ -453,11 +446,7 @@ esp_err_t ESPNowComponent::add_peer(uint64_t peer) {
       memcpy((void *) peer_info.peer_addr, (void *) &peer, 6);
       result = esp_now_add_peer(&peer_info);
       if (result == ESP_OK) {
-        this->defer("Add_peer_trigger", [this, peer]() {
-          for (const auto &kv : this->extensions_) {
-            kv->on_add_peer(peer);
-          }
-        });
+        this->report_add_peer(peer);
       }
     }
     if (result == ESP_OK) {
@@ -479,11 +468,7 @@ esp_err_t ESPNowComponent::del_peer(uint64_t peer) {
     if (esp_now_is_peer_exist((uint8_t *) &peer)) {
       esp_err_t result = esp_now_del_peer((uint8_t *) &peer);
       if (result == ESP_OK) {
-        this->defer("del_peer_trigger", [this, peer]() {
-          for (const auto &kv : this->extensions_) {
-            kv->on_del_peer(peer);
-          }
-        });
+        this->report_del_peer(peer);
       }
     }
   }
@@ -501,48 +486,6 @@ esp_err_t ESPNowComponent::del_peer(uint64_t peer) {
   }
   return result;
 }
-
-std::string ESPNowComponent::peer_str(uint64_t peer) {
-  char mac[24];
-  if (peer == 0) {
-    snprintf(mac, sizeof(mac), "%s", "[Not Set]");
-  } else if (peer == ESPNOW_BROADCAST_ADDR) {
-    snprintf(mac, sizeof(mac), "%s", "[Broadcast]");
-  } else if (peer == ESPNOW_MULTICAST_ADDR) {
-    snprintf(mac, sizeof(mac), "%s", "[Multicast]");
-  } else {
-    uint8_t *ppeer = (uint8_t *) &peer;
-    snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X", ppeer[0], ppeer[1], ppeer[2], ppeer[3], ppeer[4],
-             ppeer[5]);
-  }
-  return mac;
-}
-
-/* ESPNowExtension ********************************************************************** */
-
-esp_err_t ESPNowExtension::send(uint64_t peer, std::vector<uint8_t> payload) {
-  return this->parent_->send(peer, std::move(payload));
-}
-
-bool ESPNowExtension::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet) {
-  switch (event) {
-    case ESPNowTriggers::ON_NEW_PEER:
-      return this->on_new_peer(weak_packet);
-    case ESPNowTriggers::ON_RECEIVED:
-      return this->on_received(weak_packet);
-    case ESPNowTriggers::ON_BROADCASTED:
-      return this->on_broadcasted(weak_packet);
-    case ESPNowTriggers::ON_SUCCEED:
-      return this->on_sent_succeed(weak_packet);
-    case ESPNowTriggers::ON_FAILED:
-      return this->on_sent_failed(weak_packet);
-    default:
-      return false;
-  }
-}
-
-uint64_t ESPNowExtension::get_default_peer_address_() { return this->parent_->get_default_peer_address(); }
-void ESPNowExtension::set_default_peer_address_(uint64_t value) { this->parent_->set_default_peer_address(value); }
 
 }  // namespace espnow
 }  // namespace esphome

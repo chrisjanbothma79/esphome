@@ -61,8 +61,6 @@ class ESPNowPacket {
   void peer_id(uint64_t value) { this->peer_id_ = value; }
   uint64_t peer_id() const { return this->peer_id_; }
 
-  std::string peer_str() const;
-
   virtual std::string info() const;
 
   void timestamp(uint32_t value) { this->timestamp_ = value; }
@@ -113,28 +111,6 @@ class ESPNowPacket {
   bool is_received_{false};
 };
 
-class ESPNowExtension : public Parented<ESPNowComponent> {
- public:
-  virtual void initialize() {}
-
-  virtual bool on_add_peer(uint64_t peer) { return true; };
-  virtual bool on_del_peer(uint64_t peer) { return true; };
-
-  virtual bool on_new_peer(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
-  virtual bool on_received(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
-  virtual bool on_broadcasted(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
-  virtual bool on_sent_succeed(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
-  virtual bool on_sent_failed(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
-
-  virtual bool call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet);
-
-  esp_err_t send(uint64_t peer, std::vector<uint8_t> payload);
-
- protected:
-  uint64_t get_default_peer_address_();
-  void set_default_peer_address_(uint64_t value);
-};
-
 class ESPNowComponent : public Component {
  public:
   ESPNowComponent();
@@ -157,7 +133,7 @@ class ESPNowComponent : public Component {
 
   Trigger<std::shared_ptr<ESPNowPacket>> *get_trigger(ESPNowTriggers event);
 
-  void call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet);
+  virtual void call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet);
 
   uint64_t get_own_peer_address() const { return this->own_peer_address_; }
 
@@ -173,12 +149,6 @@ class ESPNowComponent : public Component {
 
   bool can_proceed() override;
 
-  void register_extension(ESPNowExtension *app) {
-    app->set_parent(this);
-    this->extensions_.push_back(app);
-    app->initialize();
-  }
-
   esp_err_t send(uint64_t peer_address, std::vector<uint8_t> payload);
   bool get_last_send_state() { return this->last_send_state_; }
 
@@ -188,13 +158,14 @@ class ESPNowComponent : public Component {
 #else
   static void on_send_report(const uint8_t *mac_addr, esp_now_send_status_t status);
 #endif
-  std::string peer_str(uint64_t peer);
 
  protected:
   bool is_wifi_enabled_();
 
   bool validate_channel_(uint8_t channel);
   void update_prefs_(){};
+  virtual void report_add_peer(uint64_t peer){};
+  virtual void report_del_peer(uint64_t peer){};
 
   // Needed to splits the enable becase ::is_raedy() is set to early,
 
@@ -214,7 +185,6 @@ class ESPNowComponent : public Component {
   std::map<ESPNowTriggers, Trigger<std::shared_ptr<ESPNowPacket>> *> triggers_{};
 
   std::vector<uint64_t> peers_{};
-  std::vector<ESPNowExtension *> extensions_{};
 
   static ESPNowComponent *static_;  // NOLINT
 };
