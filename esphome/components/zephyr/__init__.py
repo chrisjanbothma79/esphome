@@ -2,7 +2,7 @@ import os
 from typing import Final, TypedDict
 
 import esphome.codegen as cg
-from esphome.const import CONF_BOARD, CoreModel
+from esphome.const import CONF_BOARD
 from esphome.core import CORE
 from esphome.helpers import copy_file_if_changed, write_file_if_changed
 
@@ -110,9 +110,6 @@ def zephyr_to_code(config):
     cg.add(zephyr_ns.setup_preferences())
     cg.add_build_flag("-DUSE_ZEPHYR")
     cg.set_cpp_standard("gnu++20")
-    # While Zephyr supports multi-core systems, ESPHome currently only supports
-    # nRF52 which is single-core
-    cg.add_define(CoreModel.SINGLE)
     # build is done by west so bypass board checking in platformio
     cg.add_platformio_option("boards_dir", CORE.relative_build_path("boards"))
 
