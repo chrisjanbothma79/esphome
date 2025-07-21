@@ -225,11 +225,10 @@ void APIConnection::loop() {
   if (this->image_reader_ && this->image_reader_->available() && this->helper_->can_write_without_blocking()) {
     uint32_t to_send = std::min((size_t) MAX_BATCH_PACKET_SIZE, this->image_reader_->available());
     bool done = this->image_reader_->available() == to_send;
-    uint32_t msg_size = 0;
-    ProtoSize::add_fixed_field<4>(msg_size, 1, true);
     // partial message size calculated manually since its a special case
-    // 1 for the data field, varint for the data size, and the data itself
-    msg_size += 1 + ProtoSize::varint(to_send) + to_send;
+    // fixed32 key = 1 (1 byte for field header + 4 bytes for fixed32)
+    // bytes data = 2 (1 byte for field header + varint for data size + data itself)
+    uint32_t msg_size = 1 + 4 + 1 + ProtoSize::varint(to_send) + to_send;
     ProtoSize::add_bool_field(msg_size, 1, done);
 
     auto buffer = this->create_buffer(msg_size);
