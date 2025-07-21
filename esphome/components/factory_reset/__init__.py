@@ -29,12 +29,12 @@ def _validate(config):
                 PLATFORM_BK72XX,
                 PLATFORM_ESP32,
                 PLATFORM_ESP8266,
-                PLATFORM_RTL87XX,
                 PLATFORM_LN882X,
+                PLATFORM_RTL87XX,
             ]
         )(config)
 
-    elif CONF_ON_INCREMENT in config:
+    if CONF_ON_INCREMENT in config:
         raise cv.Invalid(
             f"'{CONF_ON_INCREMENT}' requires a value for '{CONF_RESETS_REQUIRED}'"
         )
