@@ -839,12 +839,12 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
 void VoiceAssistant::on_audio(const api::VoiceAssistantAudio &msg) {
 #ifdef USE_SPEAKER  // We should never get to this function if there is no speaker anyway
   if ((this->speaker_ != nullptr) && (this->speaker_buffer_ != nullptr)) {
-    if (this->speaker_buffer_index_ + msg.data_len_ < SPEAKER_BUFFER_SIZE) {
-      memcpy(this->speaker_buffer_ + this->speaker_buffer_index_, msg.data_ptr_, msg.data_len_);
-      this->speaker_buffer_index_ += msg.data_len_;
-      this->speaker_buffer_size_ += msg.data_len_;
-      this->speaker_bytes_received_ += msg.data_len_;
-      ESP_LOGV(TAG, "Received audio: %u bytes from API", msg.data_len_);
+    if (this->speaker_buffer_index_ + msg.data.size() < SPEAKER_BUFFER_SIZE) {
+      memcpy(this->speaker_buffer_ + this->speaker_buffer_index_, msg.data.data(), msg.data.size());
+      this->speaker_buffer_index_ += msg.data.size();
+      this->speaker_buffer_size_ += msg.data.size();
+      this->speaker_bytes_received_ += msg.data.size();
+      ESP_LOGV(TAG, "Received audio: %u bytes from API", msg.data.size());
     } else {
       ESP_LOGE(TAG, "Cannot receive audio, buffer is full");
     }
