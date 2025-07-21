@@ -313,7 +313,9 @@ def validate_field_type(field_type: int, field_name: str = "") -> None:
         )
 
 
-def create_field_type_info(field: descriptor.FieldDescriptorProto) -> TypeInfo:
+def create_field_type_info(
+    field: descriptor.FieldDescriptorProto, needs_decode: bool = True
+) -> TypeInfo:
     """Create the appropriate TypeInfo instance for a field, handling repeated fields and custom options."""
     if field.label == 3:  # repeated
         return RepeatedTypeInfo(field)
@@ -324,6 +326,10 @@ def create_field_type_info(field: descriptor.FieldDescriptorProto) -> TypeInfo:
         and (fixed_size := get_field_opt(field, pb.fixed_array_size)) is not None
     ):
         return FixedArrayBytesType(field, fixed_size)
+
+    # Special handling for bytes fields
+    if field.type == 12:
+        return BytesType(field, needs_decode)
 
     validate_field_type(field.type, field.name)
     return TYPE_INFO[field.type](field)
@@ -589,21 +595,53 @@ class BytesType(TypeInfo):
     default_value = ""
     reference_type = "std::string &"
     const_reference_type = "const std::string &"
-    decode_length = "value.as_string()"
     encode_func = "encode_bytes"
     wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
+
+    def __init__(
+        self, field: descriptor.FieldDescriptorProto, needs_decode: bool = True
+    ) -> None:
+        super().__init__(field)
+        self.needs_decode = needs_decode
 
     @property
     def public_content(self) -> list[str]:
         # Store both pointer and length for zero-copy encoding, plus setter method
-        return [
+        content = [
             f"const uint8_t* {self.field_name}_ptr_{{nullptr}};",
             f"size_t {self.field_name}_len_{{0}};",
-            f"void set_{self.field_name}(const uint8_t* data, size_t len) {{",
-            f"  this->{self.field_name}_ptr_ = data;",
-            f"  this->{self.field_name}_len_ = len;",
-            "}",
         ]
+
+        # Only add storage if message needs decoding
+        if self.needs_decode:
+            content.append(
+                f"std::string {self.field_name}{{}};  // Storage for decoded data"
+            )
+
+        content.extend(
+            [
+                f"void set_{self.field_name}(const uint8_t* data, size_t len) {{",
+                f"  this->{self.field_name}_ptr_ = data;",
+                f"  this->{self.field_name}_len_ = len;",
+                "}",
+            ]
+        )
+
+        return content
+
+    @property
+    def decode_length_content(self) -> str:
+        if not self.needs_decode:
+            return ""  # No decode needed for SOURCE_SERVER messages
+
+        # Decode into storage and update pointer/length
+        return (
+            f"case {self.number}:\n"
+            f"  this->{self.field_name} = value.as_string();\n"
+            f"  this->{self.field_name}_ptr_ = reinterpret_cast<const uint8_t*>(this->{self.field_name}.data());\n"
+            f"  this->{self.field_name}_len_ = this->{self.field_name}.size();\n"
+            f"  break;"
+        )
 
     @property
     def encode_content(self) -> str:
@@ -1268,7 +1306,7 @@ def build_message_type(
         if field.options.deprecated:
             continue
 
-        ti = create_field_type_info(field)
+        ti = create_field_type_info(field, needs_decode)
 
         # Skip field declarations for fields that are in the base class
         # but include their encode/decode logic
@@ -1583,10 +1621,16 @@ def build_base_class(
     public_content = []
     protected_content = []
 
+    # Determine if any message using this base class needs decoding
+    needs_decode = any(
+        message_source_map.get(msg.name, SOURCE_BOTH) in (SOURCE_BOTH, SOURCE_CLIENT)
+        for msg in messages
+    )
+
     # For base classes, we only declare the fields but don't handle encode/decode
     # The derived classes will handle encoding/decoding with their specific field numbers
     for field in common_fields:
-        ti = create_field_type_info(field)
+        ti = create_field_type_info(field, needs_decode)
 
         # Get field_ifdef if it's consistent across all messages
         field_ifdef = get_common_field_ifdef(field.name, messages)
@@ -1596,12 +1640,6 @@ def build_base_class(
             protected_content.extend(wrap_with_ifdef(ti.protected_content, field_ifdef))
         if ti.public_content:
             public_content.extend(wrap_with_ifdef(ti.public_content, field_ifdef))
-
-    # Determine if any message using this base class needs decoding
-    needs_decode = any(
-        message_source_map.get(msg.name, SOURCE_BOTH) in (SOURCE_BOTH, SOURCE_CLIENT)
-        for msg in messages
-    )
 
     # Build header
     parent_class = "ProtoDecodableMessage" if needs_decode else "ProtoMessage"

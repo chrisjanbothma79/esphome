@@ -831,6 +831,8 @@ bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthD
   switch (field_id) {
     case 1:
       this->key = value.as_string();
+      this->key_ptr_ = reinterpret_cast<const uint8_t *>(this->key.data());
+      this->key_len_ = this->key.size();
       break;
     default:
       return false;
@@ -1999,6 +2001,8 @@ bool BluetoothGATTWriteRequest::decode_length(uint32_t field_id, ProtoLengthDeli
   switch (field_id) {
     case 4:
       this->data = value.as_string();
+      this->data_ptr_ = reinterpret_cast<const uint8_t *>(this->data.data());
+      this->data_len_ = this->data.size();
       break;
     default:
       return false;
@@ -2035,6 +2039,8 @@ bool BluetoothGATTWriteDescriptorRequest::decode_length(uint32_t field_id, Proto
   switch (field_id) {
     case 3:
       this->data = value.as_string();
+      this->data_ptr_ = reinterpret_cast<const uint8_t *>(this->data.data());
+      this->data_len_ = this->data.size();
       break;
     default:
       return false;
@@ -2257,6 +2263,8 @@ bool VoiceAssistantAudio::decode_length(uint32_t field_id, ProtoLengthDelimited 
   switch (field_id) {
     case 1:
       this->data = value.as_string();
+      this->data_ptr_ = reinterpret_cast<const uint8_t *>(this->data.data());
+      this->data_len_ = this->data.size();
       break;
     default:
       return false;

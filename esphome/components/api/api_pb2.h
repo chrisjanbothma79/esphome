@@ -993,6 +993,7 @@ class NoiseEncryptionSetKeyRequest : public ProtoDecodableMessage {
 #endif
   const uint8_t *key_ptr_{nullptr};
   size_t key_len_{0};
+  std::string key{};  // Storage for decoded data
   void set_key(const uint8_t *data, size_t len) {
     this->key_ptr_ = data;
     this->key_len_ = len;
@@ -1921,6 +1922,7 @@ class BluetoothGATTWriteRequest : public ProtoDecodableMessage {
   bool response{false};
   const uint8_t *data_ptr_{nullptr};
   size_t data_len_{0};
+  std::string data{};  // Storage for decoded data
   void set_data(const uint8_t *data, size_t len) {
     this->data_ptr_ = data;
     this->data_len_ = len;
@@ -1960,6 +1962,7 @@ class BluetoothGATTWriteDescriptorRequest : public ProtoDecodableMessage {
   uint32_t handle{0};
   const uint8_t *data_ptr_{nullptr};
   size_t data_len_{0};
+  std::string data{};  // Storage for decoded data
   void set_data(const uint8_t *data, size_t len) {
     this->data_ptr_ = data;
     this->data_len_ = len;
@@ -2298,6 +2301,7 @@ class VoiceAssistantAudio : public ProtoDecodableMessage {
 #endif
   const uint8_t *data_ptr_{nullptr};
   size_t data_len_{0};
+  std::string data{};  // Storage for decoded data
   void set_data(const uint8_t *data, size_t len) {
     this->data_ptr_ = data;
     this->data_len_ = len;
