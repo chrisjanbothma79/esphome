@@ -991,13 +991,7 @@ class NoiseEncryptionSetKeyRequest : public ProtoDecodableMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "noise_encryption_set_key_request"; }
 #endif
-  const uint8_t *key_ptr_{nullptr};
-  size_t key_len_{0};
   std::string key{};  // Storage for decoded data
-  void set_key(const uint8_t *data, size_t len) {
-    this->key_ptr_ = data;
-    this->key_len_ = len;
-  }
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1920,13 +1914,7 @@ class BluetoothGATTWriteRequest : public ProtoDecodableMessage {
   uint64_t address{0};
   uint32_t handle{0};
   bool response{false};
-  const uint8_t *data_ptr_{nullptr};
-  size_t data_len_{0};
   std::string data{};  // Storage for decoded data
-  void set_data(const uint8_t *data, size_t len) {
-    this->data_ptr_ = data;
-    this->data_len_ = len;
-  }
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1960,13 +1948,7 @@ class BluetoothGATTWriteDescriptorRequest : public ProtoDecodableMessage {
 #endif
   uint64_t address{0};
   uint32_t handle{0};
-  const uint8_t *data_ptr_{nullptr};
-  size_t data_len_{0};
   std::string data{};  // Storage for decoded data
-  void set_data(const uint8_t *data, size_t len) {
-    this->data_ptr_ = data;
-    this->data_len_ = len;
-  }
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
