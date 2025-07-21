@@ -625,9 +625,7 @@ class BytesType(TypeInfo):
 
         # Add std::string storage if message needs decoding
         if self.needs_decode:
-            content.append(
-                f"std::string {self.field_name}{{}};  // Storage for decoded data"
-            )
+            content.append(f"std::string {self.field_name}{{}};")
 
         # Add setter method if message needs encoding
         if self.needs_encode:
