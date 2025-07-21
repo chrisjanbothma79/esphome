@@ -928,11 +928,6 @@ class FixedArrayRepeatedType(TypeInfo):
     # The base class TypeInfo already returns None for all decode properties
 
     @property
-    def _ti_is_bool(self) -> bool:
-        # std::array doesn't have the same specialization issues as std::vector for bool
-        return False
-
-    @property
     def encode_content(self) -> str:
         o = f"for (const auto &it : this->{self.field_name}) {{\n"
         if isinstance(self._ti, EnumType):
@@ -950,9 +945,6 @@ class FixedArrayRepeatedType(TypeInfo):
         o += '  out.append("\\n");\n'
         o += "}\n"
         return o
-
-    def dump(self, _: str):
-        pass
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # For fixed arrays, we always encode all elements
