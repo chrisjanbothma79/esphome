@@ -113,8 +113,15 @@ def force_str(force: bool) -> str:
 class TypeInfo(ABC):
     """Base class for all type information."""
 
-    def __init__(self, field: descriptor.FieldDescriptorProto) -> None:
+    def __init__(
+        self,
+        field: descriptor.FieldDescriptorProto,
+        needs_decode: bool = True,
+        needs_encode: bool = True,
+    ) -> None:
         self._field = field
+        self._needs_decode = needs_decode
+        self._needs_encode = needs_encode
 
     @property
     def default_value(self) -> str:
@@ -598,49 +605,29 @@ class BytesType(TypeInfo):
     reference_type = "std::string &"
     const_reference_type = "const std::string &"
     encode_func = "encode_bytes"
+    decode_length = "value.as_string()"
     wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
-
-    def __init__(
-        self,
-        field: descriptor.FieldDescriptorProto,
-        needs_decode: bool = True,
-        needs_encode: bool = True,
-    ) -> None:
-        super().__init__(field)
-        self.needs_decode = needs_decode
-        self.needs_encode = needs_encode
-        # Only set decode_length if we need decoding
-        if needs_decode:
-            self.decode_length = "value.as_string()"
 
     @property
     def public_content(self) -> list[str]:
-        content = []
-
-        # Add pointer/length fields if message needs encoding
-        if self.needs_encode:
-            content.extend(
-                [
-                    f"const uint8_t* {self.field_name}_ptr_{{nullptr}};",
-                    f"size_t {self.field_name}_len_{{0}};",
-                ]
-            )
-
+        content: list[str] = []
         # Add std::string storage if message needs decoding
-        if self.needs_decode:
+        if self._needs_decode:
             content.append(f"std::string {self.field_name}{{}};")
 
-        # Add setter method if message needs encoding
-        if self.needs_encode:
+        if self._needs_encode:
             content.extend(
                 [
+                    # Add pointer/length fields if message needs encoding
+                    f"const uint8_t* {self.field_name}_ptr_{{nullptr}};",
+                    f"size_t {self.field_name}_len_{{0}};",
+                    # Add setter method if message needs encoding
                     f"void set_{self.field_name}(const uint8_t* data, size_t len) {{",
                     f"  this->{self.field_name}_ptr_ = data;",
                     f"  this->{self.field_name}_len_ = len;",
                     "}",
                 ]
             )
-
         return content
 
     @property
@@ -652,11 +639,11 @@ class BytesType(TypeInfo):
         str_dump = f"format_hex_pretty(reinterpret_cast<const uint8_t*>(this->{self.field_name}.data()), this->{self.field_name}.size())"
 
         # For SOURCE_CLIENT only, always use std::string
-        if not self.needs_encode:
+        if not self._needs_encode:
             return f"out.append({str_dump});"
 
         # For SOURCE_SERVER, always use pointer/length
-        if not self.needs_decode:
+        if not self._needs_decode:
             return f"out.append({ptr_dump});"
 
         # For SOURCE_BOTH, check if pointer is set (sending) or use string (received)
