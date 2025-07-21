@@ -164,7 +164,7 @@ def _validate_method(value):
 
 CONFIG_SCHEMA = cv.All(
     cv.only_with_framework(
-        frameworks="arduino",
+        frameworks=Framework.ARDUINO,
         suggestions={
             Framework.ESP_IDF: (
                 "esp32_rmt_led_strip",
