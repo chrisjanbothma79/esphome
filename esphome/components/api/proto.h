@@ -686,6 +686,19 @@ class ProtoSize {
   }
 
   /**
+   * @brief Calculates and adds the size of a bytes field to the total message size
+   */
+  static inline void add_bytes_field(uint32_t &total_size, uint32_t field_id_size, size_t len) {
+    // Skip calculation if bytes is empty
+    if (len == 0) {
+      return;  // No need to update total_size
+    }
+
+    // Field ID + length varint + data bytes
+    total_size += field_id_size + varint(static_cast<uint32_t>(len)) + static_cast<uint32_t>(len);
+  }
+
+  /**
    * @brief Calculates and adds the size of a nested message field to the total message size
    *
    * This helper function directly updates the total_size reference if the nested size

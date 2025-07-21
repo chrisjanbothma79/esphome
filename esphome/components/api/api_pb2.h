@@ -970,7 +970,12 @@ class SubscribeLogsResponse : public ProtoMessage {
   const char *message_name() const override { return "subscribe_logs_response"; }
 #endif
   enums::LogLevel level{};
-  std::string message{};
+  const uint8_t *message_ptr_{nullptr};
+  size_t message_len_{0};
+  void set_message(const uint8_t *data, size_t len) {
+    this->message_ptr_ = data;
+    this->message_len_ = len;
+  }
   bool send_failed{false};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
@@ -1228,7 +1233,12 @@ class CameraImageResponse : public StateResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "camera_image_response"; }
 #endif
-  std::string data{};
+  const uint8_t *data_ptr_{nullptr};
+  size_t data_len_{0};
+  void set_data(const uint8_t *data, size_t len) {
+    this->data_ptr_ = data;
+    this->data_len_ = len;
+  }
   bool done{false};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
@@ -1882,7 +1892,12 @@ class BluetoothGATTReadResponse : public ProtoMessage {
 #endif
   uint64_t address{0};
   uint32_t handle{0};
-  std::string data{};
+  const uint8_t *data_ptr_{nullptr};
+  size_t data_len_{0};
+  void set_data(const uint8_t *data, size_t len) {
+    this->data_ptr_ = data;
+    this->data_len_ = len;
+  }
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1970,7 +1985,12 @@ class BluetoothGATTNotifyDataResponse : public ProtoMessage {
 #endif
   uint64_t address{0};
   uint32_t handle{0};
-  std::string data{};
+  const uint8_t *data_ptr_{nullptr};
+  size_t data_len_{0};
+  void set_data(const uint8_t *data, size_t len) {
+    this->data_ptr_ = data;
+    this->data_len_ = len;
+  }
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2263,7 +2283,13 @@ class VoiceAssistantAudio : public ProtoDecodableMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "voice_assistant_audio"; }
 #endif
+  const uint8_t *data_ptr_{nullptr};
+  size_t data_len_{0};
   std::string data{};
+  void set_data(const uint8_t *data, size_t len) {
+    this->data_ptr_ = data;
+    this->data_len_ = len;
+  }
   bool end{false};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
