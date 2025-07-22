@@ -344,7 +344,7 @@ uint16_t APIConnection::try_send_binary_sensor_info(EntityBase *entity, APIConne
                                                     bool is_single) {
   auto *binary_sensor = static_cast<binary_sensor::BinarySensor *>(entity);
   ListEntitiesBinarySensorResponse msg;
-  msg.set_device_class(StringRef(binary_sensor->get_device_class()));
+  msg.set_device_class(binary_sensor->get_device_class_ref());
   msg.is_status_binary_sensor = binary_sensor->is_status_binary_sensor();
   return fill_and_encode_entity_info(binary_sensor, msg, ListEntitiesBinarySensorResponse::MESSAGE_TYPE, conn,
                                      remaining_size, is_single);
@@ -376,7 +376,7 @@ uint16_t APIConnection::try_send_cover_info(EntityBase *entity, APIConnection *c
   msg.supports_position = traits.get_supports_position();
   msg.supports_tilt = traits.get_supports_tilt();
   msg.supports_stop = traits.get_supports_stop();
-  msg.set_device_class(StringRef(cover->get_device_class()));
+  msg.set_device_class(cover->get_device_class_ref());
   return fill_and_encode_entity_info(cover, msg, ListEntitiesCoverResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -469,7 +469,9 @@ uint16_t APIConnection::try_send_light_state(EntityBase *entity, APIConnection *
   resp.cold_white = values.get_cold_white();
   resp.warm_white = values.get_warm_white();
   if (light->supports_effects()) {
-    resp.set_effect(StringRef(light->get_effect_name()));
+    // get_effect_name() returns temporary std::string - must store it
+    std::string effect_name = light->get_effect_name();
+    resp.set_effect(StringRef(effect_name));
   }
   return fill_and_encode_entity_state(light, resp, LightStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
@@ -546,10 +548,10 @@ uint16_t APIConnection::try_send_sensor_info(EntityBase *entity, APIConnection *
                                              bool is_single) {
   auto *sensor = static_cast<sensor::Sensor *>(entity);
   ListEntitiesSensorResponse msg;
-  msg.set_unit_of_measurement(StringRef(sensor->get_unit_of_measurement()));
+  msg.set_unit_of_measurement(sensor->get_unit_of_measurement_ref());
   msg.accuracy_decimals = sensor->get_accuracy_decimals();
   msg.force_update = sensor->get_force_update();
-  msg.set_device_class(StringRef(sensor->get_device_class()));
+  msg.set_device_class(sensor->get_device_class_ref());
   msg.state_class = static_cast<enums::SensorStateClass>(sensor->get_state_class());
   return fill_and_encode_entity_info(sensor, msg, ListEntitiesSensorResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
@@ -576,7 +578,7 @@ uint16_t APIConnection::try_send_switch_info(EntityBase *entity, APIConnection *
   auto *a_switch = static_cast<switch_::Switch *>(entity);
   ListEntitiesSwitchResponse msg;
   msg.assumed_state = a_switch->assumed_state();
-  msg.set_device_class(StringRef(a_switch->get_device_class()));
+  msg.set_device_class(a_switch->get_device_class_ref());
   return fill_and_encode_entity_info(a_switch, msg, ListEntitiesSwitchResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -610,7 +612,7 @@ uint16_t APIConnection::try_send_text_sensor_info(EntityBase *entity, APIConnect
                                                   bool is_single) {
   auto *text_sensor = static_cast<text_sensor::TextSensor *>(entity);
   ListEntitiesTextSensorResponse msg;
-  msg.set_device_class(StringRef(text_sensor->get_device_class()));
+  msg.set_device_class(text_sensor->get_device_class_ref());
   return fill_and_encode_entity_info(text_sensor, msg, ListEntitiesTextSensorResponse::MESSAGE_TYPE, conn,
                                      remaining_size, is_single);
 }
@@ -732,9 +734,9 @@ uint16_t APIConnection::try_send_number_info(EntityBase *entity, APIConnection *
                                              bool is_single) {
   auto *number = static_cast<number::Number *>(entity);
   ListEntitiesNumberResponse msg;
-  msg.set_unit_of_measurement(StringRef(number->traits.get_unit_of_measurement()));
+  msg.set_unit_of_measurement(number->traits.get_unit_of_measurement_ref());
   msg.mode = static_cast<enums::NumberMode>(number->traits.get_mode());
-  msg.set_device_class(StringRef(number->traits.get_device_class()));
+  msg.set_device_class(number->traits.get_device_class_ref());
   msg.min_value = number->traits.get_min_value();
   msg.max_value = number->traits.get_max_value();
   msg.step = number->traits.get_step();
@@ -859,7 +861,7 @@ uint16_t APIConnection::try_send_text_info(EntityBase *entity, APIConnection *co
   msg.mode = static_cast<enums::TextMode>(text->traits.get_mode());
   msg.min_length = text->traits.get_min_length();
   msg.max_length = text->traits.get_max_length();
-  msg.set_pattern(StringRef(text->traits.get_pattern()));
+  msg.set_pattern(text->traits.get_pattern_ref());
   return fill_and_encode_entity_info(text, msg, ListEntitiesTextResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -906,7 +908,7 @@ uint16_t APIConnection::try_send_button_info(EntityBase *entity, APIConnection *
                                              bool is_single) {
   auto *button = static_cast<button::Button *>(entity);
   ListEntitiesButtonResponse msg;
-  msg.set_device_class(StringRef(button->get_device_class()));
+  msg.set_device_class(button->get_device_class_ref());
   return fill_and_encode_entity_info(button, msg, ListEntitiesButtonResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -975,7 +977,7 @@ uint16_t APIConnection::try_send_valve_info(EntityBase *entity, APIConnection *c
   auto *valve = static_cast<valve::Valve *>(entity);
   ListEntitiesValveResponse msg;
   auto traits = valve->get_traits();
-  msg.set_device_class(StringRef(valve->get_device_class()));
+  msg.set_device_class(valve->get_device_class_ref());
   msg.assumed_state = traits.get_is_assumed_state();
   msg.supports_position = traits.get_supports_position();
   msg.supports_stop = traits.get_supports_stop();
@@ -1289,7 +1291,7 @@ uint16_t APIConnection::try_send_event_info(EntityBase *entity, APIConnection *c
                                             bool is_single) {
   auto *event = static_cast<event::Event *>(entity);
   ListEntitiesEventResponse msg;
-  msg.set_device_class(StringRef(event->get_device_class()));
+  msg.set_device_class(event->get_device_class_ref());
   for (const auto &event_type : event->get_event_types())
     msg.event_types.push_back(event_type);
   return fill_and_encode_entity_info(event, msg, ListEntitiesEventResponse::MESSAGE_TYPE, conn, remaining_size,
@@ -1325,7 +1327,7 @@ uint16_t APIConnection::try_send_update_info(EntityBase *entity, APIConnection *
                                              bool is_single) {
   auto *update = static_cast<update::UpdateEntity *>(entity);
   ListEntitiesUpdateResponse msg;
-  msg.set_device_class(StringRef(update->get_device_class()));
+  msg.set_device_class(update->get_device_class_ref());
   return fill_and_encode_entity_info(update, msg, ListEntitiesUpdateResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -1435,7 +1437,9 @@ bool APIConnection::send_device_info_response(const DeviceInfoRequest &msg) {
   std::string mac_address = get_mac_address_pretty();
   resp.set_mac_address(StringRef(mac_address));
   resp.set_esphome_version(StringRef(ESPHOME_VERSION));
-  resp.set_compilation_time(StringRef(App.get_compilation_time()));
+  // get_compilation_time() returns temporary std::string - must store it
+  std::string compilation_time = App.get_compilation_time();
+  resp.set_compilation_time(StringRef(compilation_time));
 #if defined(USE_ESP8266) || defined(USE_ESP32)
   resp.set_manufacturer(StringRef("Espressif"));
 #elif defined(USE_RP2040)

@@ -308,15 +308,17 @@ class APIConnection : public APIServerConnection {
                                               APIConnection *conn, uint32_t remaining_size, bool is_single) {
     // Set common fields that are shared by all entity types
     msg.key = entity->get_object_id_hash();
-    msg.set_object_id(StringRef(entity->get_object_id()));
+    // IMPORTANT: get_object_id() may return a temporary std::string
+    std::string object_id = entity->get_object_id();
+    msg.set_object_id(StringRef(object_id));
 
     if (entity->has_own_name()) {
-      msg.set_name(StringRef(entity->get_name()));
+      msg.set_name(entity->get_name());
     }
 
     // Set common EntityBase properties
 #ifdef USE_ENTITY_ICON
-    msg.set_icon(StringRef(entity->get_icon()));
+    msg.set_icon(entity->get_icon_ref());
 #endif
     msg.disabled_by_default = entity->is_disabled_by_default();
     msg.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
