@@ -1377,7 +1377,6 @@ void APIConnection::complete_authentication_() {
 }
 
 bool APIConnection::send_hello_response(const HelloRequest &msg) {
-  // Process the request first
   this->client_info_.name = msg.client_info;
   this->client_info_.peername = this->helper_->getpeername();
   this->client_api_version_major_ = msg.api_version_major;

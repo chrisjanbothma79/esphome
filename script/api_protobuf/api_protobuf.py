@@ -575,13 +575,7 @@ class StringType(TypeInfo):
 
         # For SOURCE_SERVER, always use StringRef
         if not self._needs_decode:
-            return (
-                f"if (!this->{self.field_name}_ref_.empty()) {{"
-                f'  out.append("\'").append(this->{self.field_name}_ref_.c_str()).append("\'");'
-                f"}} else {{"
-                f'  out.append("\'").append("").append("\'");'
-                f"}}"
-            )
+            return f"append_quoted_string(out, this->{self.field_name}_ref_);"
 
         # For SOURCE_BOTH, check if StringRef is set (sending) or use string (received)
         return (
@@ -1867,6 +1861,15 @@ namespace api {
 
 namespace esphome {
 namespace api {
+
+// Helper function to append a quoted string, handling empty StringRef
+static inline void append_quoted_string(std::string &out, const StringRef &ref) {
+  out.append("'");
+  if (!ref.empty()) {
+    out.append(ref.c_str());
+  }
+  out.append("'");
+}
 
 """
 
