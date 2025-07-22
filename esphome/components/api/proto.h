@@ -673,20 +673,6 @@ class ProtoSize {
   // sint64 type is not supported by ESPHome API to reduce overhead on embedded systems
 
   /**
-   * @brief Calculates and adds the size of a string/bytes field to the total message size
-   */
-  static inline void add_string_field(uint32_t &total_size, uint32_t field_id_size, const std::string &str) {
-    // Skip calculation if string is empty
-    if (str.empty()) {
-      return;  // No need to update total_size
-    }
-
-    // Calculate and directly add to total_size
-    const uint32_t str_size = static_cast<uint32_t>(str.size());
-    total_size += field_id_size + varint(str_size) + str_size;
-  }
-
-  /**
    * @brief Calculates and adds the size of a string field using length
    */
   static inline void add_string_field(uint32_t &total_size, uint32_t field_id_size, size_t len) {
