@@ -157,7 +157,7 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   DFRobotModel hw_model_{MODEL_UNKNOWN};
   std::string hw_version_;
   std::string sw_version_;
-  
+
 #ifdef USE_SWITCH
   ESPPreferenceObject pref_;
 #endif
