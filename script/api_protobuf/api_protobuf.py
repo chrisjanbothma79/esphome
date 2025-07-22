@@ -1726,9 +1726,8 @@ def build_message_type(
             dump_impl += f" {dump[0]} "
         else:
             dump_impl += "\n"
-            dump_impl += f'  out.append("{desc.name} {{\\n");\n'
+            dump_impl += f'  MessageDumpHelper helper(out, "{desc.name}");\n'
             dump_impl += indent("\n".join(dump)) + "\n"
-            dump_impl += '  out.append("}");\n'
     else:
         o2 = f'out.append("{desc.name} {{}}");'
         if len(dump_impl) + len(o2) + 3 < 120:
@@ -2094,6 +2093,19 @@ static inline void append_with_newline(std::string &out, const char *str) {
   out.append(str);
   out.append("\\n");
 }
+
+// RAII helper for message dump formatting
+class MessageDumpHelper {
+ public:
+  MessageDumpHelper(std::string &out, const char *message_name) : out_(out) {
+    out_.append(message_name);
+    out_.append(" {\\n");
+  }
+  ~MessageDumpHelper() { out_.append(" }"); }
+
+ private:
+  std::string &out_;
+};
 
 // Helper functions to reduce code duplication in dump methods
 static void dump_field(std::string &out, const char *field_name, int32_t value, int indent = 2) {
