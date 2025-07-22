@@ -370,26 +370,35 @@ void LD2410Component::handle_periodic_data_() {
   this->still_target_energy_sensor_.publish_state_if_not_dup(this->buffer_data_[STILL_ENERGY]);
   this->detection_distance_sensor_.publish_state_if_not_dup(
       ld2410::two_byte_to_int(this->buffer_data_[DETECT_DISTANCE_LOW], this->buffer_data_[DETECT_DISTANCE_HIGH]));
-  /*
-    Moving distance range: 18th byte
-    Still distance range: 19th byte
-    Moving energy: 20~28th bytes
-  */
-  for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
-    this->gate_move_sensors_[i].publish_state_if_not_dup(this->buffer_data_[MOVING_SENSOR_START + i],
-                                                         !engineering_mode);
+
+  if (engineering_mode) {
+    /*
+      Moving distance range: 18th byte
+      Still distance range: 19th byte
+      Moving energy: 20~28th bytes
+    */
+    for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
+      this->gate_move_sensors_[i].publish_state_if_not_dup(this->buffer_data_[MOVING_SENSOR_START + i]);
+    }
+    /*
+      Still energy: 29~37th bytes
+    */
+    for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
+      this->gate_still_sensors_[i].publish_state_if_not_dup(this->buffer_data_[STILL_SENSOR_START + i]);
+    }
+    /*
+      Light sensor: 38th bytes
+    */
+    this->light_sensor_.publish_state_if_not_dup(this->buffer_data_[LIGHT_SENSOR]);
+  } else {
+    for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
+      this->gate_move_sensors_[i].publish_state_unknown();
+    }
+    for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
+      this->gate_still_sensors_[i].publish_state_unknown();
+    }
+    this->light_sensor_.publish_state_unknown();
   }
-  /*
-    Still energy: 29~37th bytes
-  */
-  for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
-    this->gate_still_sensors_[i].publish_state_if_not_dup(this->buffer_data_[STILL_SENSOR_START + i],
-                                                          !engineering_mode);
-  }
-  /*
-    Light sensor: 38th bytes
-  */
-  this->light_sensor_.publish_state_if_not_dup(this->buffer_data_[LIGHT_SENSOR], !engineering_mode);
 #endif
 #ifdef USE_BINARY_SENSOR
   if (this->out_pin_presence_status_binary_sensor_ != nullptr) {

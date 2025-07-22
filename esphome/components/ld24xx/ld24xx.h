@@ -23,11 +23,17 @@ namespace ld24xx {
 // Helper class to store a sensor with a deduplicator & publish state only when the value changes
 template<typename T> class SensorWithDedup {
  public:
-  void publish_state_if_not_dup(T state, bool state_unknown = false) {
-    if (this->sens != nullptr &&
-        ((state_unknown ? false : this->publish_dedup->next(state)) || this->state_unknown_ != state_unknown)) {
-      this->sens->publish_state(state_unknown ? NAN : static_cast<float>(state));
-      this->state_unknown_ = state_unknown;
+  void publish_state_if_not_dup(T state) {
+    if (this->sens != nullptr && this->publish_dedup->next(state) || this->state_unknown_) {
+      this->sens->publish_state(static_cast<float>(state));
+      this->state_unknown_ = false;
+    }
+  }
+
+  void publish_state_unknown() {
+    if (this->sens != nullptr && !this->state_unknown_) {
+      this->sens->publish_state(NAN);
+      this->state_unknown_ = true;
     }
   }
 
