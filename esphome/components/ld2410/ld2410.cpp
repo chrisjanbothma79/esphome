@@ -391,11 +391,11 @@ void LD2410Component::handle_periodic_data_() {
     */
     this->light_sensor_.publish_state_if_not_dup(this->buffer_data_[LIGHT_SENSOR]);
   } else {
-    for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
-      this->gate_move_sensors_[i].publish_state_unknown();
+    for (auto &gate_move_sensor : this->gate_move_sensors_) {
+      gate_move_sensor.publish_state_unknown();
     }
-    for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
-      this->gate_still_sensors_[i].publish_state_unknown();
+    for (auto &gate_still_sensor : this->gate_still_sensors_) {
+      gate_still_sensor.publish_state_unknown();
     }
     this->light_sensor_.publish_state_unknown();
   }

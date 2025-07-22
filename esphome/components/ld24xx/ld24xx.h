@@ -13,7 +13,7 @@
   void set_##name##_sensor(sensor::Sensor *sensor) { \
     this->name##_sensor_.sens = sensor; \
     this->name##_sensor_.publish_dedup = std::make_unique<Deduplicator<dedup_type>>(); \
-  }
+  }  // NOLINT(readability-identifier-naming)
 #endif
 
 namespace esphome {
@@ -24,7 +24,7 @@ namespace ld24xx {
 template<typename T> class SensorWithDedup {
  public:
   void publish_state_if_not_dup(T state) {
-    if (this->sens != nullptr && this->publish_dedup->next(state) || this->state_unknown_) {
+    if (this->sens != nullptr && (this->publish_dedup->next(state) || this->state_unknown_)) {
       this->sens->publish_state(static_cast<float>(state));
       this->state_unknown_ = false;
     }
