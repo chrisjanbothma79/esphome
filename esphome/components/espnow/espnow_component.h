@@ -44,12 +44,10 @@ enum ESPNowState : uint8_t {
   ESPNOW_STATE_ENABLED,
 };
 
-struct esp_now_peer_t {
+struct ESPNowPeer {
   uint8_t address[ESP_NOW_ETH_ALEN];  // MAC address of the peer
 
-  bool operator==(const esp_now_peer_t &other) const {
-    return memcmp(this->address, other.address, ESP_NOW_ETH_ALEN) == 0;
-  }
+  bool operator==(const ESPNowPeer &other) const { return memcmp(this->address, other.address, ESP_NOW_ETH_ALEN) == 0; }
   bool operator==(const uint8_t *other) const { return memcmp(this->address, other, ESP_NOW_ETH_ALEN) == 0; }
 };
 
@@ -106,7 +104,7 @@ class ESPNowComponent : public Component {
   std::vector<ESPNowReceivedPacketHandler *> received_handlers_;
   std::vector<ESPNowSentPacketHandler *> sent_handlers_;
 
-  std::vector<esp_now_peer_t> peers_{};
+  std::vector<ESPNowPeer> peers_{};
 
   uint8_t own_address_[ESP_NOW_ETH_ALEN]{0};
   LockFreeQueue<ESPNowPacket, MAX_ESP_NOW_QUEUE_SIZE> packet_queue_{};
