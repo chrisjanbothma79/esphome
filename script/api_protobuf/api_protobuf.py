@@ -838,7 +838,7 @@ class FixedArrayBytesType(TypeInfo):
     def dump_content(self) -> str:
         o = f'out.append("  {self.name}: ");\n'
         o += f"out.append(format_hex_pretty(this->{self.field_name}, this->{self.field_name}_len));\n"
-        o += 'out.append("\\n");\n'
+        o += 'out.append("\\n");'
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
