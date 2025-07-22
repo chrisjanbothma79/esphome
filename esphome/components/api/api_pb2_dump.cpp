@@ -706,7 +706,6 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
-
 #endif
 #ifdef USE_AREAS
   for (const auto &it : this->areas) {
@@ -714,7 +713,6 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
-
 #endif
 #ifdef USE_AREAS
   out.append("  area: ");
@@ -819,7 +817,6 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   for (const auto &it : this->supported_preset_modes) {
     dump_field(out, "supported_preset_modes", it, 4);
   }
-
 #ifdef USE_DEVICES
   dump_field(out, "device_id", this->device_id);
 #endif
@@ -866,13 +863,11 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   for (const auto &it : this->supported_color_modes) {
     dump_field(out, "supported_color_modes", static_cast<enums::ColorMode>(it), 4);
   }
-
   dump_field(out, "min_mireds", this->min_mireds);
   dump_field(out, "max_mireds", this->max_mireds);
   for (const auto &it : this->effects) {
     dump_field(out, "effects", it, 4);
   }
-
   dump_field(out, "disabled_by_default", this->disabled_by_default);
 #ifdef USE_ENTITY_ICON
   dump_field(out, "icon", this->icon_ref_);
@@ -1076,19 +1071,16 @@ void HomeassistantServiceResponse::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
-
   for (const auto &it : this->data_template) {
     out.append("  data_template: ");
     it.dump_to(out);
     out.append("\n");
   }
-
   for (const auto &it : this->variables) {
     out.append("  variables: ");
     it.dump_to(out);
     out.append("\n");
   }
-
   dump_field(out, "is_event", this->is_event);
   out.append("}");
 }
@@ -1139,15 +1131,12 @@ void ExecuteServiceArgument::dump_to(std::string &out) const {
   for (const auto it : this->bool_array) {
     dump_field(out, "bool_array", it, 4);
   }
-
   for (const auto &it : this->int_array) {
     dump_field(out, "int_array", it, 4);
   }
-
   for (const auto &it : this->float_array) {
     dump_field(out, "float_array", it, 4);
   }
-
   for (const auto &it : this->string_array) {
     dump_field(out, "string_array", it, 4);
   }
@@ -1210,7 +1199,6 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   for (const auto &it : this->supported_modes) {
     dump_field(out, "supported_modes", static_cast<enums::ClimateMode>(it), 4);
   }
-
   dump_field(out, "visual_min_temperature", this->visual_min_temperature);
   dump_field(out, "visual_max_temperature", this->visual_max_temperature);
   dump_field(out, "visual_target_temperature_step", this->visual_target_temperature_step);
@@ -1218,23 +1206,18 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   for (const auto &it : this->supported_fan_modes) {
     dump_field(out, "supported_fan_modes", static_cast<enums::ClimateFanMode>(it), 4);
   }
-
   for (const auto &it : this->supported_swing_modes) {
     dump_field(out, "supported_swing_modes", static_cast<enums::ClimateSwingMode>(it), 4);
   }
-
   for (const auto &it : this->supported_custom_fan_modes) {
     dump_field(out, "supported_custom_fan_modes", it, 4);
   }
-
   for (const auto &it : this->supported_presets) {
     dump_field(out, "supported_presets", static_cast<enums::ClimatePreset>(it), 4);
   }
-
   for (const auto &it : this->supported_custom_presets) {
     dump_field(out, "supported_custom_presets", it, 4);
   }
-
   dump_field(out, "disabled_by_default", this->disabled_by_default);
 #ifdef USE_ENTITY_ICON
   dump_field(out, "icon", this->icon_ref_);
@@ -1354,7 +1337,6 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   for (const auto &it : this->options) {
     dump_field(out, "options", it, 4);
   }
-
   dump_field(out, "disabled_by_default", this->disabled_by_default);
   dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 #ifdef USE_DEVICES
@@ -1395,7 +1377,6 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   for (const auto &it : this->tones) {
     dump_field(out, "tones", it, 4);
   }
-
   dump_field(out, "supports_duration", this->supports_duration);
   dump_field(out, "supports_volume", this->supports_volume);
   dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
@@ -1523,7 +1504,6 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
-
 #ifdef USE_DEVICES
   dump_field(out, "device_id", this->device_id);
 #endif
@@ -1604,7 +1584,6 @@ void BluetoothGATTDescriptor::dump_to(std::string &out) const {
   for (const auto &it : this->uuid) {
     dump_field(out, "uuid", it, 4);
   }
-
   dump_field(out, "handle", this->handle);
   out.append("}");
 }
@@ -1613,7 +1592,6 @@ void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
   for (const auto &it : this->uuid) {
     dump_field(out, "uuid", it, 4);
   }
-
   dump_field(out, "handle", this->handle);
   dump_field(out, "properties", this->properties);
   for (const auto &it : this->descriptors) {
@@ -1628,7 +1606,6 @@ void BluetoothGATTService::dump_to(std::string &out) const {
   for (const auto &it : this->uuid) {
     dump_field(out, "uuid", it, 4);
   }
-
   dump_field(out, "handle", this->handle);
   for (const auto &it : this->characteristics) {
     out.append("  characteristics: ");
@@ -1872,11 +1849,9 @@ void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
-
   for (const auto &it : this->active_wake_words) {
     dump_field(out, "active_wake_words", it, 4);
   }
-
   dump_field(out, "max_active_wake_words", this->max_active_wake_words);
   out.append("}");
 }
@@ -2062,7 +2037,6 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   for (const auto &it : this->event_types) {
     dump_field(out, "event_types", it, 4);
   }
-
 #ifdef USE_DEVICES
   dump_field(out, "device_id", this->device_id);
 #endif

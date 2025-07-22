@@ -1031,7 +1031,7 @@ def _generate_array_dump_content(
         o += f'  out.append("  {name}: ");\n'
         o += indent(ti.dump("it")) + "\n"
         o += '  out.append("\\n");\n'
-    o += "}\n"
+    o += "}"
     return o
 
 
