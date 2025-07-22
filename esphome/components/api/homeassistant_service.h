@@ -5,6 +5,7 @@
 #include "api_pb2.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
+#include <utility>
 #include <vector>
 
 namespace esphome {
@@ -36,10 +37,10 @@ template<typename... X> class TemplatableStringValue : public TemplatableValue<s
 
 template<typename... Ts> class TemplatableKeyValuePair {
  public:
-  // It's safe to use const std::string& for the key parameter because keys are always
-  // string literals from YAML dictionary keys (e.g., "code", "event") and never
-  // templatable values or lambdas. Only the value parameter can be a lambda/template.
-  template<typename T> TemplatableKeyValuePair(const std::string &key, T value) : key(key), value(value) {}
+  // Keys are always string literals from YAML dictionary keys (e.g., "code", "event")
+  // and never templatable values or lambdas. Only the value parameter can be a lambda/template.
+  // Using pass-by-value with std::move allows optimal performance for both lvalues and rvalues.
+  template<typename T> TemplatableKeyValuePair(std::string key, T value) : key(std::move(key)), value(value) {}
   std::string key;
   TemplatableStringValue<Ts...> value;
 };
