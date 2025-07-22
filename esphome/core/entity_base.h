@@ -56,10 +56,7 @@ class EntityBase {
   void set_icon(const char *icon);
   StringRef get_icon_ref() const {
 #ifdef USE_ENTITY_ICON
-    if (this->icon_c_str_ == nullptr) {
-      return StringRef("");
-    }
-    return StringRef(this->icon_c_str_);
+    return this->icon_c_str_ == nullptr ? StringRef("") : StringRef(this->icon_c_str_);
 #else
     return StringRef("");
 #endif
@@ -117,10 +114,7 @@ class EntityBase_DeviceClass {  // NOLINT(readability-identifier-naming)
   void set_device_class(const char *device_class);
   /// Get the device class as StringRef
   StringRef get_device_class_ref() const {
-    if (this->device_class_ == nullptr) {
-      return StringRef("");
-    }
-    return StringRef(this->device_class_);
+    return this->device_class_ == nullptr ? StringRef("") : StringRef(this->device_class_);
   }
 
  protected:
@@ -135,10 +129,7 @@ class EntityBase_UnitOfMeasurement {  // NOLINT(readability-identifier-naming)
   void set_unit_of_measurement(const char *unit_of_measurement);
   /// Get the unit of measurement as StringRef
   StringRef get_unit_of_measurement_ref() const {
-    if (this->unit_of_measurement_ == nullptr) {
-      return StringRef("");
-    }
-    return StringRef(this->unit_of_measurement_);
+    return this->unit_of_measurement_ == nullptr ? StringRef("") : StringRef(this->unit_of_measurement_);
   }
 
  protected:
