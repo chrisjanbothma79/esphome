@@ -6,7 +6,7 @@ namespace dfrobot_c4001 {
 static const char *const TAG = "dfrobot_c4001.commands";
 
 // returns
-//  negative number: failed, abs(return value) is the number of errors that occured
+//  negative number: failed, abs(return value) is the number of errors that occurred
 //  1: success
 //  0: not done yet
 // if this->retry_power_stop = true then command reported "sensor not stopped", need to send sensorStop command
@@ -131,6 +131,157 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
   }
   return false;  // Command not done yet.
 }
+
+GetRangeCommand::GetRangeCommand() { this->cmd_ = "getRange"; }
+
+void GetRangeCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, " ");
+  if (strcmp(token, "Done") == 0) {
+    if (!this->min_range_.has_value() || !this->max_range_.has_value()) {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    } else {
+      this->parent_->set_min_range(this->min_range_.value(), false);
+      this->parent_->set_max_range(this->max_range_.value(), false);
+      this->done_ = true;  // command is done
+    }
+  } else if (strcmp(token, "Response") == 0) {
+    token = strtok(NULL, " ");
+    this->min_range_ = parse_number<float>(token);
+    token = strtok(NULL, " ");
+    this->max_range_ = parse_number<float>(token);
+  }
+}
+
+SetRangeCommand::SetRangeCommand(float min_range, float max_range) {
+  this->cmd_ = str_sprintf("setRange %.3f %.3f", min_range, max_range);
+};
+
+GetTrigRangeCommand::GetTrigRangeCommand() { this->cmd_ = "getTrigRange"; }
+
+void GetTrigRangeCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, " ");
+  if (strcmp(token, "Done") == 0) {
+    if (!this->trigger_range_.has_value()) {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    } else {
+      this->parent_->set_trigger_range(this->trigger_range_.value(), false);
+      this->done_ = true;  // command is done
+    }
+  } else if (strcmp(token, "Response") == 0) {
+    token = strtok(NULL, " ");
+    this->trigger_range_ = parse_number<float>(token);
+  }
+}
+
+SetTrigRangeCommand::SetTrigRangeCommand(float trigger_range) {
+  this->cmd_ = str_sprintf("setTrigRange %.3f", trigger_range);
+};
+
+GetSensitivityCommand::GetSensitivityCommand() { this->cmd_ = "getSensitivity"; }
+
+void GetSensitivityCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, " ");
+  if (strcmp(token, "Done") == 0) {
+    if (!this->hold_sensitivity_.has_value() || !this->trigger_sensitivity_.has_value()) {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    } else {
+      this->parent_->set_hold_sensitivity(this->hold_sensitivity_.value(), false);
+      this->parent_->set_trigger_sensitivity(this->trigger_sensitivity_.value(), false);
+      this->done_ = true;  // command is done
+    }
+  } else if (strcmp(token, "Response") == 0) {
+    token = strtok(NULL, " ");
+    this->hold_sensitivity_ = parse_number<float>(token);
+    token = strtok(NULL, " ");
+    this->trigger_sensitivity_ = parse_number<float>(token);
+  }
+}
+
+SetSensitivityCommand::SetSensitivityCommand(float hold_sensitivity, float trigger_sensitivity) {
+  this->cmd_ = str_sprintf("setSensitivity %.0f %.0f", round(hold_sensitivity), round(trigger_sensitivity));
+};
+
+GetLatencyCommand::GetLatencyCommand() { this->cmd_ = "getLatency"; }
+
+void GetLatencyCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, " ");
+  if (strcmp(token, "Done") == 0) {
+    if (!this->on_latency_.has_value() || !this->off_latency_.has_value()) {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    } else {
+      this->parent_->set_on_latency(this->on_latency_.value(), false);
+      this->parent_->set_off_latency(this->off_latency_.value(), false);
+      this->done_ = true;  // command is done
+    }
+  } else if (strcmp(token, "Response") == 0) {
+    token = strtok(NULL, " ");
+    this->on_latency_ = parse_number<float>(token);
+    token = strtok(NULL, " ");
+    this->off_latency_ = parse_number<float>(token);
+  }
+}
+
+SetLatencyCommand::SetLatencyCommand(float on_latency, float off_latency) {
+  this->cmd_ = str_sprintf("setLatency %.3f %.3f", on_latency, off_latency);
+};
+
+GetInhibitTimeCommand::GetInhibitTimeCommand() { this->cmd_ = "getInhibit"; }
+
+void GetInhibitTimeCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, " ");
+  if (strcmp(token, "Done") == 0) {
+    if (!this->inhibit_time_.has_value()) {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    } else {
+      this->parent_->set_inhibit_time(this->inhibit_time_.value(), false);
+      this->done_ = true;  // command is done
+    }
+  } else if (strcmp(token, "Response") == 0) {
+    token = strtok(NULL, " ");
+    this->inhibit_time_ = parse_number<float>(token);
+  }
+}
+
+SetInhibitTimeCommand::SetInhibitTimeCommand(float inhibit) { this->cmd_ = str_sprintf("setInhibit %.3f", inhibit); };
+
+GetThrFactorCommand::GetThrFactorCommand() { this->cmd_ = "getThrFactor"; }
+
+void GetThrFactorCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, " ");
+  if (strcmp(token, "Done") == 0) {
+    if (!this->threshold_factor_.has_value()) {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    } else {
+      this->parent_->set_threshold_factor(this->threshold_factor_.value(), false);
+      this->done_ = true;  // command is done
+    }
+  } else if (strcmp(token, "Response") == 0) {
+    token = strtok(NULL, " ");
+    this->threshold_factor_ = parse_number<float>(token);
+  }
+}
+
+SetThrFactorCommand::SetThrFactorCommand(float threshold_factor) {
+  this->cmd_ = str_sprintf("setThrFactor %.3f", threshold_factor);
+};
 
 ResetSystemCommand::ResetSystemCommand() { this->cmd_ = "resetSystem"; }
 

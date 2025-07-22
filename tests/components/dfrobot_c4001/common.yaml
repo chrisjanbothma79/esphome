@@ -12,5 +12,26 @@ binary_sensor:
   - platform: dfrobot_c4001
     dfrobot_c4001_id: mmwave_sensor
     occupancy:
-      id: occupancy_uart
-      name: Occupancy via UART
+      name: Occupancy
+    config_changed:
+      name: Config Changed
+
+number:
+  - platform: dfrobot_c4001
+    dfrobot_c4001_id: mmwave_sensor
+    max_range:
+      name: Range Max
+    min_range:
+      name: Range Min
+    trigger_range:
+      name: Range Trigger
+    hold_sensitivity:
+      name: Sensitivity Hold
+    trigger_sensitivity:
+      name: Sensitivity Trigger
+    on_latency:
+      name: Latency On
+    off_latency:
+      name: Latency Off
+    inhibit_time:
+      name: Inhibit Time
