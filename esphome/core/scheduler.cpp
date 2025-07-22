@@ -102,7 +102,6 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     item->interval = delay;
     // first execution happens immediately after a random smallish offset
     // Calculate random offset (0 to min(interval/2, 5s))
-    // Avoid divide by zero without a conditional expression
     uint32_t offset = std::min(delay / 2, 5000u) * random_float();
     item->next_execution_ = now + offset;
     ESP_LOGV(TAG, "Scheduler interval for %s is %" PRIu32 "ms, offset %" PRIu32 "ms", name_cstr, delay, offset);
