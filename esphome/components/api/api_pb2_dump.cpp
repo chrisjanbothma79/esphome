@@ -1877,11 +1877,7 @@ void ExecuteServiceArgument::dump_to(std::string &out) const {
 
   for (const auto &it : this->string_array) {
     out.append("  string_array: ");
-    if (!this->string_array_ref_.empty()) {
-      out.append("'").append(this->string_array_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->string_array).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
   out.append("}");

@@ -1019,13 +1019,13 @@ uint16_t APIConnection::try_send_media_player_info(EntityBase *entity, APIConnec
   auto traits = media_player->get_traits();
   msg.supports_pause = traits.get_supports_pause();
   for (auto &supported_format : traits.get_supported_formats()) {
-    MediaPlayerSupportedFormat media_format;
-    media_format.format = supported_format.format;
+    msg.supported_formats.emplace_back();
+    auto &media_format = msg.supported_formats.back();
+    media_format.set_format(StringRef(supported_format.format));
     media_format.sample_rate = supported_format.sample_rate;
     media_format.num_channels = supported_format.num_channels;
     media_format.purpose = static_cast<enums::MediaPlayerFormatPurpose>(supported_format.purpose);
     media_format.sample_bytes = supported_format.sample_bytes;
-    msg.supported_formats.push_back(media_format);
   }
   return fill_and_encode_entity_info(media_player, msg, ListEntitiesMediaPlayerResponse::MESSAGE_TYPE, conn,
                                      remaining_size, is_single);
