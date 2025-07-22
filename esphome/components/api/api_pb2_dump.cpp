@@ -1029,11 +1029,7 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->supported_preset_modes) {
     out.append("  supported_preset_modes: ");
-    if (!this->supported_preset_modes_ref_.empty()) {
-      out.append("'").append(this->supported_preset_modes_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->supported_preset_modes).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
 
@@ -1178,11 +1174,7 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->effects) {
     out.append("  effects: ");
-    if (!this->effects_ref_.empty()) {
-      out.append("'").append(this->effects_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->effects).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
 
@@ -2040,11 +2032,7 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->supported_custom_fan_modes) {
     out.append("  supported_custom_fan_modes: ");
-    if (!this->supported_custom_fan_modes_ref_.empty()) {
-      out.append("'").append(this->supported_custom_fan_modes_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->supported_custom_fan_modes).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
 
@@ -2056,11 +2044,7 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->supported_custom_presets) {
     out.append("  supported_custom_presets: ");
-    if (!this->supported_custom_presets_ref_.empty()) {
-      out.append("'").append(this->supported_custom_presets_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->supported_custom_presets).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
 
@@ -2428,11 +2412,7 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
 #endif
   for (const auto &it : this->options) {
     out.append("  options: ");
-    if (!this->options_ref_.empty()) {
-      out.append("'").append(this->options_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->options).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
 
@@ -2529,11 +2509,7 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->tones) {
     out.append("  tones: ");
-    if (!this->tones_ref_.empty()) {
-      out.append("'").append(this->tones_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->tones).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
 
@@ -3599,11 +3575,7 @@ void VoiceAssistantWakeWord::dump_to(std::string &out) const {
 
   for (const auto &it : this->trained_languages) {
     out.append("  trained_languages: ");
-    if (!this->trained_languages_ref_.empty()) {
-      out.append("'").append(this->trained_languages_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->trained_languages).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
   out.append("}");
@@ -3622,11 +3594,7 @@ void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->active_wake_words) {
     out.append("  active_wake_words: ");
-    if (!this->active_wake_words_ref_.empty()) {
-      out.append("'").append(this->active_wake_words_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->active_wake_words).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
 
@@ -3641,11 +3609,7 @@ void VoiceAssistantSetConfiguration::dump_to(std::string &out) const {
   out.append("VoiceAssistantSetConfiguration {\n");
   for (const auto &it : this->active_wake_words) {
     out.append("  active_wake_words: ");
-    if (!this->active_wake_words_ref_.empty()) {
-      out.append("'").append(this->active_wake_words_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->active_wake_words).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
   out.append("}");
@@ -4111,11 +4075,7 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->event_types) {
     out.append("  event_types: ");
-    if (!this->event_types_ref_.empty()) {
-      out.append("'").append(this->event_types_ref_.c_str()).append("'");
-    } else {
-      out.append("'").append(this->event_types).append("'");
-    }
+    append_quoted_string(out, StringRef(it));
     out.append("\n");
   }
 

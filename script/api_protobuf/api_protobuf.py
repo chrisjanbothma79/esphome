@@ -569,6 +569,10 @@ class StringType(TypeInfo):
         return f"buffer.encode_string({self.number}, this->{self.field_name}_ref_);"
 
     def dump(self, name):
+        # If name is 'it', this is a repeated field element - always use string
+        if name == "it":
+            return "append_quoted_string(out, StringRef(it));"
+
         # For SOURCE_CLIENT only, always use std::string
         if not self._needs_encode:
             return f'out.append("\'").append(this->{self.field_name}).append("\'");'
