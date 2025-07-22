@@ -142,8 +142,6 @@ template<size_t N> const char *find_str(const Uint8ToString (&arr)[N], uint8_t v
   return "";  // Not found
 }
 
-// Used to dedup when engineering mode is off; safe because it is not a valid percentage value
-static constexpr float EM_OFF_SENTINEL = -1.0f;
 // Commands
 static constexpr uint8_t CMD_ENABLE_CONF = 0xFF;
 static constexpr uint8_t CMD_DISABLE_CONF = 0xFE;
@@ -183,14 +181,6 @@ static inline int two_byte_to_int(char firstbyte, char secondbyte) { return (int
 static inline bool validate_header_footer(const uint8_t *header_footer, const uint8_t *buffer) {
   return std::memcmp(header_footer, buffer, HEADER_FOOTER_SIZE) == 0;
 }
-
-#ifdef USE_SENSOR
-void SensorWithDedup::publish_state_if_not_dup(const float state, const bool use_sentinel) {
-  if (this->sens != nullptr && this->publish_dedup->next(state)) {
-    this->sens->publish_state(use_sentinel && state == EM_OFF_SENTINEL ? NAN : state);
-  }
-}
-#endif
 
 void LD2410Component::dump_config() {
   std::string mac_str =

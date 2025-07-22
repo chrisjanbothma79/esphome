@@ -22,6 +22,7 @@
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
 #endif
+#include "esphome/components/ld24xx/ld24xx.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
@@ -29,32 +30,13 @@
 #include <memory>
 #include <vector>
 
-#define SUB_SENSOR_WITH_DEDUP(name) \
- protected: \
-  SensorWithDedup name##_sensor_; \
-\
- public: \
-  void set_##name##_sensor(sensor::Sensor *sensor) { \
-    this->name##_sensor_.sens = sensor; \
-    this->name##_sensor_.publish_dedup = std::make_unique<Deduplicator<float>>(); \
-  }
-
 namespace esphome {
 namespace ld2410 {
 
+using namespace ld24xx;
+
 static constexpr uint8_t MAX_LINE_LENGTH = 46;  // Max characters for serial buffer
 static constexpr uint8_t TOTAL_GATES = 9;       // Total number of gates supported by the LD2410
-
-#ifdef USE_SENSOR
-// Helper class to store a sensor with a deduplicator & publish state only when the value changes
-class SensorWithDedup {
- public:
-  void publish_state_if_not_dup(float state, bool use_sentinel = false);
-
-  sensor::Sensor *sens{nullptr};
-  std::unique_ptr<Deduplicator<float>> publish_dedup;
-};
-#endif
 
 class LD2410Component : public Component, public uart::UARTDevice {
 #ifdef USE_BINARY_SENSOR
