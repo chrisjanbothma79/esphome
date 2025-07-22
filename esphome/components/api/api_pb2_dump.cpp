@@ -19,67 +19,72 @@ static inline void append_quoted_string(std::string &out, const StringRef &ref) 
   out.append("'");
 }
 
+// Common helpers for dump_field functions
+static inline void append_field_prefix(std::string &out, const char *field_name, int indent) {
+  out.append(indent, ' ').append(field_name).append(": ");
+}
+
+static inline void append_with_newline(std::string &out, const char *str) {
+  out.append(str);
+  out.append("\n");
+}
+
 // Helper functions to reduce code duplication in dump methods
 static void dump_field(std::string &out, const char *field_name, int32_t value, int indent = 2) {
   char buffer[64];
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   snprintf(buffer, 64, "%" PRId32, value);
-  out.append(buffer);
-  out.append("\n");
+  append_with_newline(out, buffer);
 }
 
 static void dump_field(std::string &out, const char *field_name, uint32_t value, int indent = 2) {
   char buffer[64];
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   snprintf(buffer, 64, "%" PRIu32, value);
-  out.append(buffer);
-  out.append("\n");
+  append_with_newline(out, buffer);
 }
 
 static void dump_field(std::string &out, const char *field_name, float value, int indent = 2) {
   char buffer[64];
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   snprintf(buffer, 64, "%g", value);
-  out.append(buffer);
-  out.append("\n");
+  append_with_newline(out, buffer);
 }
 
 static void dump_field(std::string &out, const char *field_name, double value, int indent = 2) {
   char buffer[64];
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   snprintf(buffer, 64, "%g", value);
-  out.append(buffer);
-  out.append("\n");
+  append_with_newline(out, buffer);
 }
 
 static void dump_field(std::string &out, const char *field_name, uint64_t value, int indent = 2) {
   char buffer[64];
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   snprintf(buffer, 64, "%llu", value);
-  out.append(buffer);
-  out.append("\n");
+  append_with_newline(out, buffer);
 }
 
 static void dump_field(std::string &out, const char *field_name, bool value, int indent = 2) {
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   out.append(YESNO(value));
   out.append("\n");
 }
 
 static void dump_field(std::string &out, const char *field_name, const std::string &value, int indent = 2) {
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   out.append("'").append(value).append("'");
   out.append("\n");
 }
 
 static void dump_field(std::string &out, const char *field_name, StringRef value, int indent = 2) {
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   append_quoted_string(out, value);
   out.append("\n");
 }
 
 template<typename T> static void dump_field(std::string &out, const char *field_name, T value, int indent = 2) {
-  out.append(indent, ' ').append(field_name).append(": ");
+  append_field_prefix(out, field_name, indent);
   out.append(proto_enum_to_string<T>(value));
   out.append("\n");
 }
