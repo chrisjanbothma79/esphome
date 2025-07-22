@@ -689,7 +689,7 @@ class ProtoSize {
    * @brief Calculates and adds the size of a string/bytes field to the total message size (repeated field version)
    */
   static inline void add_string_field_repeated(uint32_t &total_size, uint32_t field_id_size, const std::string &str) {
-    // Always calculate size for repeated fields (no empty check)
+    // Always calculate size for repeated fields
     const uint32_t str_size = static_cast<uint32_t>(str.size());
     total_size += field_id_size + varint(str_size) + str_size;
   }
