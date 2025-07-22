@@ -1040,7 +1040,7 @@ def parse_args(argv):
 
     argcomplete.autocomplete(parser)
 
-    if arguments and arguments[0] in SIMPLE_CONFIG_ACTIONS:
+    if len(arguments) > 0 and arguments[0] in SIMPLE_CONFIG_ACTIONS:
         args, unknown_args = parser.parse_known_args(arguments)
         if unknown_args:
             _LOGGER.warning("Ignored unrecognized arguments: %s", unknown_args)
