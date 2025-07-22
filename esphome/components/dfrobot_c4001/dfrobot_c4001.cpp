@@ -186,33 +186,6 @@ void DFRobotC4001Hub::set_threshold_factor(float value, bool needs_save) {
   }
 }
 
-void DFRobotC4001Hub::set_software_version(char *version) {
-  std::string new_string(version);
-#ifdef USE_TEXT_SENSOR
-  if (this->software_version_text_sensor_ != nullptr) {
-    this->software_version_text_sensor_->publish_state(new_string);
-  }
-#endif
-  this->sw_version_ = std::move(new_string);
-}
-
-void DFRobotC4001Hub::set_hardware_version(char *version) {
-  std::string new_string(version);
-  if (str_startswith(new_string, "JYSJ_428")) {
-    this->hw_model_ = MODEL_SEN0609;
-  } else if (str_startswith(new_string, "JYSJ_426")) {
-    this->hw_model_ = MODEL_SEN0610;
-  } else {
-    this->hw_model_ = MODEL_UNKNOWN;
-  }
-#ifdef USE_TEXT_SENSOR
-  if (this->hardware_version_text_sensor_ != nullptr) {
-    this->hardware_version_text_sensor_->publish_state(new_string);
-  }
-#endif
-  this->hw_version_ = std::move(new_string);
-}
-
 void DFRobotC4001Hub::set_mode(DFRobotMode value) { this->mode_ = value; }
 
 void DFRobotC4001Hub::set_model(DFRobotModel value) { this->model_ = value; }
