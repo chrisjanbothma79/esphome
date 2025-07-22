@@ -126,6 +126,9 @@ script:
             ESP_LOGI("test", "Cancel retry ran %d times before cancellation", id(cancel_retry_counter));
           });
 
+      # Wait for cancel test to complete
+      - delay: 400ms
+
       # Test 5: Empty name retry
       - logger.log: "=== Test 5: Empty name retry ==="
       - lambda: |-
@@ -144,6 +147,9 @@ script:
                      cancelled ? "true" : "false");
             ESP_LOGI("test", "Empty name retry ran %d times", id(empty_name_retry_counter));
           });
+
+      # Wait for empty name test to complete
+      - delay: 300ms
 
       # Test 6: Component method
       - logger.log: "=== Test 6: Component::set_retry method ==="
@@ -165,6 +171,9 @@ script:
 
           static TestRetryComponent test_component;
           test_component.test_retry();
+
+      # Wait for component test to complete
+      - delay: 200ms
 
       # Test 7: Multiple same name
       - logger.log: "=== Test 7: Multiple retries with same name ==="
@@ -200,7 +209,7 @@ script:
           ESP_LOGI("test", "Simple retry counter: %d (expected 2)", id(simple_retry_counter));
           ESP_LOGI("test", "Backoff retry counter: %d (expected 4)", id(backoff_retry_counter));
           ESP_LOGI("test", "Immediate done counter: %d (expected 1)", id(immediate_done_counter));
-          ESP_LOGI("test", "Cancel retry counter: %d (expected ~3-4)", id(cancel_retry_counter));
+          ESP_LOGI("test", "Cancel retry counter: %d (expected 2-4)", id(cancel_retry_counter));
           ESP_LOGI("test", "Empty name retry counter: %d (expected 1-2)", id(empty_name_retry_counter));
           ESP_LOGI("test", "Component retry counter: %d (expected 2)", id(script_retry_counter));
           ESP_LOGI("test", "Multiple same name counter: %d (expected 20+)", id(multiple_same_name_counter));

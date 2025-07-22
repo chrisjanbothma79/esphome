@@ -175,15 +175,15 @@ async def test_scheduler_retry_test(
 
         # Wait for cancel retry test
         try:
-            await asyncio.wait_for(cancel_retry_done.wait(), timeout=2.0)
+            await asyncio.wait_for(cancel_retry_done.wait(), timeout=3.0)
         except TimeoutError:
             pytest.fail(
                 f"Cancel retry test did not complete. Count: {cancel_retry_count}"
             )
 
         assert cancel_result is True, "Retry cancellation should have succeeded"
-        assert 2 <= cancel_retry_count <= 5, (
-            f"Expected 2-5 cancel retry attempts before cancellation, got {cancel_retry_count}"
+        assert 2 <= cancel_retry_count <= 4, (
+            f"Expected 2-4 cancel retry attempts before cancellation, got {cancel_retry_count}"
         )
 
         # Wait for empty name retry test
