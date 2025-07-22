@@ -5,7 +5,7 @@
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 
-// clang-format off
+// NOLINTBEGIN
 #define SUB_SENSOR_WITH_DEDUP(name, dedup_type) \
  protected: \
   ld24xx::SensorWithDedup<dedup_type> name##_sensor_; \
@@ -16,7 +16,7 @@
     this->name##_sensor_.publish_dedup = std::make_unique<Deduplicator<dedup_type>>(); \
   }
 #endif
-// clang-format on
+// NOLINTEND
 
 namespace esphome {
 namespace ld24xx {
