@@ -5,7 +5,6 @@
 #include "api_pb2.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
-#include <utility>
 #include <vector>
 
 namespace esphome {
