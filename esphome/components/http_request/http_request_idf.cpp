@@ -159,8 +159,8 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
   container->chunked = esp_http_client_is_chunked_response(client);
   container->feed_wdt();
   container->set_response_headers(user_data.response_headers);
+  container->duration_ms = millis() - start;
   if (is_success(container->status_code)) {
-    container->duration_ms = millis() - start;
     return container;
   }
 
@@ -195,8 +195,8 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
       container->feed_wdt();
       container->chunked = esp_http_client_is_chunked_response(client);
       container->feed_wdt();
+      container->duration_ms = millis() - start;
       if (is_success(container->status_code)) {
-        container->duration_ms = millis() - start;
         return container;
       }
 
