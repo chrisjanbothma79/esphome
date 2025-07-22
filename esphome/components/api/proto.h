@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include "esphome/core/string_ref.h"
 
 #include <cassert>
 #include <cstring>
@@ -217,6 +218,9 @@ class ProtoWriteBuffer {
   }
   void encode_string(uint32_t field_id, const std::string &value, bool force = false) {
     this->encode_string(field_id, value.data(), value.size(), force);
+  }
+  void encode_string(uint32_t field_id, const StringRef &ref, bool force = false) {
+    this->encode_string(field_id, ref.c_str(), ref.size(), force);
   }
   void encode_bytes(uint32_t field_id, const uint8_t *data, size_t len, bool force = false) {
     this->encode_string(field_id, reinterpret_cast<const char *>(data), len, force);

@@ -554,13 +554,11 @@ class StringType(TypeInfo):
         if self._needs_encode:
             content.extend(
                 [
-                    # Add pointer/length fields if message needs encoding
-                    f"const char* {self.field_name}_ptr_{{nullptr}};",
-                    f"size_t {self.field_name}_len_{{0}};",
+                    # Add StringRef field if message needs encoding
+                    f"StringRef {self.field_name}_ref_{{}};",
                     # Add setter method if message needs encoding
-                    f"void set_{self.field_name}(const char* data, size_t len) {{",
-                    f"  this->{self.field_name}_ptr_ = data;",
-                    f"  this->{self.field_name}_len_ = len;",
+                    f"void set_{self.field_name}(const StringRef &ref) {{",
+                    f"  this->{self.field_name}_ref_ = ref;",
                     "}",
                 ]
             )
@@ -568,27 +566,27 @@ class StringType(TypeInfo):
 
     @property
     def encode_content(self) -> str:
-        return f"buffer.encode_string({self.number}, this->{self.field_name}_ptr_, this->{self.field_name}_len_);"
+        return f"buffer.encode_string({self.number}, this->{self.field_name}_ref_);"
 
     def dump(self, name):
         # For SOURCE_CLIENT only, always use std::string
         if not self._needs_encode:
             return f'out.append("\'").append(this->{self.field_name}).append("\'");'
 
-        # For SOURCE_SERVER, always use pointer/length
+        # For SOURCE_SERVER, always use StringRef
         if not self._needs_decode:
             return (
-                f"if (this->{self.field_name}_ptr_ != nullptr) {{"
-                f'  out.append("\'").append(this->{self.field_name}_ptr_).append("\'");'
+                f"if (!this->{self.field_name}_ref_.empty()) {{"
+                f'  out.append("\'").append(this->{self.field_name}_ref_.c_str()).append("\'");'
                 f"}} else {{"
                 f'  out.append("\'").append("").append("\'");'
                 f"}}"
             )
 
-        # For SOURCE_BOTH, check if pointer is set (sending) or use string (received)
+        # For SOURCE_BOTH, check if StringRef is set (sending) or use string (received)
         return (
-            f"if (this->{self.field_name}_ptr_ != nullptr) {{"
-            f'  out.append("\'").append(this->{self.field_name}_ptr_).append("\'");'
+            f"if (!this->{self.field_name}_ref_.empty()) {{"
+            f'  out.append("\'").append(this->{self.field_name}_ref_.c_str()).append("\'");'
             f"}} else {{"
             f'  out.append("\'").append(this->{self.field_name}).append("\'");'
             f"}}"
@@ -605,9 +603,9 @@ class StringType(TypeInfo):
             field_id_size = self.calculate_field_id_size()
             return f"ProtoSize::add_string_field(total_size, {field_id_size}, it.length());"
 
-        # For messages that need encoding, use the length only
+        # For messages that need encoding, use the StringRef size
         field_id_size = self.calculate_field_id_size()
-        return f"ProtoSize::add_string_field(total_size, {field_id_size}, this->{self.field_name}_len_);"
+        return f"ProtoSize::add_string_field(total_size, {field_id_size}, this->{self.field_name}_ref_.size());"
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical string
@@ -1835,6 +1833,7 @@ def main() -> None:
 #pragma once
 
 #include "esphome/core/defines.h"
+#include "esphome/core/string_ref.h"
 
 #include "proto.h"
 

@@ -148,7 +148,7 @@ class CustomAPIDevice {
    */
   void call_homeassistant_service(const std::string &service_name) {
     HomeassistantServiceResponse resp;
-    resp.set_service(service_name.c_str(), service_name.length());
+    resp.set_service(StringRef(service_name));
     global_api_server->send_homeassistant_service_call(resp);
   }
 
@@ -168,12 +168,12 @@ class CustomAPIDevice {
    */
   void call_homeassistant_service(const std::string &service_name, const std::map<std::string, std::string> &data) {
     HomeassistantServiceResponse resp;
-    resp.set_service(service_name.c_str(), service_name.length());
+    resp.set_service(StringRef(service_name));
     for (auto &it : data) {
       resp.data.emplace_back();
       auto &kv = resp.data.back();
-      kv.set_key(it.first.c_str(), it.first.length());
-      kv.set_value(it.second.c_str(), it.second.length());
+      kv.set_key(StringRef(it.first));
+      kv.set_value(StringRef(it.second));
     }
     global_api_server->send_homeassistant_service_call(resp);
   }
@@ -190,7 +190,7 @@ class CustomAPIDevice {
    */
   void fire_homeassistant_event(const std::string &event_name) {
     HomeassistantServiceResponse resp;
-    resp.set_service(event_name.c_str(), event_name.length());
+    resp.set_service(StringRef(event_name));
     resp.is_event = true;
     global_api_server->send_homeassistant_service_call(resp);
   }
@@ -210,13 +210,13 @@ class CustomAPIDevice {
    */
   void fire_homeassistant_event(const std::string &service_name, const std::map<std::string, std::string> &data) {
     HomeassistantServiceResponse resp;
-    resp.set_service(service_name.c_str(), service_name.length());
+    resp.set_service(StringRef(service_name));
     resp.is_event = true;
     for (auto &it : data) {
       resp.data.emplace_back();
       auto &kv = resp.data.back();
-      kv.set_key(it.first.c_str(), it.first.length());
-      kv.set_value(it.second.c_str(), it.second.length());
+      kv.set_key(StringRef(it.first));
+      kv.set_value(StringRef(it.second));
     }
     global_api_server->send_homeassistant_service_call(resp);
   }

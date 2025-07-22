@@ -580,16 +580,16 @@ void HelloResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  server_info: ");
-  if (this->server_info_ptr_ != nullptr) {
-    out.append("'").append(this->server_info_ptr_).append("'");
+  if (!this->server_info_ref_.empty()) {
+    out.append("'").append(this->server_info_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -627,8 +627,8 @@ void AreaInfo::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -646,8 +646,8 @@ void DeviceInfo::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -670,40 +670,40 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 
 #endif
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  mac_address: ");
-  if (this->mac_address_ptr_ != nullptr) {
-    out.append("'").append(this->mac_address_ptr_).append("'");
+  if (!this->mac_address_ref_.empty()) {
+    out.append("'").append(this->mac_address_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  esphome_version: ");
-  if (this->esphome_version_ptr_ != nullptr) {
-    out.append("'").append(this->esphome_version_ptr_).append("'");
+  if (!this->esphome_version_ref_.empty()) {
+    out.append("'").append(this->esphome_version_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  compilation_time: ");
-  if (this->compilation_time_ptr_ != nullptr) {
-    out.append("'").append(this->compilation_time_ptr_).append("'");
+  if (!this->compilation_time_ref_.empty()) {
+    out.append("'").append(this->compilation_time_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  model: ");
-  if (this->model_ptr_ != nullptr) {
-    out.append("'").append(this->model_ptr_).append("'");
+  if (!this->model_ref_.empty()) {
+    out.append("'").append(this->model_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -717,8 +717,8 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 #endif
 #ifdef ESPHOME_PROJECT_NAME
   out.append("  project_name: ");
-  if (this->project_name_ptr_ != nullptr) {
-    out.append("'").append(this->project_name_ptr_).append("'");
+  if (!this->project_name_ref_.empty()) {
+    out.append("'").append(this->project_name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -727,8 +727,8 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 #endif
 #ifdef ESPHOME_PROJECT_NAME
   out.append("  project_version: ");
-  if (this->project_version_ptr_ != nullptr) {
-    out.append("'").append(this->project_version_ptr_).append("'");
+  if (!this->project_version_ref_.empty()) {
+    out.append("'").append(this->project_version_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -750,16 +750,16 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 
 #endif
   out.append("  manufacturer: ");
-  if (this->manufacturer_ptr_ != nullptr) {
-    out.append("'").append(this->manufacturer_ptr_).append("'");
+  if (!this->manufacturer_ref_.empty()) {
+    out.append("'").append(this->manufacturer_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  friendly_name: ");
-  if (this->friendly_name_ptr_ != nullptr) {
-    out.append("'").append(this->friendly_name_ptr_).append("'");
+  if (!this->friendly_name_ref_.empty()) {
+    out.append("'").append(this->friendly_name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -774,8 +774,8 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 #endif
 #ifdef USE_AREAS
   out.append("  suggested_area: ");
-  if (this->suggested_area_ptr_ != nullptr) {
-    out.append("'").append(this->suggested_area_ptr_).append("'");
+  if (!this->suggested_area_ref_.empty()) {
+    out.append("'").append(this->suggested_area_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -784,8 +784,8 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 #endif
 #ifdef USE_BLUETOOTH_PROXY
   out.append("  bluetooth_mac_address: ");
-  if (this->bluetooth_mac_address_ptr_ != nullptr) {
-    out.append("'").append(this->bluetooth_mac_address_ptr_).append("'");
+  if (!this->bluetooth_mac_address_ref_.empty()) {
+    out.append("'").append(this->bluetooth_mac_address_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -830,8 +830,8 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesBinarySensorResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -843,16 +843,16 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -868,8 +868,8 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -920,8 +920,8 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesCoverResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -933,8 +933,8 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -953,8 +953,8 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -966,8 +966,8 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1067,8 +1067,8 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesFanResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1080,8 +1080,8 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1110,8 +1110,8 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1124,8 +1124,8 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->supported_preset_modes) {
     out.append("  supported_preset_modes: ");
-    if (this->supported_preset_modes_ptr_ != nullptr) {
-      out.append("'").append(this->supported_preset_modes_ptr_).append("'");
+    if (!this->supported_preset_modes_ref_.empty()) {
+      out.append("'").append(this->supported_preset_modes_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->supported_preset_modes).append("'");
     }
@@ -1167,8 +1167,8 @@ void FanStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  preset_mode: ");
-  if (this->preset_mode_ptr_ != nullptr) {
-    out.append("'").append(this->preset_mode_ptr_).append("'");
+  if (!this->preset_mode_ref_.empty()) {
+    out.append("'").append(this->preset_mode_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1247,8 +1247,8 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesLightResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1260,8 +1260,8 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1285,8 +1285,8 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->effects) {
     out.append("  effects: ");
-    if (this->effects_ptr_ != nullptr) {
-      out.append("'").append(this->effects_ptr_).append("'");
+    if (!this->effects_ref_.empty()) {
+      out.append("'").append(this->effects_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->effects).append("'");
     }
@@ -1299,8 +1299,8 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1382,8 +1382,8 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  effect: ");
-  if (this->effect_ptr_ != nullptr) {
-    out.append("'").append(this->effect_ptr_).append("'");
+  if (!this->effect_ref_.empty()) {
+    out.append("'").append(this->effect_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1536,8 +1536,8 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSensorResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1549,8 +1549,8 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1558,8 +1558,8 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1567,8 +1567,8 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
 
 #endif
   out.append("  unit_of_measurement: ");
-  if (this->unit_of_measurement_ptr_ != nullptr) {
-    out.append("'").append(this->unit_of_measurement_ptr_).append("'");
+  if (!this->unit_of_measurement_ref_.empty()) {
+    out.append("'").append(this->unit_of_measurement_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1584,8 +1584,8 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1644,8 +1644,8 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSwitchResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1657,8 +1657,8 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1666,8 +1666,8 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1687,8 +1687,8 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1751,8 +1751,8 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTextSensorResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1764,8 +1764,8 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1773,8 +1773,8 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1790,8 +1790,8 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1815,8 +1815,8 @@ void TextSensorStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  state: ");
-  if (this->state_ptr_ != nullptr) {
-    out.append("'").append(this->state_ptr_).append("'");
+  if (!this->state_ref_.empty()) {
+    out.append("'").append(this->state_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1885,16 +1885,16 @@ void HomeassistantServiceMap::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("HomeassistantServiceMap {\n");
   out.append("  key: ");
-  if (this->key_ptr_ != nullptr) {
-    out.append("'").append(this->key_ptr_).append("'");
+  if (!this->key_ref_.empty()) {
+    out.append("'").append(this->key_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  value: ");
-  if (this->value_ptr_ != nullptr) {
-    out.append("'").append(this->value_ptr_).append("'");
+  if (!this->value_ref_.empty()) {
+    out.append("'").append(this->value_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1905,8 +1905,8 @@ void HomeassistantServiceResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("HomeassistantServiceResponse {\n");
   out.append("  service: ");
-  if (this->service_ptr_ != nullptr) {
-    out.append("'").append(this->service_ptr_).append("'");
+  if (!this->service_ref_.empty()) {
+    out.append("'").append(this->service_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1942,16 +1942,16 @@ void SubscribeHomeAssistantStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SubscribeHomeAssistantStateResponse {\n");
   out.append("  entity_id: ");
-  if (this->entity_id_ptr_ != nullptr) {
-    out.append("'").append(this->entity_id_ptr_).append("'");
+  if (!this->entity_id_ref_.empty()) {
+    out.append("'").append(this->entity_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  attribute: ");
-  if (this->attribute_ptr_ != nullptr) {
-    out.append("'").append(this->attribute_ptr_).append("'");
+  if (!this->attribute_ref_.empty()) {
+    out.append("'").append(this->attribute_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -1993,8 +1993,8 @@ void ListEntitiesServicesArgument::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesServicesArgument {\n");
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2009,8 +2009,8 @@ void ListEntitiesServicesResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesServicesResponse {\n");
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2076,8 +2076,8 @@ void ExecuteServiceArgument::dump_to(std::string &out) const {
 
   for (const auto &it : this->string_array) {
     out.append("  string_array: ");
-    if (this->string_array_ptr_ != nullptr) {
-      out.append("'").append(this->string_array_ptr_).append("'");
+    if (!this->string_array_ref_.empty()) {
+      out.append("'").append(this->string_array_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->string_array).append("'");
     }
@@ -2106,8 +2106,8 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesCameraResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2119,8 +2119,8 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2132,8 +2132,8 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2196,8 +2196,8 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesClimateResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2209,8 +2209,8 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2263,8 +2263,8 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->supported_custom_fan_modes) {
     out.append("  supported_custom_fan_modes: ");
-    if (this->supported_custom_fan_modes_ptr_ != nullptr) {
-      out.append("'").append(this->supported_custom_fan_modes_ptr_).append("'");
+    if (!this->supported_custom_fan_modes_ref_.empty()) {
+      out.append("'").append(this->supported_custom_fan_modes_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->supported_custom_fan_modes).append("'");
     }
@@ -2279,8 +2279,8 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->supported_custom_presets) {
     out.append("  supported_custom_presets: ");
-    if (this->supported_custom_presets_ptr_ != nullptr) {
-      out.append("'").append(this->supported_custom_presets_ptr_).append("'");
+    if (!this->supported_custom_presets_ref_.empty()) {
+      out.append("'").append(this->supported_custom_presets_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->supported_custom_presets).append("'");
     }
@@ -2293,8 +2293,8 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2382,8 +2382,8 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  custom_fan_mode: ");
-  if (this->custom_fan_mode_ptr_ != nullptr) {
-    out.append("'").append(this->custom_fan_mode_ptr_).append("'");
+  if (!this->custom_fan_mode_ref_.empty()) {
+    out.append("'").append(this->custom_fan_mode_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2394,8 +2394,8 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  custom_preset: ");
-  if (this->custom_preset_ptr_ != nullptr) {
-    out.append("'").append(this->custom_preset_ptr_).append("'");
+  if (!this->custom_preset_ref_.empty()) {
+    out.append("'").append(this->custom_preset_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2527,8 +2527,8 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesNumberResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2540,8 +2540,8 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2549,8 +2549,8 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2581,8 +2581,8 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  unit_of_measurement: ");
-  if (this->unit_of_measurement_ptr_ != nullptr) {
-    out.append("'").append(this->unit_of_measurement_ptr_).append("'");
+  if (!this->unit_of_measurement_ref_.empty()) {
+    out.append("'").append(this->unit_of_measurement_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2593,8 +2593,8 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2663,8 +2663,8 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSelectResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2676,8 +2676,8 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2685,8 +2685,8 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2695,8 +2695,8 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
 #endif
   for (const auto &it : this->options) {
     out.append("  options: ");
-    if (this->options_ptr_ != nullptr) {
-      out.append("'").append(this->options_ptr_).append("'");
+    if (!this->options_ref_.empty()) {
+      out.append("'").append(this->options_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->options).append("'");
     }
@@ -2729,8 +2729,8 @@ void SelectStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  state: ");
-  if (this->state_ptr_ != nullptr) {
-    out.append("'").append(this->state_ptr_).append("'");
+  if (!this->state_ref_.empty()) {
+    out.append("'").append(this->state_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2776,8 +2776,8 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSirenResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2789,8 +2789,8 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2798,8 +2798,8 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2812,8 +2812,8 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->tones) {
     out.append("  tones: ");
-    if (this->tones_ptr_ != nullptr) {
-      out.append("'").append(this->tones_ptr_).append("'");
+    if (!this->tones_ref_.empty()) {
+      out.append("'").append(this->tones_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->tones).append("'");
     }
@@ -2919,8 +2919,8 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesLockResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2932,8 +2932,8 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2941,8 +2941,8 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -2970,8 +2970,8 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  code_format: ");
-  if (this->code_format_ptr_ != nullptr) {
-    out.append("'").append(this->code_format_ptr_).append("'");
+  if (!this->code_format_ref_.empty()) {
+    out.append("'").append(this->code_format_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3042,8 +3042,8 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesButtonResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3055,8 +3055,8 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3064,8 +3064,8 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3081,8 +3081,8 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3120,8 +3120,8 @@ void MediaPlayerSupportedFormat::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("MediaPlayerSupportedFormat {\n");
   out.append("  format: ");
-  if (this->format_ptr_ != nullptr) {
-    out.append("'").append(this->format_ptr_).append("'");
+  if (!this->format_ref_.empty()) {
+    out.append("'").append(this->format_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3151,8 +3151,8 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesMediaPlayerResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3164,8 +3164,8 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3173,8 +3173,8 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3787,8 +3787,8 @@ void VoiceAssistantRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  conversation_id: ");
-  if (this->conversation_id_ptr_ != nullptr) {
-    out.append("'").append(this->conversation_id_ptr_).append("'");
+  if (!this->conversation_id_ref_.empty()) {
+    out.append("'").append(this->conversation_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3804,8 +3804,8 @@ void VoiceAssistantRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  wake_word_phrase: ");
-  if (this->wake_word_phrase_ptr_ != nullptr) {
-    out.append("'").append(this->wake_word_phrase_ptr_).append("'");
+  if (!this->wake_word_phrase_ref_.empty()) {
+    out.append("'").append(this->wake_word_phrase_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3929,16 +3929,16 @@ void VoiceAssistantWakeWord::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantWakeWord {\n");
   out.append("  id: ");
-  if (this->id_ptr_ != nullptr) {
-    out.append("'").append(this->id_ptr_).append("'");
+  if (!this->id_ref_.empty()) {
+    out.append("'").append(this->id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  wake_word: ");
-  if (this->wake_word_ptr_ != nullptr) {
-    out.append("'").append(this->wake_word_ptr_).append("'");
+  if (!this->wake_word_ref_.empty()) {
+    out.append("'").append(this->wake_word_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -3946,8 +3946,8 @@ void VoiceAssistantWakeWord::dump_to(std::string &out) const {
 
   for (const auto &it : this->trained_languages) {
     out.append("  trained_languages: ");
-    if (this->trained_languages_ptr_ != nullptr) {
-      out.append("'").append(this->trained_languages_ptr_).append("'");
+    if (!this->trained_languages_ref_.empty()) {
+      out.append("'").append(this->trained_languages_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->trained_languages).append("'");
     }
@@ -3969,8 +3969,8 @@ void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->active_wake_words) {
     out.append("  active_wake_words: ");
-    if (this->active_wake_words_ptr_ != nullptr) {
-      out.append("'").append(this->active_wake_words_ptr_).append("'");
+    if (!this->active_wake_words_ref_.empty()) {
+      out.append("'").append(this->active_wake_words_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->active_wake_words).append("'");
     }
@@ -3988,8 +3988,8 @@ void VoiceAssistantSetConfiguration::dump_to(std::string &out) const {
   out.append("VoiceAssistantSetConfiguration {\n");
   for (const auto &it : this->active_wake_words) {
     out.append("  active_wake_words: ");
-    if (this->active_wake_words_ptr_ != nullptr) {
-      out.append("'").append(this->active_wake_words_ptr_).append("'");
+    if (!this->active_wake_words_ref_.empty()) {
+      out.append("'").append(this->active_wake_words_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->active_wake_words).append("'");
     }
@@ -4003,8 +4003,8 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesAlarmControlPanelResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4016,8 +4016,8 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4025,8 +4025,8 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4115,8 +4115,8 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTextResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4128,8 +4128,8 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4137,8 +4137,8 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4164,8 +4164,8 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  pattern: ");
-  if (this->pattern_ptr_ != nullptr) {
-    out.append("'").append(this->pattern_ptr_).append("'");
+  if (!this->pattern_ref_.empty()) {
+    out.append("'").append(this->pattern_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4193,8 +4193,8 @@ void TextStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  state: ");
-  if (this->state_ptr_ != nullptr) {
-    out.append("'").append(this->state_ptr_).append("'");
+  if (!this->state_ref_.empty()) {
+    out.append("'").append(this->state_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4240,8 +4240,8 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesDateResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4253,8 +4253,8 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4262,8 +4262,8 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4361,8 +4361,8 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTimeResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4374,8 +4374,8 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4383,8 +4383,8 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4482,8 +4482,8 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesEventResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4495,8 +4495,8 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4504,8 +4504,8 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4521,8 +4521,8 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4530,8 +4530,8 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->event_types) {
     out.append("  event_types: ");
-    if (this->event_types_ptr_ != nullptr) {
-      out.append("'").append(this->event_types_ptr_).append("'");
+    if (!this->event_types_ref_.empty()) {
+      out.append("'").append(this->event_types_ref_.c_str()).append("'");
     } else {
       out.append("'").append(this->event_types).append("'");
     }
@@ -4556,8 +4556,8 @@ void EventResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  event_type: ");
-  if (this->event_type_ptr_ != nullptr) {
-    out.append("'").append(this->event_type_ptr_).append("'");
+  if (!this->event_type_ref_.empty()) {
+    out.append("'").append(this->event_type_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4578,8 +4578,8 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesValveResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4591,8 +4591,8 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4600,8 +4600,8 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4617,8 +4617,8 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4707,8 +4707,8 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesDateTimeResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4720,8 +4720,8 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4729,8 +4729,8 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4808,8 +4808,8 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesUpdateResponse {\n");
   out.append("  object_id: ");
-  if (this->object_id_ptr_ != nullptr) {
-    out.append("'").append(this->object_id_ptr_).append("'");
+  if (!this->object_id_ref_.empty()) {
+    out.append("'").append(this->object_id_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4821,8 +4821,8 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  name: ");
-  if (this->name_ptr_ != nullptr) {
-    out.append("'").append(this->name_ptr_).append("'");
+  if (!this->name_ref_.empty()) {
+    out.append("'").append(this->name_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4830,8 +4830,8 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
 
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
-  if (this->icon_ptr_ != nullptr) {
-    out.append("'").append(this->icon_ptr_).append("'");
+  if (!this->icon_ref_.empty()) {
+    out.append("'").append(this->icon_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4847,8 +4847,8 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_class: ");
-  if (this->device_class_ptr_ != nullptr) {
-    out.append("'").append(this->device_class_ptr_).append("'");
+  if (!this->device_class_ref_.empty()) {
+    out.append("'").append(this->device_class_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
@@ -4889,40 +4889,40 @@ void UpdateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  current_version: ");
-  if (this->current_version_ptr_ != nullptr) {
-    out.append("'").append(this->current_version_ptr_).append("'");
+  if (!this->current_version_ref_.empty()) {
+    out.append("'").append(this->current_version_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  latest_version: ");
-  if (this->latest_version_ptr_ != nullptr) {
-    out.append("'").append(this->latest_version_ptr_).append("'");
+  if (!this->latest_version_ref_.empty()) {
+    out.append("'").append(this->latest_version_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  title: ");
-  if (this->title_ptr_ != nullptr) {
-    out.append("'").append(this->title_ptr_).append("'");
+  if (!this->title_ref_.empty()) {
+    out.append("'").append(this->title_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  release_summary: ");
-  if (this->release_summary_ptr_ != nullptr) {
-    out.append("'").append(this->release_summary_ptr_).append("'");
+  if (!this->release_summary_ref_.empty()) {
+    out.append("'").append(this->release_summary_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
   out.append("\n");
 
   out.append("  release_url: ");
-  if (this->release_url_ptr_ != nullptr) {
-    out.append("'").append(this->release_url_ptr_).append("'");
+  if (!this->release_url_ref_.empty()) {
+    out.append("'").append(this->release_url_ref_.c_str()).append("'");
   } else {
     out.append("'").append("").append("'");
   }
