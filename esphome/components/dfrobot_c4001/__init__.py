@@ -14,12 +14,6 @@ dfrobot_c4001_ns = cg.esphome_ns.namespace("dfrobot_c4001")
 DFRobotC4001Hub = dfrobot_c4001_ns.class_(
     "DFRobotC4001Hub", cg.Component, uart.UARTDevice
 )
-# ModelConfig = dfrobot_c4001_ns.enum("ModelConfig")
-
-# CONF_MODEL_ENUM = {
-#     "SEN0609": ModelConfig.MODEL_SEN0609,
-#     "SEN0610": ModelConfig.MODEL_SEN0610,
-# }
 
 HUB_CHILD_SCHEMA = cv.Schema(
     {
@@ -50,5 +44,3 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
-
-    # cg.add(var.set_model(config[CONF_MODEL]))
