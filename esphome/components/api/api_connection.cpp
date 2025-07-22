@@ -1380,6 +1380,7 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   HelloResponse resp;
   resp.api_version_major = 1;
   resp.api_version_minor = 10;
+  // Temporary string needed to concatenate app name with version string
   std::string server_info = App.get_name() + " (esphome v" ESPHOME_VERSION ")";
   resp.set_server_info(StringRef(server_info));
   resp.set_name(StringRef(App.get_name()));
@@ -1418,6 +1419,7 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
 #ifdef USE_AREAS
   resp.set_suggested_area(StringRef(App.get_area()));
 #endif
+  // Temporary string needed because get_mac_address_pretty() formats the MAC on-the-fly
   std::string mac = get_mac_address_pretty();
   resp.set_mac_address(StringRef(mac));
   resp.set_esphome_version(StringRef(ESPHOME_VERSION));
@@ -1448,6 +1450,7 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
 #endif
 #ifdef USE_BLUETOOTH_PROXY
   resp.bluetooth_proxy_feature_flags = bluetooth_proxy::global_bluetooth_proxy->get_feature_flags();
+  // Temporary string needed because get_bluetooth_mac_address_pretty() formats the MAC on-the-fly
   std::string bt_mac = bluetooth_proxy::global_bluetooth_proxy->get_bluetooth_mac_address_pretty();
   resp.set_bluetooth_mac_address(StringRef(bt_mac));
 #endif
