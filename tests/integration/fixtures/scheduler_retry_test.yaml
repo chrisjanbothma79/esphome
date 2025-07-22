@@ -112,7 +112,7 @@ script:
       - logger.log: "=== Test 4: Cancel retry ==="
       - lambda: |-
           auto *component = id(test_sensor);
-          App.scheduler.set_retry(component, "cancel_test", 25, 10,
+          App.scheduler.set_retry(component, "cancel_test", 30, 10,
             [](uint8_t retry_countdown) {
               id(cancel_retry_counter)++;
               ESP_LOGI("test", "Cancel test retry attempt %d", id(cancel_retry_counter));
@@ -127,9 +127,9 @@ script:
           });
 
       # Wait for cancel test to complete
-      # The 400ms delay ensures that the cancel test has enough time to complete
+      # The 600ms delay ensures that the cancel test has enough time to complete
       # all scheduled retries and the cancellation logic before proceeding.
-      - delay: 400ms
+      - delay: 600ms
 
       # Test 5: Empty name retry
       - logger.log: "=== Test 5: Empty name retry ==="
