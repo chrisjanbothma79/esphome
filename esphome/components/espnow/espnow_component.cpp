@@ -357,7 +357,7 @@ esp_err_t ESPNowComponent::add_peer(const uint8_t *peer) {
     }
   }
   if (!found) {
-    esp_now_peer_t new_peer;
+    ESPNowPeer new_peer;
     memcpy(new_peer.address, peer, ESP_NOW_ETH_ALEN);
     this->peers_.push_back(new_peer);
   }
