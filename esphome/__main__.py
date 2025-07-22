@@ -768,6 +768,12 @@ POST_CONFIG_ACTIONS = {
     "discover": command_discover,
 }
 
+SIMPLE_CONFIG_ACTIONS = [
+    "clean",
+    "clean-mqtt",
+    "config",
+]
+
 
 def parse_args(argv):
     options_parser = argparse.ArgumentParser(add_help=False)
@@ -1033,11 +1039,15 @@ def parse_args(argv):
     arguments = argv[1:]
 
     argcomplete.autocomplete(parser)
-    return parser.parse_known_args(arguments)
+    args, _ = parser.parse_known_args(arguments)
+    if args.command not in SIMPLE_CONFIG_ACTIONS:
+        return parser.parse_args(arguments)
+
+    return args
 
 
 def run_esphome(argv):
-    args, _ = parse_args(argv)
+    args = parse_args(argv)
     CORE.dashboard = args.dashboard
 
     # Override log level if verbose is set
