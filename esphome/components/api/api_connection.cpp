@@ -1481,7 +1481,6 @@ bool APIConnection::send_device_info_response(const DeviceInfoRequest &msg) {
     resp.devices.emplace_back();
     auto &device_info = resp.devices.back();
     device_info.device_id = device->get_device_id();
-    // device->get_name() returns a reference to the device's name string
     device_info.set_name(StringRef(device->get_name()));
     device_info.area_id = device->get_area_id();
   }
@@ -1491,7 +1490,6 @@ bool APIConnection::send_device_info_response(const DeviceInfoRequest &msg) {
     resp.areas.emplace_back();
     auto &area_info = resp.areas.back();
     area_info.area_id = area->get_area_id();
-    // area->get_name() returns a reference to the area's name string
     area_info.set_name(StringRef(area->get_name()));
   }
 #endif
