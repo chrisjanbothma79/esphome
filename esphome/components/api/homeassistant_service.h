@@ -36,7 +36,7 @@ template<typename... X> class TemplatableStringValue : public TemplatableValue<s
 
 template<typename... Ts> class TemplatableKeyValuePair {
  public:
-  template<typename T> TemplatableKeyValuePair(std::string key, T value) : key(std::move(key)), value(value) {}
+  template<typename T> TemplatableKeyValuePair(const std::string &key, T value) : key(key), value(value) {}
   std::string key;
   TemplatableStringValue<Ts...> value;
 };
@@ -47,11 +47,11 @@ template<typename... Ts> class HomeAssistantServiceCallAction : public Action<Ts
 
   template<typename T> void set_service(T service) { this->service_ = service; }
 
-  template<typename T> void add_data(std::string key, T value) { this->data_.emplace_back(key, value); }
-  template<typename T> void add_data_template(std::string key, T value) {
+  template<typename T> void add_data(const std::string &key, T value) { this->data_.emplace_back(key, value); }
+  template<typename T> void add_data_template(const std::string &key, T value) {
     this->data_template_.emplace_back(key, value);
   }
-  template<typename T> void add_variable(std::string key, T value) { this->variables_.emplace_back(key, value); }
+  template<typename T> void add_variable(const std::string &key, T value) { this->variables_.emplace_back(key, value); }
 
   void play(Ts... x) override {
     HomeassistantServiceResponse resp;
