@@ -84,17 +84,18 @@ void HomeassistantNumber::control(float value) {
   this->publish_state(value);
 
   api::HomeassistantServiceResponse resp;
-  resp.service = "number.set_value";
+  resp.set_service("number.set_value", 17);
 
-  api::HomeassistantServiceMap entity_id;
-  entity_id.key = "entity_id";
-  entity_id.value = this->entity_id_;
-  resp.data.push_back(entity_id);
+  resp.data.emplace_back();
+  auto &entity_id = resp.data.back();
+  entity_id.set_key("entity_id", 9);
+  entity_id.set_value(this->entity_id_.c_str(), this->entity_id_.length());
 
-  api::HomeassistantServiceMap entity_value;
-  entity_value.key = "value";
-  entity_value.value = to_string(value);
-  resp.data.push_back(entity_value);
+  resp.data.emplace_back();
+  auto &entity_value = resp.data.back();
+  entity_value.set_key("value", 5);
+  std::string value_str = to_string(value);
+  entity_value.set_value(value_str.c_str(), value_str.length());
 
   api::global_api_server->send_homeassistant_service_call(resp);
 }
