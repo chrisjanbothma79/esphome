@@ -41,6 +41,9 @@ OffLatencyNumber = dfrobot_c4001_ns.class_("OffLatencyNumber", number.Number)
 InhibitTimeNumber = dfrobot_c4001_ns.class_("InhibitTimeNumber", number.Number)
 ThresholdFactorNumber = dfrobot_c4001_ns.class_("ThresholdFactorNumber", number.Number)
 
+GROUP_SENSITIVITY = "Sensitivity Group: 'hold_sensitivity' and 'trigger_sensitivity'"
+GROUP_LATENCY = "Latency Group: 'on_latency' and 'off_latency'"
+
 CONFIG_SCHEMA = (
     cv.Schema(
         {
@@ -65,24 +68,28 @@ CONFIG_SCHEMA = (
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_ARROW_EXPAND_VERTICAL,
             ),
-            cv.Optional(CONF_HOLD_SENSITIVITY): number.number_schema(
+            cv.Inclusive(
+                CONF_HOLD_SENSITIVITY, GROUP_SENSITIVITY
+            ): number.number_schema(
                 HoldSensitivityNumber,
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_SCALE,
             ),
-            cv.Optional(CONF_TRIGGER_SENSITIVITY): number.number_schema(
+            cv.Inclusive(
+                CONF_TRIGGER_SENSITIVITY, GROUP_SENSITIVITY
+            ): number.number_schema(
                 TriggerSensitivityNumber,
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_SCALE,
             ),
-            cv.Optional(CONF_ON_LATENCY): number.number_schema(
+            cv.Inclusive(CONF_ON_LATENCY, GROUP_LATENCY): number.number_schema(
                 OnLatencyNumber,
                 unit_of_measurement=UNIT_SECOND,
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 device_class=DEVICE_CLASS_DURATION,
                 icon=ICON_TIMER,
             ),
-            cv.Optional(CONF_OFF_LATENCY): number.number_schema(
+            cv.Inclusive(CONF_OFF_LATENCY, GROUP_LATENCY): number.number_schema(
                 OffLatencyNumber,
                 unit_of_measurement=UNIT_SECOND,
                 entity_category=ENTITY_CATEGORY_CONFIG,

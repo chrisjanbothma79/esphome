@@ -12,6 +12,15 @@
 #ifdef USE_NUMBER
 #include "esphome/components/number/number.h"
 #endif
+#ifdef USE_SENSOR
+#include "esphome/components/sensor/sensor.h"
+#endif
+#ifdef USE_SWITCH
+#include "esphome/components/switch/switch.h"
+#endif
+#ifdef USE_TEXT_SENSOR
+#include "esphome/components/text_sensor/text_sensor.h"
+#endif
 
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/helpers.h"
@@ -76,6 +85,22 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   SUB_NUMBER(threshold_factor)
 #endif
 
+#ifdef USE_SENSOR
+  SUB_SENSOR(target_distance)
+  SUB_SENSOR(target_speed)
+  SUB_SENSOR(target_energy)
+#endif
+
+#ifdef USE_SWITCH
+  SUB_SWITCH(led_enable)
+  SUB_SWITCH(micro_motion_enable)
+#endif
+
+#ifdef USE_TEXT_SENSOR
+  SUB_TEXT_SENSOR(software_version)
+  SUB_TEXT_SENSOR(hardware_version)
+#endif
+
  public:
   void dump_config() override;
   void setup() override;
@@ -90,6 +115,9 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void set_off_latency(float value, bool needs_save = true);
   void set_inhibit_time(float value, bool needs_save = true);
   void set_threshold_factor(float value, bool needs_save = true);
+  void set_led_enable(bool value, bool needs_save = true);
+  void set_micro_motion_enable(bool enable, bool needs_save = true);
+  void flash_led_enable();
   void set_mode(DFRobotMode value);
   void set_model(DFRobotModel value);
   void set_software_version(char *version);
@@ -101,7 +129,9 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void factory_reset();
   void restart();
   void set_occupancy(bool occupancy);
-
+  void set_target_distance(float value);
+  void set_target_speed(float value);
+  void set_target_energy(float value);
   int8_t enqueue(std::unique_ptr<Command> cmd, bool first = false);
 
  protected:
@@ -115,8 +145,13 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   float off_latency_{15.0};
   float inhibit_time_{1.0};
   float threshold_factor_{5};
+  bool micro_motion_enable_{false};
+  bool led_enable_{true};
   bool needs_save_{false};
   bool occupancy_{false};
+  float target_distance_;
+  float target_speed_;
+  float target_energy_;
   DFRobotMode mode_{MODE_PRESENCE};
   DFRobotModel model_{MODEL_UNKNOWN};
   DFRobotModel hw_model_{MODEL_UNKNOWN};
@@ -128,6 +163,8 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   CircularCommandQueue cmd_queue_;
   uint32_t ts_last_cmd_sent_{0};
   int32_t ts_cmd_error_cnt_{0};
+
+  ESPPreferenceObject pref_;
 
   uint8_t read_message_();
   uint8_t send_cmd_(const char *cmd, uint32_t duration);

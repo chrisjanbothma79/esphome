@@ -43,6 +43,33 @@ void DFRobotC4001Hub::set_occupancy(bool occupancy) {
 #endif
 }
 
+void DFRobotC4001Hub::set_target_distance(float value) {
+  this->target_distance_ = value;
+#ifdef USE_SENSOR
+  if (this->target_distance_sensor_ != nullptr) {
+    this->target_distance_sensor_->publish_state(value);
+  }
+#endif
+}
+
+void DFRobotC4001Hub::set_target_speed(float value) {
+  this->target_speed_ = value;
+#ifdef USE_SENSOR
+  if (this->target_speed_sensor_ != nullptr) {
+    this->target_speed_sensor_->publish_state(value);
+  }
+#endif
+}
+
+void DFRobotC4001Hub::set_target_energy(float value) {
+  this->target_energy_ = value;
+#ifdef USE_SENSOR
+  if (this->target_energy_sensor_ != nullptr) {
+    this->target_energy_sensor_->publish_state(value);
+  }
+#endif
+}
+
 void DFRobotC4001Hub::set_max_range(float max, bool needs_save) {
 #ifdef USE_NUMBER
   if (this->max_range_number_ != nullptr) {
@@ -186,6 +213,67 @@ void DFRobotC4001Hub::set_threshold_factor(float value, bool needs_save) {
   }
 }
 
+void DFRobotC4001Hub::set_led_enable(bool value, bool needs_save) {
+  this->led_enable_ = value;
+#ifdef USE_SWITCH
+  if (this->led_enable_switch_ != nullptr) {
+    this->led_enable_switch_->publish_state(value);
+  }
+#endif
+  if (needs_save) {
+    this->set_needs_save(true);
+  }
+}
+
+void DFRobotC4001Hub::set_micro_motion_enable(bool enable, bool needs_save) {
+  this->micro_motion_enable_ = enable;
+#ifdef USE_SWITCH
+  if (this->micro_motion_enable_switch_ != nullptr) {
+    this->micro_motion_enable_switch_->publish_state(enable);
+  }
+#endif
+  if (needs_save) {
+    this->set_needs_save(true);
+  }
+}
+
+void DFRobotC4001Hub::set_software_version(char *version) {
+  std::string new_string(version);
+#ifdef USE_TEXT_SENSOR
+  if (this->software_version_text_sensor_ != nullptr) {
+    this->software_version_text_sensor_->publish_state(new_string);
+  }
+#endif
+  this->sw_version_ = std::move(new_string);
+}
+
+void DFRobotC4001Hub::set_hardware_version(char *version) {
+  std::string new_string(version);
+  if (str_startswith(new_string, "JYSJ_428")) {
+    this->hw_model_ = MODEL_SEN0609;
+  } else if (str_startswith(new_string, "JYSJ_426")) {
+    this->hw_model_ = MODEL_SEN0610;
+  } else {
+    this->hw_model_ = MODEL_UNKNOWN;
+  }
+#ifdef USE_TEXT_SENSOR
+  if (this->hardware_version_text_sensor_ != nullptr) {
+    this->hardware_version_text_sensor_->publish_state(new_string);
+  }
+#endif
+  this->hw_version_ = std::move(new_string);
+}
+
+void DFRobotC4001Hub::flash_led_enable() {
+#ifdef USE_SWITCH
+  // Save LED Enable preferences (to flash storage)
+  if (this->led_enable_switch_ != nullptr) {
+    ESP_LOGD(TAG, "Writing LED Enable setting to flash");
+    this->pref_.save(&this->led_enable_);
+  }
+#endif
+}
+
 void DFRobotC4001Hub::set_mode(DFRobotMode value) { this->mode_ = value; }
 
 void DFRobotC4001Hub::set_model(DFRobotModel value) { this->model_ = value; }
@@ -218,6 +306,9 @@ void DFRobotC4001Hub::setup_module() {
   this->enqueue(make_unique<PowerCommand>(false));
   // put the module is the requested mode
   this->enqueue(make_unique<SetRunAppCommand>(this->mode_));
+  // set the leds to the current led_enable state
+  this->enqueue(make_unique<SetLedModeCommand1>(this->led_enable_));
+  this->enqueue(make_unique<SetLedModeCommand2>(this->led_enable_));
   // make sure the module output presence via uart
   if (this->mode_ == MODE_PRESENCE) {
     this->enqueue(make_unique<SetUartOutputCommand>(true));
@@ -229,6 +320,8 @@ void DFRobotC4001Hub::setup_module() {
 void DFRobotC4001Hub::config_load() {
   // get dfrobot_c4001 current configuration
   // have to be in the right mode to read that mode's parameters
+  this->enqueue(make_unique<GetHWVCommand>());
+  this->enqueue(make_unique<GetSWVCommand>());
   if (this->min_range_number_ != nullptr)
     this->enqueue(make_unique<GetRangeCommand>());
   if (this->mode_ == MODE_PRESENCE) {
@@ -243,13 +336,18 @@ void DFRobotC4001Hub::config_load() {
   } else {
     if (this->threshold_factor_number_ != nullptr)
       this->enqueue(make_unique<GetThrFactorCommand>());
+    if (this->micro_motion_enable_switch_ != nullptr)
+      this->enqueue(make_unique<GetMicroMotionCommand>());
   }
   this->set_needs_save(false);
 }
 
 void DFRobotC4001Hub::config_save() {
   if (this->needs_save_) {
+    this->flash_led_enable();
     this->enqueue(make_unique<PowerCommand>(false));
+    this->enqueue(make_unique<SetLedModeCommand1>(this->led_enable_));
+    this->enqueue(make_unique<SetLedModeCommand2>(this->led_enable_));
     if (this->min_range_number_ != nullptr)
       this->enqueue(make_unique<SetRangeCommand>(this->min_range_, this->max_range_));
     if (this->mode_ == MODE_PRESENCE) {
@@ -259,15 +357,18 @@ void DFRobotC4001Hub::config_save() {
         this->enqueue(make_unique<SetSensitivityCommand>(this->hold_sensitivity_, this->trigger_sensitivity_));
       if (this->on_latency_number_ != nullptr)
         this->enqueue(make_unique<SetLatencyCommand>(this->on_latency_, this->off_latency_));
-      if (this->inhibit_time_number_ != nullptr)
+      if (this->inhibit_time_number_ != nullptr) {
         this->enqueue(make_unique<SetInhibitTimeCommand>(this->inhibit_time_));
-    } else {
-      if (this->threshold_factor_number_ != nullptr)
-        this->enqueue(make_unique<SetThrFactorCommand>(this->threshold_factor_));
+      } else {
+        if (this->threshold_factor_number_ != nullptr)
+          this->enqueue(make_unique<SetThrFactorCommand>(this->threshold_factor_));
+        if (this->micro_motion_enable_switch_ != nullptr)
+          this->enqueue(make_unique<SetMicroMotionCommand>(this->micro_motion_enable_));
+      }
+      this->enqueue(make_unique<SaveCfgCommand>());
+      this->enqueue(make_unique<PowerCommand>(true));
+      this->set_needs_save(false);
     }
-    this->enqueue(make_unique<SaveCfgCommand>());
-    this->enqueue(make_unique<PowerCommand>(true));
-    this->set_needs_save(false);
   }
 }
 
@@ -286,9 +387,19 @@ void DFRobotC4001Hub::restart() {
 void DFRobotC4001Hub::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "DFRobot C4001 mmWave Radar:\n"
+                "  SW Version: %s\n"
+                "  HW Version: %s\n"
                 "  Model: %s\n"
                 "  Mode: %s\n",
-                model_to_str(this->model_), mode_to_str(this->mode_));
+                this->sw_version_.c_str(), this->hw_version_.c_str(), model_to_str(this->model_),
+                mode_to_str(this->mode_));
+  bool models_good = this->model_ == this->hw_model_;
+  if (this->hw_model_ == MODEL_UNKNOWN) {
+    models_good = true;
+  }
+  if (!models_good) {
+    ESP_LOGW(TAG, "HW Version indicates a %s, could be an issue", model_to_str(this->model_));
+  }
 #ifdef USE_BUTTON
   ESP_LOGCONFIG(TAG, "Buttons:");
   LOG_BUTTON("  ", "Config Save", this->config_save_button_);
@@ -312,9 +423,34 @@ void DFRobotC4001Hub::dump_config() {
   LOG_NUMBER("  ", "Inhibit Time", this->inhibit_time_number_);
   LOG_NUMBER("  ", "Threshold Factor", this->threshold_factor_number_);
 #endif
+#ifdef USE_SWITCH
+  ESP_LOGCONFIG(TAG, "Switches:");
+  LOG_SWITCH("  ", "LED Enable", this->led_enable_switch_);
+  LOG_SWITCH("  ", "Micro Motion Enable", this->micro_motion_enable_switch_);
+#endif
+#ifdef USE_TEXT_SENSOR
+  ESP_LOGCONFIG(TAG, "Text Sensors:");
+  LOG_TEXT_SENSOR("  ", "Software Version", this->software_version_text_sensor_);
+  LOG_TEXT_SENSOR("  ", "Hardware Version", this->hardware_version_text_sensor_);
+#endif
 }
 
 void DFRobotC4001Hub::setup() {
+  bool value;
+
+#ifdef USE_SWITCH
+  if (this->led_enable_switch_ != nullptr) {
+    // Restore LED Enable preferences (from flash storage)
+    this->pref_ = global_preferences->make_preference<bool>(this->led_enable_switch_->get_object_id_hash());
+    if (!this->pref_.load(&value)) {
+      ESP_LOGCONFIG(TAG, "Defaulting flash settings");
+      value = false;
+    } else {
+      ESP_LOGCONFIG(TAG, "Load flash settings");
+    }
+    this->set_led_enable(value, false);
+  }
+#endif
   ESP_LOGCONFIG(TAG, "Running setup");
   // setup the module
   this->enqueue(make_unique<ResetSystemCommand>(false));
@@ -326,7 +462,6 @@ void DFRobotC4001Hub::loop() {
   if (this->is_failed()) {
     return;
   }
-
   if (this->cmd_queue_.is_empty()) {
     // Command queue empty, first time this happens setup is complete
     if (!this->is_setup_) {
@@ -451,7 +586,6 @@ std::unique_ptr<Command> CircularCommandQueue::dequeue() {
   } else {
     this->front_ = (this->front_ + 1) % COMMAND_QUEUE_SIZE;
   }
-
   return dequeued_cmd;
 }
 

@@ -114,6 +114,8 @@ void Command::on_message() {
 }
 
 uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
+  char *token;
+
   this->parent_ = parent;
   if (this->parent_->read_message_()) {
     if (strstr(this->parent_->read_buffer_, "$DFHPD,0, , , *")) {
@@ -124,6 +126,41 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
       this->parent_->set_occupancy(true);
       ESP_LOGV(TAG, "Recv Rpt: Occupancy Detected");
       return true;  // Command done
+    } else if (strstr(this->parent_->read_buffer_, "$DFDMD")) {
+      strtok(this->parent_->read_buffer_, ",");
+      token = strtok(NULL, ",");
+      auto target = parse_number<uint8_t>(token);
+      strtok(NULL, ",");
+      token = strtok(NULL, ",");
+      auto target_distance = parse_number<float>(token);
+      token = strtok(NULL, ",");
+      auto target_speed = parse_number<float>(token);
+      token = strtok(NULL, ",");
+      auto target_energy = parse_number<float>(token);
+      if (target.has_value() && target.value() == 1) {
+        // one target is detected
+        if (target_distance.has_value() && target_speed.has_value() && target_energy.has_value()) {
+          // 1 target is detected, that is all this sensor can do
+          this->parent_->set_target_distance(target_distance.value());
+          this->parent_->set_target_speed(target_speed.value());
+          this->parent_->set_target_energy(target_energy.value());
+          this->parent_->set_occupancy(true);
+          ESP_LOGV(TAG, "Recv Rpt: Target Detected, Dist=%.3f, Speed=%.3f, Energy=%d", target_distance.value(),
+                   target_speed.value(), (uint) target_energy.value());
+          return true;  // command completed successfully
+        } else {
+          ESP_LOGD(TAG, "Error parsing Distance and Speed Detection Output");
+          return true;  // command done with error
+        }
+      } else if (target.has_value() && target == 0) {
+        // no target is detected
+        this->parent_->set_target_distance(0.0);
+        this->parent_->set_target_speed(0.0);
+        this->parent_->set_target_energy(0.0);
+        this->parent_->set_occupancy(false);
+        ESP_LOGV(TAG, "Recv Rpt: No Target");
+        return true;  // command completed successfully
+      }
     }
   }
   if (millis() - this->parent_->ts_last_cmd_sent_ > this->timeout_ms_) {
@@ -283,11 +320,70 @@ SetThrFactorCommand::SetThrFactorCommand(float threshold_factor) {
   this->cmd_ = str_sprintf("setThrFactor %.3f", threshold_factor);
 };
 
+SetLedModeCommand1::SetLedModeCommand1(bool led_mode) {
+  this->led_enable_ = led_mode;
+  this->cmd_ = led_mode ? "setLedMode 1 0" : "setLedMode 1 1";
+};
+
+void SetLedModeCommand1::on_message() {
+  // this command is not in Communication Protocol document it appears to be a leftover from similar products
+  // this command only controls the green LED which flashes when the sensor is running the blue LED is always on when
+  // powered
+  if (strcmp(this->read_buffer_, "Done") == 0) {
+    this->parent_->set_led_enable(this->led_enable_, false);
+    this->done_ = true;  // command is done
+  }
+}
+
+SetLedModeCommand2::SetLedModeCommand2(bool led_mode) { this->cmd_ = led_mode ? "setLedMode 2 0" : "setLedMode 2 1"; };
+
+void SetLedModeCommand2::on_message() {
+  // this command is not in Communication Protocol document it appears to be a leftover from similar products
+  // this command only controls the green LED which flashes when the sensor is running the blue LED is always on when
+  // powered
+  if (strcmp(this->read_buffer_, "Done") == 0) {
+    this->done_ = true;  // command is done
+  }
+}
+
+GetMicroMotionCommand::GetMicroMotionCommand() { this->cmd_ = "getMicroMotion"; }
+
+void GetMicroMotionCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, " ");
+  if (strcmp(token, "Done") == 0) {
+    if (!this->micro_motion_.has_value()) {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    } else {
+      this->parent_->set_micro_motion_enable(this->micro_motion_.value(), false);
+      this->done_ = true;  // command is done
+    }
+  } else if (strcmp(token, "Response") == 0) {
+    token = strtok(NULL, " ");
+    this->micro_motion_ = parse_number<bool>(token);
+  }
+}
+
+SetMicroMotionCommand::SetMicroMotionCommand(bool enable) {
+  this->micro_motion_ = enable;
+  this->cmd_ = enable ? "setMicroMotion 1" : "setMicroMotion 0";
+};
+
+void SetMicroMotionCommand::on_message() {
+  if (strcmp(this->read_buffer_, "Done") == 0) {
+    this->parent_->set_micro_motion_enable(this->micro_motion_, false);
+    this->done_ = true;  // command is done
+  }
+}
+
 FactoryResetCommand::FactoryResetCommand() { this->cmd_ = "resetCfg"; }
 
 void FactoryResetCommand::on_message() {
   if (strstr(this->read_buffer_, "Done")) {
     // reload settings
+    this->parent_->flash_led_enable();
     this->parent_->setup_module();
     this->parent_->config_load();
     this->done_ = true;  // command is done
@@ -325,6 +421,44 @@ SetUartOutputCommand::SetUartOutputCommand(bool enable) {
 };
 
 SetRunAppCommand::SetRunAppCommand(uint8_t mode) { this->cmd_ = mode == MODE_PRESENCE ? "setRunApp 0" : "setRunApp 1"; }
+
+GetSWVCommand::GetSWVCommand() { this->cmd_ = "getSWV"; }
+
+void GetSWVCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, ":");
+  if (strcmp(token, "Done") == 0) {
+    this->done_ = true;  // command is done
+  } else if (strcmp(token, "SoftwareVersion") == 0) {
+    token = strtok(NULL, ":");
+    if (token != nullptr) {
+      this->parent_->set_software_version(token);
+    } else {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    }
+  }
+}
+
+GetHWVCommand::GetHWVCommand() { this->cmd_ = "getHWV"; }
+
+void GetHWVCommand::on_message() {
+  char *token;
+
+  token = strtok(this->read_buffer_, ":");
+  if (strcmp(token, "Done") == 0) {
+    this->done_ = true;  // command is done
+  } else if (strcmp(token, "HardwareVersion") == 0) {
+    token = strtok(NULL, ":");
+    if (token != nullptr) {
+      this->parent_->set_hardware_version(token);
+    } else {
+      ESP_LOGD(TAG, "Failed to parse response");
+      this->error_ = true;  // command is done
+    }
+  }
+}
 
 }  // namespace dfrobot_c4001
 }  // namespace esphome
