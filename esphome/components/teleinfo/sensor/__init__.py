@@ -97,11 +97,11 @@ def apply_tag_config(config):
 
 
 CONFIG_SCHEMA = cv.All(
+    apply_tag_config,
     sensor.sensor_schema(
         TeleInfoSensor,
         accuracy_decimals=0,
     ).extend(TELEINFO_LISTENER_SCHEMA),
-    apply_tag_config,
 )
 
 
@@ -109,12 +109,6 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID], config[CONF_TAG_NAME])
     await cg.register_component(var, config)
     await sensor.register_sensor(var, config)
-
-    if CONF_STATE_CLASS in config:
-        if config[CONF_STATE_CLASS] == STATE_CLASS_MEASUREMENT:
-            cg.add(var.set_state_class(cg.global_ns.STATE_CLASS_MEASUREMENT))
-        elif config[CONF_STATE_CLASS] == STATE_CLASS_TOTAL_INCREASING:
-            cg.add(var.set_state_class(cg.global_ns.STATE_CLASS_TOTAL_INCREASING))
 
     teleinfo = await cg.get_variable(config[CONF_TELEINFO_ID])
     cg.add(teleinfo.register_teleinfo_listener(var))
