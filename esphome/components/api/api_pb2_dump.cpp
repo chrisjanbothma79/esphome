@@ -720,7 +720,6 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("  area: ");
   this->area.dump_to(out);
   out.append("\n");
-
 #endif
   out.append("}");
 }
@@ -1187,7 +1186,6 @@ void CameraImageResponse::dump_to(std::string &out) const {
   out.append("  data: ");
   out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
   out.append("\n");
-
   dump_field(out, "done", this->done);
 #ifdef USE_DEVICES
   dump_field(out, "device_id", this->device_id);
@@ -1799,7 +1797,6 @@ void VoiceAssistantRequest::dump_to(std::string &out) const {
   out.append("  audio_settings: ");
   this->audio_settings.dump_to(out);
   out.append("\n");
-
   dump_field(out, "wake_word_phrase", this->wake_word_phrase_ref_);
   out.append("}");
 }
@@ -1834,7 +1831,6 @@ void VoiceAssistantAudio::dump_to(std::string &out) const {
     out.append(format_hex_pretty(reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size()));
   }
   out.append("\n");
-
   dump_field(out, "end", this->end);
   out.append("}");
 }

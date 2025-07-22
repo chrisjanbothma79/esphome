@@ -620,7 +620,7 @@ class StringType(TypeInfo):
         # For SOURCE_BOTH, we need custom logic
         o = f'out.append("  {self.name}: ");\n'
         o += self.dump(f"this->{self.field_name}") + "\n"
-        o += 'out.append("\\n");\n'
+        o += 'out.append("\\n");'
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
@@ -689,7 +689,7 @@ class MessageType(TypeInfo):
     def dump_content(self) -> str:
         o = f'out.append("  {self.name}: ");\n'
         o += f"this->{self.field_name}.dump_to(out);\n"
-        o += 'out.append("\\n");\n'
+        o += 'out.append("\\n");'
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
@@ -768,7 +768,7 @@ class BytesType(TypeInfo):
     def dump_content(self) -> str:
         o = f'out.append("  {self.name}: ");\n'
         o += self.dump(f"this->{self.field_name}") + "\n"
-        o += 'out.append("\\n");\n'
+        o += 'out.append("\\n");'
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
