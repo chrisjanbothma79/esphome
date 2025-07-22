@@ -11,6 +11,9 @@ void DHT::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
   this->pin_->digital_write(true);
   this->pin_->setup();
+#ifdef USE_ESP32
+  this->pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_OUTPUT | gpio::FLAG_OPEN_DRAIN | gpio::FLAG_PULLUP);
+#endif
   this->pin_->digital_write(true);
 }
 
@@ -73,21 +76,15 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
   int8_t i = 0;
   uint8_t data[5] = {0, 0, 0, 0, 0};
 
-  this->pin_->digital_write(false);
+#ifndef USE_ESP32
   this->pin_->pin_mode(gpio::FLAG_OUTPUT);
+#endif
   this->pin_->digital_write(false);
 
   if (this->model_ == DHT_MODEL_DHT11) {
     delayMicroseconds(18000);
   } else if (this->model_ == DHT_MODEL_SI7021) {
-#ifdef USE_ESP8266
     delayMicroseconds(500);
-    this->pin_->digital_write(true);
-    delayMicroseconds(40);
-#else
-    delayMicroseconds(400);
-    this->pin_->digital_write(true);
-#endif
   } else if (this->model_ == DHT_MODEL_DHT22_TYPE2) {
     delayMicroseconds(2000);
   } else if (this->model_ == DHT_MODEL_AM2120 || this->model_ == DHT_MODEL_AM2302) {
@@ -95,7 +92,11 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
   } else {
     delayMicroseconds(800);
   }
+
+  this->pin_->digital_write(true);
+#ifndef USE_ESP32
   this->pin_->pin_mode(this->pin_->get_flags());
+#endif
 
   {
     InterruptLock lock;
