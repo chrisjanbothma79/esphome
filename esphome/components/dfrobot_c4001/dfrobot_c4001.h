@@ -3,6 +3,9 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/component.h"
 
+#ifdef USE_BUTTON
+#include "esphome/components/button/button.h"
+#endif
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
@@ -17,6 +20,18 @@
 
 namespace esphome {
 namespace dfrobot_c4001 {
+// Enumeration for RunApp or Sensor Mode
+enum DFRobotMode : uint8_t {
+  MODE_PRESENCE = 0,
+  MODE_SPEED_AND_DISTANCE,
+  MODE_UNKNOWN,
+};
+
+enum DFRobotModel : uint8_t {
+  MODEL_SEN0609 = 0,
+  MODEL_SEN0610,
+  MODEL_UNKNOWN,
+};
 
 const uint8_t MMWAVE_READ_BUFFER_LENGTH = 64;
 
@@ -41,6 +56,14 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
 #ifdef USE_BINARY_SENSOR
   SUB_BINARY_SENSOR(occupancy)
   SUB_BINARY_SENSOR(config_changed)
+#endif
+
+#ifdef USE_BUTTON
+  SUB_BUTTON(config_save)
+  SUB_BUTTON(factory_reset)
+  SUB_BUTTON(restart)
+#endif
+
 #ifdef USE_NUMBER
   SUB_NUMBER(max_range)
   SUB_NUMBER(min_range)
@@ -51,7 +74,6 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   SUB_NUMBER(off_latency)
   SUB_NUMBER(inhibit_time)
   SUB_NUMBER(threshold_factor)
-#endif
 #endif
 
  public:
@@ -68,9 +90,16 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void set_off_latency(float value, bool needs_save = true);
   void set_inhibit_time(float value, bool needs_save = true);
   void set_threshold_factor(float value, bool needs_save = true);
+  void set_mode(DFRobotMode value);
+  void set_model(DFRobotModel value);
+  void set_software_version(char *version);
+  void set_hardware_version(char *version);
   void set_needs_save(bool needs_save);
   void setup_module();
   void config_load();
+  void config_save();
+  void factory_reset();
+  void restart();
   void set_occupancy(bool occupancy);
 
   int8_t enqueue(std::unique_ptr<Command> cmd, bool first = false);
@@ -88,6 +117,11 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   float threshold_factor_{5};
   bool needs_save_{false};
   bool occupancy_{false};
+  DFRobotMode mode_{MODE_PRESENCE};
+  DFRobotModel model_{MODEL_UNKNOWN};
+  DFRobotModel hw_model_{MODEL_UNKNOWN};
+  std::string hw_version_;
+  std::string sw_version_;
 
   char read_buffer_[MMWAVE_READ_BUFFER_LENGTH];
   size_t read_pos_{0};

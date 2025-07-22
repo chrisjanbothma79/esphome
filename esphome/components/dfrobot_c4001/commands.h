@@ -137,18 +137,45 @@ class SetThrFactorCommand : public Command {
 
 class SetUartOutputCommand : public Command {
  public:
-  SetUartOutputCommand();
+  SetUartOutputCommand(bool enable);
+};
+
+class FactoryResetCommand : public Command {
+ public:
+  FactoryResetCommand();
+  void on_message() override;
 };
 
 class ResetSystemCommand : public Command {
  public:
-  ResetSystemCommand();
+  ResetSystemCommand(bool read_config);
+  void on_message() override;
+
+ protected:
+  bool read_config_;
+};
+
+class SaveCfgCommand : public Command {
+ public:
+  SaveCfgCommand();
   void on_message() override;
 };
 
 class SetRunAppCommand : public Command {
  public:
-  SetRunAppCommand();
+  SetRunAppCommand(uint8_t mode);
+};
+
+class GetHWVCommand : public Command {
+ public:
+  GetHWVCommand();
+  void on_message() override;
+};
+
+class GetSWVCommand : public Command {
+ public:
+  GetSWVCommand();
+  void on_message() override;
 };
 
 }  // namespace dfrobot_c4001

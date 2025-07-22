@@ -283,18 +283,48 @@ SetThrFactorCommand::SetThrFactorCommand(float threshold_factor) {
   this->cmd_ = str_sprintf("setThrFactor %.3f", threshold_factor);
 };
 
-ResetSystemCommand::ResetSystemCommand() { this->cmd_ = "resetSystem"; }
+FactoryResetCommand::FactoryResetCommand() { this->cmd_ = "resetCfg"; }
+
+void FactoryResetCommand::on_message() {
+  if (strstr(this->read_buffer_, "Done")) {
+    // reload settings
+    this->parent_->setup_module();
+    this->parent_->config_load();
+    this->done_ = true;  // command is done
+  }
+}
+
+ResetSystemCommand::ResetSystemCommand(bool read_config) {
+  this->read_config_ = read_config;
+  this->cmd_ = "resetSystem";
+}
 
 void ResetSystemCommand::on_message() {
   // this command responds with nothing, not even a command echo
+  if (this->read_config_) {
+    this->parent_->config_load();
+  }
   this->done_ = true;  // command is done
+}
+
+SaveCfgCommand::SaveCfgCommand() { this->cmd_ = "saveConfig"; }
+
+void SaveCfgCommand::on_message() {
+  if (strstr(this->read_buffer_, "no parameter has changed")) {
+    ESP_LOGV(TAG, "Send Cmd: Nothing Changed");
+  } else if (strstr(this->read_buffer_, "Done")) {
+    this->parent_->config_load();
+    this->done_ = true;  // command is done
+  }
 }
 
 PowerCommand::PowerCommand(bool power_on) { this->cmd_ = power_on ? "sensorStart" : "sensorStop"; };
 
-SetUartOutputCommand::SetUartOutputCommand() { this->cmd_ = "setUartOutput 1 1 1 1.0"; };
+SetUartOutputCommand::SetUartOutputCommand(bool enable) {
+  this->cmd_ = enable ? "setUartOutput 1 1 1 1.0" : "setUartOutput 1 0 1 1.0";
+};
 
-SetRunAppCommand::SetRunAppCommand() { this->cmd_ = "setRunApp 0"; }
+SetRunAppCommand::SetRunAppCommand(uint8_t mode) { this->cmd_ = mode == MODE_PRESENCE ? "setRunApp 0" : "setRunApp 1"; }
 
 }  // namespace dfrobot_c4001
 }  // namespace esphome

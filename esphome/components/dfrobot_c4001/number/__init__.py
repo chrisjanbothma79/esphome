@@ -4,6 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_MAX_RANGE,
     CONF_MIN_RANGE,
+    CONF_MODE,
     DEVICE_CLASS_DISTANCE,
     DEVICE_CLASS_DURATION,
     ENTITY_CATEGORY_CONFIG,
@@ -13,6 +14,7 @@ from esphome.const import (
     UNIT_METER,
     UNIT_SECOND,
 )
+import esphome.final_validate as fv
 
 from .. import CONF_DFROBOT_C4001_ID, HUB_CHILD_SCHEMA, dfrobot_c4001_ns
 
@@ -107,6 +109,40 @@ CONFIG_SCHEMA = (
 
 
 def _final_validate(config):
+    full_config = fv.full_config.get()
+    hub_path = full_config.get_path_for_id(config[CONF_DFROBOT_C4001_ID])[:-1]
+    hub_conf = full_config.get_config_for_path(hub_path)
+    mode = hub_conf.get(CONF_MODE)
+    if mode == "PRESENCE":
+        if CONF_THRESHOLD_FACTOR in config:
+            raise cv.Invalid(
+                f"When 'mode' is set to {mode}, {CONF_THRESHOLD_FACTOR} number is not allowed."
+            )
+    else:
+        if CONF_TRIGGER_RANGE in config:
+            raise cv.Invalid(
+                f"When 'mode' is set to {mode}, {CONF_TRIGGER_RANGE} number is not allowed."
+            )
+        if CONF_HOLD_SENSITIVITY in config:
+            raise cv.Invalid(
+                f"When 'mode' is set to {mode}, {CONF_HOLD_SENSITIVITY} number is not allowed."
+            )
+        if CONF_TRIGGER_SENSITIVITY in config:
+            raise cv.Invalid(
+                f"When 'mode' is set to {mode}, {CONF_TRIGGER_SENSITIVITY} number is not allowed."
+            )
+        if CONF_ON_LATENCY in config:
+            raise cv.Invalid(
+                f"When 'mode' is set to {mode}, {CONF_ON_LATENCY} number is not allowed."
+            )
+        if CONF_OFF_LATENCY in config:
+            raise cv.Invalid(
+                f"When 'mode' is set to {mode}, {CONF_OFF_LATENCY} number is not allowed."
+            )
+        if CONF_INHIBIT_TIME in config:
+            raise cv.Invalid(
+                f"When 'mode' is set to {mode}, {CONF_INHIBIT_TIME} number is not allowed."
+            )
     if CONF_TRIGGER_RANGE in config:
         if (CONF_MIN_RANGE not in config) or (CONF_MAX_RANGE not in config):
             raise cv.Invalid(
@@ -170,7 +206,7 @@ async def to_code(config):
         cg.add(sens0609_hub.set_off_latency_number(n))
     if inhibit_time := config.get(CONF_INHIBIT_TIME):
         n = await number.new_number(
-            inhibit_time, min_value=0.1, max_value=255.0, step=0.01
+            inhibit_time, min_value=0.1, max_value=60.0, step=0.01
         )
         await cg.register_parented(n, config[CONF_DFROBOT_C4001_ID])
         cg.add(sens0609_hub.set_inhibit_time_number(n))
