@@ -2,10 +2,8 @@
 
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
-#include "esphome/components/sensor/sensor.h"
 
 #include <vector>
-#include <map>
 
 namespace esphome {
 namespace teleinfo {
@@ -33,11 +31,7 @@ class TeleInfo : public PollingComponent, public uart::UARTDevice {
   void dump_config() override;
   std::vector<TeleInfoListener *> teleinfo_listeners_{};
 
-  void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
-
  protected:
-  std::map<std::string, sensor::Sensor *> sensors_{};
-
   uint32_t baud_rate_;
   int checksum_area_end_;
   int separator_;
