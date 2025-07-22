@@ -13,7 +13,7 @@
   void set_##name##_sensor(sensor::Sensor *sensor) { \
     this->name##_sensor_.sens = sensor; \
     this->name##_sensor_.publish_dedup = std::make_unique<Deduplicator<dedup_type>>(); \
-  }  // NOLINT(readability-identifier-naming)
+  }  // NOLINT
 #endif
 
 namespace esphome {
