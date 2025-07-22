@@ -1291,6 +1291,11 @@ void WebServer::handle_climate_request(AsyncWebServerRequest *request, const Url
       call.set_swing_mode(mode.c_str());  // NOLINT
     }
 
+    if (request->hasParam("preset")) {
+      auto preset = request->getParam("preset")->value();
+      call.set_preset(preset.c_str());  // NOLINT
+    }
+
     if (request->hasParam("target_temperature_high")) {
       auto target_temperature_high = parse_number<float>(request->getParam("target_temperature_high")->value().c_str());
       if (target_temperature_high.has_value())
