@@ -500,7 +500,7 @@ bool LD2410Component::handle_ack_data_() {
 #endif
 #ifdef USE_NUMBER
       if (this->light_threshold_number_ != nullptr) {
-        this->light_threshold_number_->publish_state(this->light_threshold_);
+        this->light_threshold_number_->publish_state(static_cast<float>(this->light_threshold_));
       }
 #endif
       break;
