@@ -4,10 +4,10 @@
 
 #include <memory>
 #include "esphome/core/gpio.h"
-#include "esphome/components/network/util.h"
 #include <cxx_include/esp_modem_api.hpp>
 #include <esp_modem_config.h>
 #include <vector>
+#include <cmath>
 
 namespace esphome {
 namespace modem {

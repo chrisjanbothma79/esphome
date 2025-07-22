@@ -1,21 +1,17 @@
 #pragma once
 #ifdef USE_ESP_IDF
 
-#include <memory>
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
 #include "esphome/core/gpio.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/preferences.h"
 #include "esphome/components/network/util.h"
-#include "modem_handler.h"
 
-using esphome::esp_log_printf_;  // NOLINT(google-global-names-in-headers)
-
-#include <driver/gpio.h>
 #include <unordered_map>
-#include <utility>
+#include <memory>
 
+#include "modem_handler.h"
 namespace esphome {
 namespace modem {
 
