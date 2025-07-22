@@ -42,14 +42,14 @@ void HomeassistantSwitch::write_state(bool state) {
 
   api::HomeassistantServiceResponse resp;
   if (state) {
-    resp.set_service("homeassistant.turn_on", 22);
+    resp.set_service(StringRef("homeassistant.turn_on"));
   } else {
-    resp.set_service("homeassistant.turn_off", 23);
+    resp.set_service(StringRef("homeassistant.turn_off"));
   }
 
   resp.data.emplace_back();
   auto &entity_id_kv = resp.data.back();
-  entity_id_kv.set_key("entity_id", 9);
+  entity_id_kv.set_key(StringRef("entity_id"));
   entity_id_kv.set_value(StringRef(this->entity_id_));
 
   api::global_api_server->send_homeassistant_service_call(resp);
