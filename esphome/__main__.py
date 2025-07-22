@@ -1039,11 +1039,14 @@ def parse_args(argv):
     arguments = argv[1:]
 
     argcomplete.autocomplete(parser)
-    args, _ = parser.parse_known_args(arguments)
-    if args.command not in SIMPLE_CONFIG_ACTIONS:
-        return parser.parse_args(arguments)
 
-    return args
+    if any(arg in SIMPLE_CONFIG_ACTIONS for arg in arguments):
+        args, unknown_args = parser.parse_known_args(arguments)
+        if unknown_args:
+            _LOGGER.warning("Ignored unrecognized arguments: %s", unknown_args)
+        return args
+
+    return parser.parse_args(arguments)
 
 
 def run_esphome(argv):
