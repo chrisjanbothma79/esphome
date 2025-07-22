@@ -117,6 +117,7 @@ void DFRobotC4001Hub::set_min_range(float min, bool needs_save) {
     this->set_needs_save(true);
   }
 }
+
 void DFRobotC4001Hub::set_trigger_range(float trig, bool needs_save) {
 #ifdef USE_NUMBER
   if (this->trigger_range_number_ != nullptr) {
@@ -322,9 +323,12 @@ void DFRobotC4001Hub::config_load() {
   // have to be in the right mode to read that mode's parameters
   this->enqueue(make_unique<GetHWVCommand>());
   this->enqueue(make_unique<GetSWVCommand>());
+#ifdef USE_NUMBER
   if (this->min_range_number_ != nullptr)
     this->enqueue(make_unique<GetRangeCommand>());
+#endif
   if (this->mode_ == MODE_PRESENCE) {
+#ifdef USE_NUMBER
     if (this->trigger_range_number_ != nullptr)
       this->enqueue(make_unique<GetTrigRangeCommand>());
     if (this->hold_sensitivity_number_ != nullptr)
@@ -333,11 +337,16 @@ void DFRobotC4001Hub::config_load() {
       this->enqueue(make_unique<GetLatencyCommand>());
     if (this->inhibit_time_number_ != nullptr)
       this->enqueue(make_unique<GetInhibitTimeCommand>());
+#endif
   } else {
+#ifdef USE_NUMBER
     if (this->threshold_factor_number_ != nullptr)
       this->enqueue(make_unique<GetThrFactorCommand>());
+#endif
+#ifdef USE_SWITCH
     if (this->micro_motion_enable_switch_ != nullptr)
       this->enqueue(make_unique<GetMicroMotionCommand>());
+#endif
   }
   this->set_needs_save(false);
 }
@@ -348,27 +357,34 @@ void DFRobotC4001Hub::config_save() {
     this->enqueue(make_unique<PowerCommand>(false));
     this->enqueue(make_unique<SetLedModeCommand1>(this->led_enable_));
     this->enqueue(make_unique<SetLedModeCommand2>(this->led_enable_));
+#ifdef USE_NUMBER
     if (this->min_range_number_ != nullptr)
       this->enqueue(make_unique<SetRangeCommand>(this->min_range_, this->max_range_));
+#endif
     if (this->mode_ == MODE_PRESENCE) {
+#ifdef USE_NUMBER
       if (this->trigger_range_number_ != nullptr)
         this->enqueue(make_unique<SetTrigRangeCommand>(this->trigger_range_));
       if (this->hold_sensitivity_number_ != nullptr)
         this->enqueue(make_unique<SetSensitivityCommand>(this->hold_sensitivity_, this->trigger_sensitivity_));
       if (this->on_latency_number_ != nullptr)
         this->enqueue(make_unique<SetLatencyCommand>(this->on_latency_, this->off_latency_));
-      if (this->inhibit_time_number_ != nullptr) {
+      if (this->inhibit_time_number_ != nullptr)
         this->enqueue(make_unique<SetInhibitTimeCommand>(this->inhibit_time_));
-      } else {
-        if (this->threshold_factor_number_ != nullptr)
-          this->enqueue(make_unique<SetThrFactorCommand>(this->threshold_factor_));
-        if (this->micro_motion_enable_switch_ != nullptr)
-          this->enqueue(make_unique<SetMicroMotionCommand>(this->micro_motion_enable_));
-      }
-      this->enqueue(make_unique<SaveCfgCommand>());
-      this->enqueue(make_unique<PowerCommand>(true));
-      this->set_needs_save(false);
+#endif
+    } else {
+#ifdef USE_NUMBER
+      if (this->threshold_factor_number_ != nullptr)
+        this->enqueue(make_unique<SetThrFactorCommand>(this->threshold_factor_));
+#endif
+#ifdef USE_SWITCH
+      if (this->micro_motion_enable_switch_ != nullptr)
+        this->enqueue(make_unique<SetMicroMotionCommand>(this->micro_motion_enable_));
+#endif
     }
+    this->enqueue(make_unique<SaveCfgCommand>());
+    this->enqueue(make_unique<PowerCommand>(true));
+    this->set_needs_save(false);
   }
 }
 

@@ -157,14 +157,16 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   DFRobotModel hw_model_{MODEL_UNKNOWN};
   std::string hw_version_;
   std::string sw_version_;
+  
+#ifdef USE_SWITCH
+  ESPPreferenceObject pref_;
+#endif
 
   char read_buffer_[MMWAVE_READ_BUFFER_LENGTH];
   size_t read_pos_{0};
   CircularCommandQueue cmd_queue_;
   uint32_t ts_last_cmd_sent_{0};
   int32_t ts_cmd_error_cnt_{0};
-
-  ESPPreferenceObject pref_;
 
   uint8_t read_message_();
   uint8_t send_cmd_(const char *cmd, uint32_t duration);
