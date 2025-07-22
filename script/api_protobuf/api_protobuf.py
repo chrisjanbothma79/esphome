@@ -243,7 +243,7 @@ class TypeInfo(ABC):
     @property
     def dump_content(self) -> str:
         # Default implementation - subclasses can override if they need special handling
-        return f'dump_field(out, "{self.name}", {self.dump_field_value(f"this->{self.field_name}")});\n'
+        return f'dump_field(out, "{self.name}", {self.dump_field_value(f"this->{self.field_name}")});'
 
     @abstractmethod
     def dump(self, name: str) -> str:
