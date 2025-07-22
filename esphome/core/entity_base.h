@@ -55,10 +55,11 @@ class EntityBase {
   std::string get_icon() const;
   void set_icon(const char *icon);
   StringRef get_icon_ref() const {
+    static constexpr auto EMPTY_STRING = StringRef::from_lit("");
 #ifdef USE_ENTITY_ICON
-    return this->icon_c_str_ == nullptr ? StringRef("") : StringRef(this->icon_c_str_);
+    return this->icon_c_str_ == nullptr ? EMPTY_STRING : StringRef(this->icon_c_str_);
 #else
-    return StringRef("");
+    return EMPTY_STRING;
 #endif
   }
 
@@ -114,7 +115,8 @@ class EntityBase_DeviceClass {  // NOLINT(readability-identifier-naming)
   void set_device_class(const char *device_class);
   /// Get the device class as StringRef
   StringRef get_device_class_ref() const {
-    return this->device_class_ == nullptr ? StringRef("") : StringRef(this->device_class_);
+    static constexpr auto EMPTY_STRING = StringRef::from_lit("");
+    return this->device_class_ == nullptr ? EMPTY_STRING : StringRef(this->device_class_);
   }
 
  protected:
@@ -129,7 +131,8 @@ class EntityBase_UnitOfMeasurement {  // NOLINT(readability-identifier-naming)
   void set_unit_of_measurement(const char *unit_of_measurement);
   /// Get the unit of measurement as StringRef
   StringRef get_unit_of_measurement_ref() const {
-    return this->unit_of_measurement_ == nullptr ? StringRef("") : StringRef(this->unit_of_measurement_);
+    static constexpr auto EMPTY_STRING = StringRef::from_lit("");
+    return this->unit_of_measurement_ == nullptr ? EMPTY_STRING : StringRef(this->unit_of_measurement_);
   }
 
  protected:

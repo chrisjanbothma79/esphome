@@ -40,16 +40,20 @@ void HomeassistantSwitch::write_state(bool state) {
     return;
   }
 
+  static constexpr auto SERVICE_ON = StringRef::from_lit("homeassistant.turn_on");
+  static constexpr auto SERVICE_OFF = StringRef::from_lit("homeassistant.turn_off");
+  static constexpr auto ENTITY_ID_KEY = StringRef::from_lit("entity_id");
+
   api::HomeassistantServiceResponse resp;
   if (state) {
-    resp.set_service(StringRef("homeassistant.turn_on"));
+    resp.set_service(SERVICE_ON);
   } else {
-    resp.set_service(StringRef("homeassistant.turn_off"));
+    resp.set_service(SERVICE_OFF);
   }
 
   resp.data.emplace_back();
   auto &entity_id_kv = resp.data.back();
-  entity_id_kv.set_key(StringRef("entity_id"));
+  entity_id_kv.set_key(ENTITY_ID_KEY);
   entity_id_kv.set_value(StringRef(this->entity_id_));
 
   api::global_api_server->send_homeassistant_service_call(resp);
