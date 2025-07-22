@@ -51,14 +51,16 @@ template<typename... Ts> class HomeAssistantServiceCallAction : public Action<Ts
 
   template<typename T> void set_service(T service) { this->service_ = service; }
 
-  // These methods use const std::string& for keys because keys are always string literals
-  // from the Python code generation (e.g., cg.add(var.add_data("tag_id", templ))).
+  // Keys are always string literals from the Python code generation (e.g., cg.add(var.add_data("tag_id", templ))).
   // The value parameter can be a lambda/template, but keys are never templatable.
-  template<typename T> void add_data(const std::string &key, T value) { this->data_.emplace_back(key, value); }
-  template<typename T> void add_data_template(const std::string &key, T value) {
-    this->data_template_.emplace_back(key, value);
+  // Using pass-by-value allows the compiler to optimize for both lvalues and rvalues.
+  template<typename T> void add_data(std::string key, T value) { this->data_.emplace_back(std::move(key), value); }
+  template<typename T> void add_data_template(std::string key, T value) {
+    this->data_template_.emplace_back(std::move(key), value);
   }
-  template<typename T> void add_variable(const std::string &key, T value) { this->variables_.emplace_back(key, value); }
+  template<typename T> void add_variable(std::string key, T value) {
+    this->variables_.emplace_back(std::move(key), value);
+  }
 
   void play(Ts... x) override {
     HomeassistantServiceResponse resp;
