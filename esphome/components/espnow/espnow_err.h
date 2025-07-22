@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef USE_ESP32
+
 #include <esp_err.h>
 #include <esp_now.h>
 
@@ -14,3 +16,5 @@ static const esp_err_t ESP_ERR_ESPNOW_PEER_NOT_SET = (ESP_ERR_ESPNOW_CMP_BASE + 
 
 }  // namespace espnow
 }  // namespace esphome
+
+#endif  // USE_ESP32
