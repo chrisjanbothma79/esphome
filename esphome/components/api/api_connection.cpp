@@ -1441,30 +1441,41 @@ bool APIConnection::send_device_info_response(const DeviceInfoRequest &msg) {
   // mac_address must store temporary string - will be valid during send_message call
   std::string mac_address = get_mac_address_pretty();
   resp.set_mac_address(StringRef(mac_address));
-  resp.set_esphome_version(StringRef(ESPHOME_VERSION));
+
+  // Compile-time StringRef constants
+  static constexpr auto ESPHOME_VERSION_REF = StringRef::from_lit(ESPHOME_VERSION);
+  resp.set_esphome_version(ESPHOME_VERSION_REF);
+
   // get_compilation_time() returns temporary std::string - must store it
   std::string compilation_time = App.get_compilation_time();
   resp.set_compilation_time(StringRef(compilation_time));
+
+  // Compile-time StringRef constants for manufacturers
 #if defined(USE_ESP8266) || defined(USE_ESP32)
-  resp.set_manufacturer(StringRef("Espressif"));
+  static constexpr auto MANUFACTURER = StringRef::from_lit("Espressif");
 #elif defined(USE_RP2040)
-  resp.set_manufacturer(StringRef("Raspberry Pi"));
+  static constexpr auto MANUFACTURER = StringRef::from_lit("Raspberry Pi");
 #elif defined(USE_BK72XX)
-  resp.set_manufacturer(StringRef("Beken"));
+  static constexpr auto MANUFACTURER = StringRef::from_lit("Beken");
 #elif defined(USE_LN882X)
-  resp.set_manufacturer(StringRef("Lightning"));
+  static constexpr auto MANUFACTURER = StringRef::from_lit("Lightning");
 #elif defined(USE_RTL87XX)
-  resp.set_manufacturer(StringRef("Realtek"));
+  static constexpr auto MANUFACTURER = StringRef::from_lit("Realtek");
 #elif defined(USE_HOST)
-  resp.set_manufacturer(StringRef("Host"));
+  static constexpr auto MANUFACTURER = StringRef::from_lit("Host");
 #endif
-  resp.set_model(StringRef(ESPHOME_BOARD));
+  resp.set_manufacturer(MANUFACTURER);
+
+  static constexpr auto MODEL = StringRef::from_lit(ESPHOME_BOARD);
+  resp.set_model(MODEL);
 #ifdef USE_DEEP_SLEEP
   resp.has_deep_sleep = deep_sleep::global_has_deep_sleep;
 #endif
 #ifdef ESPHOME_PROJECT_NAME
-  resp.set_project_name(StringRef(ESPHOME_PROJECT_NAME));
-  resp.set_project_version(StringRef(ESPHOME_PROJECT_VERSION));
+  static constexpr auto PROJECT_NAME = StringRef::from_lit(ESPHOME_PROJECT_NAME);
+  static constexpr auto PROJECT_VERSION = StringRef::from_lit(ESPHOME_PROJECT_VERSION);
+  resp.set_project_name(PROJECT_NAME);
+  resp.set_project_version(PROJECT_VERSION);
 #endif
 #ifdef USE_WEBSERVER
   resp.webserver_port = USE_WEBSERVER_PORT;
