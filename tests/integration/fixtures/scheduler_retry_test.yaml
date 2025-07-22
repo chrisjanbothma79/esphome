@@ -127,6 +127,8 @@ script:
           });
 
       # Wait for cancel test to complete
+      # The 400ms delay ensures that the cancel test has enough time to complete
+      # all scheduled retries and the cancellation logic before proceeding.
       - delay: 400ms
 
       # Test 5: Empty name retry
