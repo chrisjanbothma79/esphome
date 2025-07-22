@@ -350,8 +350,8 @@ esp_err_t ESPNowComponent::add_peer(const uint8_t *peer) {
     }
   }
   bool found = false;
-  for (auto it = this->peers_.begin(); it != this->peers_.end(); ++it) {
-    if (*it == peer) {
+  for (auto &it : this->peers_) {
+    if (it == peer) {
       found = true;
       break;
     }
