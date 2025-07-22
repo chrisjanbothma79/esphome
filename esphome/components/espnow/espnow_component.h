@@ -70,7 +70,15 @@ class ESPNowComponent : public Component {
 
   float get_setup_priority() const override { return setup_priority::LATE; }
 
+  // Add a peer to the internal list of peers
+  void add_peer(std::array<uint8_t, ESP_NOW_ETH_ALEN> address) {
+    ESPNowPeer peer;
+    memcpy(peer.address, address.data(), ESP_NOW_ETH_ALEN);
+    this->peers_.push_back(peer);
+  }
+  // Add a peer with the esp_now api and add to the internal list if doesnt exist already
   esp_err_t add_peer(const uint8_t *peer);
+  // Remove a peer with the esp_now api and remove from the internal list if exists
   esp_err_t del_peer(const uint8_t *peer);
 
   void set_wifi_channel(uint8_t channel) { this->wifi_channel_ = channel; }

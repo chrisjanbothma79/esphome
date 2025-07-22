@@ -86,7 +86,7 @@ async def to_code(config):
 
     for on_receive in config.get(CONF_ON_RECEIVE, []):
         if address := on_receive.get(CONF_ADDRESS):
-            address = list(address.parts)
+            address = address.parts
         trigger = cg.new_Pvariable(on_receive[CONF_TRIGGER_ID], var, address)
         await automation.build_automation(
             trigger,
@@ -135,7 +135,7 @@ async def _register_peer(var, config, args):
         )
         cg.add(var.set_address_template(template_))
     else:
-        cg.add(var.set_address_static(list(peer.parts)))
+        cg.add(var.set_address_static(peer.parts))
 
 
 PEER_SCHEMA = cv.Schema(
