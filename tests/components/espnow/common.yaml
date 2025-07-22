@@ -1,25 +1,21 @@
-globals:
-  - id: keeper
-    type: uint64_t
-    initial_value: "0xE86BEA23CD98"
-    restore_value: yes
-
 espnow:
   auto_add_peer: true
-  wifi_channel: 1
+  channel: 1
   peers:
     - 11:22:33:44:55:66
-  on_new_peer:
-    - logger.log:
-        format: "New Peer from: %s  '%s'  RSSI: %d"
-        args: [packet->info().c_str(), packet->payload(), packet->rssi()]
-
-  on_received:
+  on_receive:
     - logger.log:
         format: "Received from: %s = '%s'  RSSI: %d"
-        args: [packet->info().c_str(), packet->payload(), packet->rssi()]
-
-  on_broadcasted:
-    - logger.log:
-        format: "Broadcast Received from: '%s' RSSI: %d: %s"
-        args: [packet->info().c_str(), packet->rssi(), packet->payload()]
+        args:
+          - format_mac_address_pretty(info.src_addr).c_str()
+          - format_hex_pretty(data, size).c_str()
+          - info.rx_ctrl->rssi
+    - espnow.send:
+        address: 11:22:33:44:55:66
+        data: "Hello from ESPHome"
+    - espnow.broadcast:
+        data: "Hello, World!"
+    - espnow.peer.add:
+        address: 11:22:33:44:55:66
+    - espnow.peer.delete:
+        address: 11:22:33:44:55:66
