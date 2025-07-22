@@ -16,6 +16,37 @@
 namespace esphome {
 namespace api {
 
+/*
+ * StringRef Ownership Model for API Protocol Messages
+ * ===================================================
+ *
+ * StringRef is used for zero-copy string handling in outgoing (SOURCE_SERVER) messages.
+ * It holds a pointer and length to existing string data without copying.
+ *
+ * CRITICAL: The referenced string data MUST remain valid until message encoding completes.
+ *
+ * Safe StringRef Patterns:
+ * 1. String literals: StringRef("literal") - Always safe (static storage duration)
+ * 2. Member variables: StringRef(this->member_string_) - Safe if object outlives encoding
+ * 3. Global/static strings: StringRef(GLOBAL_CONSTANT) - Always safe
+ * 4. Local variables: Safe ONLY if encoding happens before function returns:
+ *    std::string temp = compute_value();
+ *    msg.set_field(StringRef(temp));
+ *    return this->send_message(msg);  // temp is valid during encoding
+ *
+ * Unsafe Patterns (WILL cause crashes/corruption):
+ * 1. Temporaries: msg.set_field(StringRef(obj.get_string())) // get_string() returns by value
+ * 2. Optional values: msg.set_field(StringRef(optional.value())) // value() returns a copy
+ * 3. Concatenation: msg.set_field(StringRef(str1 + str2)) // Result is temporary
+ *
+ * For unsafe patterns, store in a local variable first:
+ *    std::string temp = optional.value();  // or get_string() or str1 + str2
+ *    msg.set_field(StringRef(temp));
+ *
+ * The send_*_response pattern ensures proper lifetime management by encoding
+ * within the same function scope where temporaries are created.
+ */
+
 /// Representation of a VarInt - in ProtoBuf should be 64bit but we only use 32bit
 class ProtoVarInt {
  public:
