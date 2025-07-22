@@ -148,8 +148,7 @@ class APIConnection : public APIServerConnection {
   void bluetooth_gatt_write_descriptor(const BluetoothGATTWriteDescriptorRequest &msg) override;
   void bluetooth_gatt_get_services(const BluetoothGATTGetServicesRequest &msg) override;
   void bluetooth_gatt_notify(const BluetoothGATTNotifyRequest &msg) override;
-  BluetoothConnectionsFreeResponse subscribe_bluetooth_connections_free(
-      const SubscribeBluetoothConnectionsFreeRequest &msg) override;
+  bool send_subscribe_bluetooth_connections_free_response(const SubscribeBluetoothConnectionsFreeRequest &msg) override;
   void bluetooth_scanner_set_mode(const BluetoothScannerSetModeRequest &msg) override;
 
 #endif
@@ -167,8 +166,7 @@ class APIConnection : public APIServerConnection {
   void on_voice_assistant_audio(const VoiceAssistantAudio &msg) override;
   void on_voice_assistant_timer_event_response(const VoiceAssistantTimerEventResponse &msg) override;
   void on_voice_assistant_announce_request(const VoiceAssistantAnnounceRequest &msg) override;
-  VoiceAssistantConfigurationResponse voice_assistant_get_configuration(
-      const VoiceAssistantConfigurationRequest &msg) override;
+  bool send_voice_assistant_get_configuration_response(const VoiceAssistantConfigurationRequest &msg) override;
   void voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) override;
 #endif
 
@@ -195,11 +193,11 @@ class APIConnection : public APIServerConnection {
 #ifdef USE_HOMEASSISTANT_TIME
   void on_get_time_response(const GetTimeResponse &value) override;
 #endif
-  HelloResponse hello(const HelloRequest &msg) override;
-  ConnectResponse connect(const ConnectRequest &msg) override;
-  DisconnectResponse disconnect(const DisconnectRequest &msg) override;
-  PingResponse ping(const PingRequest &msg) override { return {}; }
-  DeviceInfoResponse device_info(const DeviceInfoRequest &msg) override;
+  bool send_hello_response(const HelloRequest &msg) override;
+  bool send_connect_response(const ConnectRequest &msg) override;
+  bool send_disconnect_response(const DisconnectRequest &msg) override;
+  bool send_ping_response(const PingRequest &msg) override;
+  bool send_device_info_response(const DeviceInfoRequest &msg) override;
   void list_entities(const ListEntitiesRequest &msg) override { this->list_entities_iterator_.begin(); }
   void subscribe_states(const SubscribeStatesRequest &msg) override {
     this->flags_.state_subscription = true;
@@ -214,15 +212,12 @@ class APIConnection : public APIServerConnection {
     this->flags_.service_call_subscription = true;
   }
   void subscribe_home_assistant_states(const SubscribeHomeAssistantStatesRequest &msg) override;
-  GetTimeResponse get_time(const GetTimeRequest &msg) override {
-    // TODO
-    return {};
-  }
+  bool send_get_time_response(const GetTimeRequest &msg) override;
 #ifdef USE_API_SERVICES
   void execute_service(const ExecuteServiceRequest &msg) override;
 #endif
 #ifdef USE_API_NOISE
-  NoiseEncryptionSetKeyResponse noise_encryption_set_key(const NoiseEncryptionSetKeyRequest &msg) override;
+  bool send_noise_encryption_set_key_response(const NoiseEncryptionSetKeyRequest &msg) override;
 #endif
 
   bool is_authenticated() override {

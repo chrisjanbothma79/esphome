@@ -260,14 +260,14 @@ void APIConnection::loop() {
   }
 }
 
-DisconnectResponse APIConnection::disconnect(const DisconnectRequest &msg) {
+bool APIConnection::send_disconnect_response(const DisconnectRequest &msg) {
   // remote initiated disconnect_client
   // don't close yet, we still need to send the disconnect response
   // close will happen on next loop
   ESP_LOGD(TAG, "%s disconnected", this->get_client_combined_info().c_str());
   this->flags_.next_close = true;
   DisconnectResponse resp;
-  return resp;
+  return this->send_message(resp, DisconnectResponse::MESSAGE_TYPE);
 }
 void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
   this->helper_->close();
@@ -1086,6 +1086,12 @@ void APIConnection::on_get_time_response(const GetTimeResponse &value) {
 }
 #endif
 
+bool APIConnection::send_get_time_response(const GetTimeRequest &msg) {
+  GetTimeResponse resp;
+  resp.epoch_seconds = ::time(nullptr);
+  return this->send_message(resp, GetTimeResponse::MESSAGE_TYPE);
+}
+
 #ifdef USE_BLUETOOTH_PROXY
 void APIConnection::subscribe_bluetooth_le_advertisements(const SubscribeBluetoothLEAdvertisementsRequest &msg) {
   bluetooth_proxy::global_bluetooth_proxy->subscribe_api_connection(this, msg.flags);
@@ -1116,12 +1122,12 @@ void APIConnection::bluetooth_gatt_notify(const BluetoothGATTNotifyRequest &msg)
   bluetooth_proxy::global_bluetooth_proxy->bluetooth_gatt_notify(msg);
 }
 
-BluetoothConnectionsFreeResponse APIConnection::subscribe_bluetooth_connections_free(
+bool APIConnection::send_subscribe_bluetooth_connections_free_response(
     const SubscribeBluetoothConnectionsFreeRequest &msg) {
   BluetoothConnectionsFreeResponse resp;
   resp.free = bluetooth_proxy::global_bluetooth_proxy->get_bluetooth_connections_free();
   resp.limit = bluetooth_proxy::global_bluetooth_proxy->get_bluetooth_connections_limit();
-  return resp;
+  return this->send_message(resp, BluetoothConnectionsFreeResponse::MESSAGE_TYPE);
 }
 
 void APIConnection::bluetooth_scanner_set_mode(const BluetoothScannerSetModeRequest &msg) {
@@ -1182,11 +1188,10 @@ void APIConnection::on_voice_assistant_announce_request(const VoiceAssistantAnno
   }
 }
 
-VoiceAssistantConfigurationResponse APIConnection::voice_assistant_get_configuration(
-    const VoiceAssistantConfigurationRequest &msg) {
+bool APIConnection::send_voice_assistant_get_configuration_response(const VoiceAssistantConfigurationRequest &msg) {
   VoiceAssistantConfigurationResponse resp;
   if (!this->check_voice_assistant_api_connection_()) {
-    return resp;
+    return this->send_message(resp, VoiceAssistantConfigurationResponse::MESSAGE_TYPE);
   }
 
   auto &config = voice_assistant::global_voice_assistant->get_configuration();
@@ -1203,7 +1208,7 @@ VoiceAssistantConfigurationResponse APIConnection::voice_assistant_get_configura
     resp.active_wake_words.push_back(wake_word_id);
   }
   resp.max_active_wake_words = config.max_active_wake_words;
-  return resp;
+  return this->send_message(resp, VoiceAssistantConfigurationResponse::MESSAGE_TYPE);
 }
 
 void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) {
@@ -1369,7 +1374,8 @@ void APIConnection::complete_authentication_() {
 #endif
 }
 
-HelloResponse APIConnection::hello(const HelloRequest &msg) {
+bool APIConnection::send_hello_response(const HelloRequest &msg) {
+  // Process the request first
   this->client_info_.name = msg.client_info;
   this->client_info_.peername = this->helper_->getpeername();
   this->client_api_version_major_ = msg.api_version_major;
@@ -1380,7 +1386,7 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   HelloResponse resp;
   resp.api_version_major = 1;
   resp.api_version_minor = 10;
-  // Temporary string needed to concatenate app name with version string
+  // Temporary string for concatenation - will be valid during send_message call
   std::string server_info = App.get_name() + " (esphome v" ESPHOME_VERSION ")";
   resp.set_server_info(StringRef(server_info));
   resp.set_name(StringRef(App.get_name()));
@@ -1393,9 +1399,9 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   this->complete_authentication_();
 #endif
 
-  return resp;
+  return this->send_message(resp, HelloResponse::MESSAGE_TYPE);
 }
-ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
+bool APIConnection::send_connect_response(const ConnectRequest &msg) {
   bool correct = true;
 #ifdef USE_API_PASSWORD
   correct = this->parent_->check_password(msg.password);
@@ -1407,9 +1413,15 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   if (correct) {
     this->complete_authentication_();
   }
-  return resp;
+  return this->send_message(resp, ConnectResponse::MESSAGE_TYPE);
 }
-DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
+
+bool APIConnection::send_ping_response(const PingRequest &msg) {
+  PingResponse resp;
+  return this->send_message(resp, PingResponse::MESSAGE_TYPE);
+}
+
+bool APIConnection::send_device_info_response(const DeviceInfoRequest &msg) {
   DeviceInfoResponse resp{};
 #ifdef USE_API_PASSWORD
   resp.uses_password = true;
@@ -1419,9 +1431,9 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
 #ifdef USE_AREAS
   resp.set_suggested_area(StringRef(App.get_area()));
 #endif
-  // Temporary string needed because get_mac_address_pretty() formats the MAC on-the-fly
-  std::string mac = get_mac_address_pretty();
-  resp.set_mac_address(StringRef(mac));
+  // mac_address must store temporary string - will be valid during send_message call
+  std::string mac_address = get_mac_address_pretty();
+  resp.set_mac_address(StringRef(mac_address));
   resp.set_esphome_version(StringRef(ESPHOME_VERSION));
   resp.set_compilation_time(StringRef(App.get_compilation_time()));
 #if defined(USE_ESP8266) || defined(USE_ESP32)
@@ -1450,9 +1462,9 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
 #endif
 #ifdef USE_BLUETOOTH_PROXY
   resp.bluetooth_proxy_feature_flags = bluetooth_proxy::global_bluetooth_proxy->get_feature_flags();
-  // Temporary string needed because get_bluetooth_mac_address_pretty() formats the MAC on-the-fly
-  std::string bt_mac = bluetooth_proxy::global_bluetooth_proxy->get_bluetooth_mac_address_pretty();
-  resp.set_bluetooth_mac_address(StringRef(bt_mac));
+  // bt_mac must store temporary string - will be valid during send_message call
+  std::string bluetooth_mac = bluetooth_proxy::global_bluetooth_proxy->get_bluetooth_mac_address_pretty();
+  resp.set_bluetooth_mac_address(StringRef(bluetooth_mac));
 #endif
 #ifdef USE_VOICE_ASSISTANT
   resp.voice_assistant_feature_flags = voice_assistant::global_voice_assistant->get_feature_flags();
@@ -1465,6 +1477,7 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
     resp.devices.emplace_back();
     auto &device_info = resp.devices.back();
     device_info.device_id = device->get_device_id();
+    // device->get_name() returns a reference to the device's name string
     device_info.set_name(StringRef(device->get_name()));
     device_info.area_id = device->get_area_id();
   }
@@ -1474,11 +1487,14 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
     resp.areas.emplace_back();
     auto &area_info = resp.areas.back();
     area_info.area_id = area->get_area_id();
+    // area->get_name() returns a reference to the area's name string
     area_info.set_name(StringRef(area->get_name()));
   }
 #endif
-  return resp;
+
+  return this->send_message(resp, DeviceInfoResponse::MESSAGE_TYPE);
 }
+
 void APIConnection::on_home_assistant_state_response(const HomeAssistantStateResponse &msg) {
   for (auto &it : this->parent_->get_state_subs()) {
     if (it.entity_id == msg.entity_id && it.attribute.value() == msg.attribute) {
@@ -1500,23 +1516,21 @@ void APIConnection::execute_service(const ExecuteServiceRequest &msg) {
 }
 #endif
 #ifdef USE_API_NOISE
-NoiseEncryptionSetKeyResponse APIConnection::noise_encryption_set_key(const NoiseEncryptionSetKeyRequest &msg) {
+bool APIConnection::send_noise_encryption_set_key_response(const NoiseEncryptionSetKeyRequest &msg) {
   psk_t psk{};
   NoiseEncryptionSetKeyResponse resp;
   if (base64_decode(msg.key, psk.data(), msg.key.size()) != psk.size()) {
     ESP_LOGW(TAG, "Invalid encryption key length");
     resp.success = false;
-    return resp;
+    return this->send_message(resp, NoiseEncryptionSetKeyResponse::MESSAGE_TYPE);
   }
-
   if (!this->parent_->save_noise_psk(psk, true)) {
     ESP_LOGW(TAG, "Failed to save encryption key");
     resp.success = false;
-    return resp;
+    return this->send_message(resp, NoiseEncryptionSetKeyResponse::MESSAGE_TYPE);
   }
-
   resp.success = true;
-  return resp;
+  return this->send_message(resp, NoiseEncryptionSetKeyResponse::MESSAGE_TYPE);
 }
 #endif
 void APIConnection::subscribe_home_assistant_states(const SubscribeHomeAssistantStatesRequest &msg) {

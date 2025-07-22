@@ -2106,7 +2106,13 @@ static const char *const TAG = "api.service";
             cpp += f"#ifdef {ifdef}\n"
 
         hpp_protected += f"  void {on_func}(const {inp} &msg) override;\n"
-        hpp += f"  virtual {ret} {func}(const {inp} &msg) = 0;\n"
+
+        # For non-void methods, generate a send_ method instead of return-by-value
+        if is_void:
+            hpp += f"  virtual void {func}(const {inp} &msg) = 0;\n"
+        else:
+            hpp += f"  virtual bool send_{func}_response(const {inp} &msg) = 0;\n"
+
         cpp += f"void {class_name}::{on_func}(const {inp} &msg) {{\n"
 
         # Start with authentication/connection check if needed
@@ -2124,10 +2130,7 @@ static const char *const TAG = "api.service";
             if is_void:
                 handler_body = f"this->{func}(msg);\n"
             else:
-                handler_body = f"{ret} ret = this->{func}(msg);\n"
-                handler_body += (
-                    f"if (!this->send_message(ret, {ret}::MESSAGE_TYPE)) {{\n"
-                )
+                handler_body = f"if (!this->send_{func}_response(msg)) {{\n"
                 handler_body += "  this->on_fatal_error();\n"
                 handler_body += "}\n"
 
@@ -2139,8 +2142,7 @@ static const char *const TAG = "api.service";
             if is_void:
                 body += f"this->{func}(msg);\n"
             else:
-                body += f"{ret} ret = this->{func}(msg);\n"
-                body += f"if (!this->send_message(ret, {ret}::MESSAGE_TYPE)) {{\n"
+                body += f"if (!this->send_{func}_response(msg)) {{\n"
                 body += "  this->on_fatal_error();\n"
                 body += "}\n"
 
