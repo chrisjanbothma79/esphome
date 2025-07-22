@@ -36,6 +36,9 @@ template<typename... X> class TemplatableStringValue : public TemplatableValue<s
 
 template<typename... Ts> class TemplatableKeyValuePair {
  public:
+  // It's safe to use const std::string& for the key parameter because keys are always
+  // string literals from YAML dictionary keys (e.g., "code", "event") and never
+  // templatable values or lambdas. Only the value parameter can be a lambda/template.
   template<typename T> TemplatableKeyValuePair(const std::string &key, T value) : key(key), value(value) {}
   std::string key;
   TemplatableStringValue<Ts...> value;
@@ -47,6 +50,9 @@ template<typename... Ts> class HomeAssistantServiceCallAction : public Action<Ts
 
   template<typename T> void set_service(T service) { this->service_ = service; }
 
+  // These methods use const std::string& for keys because keys are always string literals
+  // from the Python code generation (e.g., cg.add(var.add_data("tag_id", templ))).
+  // The value parameter can be a lambda/template, but keys are never templatable.
   template<typename T> void add_data(const std::string &key, T value) { this->data_.emplace_back(key, value); }
   template<typename T> void add_data_template(const std::string &key, T value) {
     this->data_template_.emplace_back(key, value);
