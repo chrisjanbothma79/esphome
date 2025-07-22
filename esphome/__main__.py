@@ -1033,11 +1033,11 @@ def parse_args(argv):
     arguments = argv[1:]
 
     argcomplete.autocomplete(parser)
-    return parser.parse_args(arguments)
+    return parser.parse_known_args(arguments)
 
 
 def run_esphome(argv):
-    args = parse_args(argv)
+    args, _ = parse_args(argv)
     CORE.dashboard = args.dashboard
 
     # Override log level if verbose is set
