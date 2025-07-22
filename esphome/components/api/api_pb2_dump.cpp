@@ -64,13 +64,6 @@ static void dump_field(std::string &out, const char *field_name, float value, in
   append_with_newline(out, buffer);
 }
 
-static void dump_field(std::string &out, const char *field_name, double value, int indent = 2) {
-  char buffer[64];
-  append_field_prefix(out, field_name, indent);
-  snprintf(buffer, 64, "%g", value);
-  append_with_newline(out, buffer);
-}
-
 static void dump_field(std::string &out, const char *field_name, uint64_t value, int indent = 2) {
   char buffer[64];
   append_field_prefix(out, field_name, indent);
