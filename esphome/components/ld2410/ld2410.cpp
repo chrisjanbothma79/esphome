@@ -362,35 +362,34 @@ void LD2410Component::handle_periodic_data_() {
     Detect distance: 16~17th bytes
   */
 #ifdef USE_SENSOR
-  this->moving_target_distance_sensor_.publish_state_if_not_dup(static_cast<float>(
-      ld2410::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH])));
-  this->moving_target_energy_sensor_.publish_state_if_not_dup(static_cast<float>(this->buffer_data_[MOVING_ENERGY]));
-  this->still_target_distance_sensor_.publish_state_if_not_dup(static_cast<float>(
-      ld2410::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH])));
-  this->still_target_energy_sensor_.publish_state_if_not_dup(static_cast<float>(this->buffer_data_[STILL_ENERGY]));
-  this->detection_distance_sensor_.publish_state_if_not_dup(static_cast<float>(
-      ld2410::two_byte_to_int(this->buffer_data_[DETECT_DISTANCE_LOW], this->buffer_data_[DETECT_DISTANCE_HIGH])));
+  this->moving_target_distance_sensor_.publish_state_if_not_dup(
+      ld2410::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH]));
+  this->moving_target_energy_sensor_.publish_state_if_not_dup(this->buffer_data_[MOVING_ENERGY]);
+  this->still_target_distance_sensor_.publish_state_if_not_dup(
+      ld2410::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH]));
+  this->still_target_energy_sensor_.publish_state_if_not_dup(this->buffer_data_[STILL_ENERGY]);
+  this->detection_distance_sensor_.publish_state_if_not_dup(
+      ld2410::two_byte_to_int(this->buffer_data_[DETECT_DISTANCE_LOW], this->buffer_data_[DETECT_DISTANCE_HIGH]));
   /*
     Moving distance range: 18th byte
     Still distance range: 19th byte
     Moving energy: 20~28th bytes
   */
-  for (std::vector<SensorWithDedup>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
-    this->gate_move_sensors_[i].publish_state_if_not_dup(
-        engineering_mode ? static_cast<float>(this->buffer_data_[MOVING_SENSOR_START + i]) : EM_OFF_SENTINEL, true);
+  for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
+    this->gate_move_sensors_[i].publish_state_if_not_dup(this->buffer_data_[MOVING_SENSOR_START + i],
+                                                         !engineering_mode);
   }
   /*
     Still energy: 29~37th bytes
   */
-  for (std::vector<SensorWithDedup>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
-    this->gate_still_sensors_[i].publish_state_if_not_dup(
-        engineering_mode ? static_cast<float>(this->buffer_data_[STILL_SENSOR_START + i]) : EM_OFF_SENTINEL, true);
+  for (std::vector<SensorWithDedup<uint8_t>>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
+    this->gate_still_sensors_[i].publish_state_if_not_dup(this->buffer_data_[STILL_SENSOR_START + i],
+                                                          !engineering_mode);
   }
   /*
     Light sensor: 38th bytes
   */
-  this->light_sensor_.publish_state_if_not_dup(
-      engineering_mode ? static_cast<float>(this->buffer_data_[LIGHT_SENSOR]) : EM_OFF_SENTINEL, true);
+  this->light_sensor_.publish_state_if_not_dup(this->buffer_data_[LIGHT_SENSOR], !engineering_mode);
 #endif
 #ifdef USE_BINARY_SENSOR
   if (this->out_pin_presence_status_binary_sensor_ != nullptr) {
@@ -492,7 +491,7 @@ bool LD2410Component::handle_ack_data_() {
 #endif
 #ifdef USE_NUMBER
       if (this->light_threshold_number_ != nullptr) {
-        this->light_threshold_number_->publish_state(static_cast<float>(this->light_threshold_));
+        this->light_threshold_number_->publish_state(this->light_threshold_);
       }
 #endif
       break;
@@ -777,12 +776,12 @@ void LD2410Component::set_light_out_control() {
 #ifdef USE_SENSOR
 void LD2410Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) {
   this->gate_move_sensors_[gate].sens = s;
-  this->gate_move_sensors_[gate].publish_dedup = std::make_unique<Deduplicator<float>>();
+  this->gate_move_sensors_[gate].publish_dedup = std::make_unique<Deduplicator<uint8_t>>();
 }
 
 void LD2410Component::set_gate_still_sensor(uint8_t gate, sensor::Sensor *s) {
   this->gate_still_sensors_[gate].sens = s;
-  this->gate_still_sensors_[gate].publish_dedup = std::make_unique<Deduplicator<float>>();
+  this->gate_still_sensors_[gate].publish_dedup = std::make_unique<Deduplicator<uint8_t>>();
 }
 #endif
 

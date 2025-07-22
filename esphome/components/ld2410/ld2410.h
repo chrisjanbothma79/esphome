@@ -46,12 +46,12 @@ class LD2410Component : public Component, public uart::UARTDevice {
   SUB_BINARY_SENSOR(target)
 #endif
 #ifdef USE_SENSOR
-  SUB_SENSOR_WITH_DEDUP(light)
-  SUB_SENSOR_WITH_DEDUP(detection_distance)
-  SUB_SENSOR_WITH_DEDUP(moving_target_distance)
-  SUB_SENSOR_WITH_DEDUP(moving_target_energy)
-  SUB_SENSOR_WITH_DEDUP(still_target_distance)
-  SUB_SENSOR_WITH_DEDUP(still_target_energy)
+  SUB_SENSOR_WITH_DEDUP(light, uint8_t)
+  SUB_SENSOR_WITH_DEDUP(detection_distance, int)
+  SUB_SENSOR_WITH_DEDUP(moving_target_distance, int)
+  SUB_SENSOR_WITH_DEDUP(moving_target_energy, uint8_t)
+  SUB_SENSOR_WITH_DEDUP(still_target_distance, int)
+  SUB_SENSOR_WITH_DEDUP(still_target_energy, uint8_t)
 #endif
 #ifdef USE_TEXT_SENSOR
   SUB_TEXT_SENSOR(version)
@@ -132,8 +132,8 @@ class LD2410Component : public Component, public uart::UARTDevice {
   std::vector<number::Number *> gate_still_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
 #endif
 #ifdef USE_SENSOR
-  std::vector<SensorWithDedup> gate_move_sensors_ = std::vector<SensorWithDedup>(TOTAL_GATES);
-  std::vector<SensorWithDedup> gate_still_sensors_ = std::vector<SensorWithDedup>(TOTAL_GATES);
+  std::vector<SensorWithDedup<uint8_t>> gate_move_sensors_ = std::vector<SensorWithDedup<uint8_t>>(TOTAL_GATES);
+  std::vector<SensorWithDedup<uint8_t>> gate_still_sensors_ = std::vector<SensorWithDedup<uint8_t>>(TOTAL_GATES);
 #endif
 };
 
