@@ -249,7 +249,9 @@ void APIConnection::loop() {
       auto &it = subs[state_subs_at_];
       SubscribeHomeAssistantStateResponse resp;
       resp.set_entity_id(StringRef(it.entity_id));
-      resp.set_attribute(StringRef(it.attribute.value()));
+      // attribute.value() returns temporary - must store it
+      std::string attribute_value = it.attribute.value();
+      resp.set_attribute(StringRef(attribute_value));
       resp.once = it.once;
       if (this->send_message(resp, SubscribeHomeAssistantStateResponse::MESSAGE_TYPE)) {
         state_subs_at_++;
@@ -641,13 +643,17 @@ uint16_t APIConnection::try_send_climate_state(EntityBase *entity, APIConnection
   if (traits.get_supports_fan_modes() && climate->fan_mode.has_value())
     resp.fan_mode = static_cast<enums::ClimateFanMode>(climate->fan_mode.value());
   if (!traits.get_supported_custom_fan_modes().empty() && climate->custom_fan_mode.has_value()) {
-    resp.set_custom_fan_mode(StringRef(climate->custom_fan_mode.value()));
+    // custom_fan_mode.value() returns temporary - must store it
+    std::string custom_fan_mode = climate->custom_fan_mode.value();
+    resp.set_custom_fan_mode(StringRef(custom_fan_mode));
   }
   if (traits.get_supports_presets() && climate->preset.has_value()) {
     resp.preset = static_cast<enums::ClimatePreset>(climate->preset.value());
   }
   if (!traits.get_supported_custom_presets().empty() && climate->custom_preset.has_value()) {
-    resp.set_custom_preset(StringRef(climate->custom_preset.value()));
+    // custom_preset.value() returns temporary - must store it
+    std::string custom_preset = climate->custom_preset.value();
+    resp.set_custom_preset(StringRef(custom_preset));
   }
   if (traits.get_supports_swing_modes())
     resp.swing_mode = static_cast<enums::ClimateSwingMode>(climate->swing_mode);
