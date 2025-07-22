@@ -19,6 +19,71 @@ static inline void append_quoted_string(std::string &out, const StringRef &ref) 
   out.append("'");
 }
 
+// Helper functions to reduce code duplication in dump methods
+static void dump_field(std::string &out, const char *field_name, int32_t value, int indent = 2) {
+  char buffer[64];
+  out.append(indent, ' ').append(field_name).append(": ");
+  snprintf(buffer, 64, "%" PRId32, value);
+  out.append(buffer);
+  out.append("\n");
+}
+
+static void dump_field(std::string &out, const char *field_name, uint32_t value, int indent = 2) {
+  char buffer[64];
+  out.append(indent, ' ').append(field_name).append(": ");
+  snprintf(buffer, 64, "%" PRIu32, value);
+  out.append(buffer);
+  out.append("\n");
+}
+
+static void dump_field(std::string &out, const char *field_name, float value, int indent = 2) {
+  char buffer[64];
+  out.append(indent, ' ').append(field_name).append(": ");
+  snprintf(buffer, 64, "%g", value);
+  out.append(buffer);
+  out.append("\n");
+}
+
+static void dump_field(std::string &out, const char *field_name, double value, int indent = 2) {
+  char buffer[64];
+  out.append(indent, ' ').append(field_name).append(": ");
+  snprintf(buffer, 64, "%g", value);
+  out.append(buffer);
+  out.append("\n");
+}
+
+static void dump_field(std::string &out, const char *field_name, uint64_t value, int indent = 2) {
+  char buffer[64];
+  out.append(indent, ' ').append(field_name).append(": ");
+  snprintf(buffer, 64, "%llu", value);
+  out.append(buffer);
+  out.append("\n");
+}
+
+static void dump_field(std::string &out, const char *field_name, bool value, int indent = 2) {
+  out.append(indent, ' ').append(field_name).append(": ");
+  out.append(YESNO(value));
+  out.append("\n");
+}
+
+static void dump_field(std::string &out, const char *field_name, const std::string &value, int indent = 2) {
+  out.append(indent, ' ').append(field_name).append(": ");
+  out.append("'").append(value).append("'");
+  out.append("\n");
+}
+
+static void dump_field(std::string &out, const char *field_name, StringRef value, int indent = 2) {
+  out.append(indent, ' ').append(field_name).append(": ");
+  append_quoted_string(out, value);
+  out.append("\n");
+}
+
+template<typename T> static void dump_field(std::string &out, const char *field_name, T value, int indent = 2) {
+  out.append(indent, ' ').append(field_name).append(": ");
+  out.append(proto_enum_to_string<T>(value));
+  out.append("\n");
+}
+
 template<> const char *proto_enum_to_string<enums::EntityCategory>(enums::EntityCategory value) {
   switch (value) {
     case enums::ENTITY_CATEGORY_NONE:
@@ -558,61 +623,25 @@ template<> const char *proto_enum_to_string<enums::UpdateCommand>(enums::UpdateC
 #endif
 
 void HelloRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("HelloRequest {\n");
-  out.append("  client_info: ");
-  out.append("'").append(this->client_info).append("'");
-  out.append("\n");
+  dump_field(out, "client_info", this->client_info);
+  dump_field(out, "api_version_major", this->api_version_major);
 
-  out.append("  api_version_major: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->api_version_major);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  api_version_minor: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->api_version_minor);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "api_version_minor", this->api_version_minor);
   out.append("}");
 }
 void HelloResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("HelloResponse {\n");
-  out.append("  api_version_major: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->api_version_major);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "api_version_major", this->api_version_major);
 
-  out.append("  api_version_minor: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->api_version_minor);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "api_version_minor", this->api_version_minor);
 
-  out.append("  server_info: ");
-  append_quoted_string(out, this->server_info_ref_);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
+  dump_field(out, "server_info", this->server_info_ref_);
+  dump_field(out, "name", this->name_ref_);
   out.append("}");
 }
-void ConnectRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
-  out.append("ConnectRequest {\n");
-  out.append("  password: ");
-  out.append("'").append(this->password).append("'");
-  out.append("\n");
-  out.append("}");
-}
-void ConnectResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
-  out.append("ConnectResponse {\n");
-  out.append("  invalid_password: ");
-  out.append(YESNO(this->invalid_password));
-  out.append("\n");
-  out.append("}");
-}
+void ConnectRequest::dump_to(std::string &out) const { dump_field(out, "password", this->password); }
+void ConnectResponse::dump_to(std::string &out) const { dump_field(out, "invalid_password", this->invalid_password); }
 void DisconnectRequest::dump_to(std::string &out) const { out.append("DisconnectRequest {}"); }
 void DisconnectResponse::dump_to(std::string &out) const { out.append("DisconnectResponse {}"); }
 void PingRequest::dump_to(std::string &out) const { out.append("PingRequest {}"); }
@@ -620,131 +649,66 @@ void PingResponse::dump_to(std::string &out) const { out.append("PingResponse {}
 void DeviceInfoRequest::dump_to(std::string &out) const { out.append("DeviceInfoRequest {}"); }
 #ifdef USE_AREAS
 void AreaInfo::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("AreaInfo {\n");
-  out.append("  area_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->area_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "area_id", this->area_id);
 
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
   out.append("}");
 }
 #endif
 #ifdef USE_DEVICES
 void DeviceInfo::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("DeviceInfo {\n");
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
-  out.append("  area_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->area_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "area_id", this->area_id);
   out.append("}");
 }
 #endif
 void DeviceInfoResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("DeviceInfoResponse {\n");
 #ifdef USE_API_PASSWORD
-  out.append("  uses_password: ");
-  out.append(YESNO(this->uses_password));
-  out.append("\n");
+  dump_field(out, "uses_password", this->uses_password);
 
 #endif
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
-  out.append("  mac_address: ");
-  append_quoted_string(out, this->mac_address_ref_);
-  out.append("\n");
-
-  out.append("  esphome_version: ");
-  append_quoted_string(out, this->esphome_version_ref_);
-  out.append("\n");
-
-  out.append("  compilation_time: ");
-  append_quoted_string(out, this->compilation_time_ref_);
-  out.append("\n");
-
-  out.append("  model: ");
-  append_quoted_string(out, this->model_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "mac_address", this->mac_address_ref_);
+  dump_field(out, "esphome_version", this->esphome_version_ref_);
+  dump_field(out, "compilation_time", this->compilation_time_ref_);
+  dump_field(out, "model", this->model_ref_);
 #ifdef USE_DEEP_SLEEP
-  out.append("  has_deep_sleep: ");
-  out.append(YESNO(this->has_deep_sleep));
-  out.append("\n");
+  dump_field(out, "has_deep_sleep", this->has_deep_sleep);
 
 #endif
 #ifdef ESPHOME_PROJECT_NAME
-  out.append("  project_name: ");
-  append_quoted_string(out, this->project_name_ref_);
-  out.append("\n");
-
+  dump_field(out, "project_name", this->project_name_ref_);
 #endif
 #ifdef ESPHOME_PROJECT_NAME
-  out.append("  project_version: ");
-  append_quoted_string(out, this->project_version_ref_);
-  out.append("\n");
-
+  dump_field(out, "project_version", this->project_version_ref_);
 #endif
 #ifdef USE_WEBSERVER
-  out.append("  webserver_port: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->webserver_port);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "webserver_port", this->webserver_port);
 
 #endif
 #ifdef USE_BLUETOOTH_PROXY
-  out.append("  bluetooth_proxy_feature_flags: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->bluetooth_proxy_feature_flags);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "bluetooth_proxy_feature_flags", this->bluetooth_proxy_feature_flags);
 
 #endif
-  out.append("  manufacturer: ");
-  append_quoted_string(out, this->manufacturer_ref_);
-  out.append("\n");
-
-  out.append("  friendly_name: ");
-  append_quoted_string(out, this->friendly_name_ref_);
-  out.append("\n");
-
+  dump_field(out, "manufacturer", this->manufacturer_ref_);
+  dump_field(out, "friendly_name", this->friendly_name_ref_);
 #ifdef USE_VOICE_ASSISTANT
-  out.append("  voice_assistant_feature_flags: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->voice_assistant_feature_flags);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "voice_assistant_feature_flags", this->voice_assistant_feature_flags);
 
 #endif
 #ifdef USE_AREAS
-  out.append("  suggested_area: ");
-  append_quoted_string(out, this->suggested_area_ref_);
-  out.append("\n");
-
+  dump_field(out, "suggested_area", this->suggested_area_ref_);
 #endif
 #ifdef USE_BLUETOOTH_PROXY
-  out.append("  bluetooth_mac_address: ");
-  append_quoted_string(out, this->bluetooth_mac_address_ref_);
-  out.append("\n");
-
+  dump_field(out, "bluetooth_mac_address", this->bluetooth_mac_address_ref_);
 #endif
 #ifdef USE_API_NOISE
-  out.append("  api_encryption_supported: ");
-  out.append(YESNO(this->api_encryption_supported));
-  out.append("\n");
+  dump_field(out, "api_encryption_supported", this->api_encryption_supported);
 
 #endif
 #ifdef USE_DEVICES
@@ -776,73 +740,37 @@ void ListEntitiesDoneResponse::dump_to(std::string &out) const { out.append("Lis
 void SubscribeStatesRequest::dump_to(std::string &out) const { out.append("SubscribeStatesRequest {}"); }
 #ifdef USE_BINARY_SENSOR
 void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesBinarySensorResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "device_class", this->device_class_ref_);
+  dump_field(out, "is_status_binary_sensor", this->is_status_binary_sensor);
 
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
-
-  out.append("  is_status_binary_sensor: ");
-  out.append(YESNO(this->is_status_binary_sensor));
-  out.append("\n");
-
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void BinarySensorStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BinarySensorStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "missing_state", this->missing_state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -850,130 +778,65 @@ void BinarySensorStateResponse::dump_to(std::string &out) const {
 #endif
 #ifdef USE_COVER
 void ListEntitiesCoverResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesCoverResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "assumed_state", this->assumed_state);
 
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
+  dump_field(out, "supports_position", this->supports_position);
 
-  out.append("  assumed_state: ");
-  out.append(YESNO(this->assumed_state));
-  out.append("\n");
+  dump_field(out, "supports_tilt", this->supports_tilt);
 
-  out.append("  supports_position: ");
-  out.append(YESNO(this->supports_position));
-  out.append("\n");
-
-  out.append("  supports_tilt: ");
-  out.append(YESNO(this->supports_tilt));
-  out.append("\n");
-
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
-
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "device_class", this->device_class_ref_);
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  supports_stop: ");
-  out.append(YESNO(this->supports_stop));
-  out.append("\n");
+  dump_field(out, "supports_stop", this->supports_stop);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void CoverStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("CoverStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  position: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->position);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "position", this->position);
 
-  out.append("  tilt: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->tilt);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "tilt", this->tilt);
 
-  out.append("  current_operation: ");
-  out.append(proto_enum_to_string<enums::CoverOperation>(this->current_operation));
-  out.append("\n");
+  dump_field(out, "current_operation", static_cast<enums::CoverOperation>(this->current_operation));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void CoverCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("CoverCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  has_position: ");
-  out.append(YESNO(this->has_position));
-  out.append("\n");
+  dump_field(out, "has_position", this->has_position);
 
-  out.append("  position: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->position);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "position", this->position);
 
-  out.append("  has_tilt: ");
-  out.append(YESNO(this->has_tilt));
-  out.append("\n");
+  dump_field(out, "has_tilt", this->has_tilt);
 
-  out.append("  tilt: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->tilt);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "tilt", this->tilt);
 
-  out.append("  stop: ");
-  out.append(YESNO(this->stop));
-  out.append("\n");
+  dump_field(out, "stop", this->stop);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -981,159 +844,80 @@ void CoverCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_FAN
 void ListEntitiesFanResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesFanResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "supports_oscillation", this->supports_oscillation);
 
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
+  dump_field(out, "supports_speed", this->supports_speed);
 
-  out.append("  supports_oscillation: ");
-  out.append(YESNO(this->supports_oscillation));
-  out.append("\n");
+  dump_field(out, "supports_direction", this->supports_direction);
 
-  out.append("  supports_speed: ");
-  out.append(YESNO(this->supports_speed));
-  out.append("\n");
+  dump_field(out, "supported_speed_count", this->supported_speed_count);
 
-  out.append("  supports_direction: ");
-  out.append(YESNO(this->supports_direction));
-  out.append("\n");
-
-  out.append("  supported_speed_count: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->supported_speed_count);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
   for (const auto &it : this->supported_preset_modes) {
-    out.append("  supported_preset_modes: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "supported_preset_modes", it, 4);
   }
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void FanStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("FanStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
-  out.append("  oscillating: ");
-  out.append(YESNO(this->oscillating));
-  out.append("\n");
+  dump_field(out, "oscillating", this->oscillating);
 
-  out.append("  direction: ");
-  out.append(proto_enum_to_string<enums::FanDirection>(this->direction));
-  out.append("\n");
+  dump_field(out, "direction", static_cast<enums::FanDirection>(this->direction));
 
-  out.append("  speed_level: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->speed_level);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "speed_level", this->speed_level);
 
-  out.append("  preset_mode: ");
-  append_quoted_string(out, this->preset_mode_ref_);
-  out.append("\n");
-
+  dump_field(out, "preset_mode", this->preset_mode_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void FanCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("FanCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  has_state: ");
-  out.append(YESNO(this->has_state));
-  out.append("\n");
+  dump_field(out, "has_state", this->has_state);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
-  out.append("  has_oscillating: ");
-  out.append(YESNO(this->has_oscillating));
-  out.append("\n");
+  dump_field(out, "has_oscillating", this->has_oscillating);
 
-  out.append("  oscillating: ");
-  out.append(YESNO(this->oscillating));
-  out.append("\n");
+  dump_field(out, "oscillating", this->oscillating);
 
-  out.append("  has_direction: ");
-  out.append(YESNO(this->has_direction));
-  out.append("\n");
+  dump_field(out, "has_direction", this->has_direction);
 
-  out.append("  direction: ");
-  out.append(proto_enum_to_string<enums::FanDirection>(this->direction));
-  out.append("\n");
+  dump_field(out, "direction", static_cast<enums::FanDirection>(this->direction));
 
-  out.append("  has_speed_level: ");
-  out.append(YESNO(this->has_speed_level));
-  out.append("\n");
+  dump_field(out, "has_speed_level", this->has_speed_level);
 
-  out.append("  speed_level: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->speed_level);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "speed_level", this->speed_level);
 
-  out.append("  has_preset_mode: ");
-  out.append(YESNO(this->has_preset_mode));
-  out.append("\n");
+  dump_field(out, "has_preset_mode", this->has_preset_mode);
 
-  out.append("  preset_mode: ");
-  out.append("'").append(this->preset_mode).append("'");
-  out.append("\n");
-
+  dump_field(out, "preset_mode", this->preset_mode);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -1141,268 +925,126 @@ void FanCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_LIGHT
 void ListEntitiesLightResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesLightResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
   for (const auto &it : this->supported_color_modes) {
-    out.append("  supported_color_modes: ");
-    out.append(proto_enum_to_string<enums::ColorMode>(it));
-    out.append("\n");
+    dump_field(out, "supported_color_modes", static_cast<enums::ColorMode>(it), 4);
   }
 
-  out.append("  min_mireds: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->min_mireds);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "min_mireds", this->min_mireds);
 
-  out.append("  max_mireds: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->max_mireds);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "max_mireds", this->max_mireds);
 
   for (const auto &it : this->effects) {
-    out.append("  effects: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "effects", it, 4);
   }
 
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void LightStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("LightStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
-  out.append("  brightness: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->brightness);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "brightness", this->brightness);
 
-  out.append("  color_mode: ");
-  out.append(proto_enum_to_string<enums::ColorMode>(this->color_mode));
-  out.append("\n");
+  dump_field(out, "color_mode", static_cast<enums::ColorMode>(this->color_mode));
 
-  out.append("  color_brightness: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->color_brightness);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "color_brightness", this->color_brightness);
 
-  out.append("  red: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->red);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "red", this->red);
 
-  out.append("  green: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->green);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "green", this->green);
 
-  out.append("  blue: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->blue);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "blue", this->blue);
 
-  out.append("  white: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->white);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "white", this->white);
 
-  out.append("  color_temperature: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->color_temperature);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "color_temperature", this->color_temperature);
 
-  out.append("  cold_white: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->cold_white);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "cold_white", this->cold_white);
 
-  out.append("  warm_white: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->warm_white);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "warm_white", this->warm_white);
 
-  out.append("  effect: ");
-  append_quoted_string(out, this->effect_ref_);
-  out.append("\n");
-
+  dump_field(out, "effect", this->effect_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void LightCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("LightCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  has_state: ");
-  out.append(YESNO(this->has_state));
-  out.append("\n");
+  dump_field(out, "has_state", this->has_state);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
-  out.append("  has_brightness: ");
-  out.append(YESNO(this->has_brightness));
-  out.append("\n");
+  dump_field(out, "has_brightness", this->has_brightness);
 
-  out.append("  brightness: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->brightness);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "brightness", this->brightness);
 
-  out.append("  has_color_mode: ");
-  out.append(YESNO(this->has_color_mode));
-  out.append("\n");
+  dump_field(out, "has_color_mode", this->has_color_mode);
 
-  out.append("  color_mode: ");
-  out.append(proto_enum_to_string<enums::ColorMode>(this->color_mode));
-  out.append("\n");
+  dump_field(out, "color_mode", static_cast<enums::ColorMode>(this->color_mode));
 
-  out.append("  has_color_brightness: ");
-  out.append(YESNO(this->has_color_brightness));
-  out.append("\n");
+  dump_field(out, "has_color_brightness", this->has_color_brightness);
 
-  out.append("  color_brightness: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->color_brightness);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "color_brightness", this->color_brightness);
 
-  out.append("  has_rgb: ");
-  out.append(YESNO(this->has_rgb));
-  out.append("\n");
+  dump_field(out, "has_rgb", this->has_rgb);
 
-  out.append("  red: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->red);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "red", this->red);
 
-  out.append("  green: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->green);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "green", this->green);
 
-  out.append("  blue: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->blue);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "blue", this->blue);
 
-  out.append("  has_white: ");
-  out.append(YESNO(this->has_white));
-  out.append("\n");
+  dump_field(out, "has_white", this->has_white);
 
-  out.append("  white: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->white);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "white", this->white);
 
-  out.append("  has_color_temperature: ");
-  out.append(YESNO(this->has_color_temperature));
-  out.append("\n");
+  dump_field(out, "has_color_temperature", this->has_color_temperature);
 
-  out.append("  color_temperature: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->color_temperature);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "color_temperature", this->color_temperature);
 
-  out.append("  has_cold_white: ");
-  out.append(YESNO(this->has_cold_white));
-  out.append("\n");
+  dump_field(out, "has_cold_white", this->has_cold_white);
 
-  out.append("  cold_white: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->cold_white);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "cold_white", this->cold_white);
 
-  out.append("  has_warm_white: ");
-  out.append(YESNO(this->has_warm_white));
-  out.append("\n");
+  dump_field(out, "has_warm_white", this->has_warm_white);
 
-  out.append("  warm_white: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->warm_white);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "warm_white", this->warm_white);
 
-  out.append("  has_transition_length: ");
-  out.append(YESNO(this->has_transition_length));
-  out.append("\n");
+  dump_field(out, "has_transition_length", this->has_transition_length);
 
-  out.append("  transition_length: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->transition_length);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "transition_length", this->transition_length);
 
-  out.append("  has_flash_length: ");
-  out.append(YESNO(this->has_flash_length));
-  out.append("\n");
+  dump_field(out, "has_flash_length", this->has_flash_length);
 
-  out.append("  flash_length: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->flash_length);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "flash_length", this->flash_length);
 
-  out.append("  has_effect: ");
-  out.append(YESNO(this->has_effect));
-  out.append("\n");
+  dump_field(out, "has_effect", this->has_effect);
 
-  out.append("  effect: ");
-  out.append("'").append(this->effect).append("'");
-  out.append("\n");
-
+  dump_field(out, "effect", this->effect);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -1410,87 +1052,42 @@ void LightCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_SENSOR
 void ListEntitiesSensorResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSensorResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  unit_of_measurement: ");
-  append_quoted_string(out, this->unit_of_measurement_ref_);
-  out.append("\n");
+  dump_field(out, "unit_of_measurement", this->unit_of_measurement_ref_);
+  dump_field(out, "accuracy_decimals", this->accuracy_decimals);
 
-  out.append("  accuracy_decimals: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->accuracy_decimals);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "force_update", this->force_update);
 
-  out.append("  force_update: ");
-  out.append(YESNO(this->force_update));
-  out.append("\n");
+  dump_field(out, "device_class", this->device_class_ref_);
+  dump_field(out, "state_class", static_cast<enums::SensorStateClass>(this->state_class));
 
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  state_class: ");
-  out.append(proto_enum_to_string<enums::SensorStateClass>(this->state_class));
-  out.append("\n");
-
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
-
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void SensorStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SensorStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->state);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "missing_state", this->missing_state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -1498,90 +1095,47 @@ void SensorStateResponse::dump_to(std::string &out) const {
 #endif
 #ifdef USE_SWITCH
 void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSwitchResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  assumed_state: ");
-  out.append(YESNO(this->assumed_state));
-  out.append("\n");
+  dump_field(out, "assumed_state", this->assumed_state);
 
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
-
+  dump_field(out, "device_class", this->device_class_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void SwitchStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SwitchStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void SwitchCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SwitchCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -1589,92 +1143,49 @@ void SwitchCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_TEXT_SENSOR
 void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTextSensorResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
-
+  dump_field(out, "device_class", this->device_class_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void TextSensorStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("TextSensorStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  append_quoted_string(out, this->state_ref_);
-  out.append("\n");
-
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "state", this->state_ref_);
+  dump_field(out, "missing_state", this->missing_state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 #endif
 void SubscribeLogsRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SubscribeLogsRequest {\n");
-  out.append("  level: ");
-  out.append(proto_enum_to_string<enums::LogLevel>(this->level));
-  out.append("\n");
+  dump_field(out, "level", static_cast<enums::LogLevel>(this->level));
 
-  out.append("  dump_config: ");
-  out.append(YESNO(this->dump_config));
-  out.append("\n");
+  dump_field(out, "dump_config", this->dump_config);
   out.append("}");
 }
 void SubscribeLogsResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SubscribeLogsResponse {\n");
-  out.append("  level: ");
-  out.append(proto_enum_to_string<enums::LogLevel>(this->level));
-  out.append("\n");
+  dump_field(out, "level", static_cast<enums::LogLevel>(this->level));
 
   out.append("  message: ");
   out.append(format_hex_pretty(this->message_ptr_, this->message_len_));
@@ -1683,44 +1194,26 @@ void SubscribeLogsResponse::dump_to(std::string &out) const {
 }
 #ifdef USE_API_NOISE
 void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("NoiseEncryptionSetKeyRequest {\n");
   out.append("  key: ");
   out.append(format_hex_pretty(reinterpret_cast<const uint8_t *>(this->key.data()), this->key.size()));
   out.append("\n");
   out.append("}");
 }
-void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
-  out.append("NoiseEncryptionSetKeyResponse {\n");
-  out.append("  success: ");
-  out.append(YESNO(this->success));
-  out.append("\n");
-  out.append("}");
-}
+void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const { dump_field(out, "success", this->success); }
 #endif
 void SubscribeHomeassistantServicesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeassistantServicesRequest {}");
 }
 void HomeassistantServiceMap::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("HomeassistantServiceMap {\n");
-  out.append("  key: ");
-  append_quoted_string(out, this->key_ref_);
-  out.append("\n");
-
-  out.append("  value: ");
-  append_quoted_string(out, this->value_ref_);
-  out.append("\n");
+  dump_field(out, "key", this->key_ref_);
+  dump_field(out, "value", this->value_ref_);
   out.append("}");
 }
 void HomeassistantServiceResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("HomeassistantServiceResponse {\n");
-  out.append("  service: ");
-  append_quoted_string(out, this->service_ref_);
-  out.append("\n");
-
+  dump_field(out, "service", this->service_ref_);
   for (const auto &it : this->data) {
     out.append("  data: ");
     it.dump_to(out);
@@ -1739,80 +1232,39 @@ void HomeassistantServiceResponse::dump_to(std::string &out) const {
     out.append("\n");
   }
 
-  out.append("  is_event: ");
-  out.append(YESNO(this->is_event));
-  out.append("\n");
+  dump_field(out, "is_event", this->is_event);
   out.append("}");
 }
 void SubscribeHomeAssistantStatesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeAssistantStatesRequest {}");
 }
 void SubscribeHomeAssistantStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SubscribeHomeAssistantStateResponse {\n");
-  out.append("  entity_id: ");
-  append_quoted_string(out, this->entity_id_ref_);
-  out.append("\n");
-
-  out.append("  attribute: ");
-  append_quoted_string(out, this->attribute_ref_);
-  out.append("\n");
-
-  out.append("  once: ");
-  out.append(YESNO(this->once));
-  out.append("\n");
+  dump_field(out, "entity_id", this->entity_id_ref_);
+  dump_field(out, "attribute", this->attribute_ref_);
+  dump_field(out, "once", this->once);
   out.append("}");
 }
 void HomeAssistantStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("HomeAssistantStateResponse {\n");
-  out.append("  entity_id: ");
-  out.append("'").append(this->entity_id).append("'");
-  out.append("\n");
-
-  out.append("  state: ");
-  out.append("'").append(this->state).append("'");
-  out.append("\n");
-
-  out.append("  attribute: ");
-  out.append("'").append(this->attribute).append("'");
-  out.append("\n");
+  dump_field(out, "entity_id", this->entity_id);
+  dump_field(out, "state", this->state);
+  dump_field(out, "attribute", this->attribute);
   out.append("}");
 }
 void GetTimeRequest::dump_to(std::string &out) const { out.append("GetTimeRequest {}"); }
-void GetTimeResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
-  out.append("GetTimeResponse {\n");
-  out.append("  epoch_seconds: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->epoch_seconds);
-  out.append(buffer);
-  out.append("\n");
-  out.append("}");
-}
+void GetTimeResponse::dump_to(std::string &out) const { dump_field(out, "epoch_seconds", this->epoch_seconds); }
 #ifdef USE_API_SERVICES
 void ListEntitiesServicesArgument::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesServicesArgument {\n");
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
-  out.append("  type: ");
-  out.append(proto_enum_to_string<enums::ServiceArgType>(this->type));
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "type", static_cast<enums::ServiceArgType>(this->type));
   out.append("}");
 }
 void ListEntitiesServicesResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesServicesResponse {\n");
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "key", this->key);
 
   for (const auto &it : this->args) {
     out.append("  args: ");
@@ -1822,65 +1274,36 @@ void ListEntitiesServicesResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 void ExecuteServiceArgument::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ExecuteServiceArgument {\n");
-  out.append("  bool_: ");
-  out.append(YESNO(this->bool_));
-  out.append("\n");
+  dump_field(out, "bool_", this->bool_);
 
-  out.append("  legacy_int: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->legacy_int);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "legacy_int", this->legacy_int);
 
-  out.append("  float_: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->float_);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "float_", this->float_);
 
-  out.append("  string_: ");
-  out.append("'").append(this->string_).append("'");
-  out.append("\n");
-
-  out.append("  int_: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->int_);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "string_", this->string_);
+  dump_field(out, "int_", this->int_);
 
   for (const auto it : this->bool_array) {
-    out.append("  bool_array: ");
-    out.append(YESNO(it));
-    out.append("\n");
+    dump_field(out, "bool_array", it, 4);
   }
 
   for (const auto &it : this->int_array) {
-    out.append("  int_array: ");
-    snprintf(buffer, sizeof(buffer), "%" PRId32, it);
-    out.append(buffer);
-    out.append("\n");
+    dump_field(out, "int_array", it, 4);
   }
 
   for (const auto &it : this->float_array) {
-    out.append("  float_array: ");
-    snprintf(buffer, sizeof(buffer), "%g", it);
-    out.append(buffer);
-    out.append("\n");
+    dump_field(out, "float_array", it, 4);
   }
 
   for (const auto &it : this->string_array) {
-    out.append("  string_array: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "string_array", it, 4);
   }
   out.append("}");
 }
 void ExecuteServiceRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ExecuteServiceRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
   for (const auto &it : this->args) {
     out.append("  args: ");
@@ -1892,380 +1315,192 @@ void ExecuteServiceRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_CAMERA
 void ListEntitiesCameraResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesCameraResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void CameraImageResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("CameraImageResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
   out.append("  data: ");
   out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
   out.append("\n");
 
-  out.append("  done: ");
-  out.append(YESNO(this->done));
-  out.append("\n");
+  dump_field(out, "done", this->done);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void CameraImageRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("CameraImageRequest {\n");
-  out.append("  single: ");
-  out.append(YESNO(this->single));
-  out.append("\n");
+  dump_field(out, "single", this->single);
 
-  out.append("  stream: ");
-  out.append(YESNO(this->stream));
-  out.append("\n");
+  dump_field(out, "stream", this->stream);
   out.append("}");
 }
 #endif
 #ifdef USE_CLIMATE
 void ListEntitiesClimateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesClimateResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "name", this->name_ref_);
+  dump_field(out, "supports_current_temperature", this->supports_current_temperature);
 
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
-  out.append("  supports_current_temperature: ");
-  out.append(YESNO(this->supports_current_temperature));
-  out.append("\n");
-
-  out.append("  supports_two_point_target_temperature: ");
-  out.append(YESNO(this->supports_two_point_target_temperature));
-  out.append("\n");
+  dump_field(out, "supports_two_point_target_temperature", this->supports_two_point_target_temperature);
 
   for (const auto &it : this->supported_modes) {
-    out.append("  supported_modes: ");
-    out.append(proto_enum_to_string<enums::ClimateMode>(it));
-    out.append("\n");
+    dump_field(out, "supported_modes", static_cast<enums::ClimateMode>(it), 4);
   }
 
-  out.append("  visual_min_temperature: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->visual_min_temperature);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "visual_min_temperature", this->visual_min_temperature);
 
-  out.append("  visual_max_temperature: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->visual_max_temperature);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "visual_max_temperature", this->visual_max_temperature);
 
-  out.append("  visual_target_temperature_step: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->visual_target_temperature_step);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "visual_target_temperature_step", this->visual_target_temperature_step);
 
-  out.append("  supports_action: ");
-  out.append(YESNO(this->supports_action));
-  out.append("\n");
+  dump_field(out, "supports_action", this->supports_action);
 
   for (const auto &it : this->supported_fan_modes) {
-    out.append("  supported_fan_modes: ");
-    out.append(proto_enum_to_string<enums::ClimateFanMode>(it));
-    out.append("\n");
+    dump_field(out, "supported_fan_modes", static_cast<enums::ClimateFanMode>(it), 4);
   }
 
   for (const auto &it : this->supported_swing_modes) {
-    out.append("  supported_swing_modes: ");
-    out.append(proto_enum_to_string<enums::ClimateSwingMode>(it));
-    out.append("\n");
+    dump_field(out, "supported_swing_modes", static_cast<enums::ClimateSwingMode>(it), 4);
   }
 
   for (const auto &it : this->supported_custom_fan_modes) {
-    out.append("  supported_custom_fan_modes: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "supported_custom_fan_modes", it, 4);
   }
 
   for (const auto &it : this->supported_presets) {
-    out.append("  supported_presets: ");
-    out.append(proto_enum_to_string<enums::ClimatePreset>(it));
-    out.append("\n");
+    dump_field(out, "supported_presets", static_cast<enums::ClimatePreset>(it), 4);
   }
 
   for (const auto &it : this->supported_custom_presets) {
-    out.append("  supported_custom_presets: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "supported_custom_presets", it, 4);
   }
 
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  visual_current_temperature_step: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->visual_current_temperature_step);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "visual_current_temperature_step", this->visual_current_temperature_step);
 
-  out.append("  supports_current_humidity: ");
-  out.append(YESNO(this->supports_current_humidity));
-  out.append("\n");
+  dump_field(out, "supports_current_humidity", this->supports_current_humidity);
 
-  out.append("  supports_target_humidity: ");
-  out.append(YESNO(this->supports_target_humidity));
-  out.append("\n");
+  dump_field(out, "supports_target_humidity", this->supports_target_humidity);
 
-  out.append("  visual_min_humidity: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->visual_min_humidity);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "visual_min_humidity", this->visual_min_humidity);
 
-  out.append("  visual_max_humidity: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->visual_max_humidity);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "visual_max_humidity", this->visual_max_humidity);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void ClimateStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ClimateStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  mode: ");
-  out.append(proto_enum_to_string<enums::ClimateMode>(this->mode));
-  out.append("\n");
+  dump_field(out, "mode", static_cast<enums::ClimateMode>(this->mode));
 
-  out.append("  current_temperature: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->current_temperature);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "current_temperature", this->current_temperature);
 
-  out.append("  target_temperature: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "target_temperature", this->target_temperature);
 
-  out.append("  target_temperature_low: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_low);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "target_temperature_low", this->target_temperature_low);
 
-  out.append("  target_temperature_high: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_high);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "target_temperature_high", this->target_temperature_high);
 
-  out.append("  action: ");
-  out.append(proto_enum_to_string<enums::ClimateAction>(this->action));
-  out.append("\n");
+  dump_field(out, "action", static_cast<enums::ClimateAction>(this->action));
 
-  out.append("  fan_mode: ");
-  out.append(proto_enum_to_string<enums::ClimateFanMode>(this->fan_mode));
-  out.append("\n");
+  dump_field(out, "fan_mode", static_cast<enums::ClimateFanMode>(this->fan_mode));
 
-  out.append("  swing_mode: ");
-  out.append(proto_enum_to_string<enums::ClimateSwingMode>(this->swing_mode));
-  out.append("\n");
+  dump_field(out, "swing_mode", static_cast<enums::ClimateSwingMode>(this->swing_mode));
 
-  out.append("  custom_fan_mode: ");
-  append_quoted_string(out, this->custom_fan_mode_ref_);
-  out.append("\n");
+  dump_field(out, "custom_fan_mode", this->custom_fan_mode_ref_);
+  dump_field(out, "preset", static_cast<enums::ClimatePreset>(this->preset));
 
-  out.append("  preset: ");
-  out.append(proto_enum_to_string<enums::ClimatePreset>(this->preset));
-  out.append("\n");
+  dump_field(out, "custom_preset", this->custom_preset_ref_);
+  dump_field(out, "current_humidity", this->current_humidity);
 
-  out.append("  custom_preset: ");
-  append_quoted_string(out, this->custom_preset_ref_);
-  out.append("\n");
-
-  out.append("  current_humidity: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->current_humidity);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  target_humidity: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->target_humidity);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "target_humidity", this->target_humidity);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void ClimateCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ClimateCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  has_mode: ");
-  out.append(YESNO(this->has_mode));
-  out.append("\n");
+  dump_field(out, "has_mode", this->has_mode);
 
-  out.append("  mode: ");
-  out.append(proto_enum_to_string<enums::ClimateMode>(this->mode));
-  out.append("\n");
+  dump_field(out, "mode", static_cast<enums::ClimateMode>(this->mode));
 
-  out.append("  has_target_temperature: ");
-  out.append(YESNO(this->has_target_temperature));
-  out.append("\n");
+  dump_field(out, "has_target_temperature", this->has_target_temperature);
 
-  out.append("  target_temperature: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "target_temperature", this->target_temperature);
 
-  out.append("  has_target_temperature_low: ");
-  out.append(YESNO(this->has_target_temperature_low));
-  out.append("\n");
+  dump_field(out, "has_target_temperature_low", this->has_target_temperature_low);
 
-  out.append("  target_temperature_low: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_low);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "target_temperature_low", this->target_temperature_low);
 
-  out.append("  has_target_temperature_high: ");
-  out.append(YESNO(this->has_target_temperature_high));
-  out.append("\n");
+  dump_field(out, "has_target_temperature_high", this->has_target_temperature_high);
 
-  out.append("  target_temperature_high: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_high);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "target_temperature_high", this->target_temperature_high);
 
-  out.append("  has_fan_mode: ");
-  out.append(YESNO(this->has_fan_mode));
-  out.append("\n");
+  dump_field(out, "has_fan_mode", this->has_fan_mode);
 
-  out.append("  fan_mode: ");
-  out.append(proto_enum_to_string<enums::ClimateFanMode>(this->fan_mode));
-  out.append("\n");
+  dump_field(out, "fan_mode", static_cast<enums::ClimateFanMode>(this->fan_mode));
 
-  out.append("  has_swing_mode: ");
-  out.append(YESNO(this->has_swing_mode));
-  out.append("\n");
+  dump_field(out, "has_swing_mode", this->has_swing_mode);
 
-  out.append("  swing_mode: ");
-  out.append(proto_enum_to_string<enums::ClimateSwingMode>(this->swing_mode));
-  out.append("\n");
+  dump_field(out, "swing_mode", static_cast<enums::ClimateSwingMode>(this->swing_mode));
 
-  out.append("  has_custom_fan_mode: ");
-  out.append(YESNO(this->has_custom_fan_mode));
-  out.append("\n");
+  dump_field(out, "has_custom_fan_mode", this->has_custom_fan_mode);
 
-  out.append("  custom_fan_mode: ");
-  out.append("'").append(this->custom_fan_mode).append("'");
-  out.append("\n");
+  dump_field(out, "custom_fan_mode", this->custom_fan_mode);
+  dump_field(out, "has_preset", this->has_preset);
 
-  out.append("  has_preset: ");
-  out.append(YESNO(this->has_preset));
-  out.append("\n");
+  dump_field(out, "preset", static_cast<enums::ClimatePreset>(this->preset));
 
-  out.append("  preset: ");
-  out.append(proto_enum_to_string<enums::ClimatePreset>(this->preset));
-  out.append("\n");
+  dump_field(out, "has_custom_preset", this->has_custom_preset);
 
-  out.append("  has_custom_preset: ");
-  out.append(YESNO(this->has_custom_preset));
-  out.append("\n");
+  dump_field(out, "custom_preset", this->custom_preset);
+  dump_field(out, "has_target_humidity", this->has_target_humidity);
 
-  out.append("  custom_preset: ");
-  out.append("'").append(this->custom_preset).append("'");
-  out.append("\n");
-
-  out.append("  has_target_humidity: ");
-  out.append(YESNO(this->has_target_humidity));
-  out.append("\n");
-
-  out.append("  target_humidity: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->target_humidity);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "target_humidity", this->target_humidity);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -2273,115 +1508,56 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_NUMBER
 void ListEntitiesNumberResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesNumberResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  min_value: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->min_value);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "min_value", this->min_value);
 
-  out.append("  max_value: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->max_value);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "max_value", this->max_value);
 
-  out.append("  step: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->step);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "step", this->step);
 
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  unit_of_measurement: ");
-  append_quoted_string(out, this->unit_of_measurement_ref_);
-  out.append("\n");
+  dump_field(out, "unit_of_measurement", this->unit_of_measurement_ref_);
+  dump_field(out, "mode", static_cast<enums::NumberMode>(this->mode));
 
-  out.append("  mode: ");
-  out.append(proto_enum_to_string<enums::NumberMode>(this->mode));
-  out.append("\n");
-
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
-
+  dump_field(out, "device_class", this->device_class_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void NumberStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("NumberStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->state);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "missing_state", this->missing_state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void NumberCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("NumberCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->state);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -2389,92 +1565,48 @@ void NumberCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_SELECT
 void ListEntitiesSelectResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSelectResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
   for (const auto &it : this->options) {
-    out.append("  options: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "options", it, 4);
   }
 
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void SelectStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SelectStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  append_quoted_string(out, this->state_ref_);
-  out.append("\n");
-
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "state", this->state_ref_);
+  dump_field(out, "missing_state", this->missing_state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void SelectCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SelectCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append("'").append(this->state).append("'");
-  out.append("\n");
-
+  dump_field(out, "state", this->state);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -2482,126 +1614,65 @@ void SelectCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_SIREN
 void ListEntitiesSirenResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSirenResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
   for (const auto &it : this->tones) {
-    out.append("  tones: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "tones", it, 4);
   }
 
-  out.append("  supports_duration: ");
-  out.append(YESNO(this->supports_duration));
-  out.append("\n");
+  dump_field(out, "supports_duration", this->supports_duration);
 
-  out.append("  supports_volume: ");
-  out.append(YESNO(this->supports_volume));
-  out.append("\n");
+  dump_field(out, "supports_volume", this->supports_volume);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void SirenStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SirenStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void SirenCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SirenCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  has_state: ");
-  out.append(YESNO(this->has_state));
-  out.append("\n");
+  dump_field(out, "has_state", this->has_state);
 
-  out.append("  state: ");
-  out.append(YESNO(this->state));
-  out.append("\n");
+  dump_field(out, "state", this->state);
 
-  out.append("  has_tone: ");
-  out.append(YESNO(this->has_tone));
-  out.append("\n");
+  dump_field(out, "has_tone", this->has_tone);
 
-  out.append("  tone: ");
-  out.append("'").append(this->tone).append("'");
-  out.append("\n");
+  dump_field(out, "tone", this->tone);
+  dump_field(out, "has_duration", this->has_duration);
 
-  out.append("  has_duration: ");
-  out.append(YESNO(this->has_duration));
-  out.append("\n");
+  dump_field(out, "duration", this->duration);
 
-  out.append("  duration: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->duration);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "has_volume", this->has_volume);
 
-  out.append("  has_volume: ");
-  out.append(YESNO(this->has_volume));
-  out.append("\n");
-
-  out.append("  volume: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->volume);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "volume", this->volume);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -2609,106 +1680,54 @@ void SirenCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_LOCK
 void ListEntitiesLockResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesLockResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  assumed_state: ");
-  out.append(YESNO(this->assumed_state));
-  out.append("\n");
+  dump_field(out, "assumed_state", this->assumed_state);
 
-  out.append("  supports_open: ");
-  out.append(YESNO(this->supports_open));
-  out.append("\n");
+  dump_field(out, "supports_open", this->supports_open);
 
-  out.append("  requires_code: ");
-  out.append(YESNO(this->requires_code));
-  out.append("\n");
+  dump_field(out, "requires_code", this->requires_code);
 
-  out.append("  code_format: ");
-  append_quoted_string(out, this->code_format_ref_);
-  out.append("\n");
-
+  dump_field(out, "code_format", this->code_format_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void LockStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("LockStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(proto_enum_to_string<enums::LockState>(this->state));
-  out.append("\n");
+  dump_field(out, "state", static_cast<enums::LockState>(this->state));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void LockCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("LockCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  command: ");
-  out.append(proto_enum_to_string<enums::LockCommand>(this->command));
-  out.append("\n");
+  dump_field(out, "command", static_cast<enums::LockCommand>(this->command));
 
-  out.append("  has_code: ");
-  out.append(YESNO(this->has_code));
-  out.append("\n");
+  dump_field(out, "has_code", this->has_code);
 
-  out.append("  code: ");
-  out.append("'").append(this->code).append("'");
-  out.append("\n");
-
+  dump_field(out, "code", this->code);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -2716,61 +1735,31 @@ void LockCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_BUTTON
 void ListEntitiesButtonResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesButtonResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
-
+  dump_field(out, "device_class", this->device_class_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void ButtonCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ButtonCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -2778,65 +1767,31 @@ void ButtonCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_MEDIA_PLAYER
 void MediaPlayerSupportedFormat::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("MediaPlayerSupportedFormat {\n");
-  out.append("  format: ");
-  append_quoted_string(out, this->format_ref_);
-  out.append("\n");
+  dump_field(out, "format", this->format_ref_);
+  dump_field(out, "sample_rate", this->sample_rate);
 
-  out.append("  sample_rate: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->sample_rate);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "num_channels", this->num_channels);
 
-  out.append("  num_channels: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->num_channels);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "purpose", static_cast<enums::MediaPlayerFormatPurpose>(this->purpose));
 
-  out.append("  purpose: ");
-  out.append(proto_enum_to_string<enums::MediaPlayerFormatPurpose>(this->purpose));
-  out.append("\n");
-
-  out.append("  sample_bytes: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->sample_bytes);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "sample_bytes", this->sample_bytes);
   out.append("}");
 }
 void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesMediaPlayerResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  supports_pause: ");
-  out.append(YESNO(this->supports_pause));
-  out.append("\n");
+  dump_field(out, "supports_pause", this->supports_pause);
 
   for (const auto &it : this->supported_formats) {
     out.append("  supported_formats: ");
@@ -2845,90 +1800,48 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   }
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void MediaPlayerStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("MediaPlayerStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(proto_enum_to_string<enums::MediaPlayerState>(this->state));
-  out.append("\n");
+  dump_field(out, "state", static_cast<enums::MediaPlayerState>(this->state));
 
-  out.append("  volume: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->volume);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "volume", this->volume);
 
-  out.append("  muted: ");
-  out.append(YESNO(this->muted));
-  out.append("\n");
+  dump_field(out, "muted", this->muted);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void MediaPlayerCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("MediaPlayerCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  has_command: ");
-  out.append(YESNO(this->has_command));
-  out.append("\n");
+  dump_field(out, "has_command", this->has_command);
 
-  out.append("  command: ");
-  out.append(proto_enum_to_string<enums::MediaPlayerCommand>(this->command));
-  out.append("\n");
+  dump_field(out, "command", static_cast<enums::MediaPlayerCommand>(this->command));
 
-  out.append("  has_volume: ");
-  out.append(YESNO(this->has_volume));
-  out.append("\n");
+  dump_field(out, "has_volume", this->has_volume);
 
-  out.append("  volume: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->volume);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "volume", this->volume);
 
-  out.append("  has_media_url: ");
-  out.append(YESNO(this->has_media_url));
-  out.append("\n");
+  dump_field(out, "has_media_url", this->has_media_url);
 
-  out.append("  media_url: ");
-  out.append("'").append(this->media_url).append("'");
-  out.append("\n");
+  dump_field(out, "media_url", this->media_url);
+  dump_field(out, "has_announcement", this->has_announcement);
 
-  out.append("  has_announcement: ");
-  out.append(YESNO(this->has_announcement));
-  out.append("\n");
-
-  out.append("  announcement: ");
-  out.append(YESNO(this->announcement));
-  out.append("\n");
+  dump_field(out, "announcement", this->announcement);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -2936,31 +1849,17 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_BLUETOOTH_PROXY
 void SubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SubscribeBluetoothLEAdvertisementsRequest {\n");
-  out.append("  flags: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->flags);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "flags", this->flags);
   out.append("}");
 }
 void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothLERawAdvertisement {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  rssi: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->rssi);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "rssi", this->rssi);
 
-  out.append("  address_type: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->address_type);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address_type", this->address_type);
 
   out.append("  data: ");
   out.append(format_hex_pretty(this->data, this->data_len));
@@ -2968,7 +1867,6 @@ void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
   out.append("}");
 }
 void BluetoothLERawAdvertisementsResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothLERawAdvertisementsResponse {\n");
   for (const auto &it : this->advertisements) {
     out.append("  advertisements: ");
@@ -2978,94 +1876,46 @@ void BluetoothLERawAdvertisementsResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 void BluetoothDeviceRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceRequest {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  request_type: ");
-  out.append(proto_enum_to_string<enums::BluetoothDeviceRequestType>(this->request_type));
-  out.append("\n");
+  dump_field(out, "request_type", static_cast<enums::BluetoothDeviceRequestType>(this->request_type));
 
-  out.append("  has_address_type: ");
-  out.append(YESNO(this->has_address_type));
-  out.append("\n");
+  dump_field(out, "has_address_type", this->has_address_type);
 
-  out.append("  address_type: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->address_type);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address_type", this->address_type);
   out.append("}");
 }
 void BluetoothDeviceConnectionResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceConnectionResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  connected: ");
-  out.append(YESNO(this->connected));
-  out.append("\n");
+  dump_field(out, "connected", this->connected);
 
-  out.append("  mtu: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->mtu);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "mtu", this->mtu);
 
-  out.append("  error: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "error", this->error);
   out.append("}");
 }
-void BluetoothGATTGetServicesRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
-  out.append("BluetoothGATTGetServicesRequest {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
-  out.append("}");
-}
+void BluetoothGATTGetServicesRequest::dump_to(std::string &out) const { dump_field(out, "address", this->address); }
 void BluetoothGATTDescriptor::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTDescriptor {\n");
   for (const auto &it : this->uuid) {
-    out.append("  uuid: ");
-    snprintf(buffer, sizeof(buffer), "%llu", it);
-    out.append(buffer);
-    out.append("\n");
+    dump_field(out, "uuid", it, 4);
   }
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
   out.append("}");
 }
 void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTCharacteristic {\n");
   for (const auto &it : this->uuid) {
-    out.append("  uuid: ");
-    snprintf(buffer, sizeof(buffer), "%llu", it);
-    out.append(buffer);
-    out.append("\n");
+    dump_field(out, "uuid", it, 4);
   }
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
 
-  out.append("  properties: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->properties);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "properties", this->properties);
 
   for (const auto &it : this->descriptors) {
     out.append("  descriptors: ");
@@ -3075,19 +1925,12 @@ void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
   out.append("}");
 }
 void BluetoothGATTService::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTService {\n");
   for (const auto &it : this->uuid) {
-    out.append("  uuid: ");
-    snprintf(buffer, sizeof(buffer), "%llu", it);
-    out.append(buffer);
-    out.append("\n");
+    dump_field(out, "uuid", it, 4);
   }
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
 
   for (const auto &it : this->characteristics) {
     out.append("  characteristics: ");
@@ -3097,12 +1940,8 @@ void BluetoothGATTService::dump_to(std::string &out) const {
   out.append("}");
 }
 void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTGetServicesResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
   for (const auto &it : this->services) {
     out.append("  services: ");
@@ -3112,40 +1951,22 @@ void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 void BluetoothGATTGetServicesDoneResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTGetServicesDoneResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
   out.append("}");
 }
 void BluetoothGATTReadRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadRequest {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
   out.append("}");
 }
 void BluetoothGATTReadResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
 
   out.append("  data: ");
   out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
@@ -3153,21 +1974,12 @@ void BluetoothGATTReadResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTWriteRequest {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
 
-  out.append("  response: ");
-  out.append(YESNO(this->response));
-  out.append("\n");
+  dump_field(out, "response", this->response);
 
   out.append("  data: ");
   out.append(format_hex_pretty(reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size()));
@@ -3175,31 +1987,17 @@ void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 void BluetoothGATTReadDescriptorRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadDescriptorRequest {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
   out.append("}");
 }
 void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTWriteDescriptorRequest {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
 
   out.append("  data: ");
   out.append(format_hex_pretty(reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size()));
@@ -3207,35 +2005,19 @@ void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 void BluetoothGATTNotifyRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyRequest {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
 
-  out.append("  enable: ");
-  out.append(YESNO(this->enable));
-  out.append("\n");
+  dump_field(out, "enable", this->enable);
   out.append("}");
 }
 void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyDataResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
 
   out.append("  data: ");
   out.append(format_hex_pretty(this->data_ptr_, this->data_len_));
@@ -3246,240 +2028,129 @@ void SubscribeBluetoothConnectionsFreeRequest::dump_to(std::string &out) const {
   out.append("SubscribeBluetoothConnectionsFreeRequest {}");
 }
 void BluetoothConnectionsFreeResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothConnectionsFreeResponse {\n");
-  out.append("  free: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->free);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "free", this->free);
 
-  out.append("  limit: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->limit);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "limit", this->limit);
 
   for (const auto &it : this->allocated) {
-    out.append("  allocated: ");
-    snprintf(buffer, sizeof(buffer), "%llu", it);
-    out.append(buffer);
-    out.append("\n");
+    dump_field(out, "allocated", it, 4);
   }
   out.append("}");
 }
 void BluetoothGATTErrorResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTErrorResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
 
-  out.append("  error: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "error", this->error);
   out.append("}");
 }
 void BluetoothGATTWriteResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTWriteResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
   out.append("}");
 }
 void BluetoothGATTNotifyResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  handle: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "handle", this->handle);
   out.append("}");
 }
 void BluetoothDevicePairingResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothDevicePairingResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  paired: ");
-  out.append(YESNO(this->paired));
-  out.append("\n");
+  dump_field(out, "paired", this->paired);
 
-  out.append("  error: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "error", this->error);
   out.append("}");
 }
 void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceUnpairingResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  success: ");
-  out.append(YESNO(this->success));
-  out.append("\n");
+  dump_field(out, "success", this->success);
 
-  out.append("  error: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "error", this->error);
   out.append("}");
 }
 void UnsubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const {
   out.append("UnsubscribeBluetoothLEAdvertisementsRequest {}");
 }
 void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceClearCacheResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "address", this->address);
 
-  out.append("  success: ");
-  out.append(YESNO(this->success));
-  out.append("\n");
+  dump_field(out, "success", this->success);
 
-  out.append("  error: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "error", this->error);
   out.append("}");
 }
 void BluetoothScannerStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothScannerStateResponse {\n");
-  out.append("  state: ");
-  out.append(proto_enum_to_string<enums::BluetoothScannerState>(this->state));
-  out.append("\n");
+  dump_field(out, "state", static_cast<enums::BluetoothScannerState>(this->state));
 
-  out.append("  mode: ");
-  out.append(proto_enum_to_string<enums::BluetoothScannerMode>(this->mode));
-  out.append("\n");
+  dump_field(out, "mode", static_cast<enums::BluetoothScannerMode>(this->mode));
   out.append("}");
 }
 void BluetoothScannerSetModeRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("BluetoothScannerSetModeRequest {\n");
-  out.append("  mode: ");
-  out.append(proto_enum_to_string<enums::BluetoothScannerMode>(this->mode));
-  out.append("\n");
+  dump_field(out, "mode", static_cast<enums::BluetoothScannerMode>(this->mode));
   out.append("}");
 }
 #endif
 #ifdef USE_VOICE_ASSISTANT
 void SubscribeVoiceAssistantRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("SubscribeVoiceAssistantRequest {\n");
-  out.append("  subscribe: ");
-  out.append(YESNO(this->subscribe));
-  out.append("\n");
+  dump_field(out, "subscribe", this->subscribe);
 
-  out.append("  flags: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->flags);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "flags", this->flags);
   out.append("}");
 }
 void VoiceAssistantAudioSettings::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantAudioSettings {\n");
-  out.append("  noise_suppression_level: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->noise_suppression_level);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "noise_suppression_level", this->noise_suppression_level);
 
-  out.append("  auto_gain: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->auto_gain);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "auto_gain", this->auto_gain);
 
-  out.append("  volume_multiplier: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->volume_multiplier);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "volume_multiplier", this->volume_multiplier);
   out.append("}");
 }
 void VoiceAssistantRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantRequest {\n");
-  out.append("  start: ");
-  out.append(YESNO(this->start));
-  out.append("\n");
+  dump_field(out, "start", this->start);
 
-  out.append("  conversation_id: ");
-  append_quoted_string(out, this->conversation_id_ref_);
-  out.append("\n");
-
-  out.append("  flags: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->flags);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "conversation_id", this->conversation_id_ref_);
+  dump_field(out, "flags", this->flags);
 
   out.append("  audio_settings: ");
   this->audio_settings.dump_to(out);
   out.append("\n");
 
-  out.append("  wake_word_phrase: ");
-  append_quoted_string(out, this->wake_word_phrase_ref_);
-  out.append("\n");
+  dump_field(out, "wake_word_phrase", this->wake_word_phrase_ref_);
   out.append("}");
 }
 void VoiceAssistantResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantResponse {\n");
-  out.append("  port: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->port);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "port", this->port);
 
-  out.append("  error: ");
-  out.append(YESNO(this->error));
-  out.append("\n");
+  dump_field(out, "error", this->error);
   out.append("}");
 }
 void VoiceAssistantEventData::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantEventData {\n");
-  out.append("  name: ");
-  out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  value: ");
-  out.append("'").append(this->value).append("'");
-  out.append("\n");
+  dump_field(out, "name", this->name);
+  dump_field(out, "value", this->value);
   out.append("}");
 }
 void VoiceAssistantEventResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantEventResponse {\n");
-  out.append("  event_type: ");
-  out.append(proto_enum_to_string<enums::VoiceAssistantEvent>(this->event_type));
-  out.append("\n");
+  dump_field(out, "event_type", static_cast<enums::VoiceAssistantEvent>(this->event_type));
 
   for (const auto &it : this->data) {
     out.append("  data: ");
@@ -3489,7 +2160,6 @@ void VoiceAssistantEventResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 void VoiceAssistantAudio::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantAudio {\n");
   out.append("  data: ");
   if (this->data_ptr_ != nullptr) {
@@ -3499,84 +2169,37 @@ void VoiceAssistantAudio::dump_to(std::string &out) const {
   }
   out.append("\n");
 
-  out.append("  end: ");
-  out.append(YESNO(this->end));
-  out.append("\n");
+  dump_field(out, "end", this->end);
   out.append("}");
 }
 void VoiceAssistantTimerEventResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantTimerEventResponse {\n");
-  out.append("  event_type: ");
-  out.append(proto_enum_to_string<enums::VoiceAssistantTimerEvent>(this->event_type));
-  out.append("\n");
+  dump_field(out, "event_type", static_cast<enums::VoiceAssistantTimerEvent>(this->event_type));
 
-  out.append("  timer_id: ");
-  out.append("'").append(this->timer_id).append("'");
-  out.append("\n");
+  dump_field(out, "timer_id", this->timer_id);
+  dump_field(out, "name", this->name);
+  dump_field(out, "total_seconds", this->total_seconds);
 
-  out.append("  name: ");
-  out.append("'").append(this->name).append("'");
-  out.append("\n");
+  dump_field(out, "seconds_left", this->seconds_left);
 
-  out.append("  total_seconds: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->total_seconds);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  seconds_left: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->seconds_left);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  is_active: ");
-  out.append(YESNO(this->is_active));
-  out.append("\n");
+  dump_field(out, "is_active", this->is_active);
   out.append("}");
 }
 void VoiceAssistantAnnounceRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantAnnounceRequest {\n");
-  out.append("  media_id: ");
-  out.append("'").append(this->media_id).append("'");
-  out.append("\n");
-
-  out.append("  text: ");
-  out.append("'").append(this->text).append("'");
-  out.append("\n");
-
-  out.append("  preannounce_media_id: ");
-  out.append("'").append(this->preannounce_media_id).append("'");
-  out.append("\n");
-
-  out.append("  start_conversation: ");
-  out.append(YESNO(this->start_conversation));
-  out.append("\n");
+  dump_field(out, "media_id", this->media_id);
+  dump_field(out, "text", this->text);
+  dump_field(out, "preannounce_media_id", this->preannounce_media_id);
+  dump_field(out, "start_conversation", this->start_conversation);
   out.append("}");
 }
-void VoiceAssistantAnnounceFinished::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
-  out.append("VoiceAssistantAnnounceFinished {\n");
-  out.append("  success: ");
-  out.append(YESNO(this->success));
-  out.append("\n");
-  out.append("}");
-}
+void VoiceAssistantAnnounceFinished::dump_to(std::string &out) const { dump_field(out, "success", this->success); }
 void VoiceAssistantWakeWord::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantWakeWord {\n");
-  out.append("  id: ");
-  append_quoted_string(out, this->id_ref_);
-  out.append("\n");
-
-  out.append("  wake_word: ");
-  append_quoted_string(out, this->wake_word_ref_);
-  out.append("\n");
-
+  dump_field(out, "id", this->id_ref_);
+  dump_field(out, "wake_word", this->wake_word_ref_);
   for (const auto &it : this->trained_languages) {
-    out.append("  trained_languages: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "trained_languages", it, 4);
   }
   out.append("}");
 }
@@ -3584,7 +2207,6 @@ void VoiceAssistantConfigurationRequest::dump_to(std::string &out) const {
   out.append("VoiceAssistantConfigurationRequest {}");
 }
 void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantConfigurationResponse {\n");
   for (const auto &it : this->available_wake_words) {
     out.append("  available_wake_words: ");
@@ -3593,123 +2215,67 @@ void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
   }
 
   for (const auto &it : this->active_wake_words) {
-    out.append("  active_wake_words: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "active_wake_words", it, 4);
   }
 
-  out.append("  max_active_wake_words: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->max_active_wake_words);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "max_active_wake_words", this->max_active_wake_words);
   out.append("}");
 }
 void VoiceAssistantSetConfiguration::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantSetConfiguration {\n");
   for (const auto &it : this->active_wake_words) {
-    out.append("  active_wake_words: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "active_wake_words", it, 4);
   }
   out.append("}");
 }
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
 void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesAlarmControlPanelResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  supported_features: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->supported_features);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "supported_features", this->supported_features);
 
-  out.append("  requires_code: ");
-  out.append(YESNO(this->requires_code));
-  out.append("\n");
+  dump_field(out, "requires_code", this->requires_code);
 
-  out.append("  requires_code_to_arm: ");
-  out.append(YESNO(this->requires_code_to_arm));
-  out.append("\n");
+  dump_field(out, "requires_code_to_arm", this->requires_code_to_arm);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("AlarmControlPanelStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append(proto_enum_to_string<enums::AlarmControlPanelState>(this->state));
-  out.append("\n");
+  dump_field(out, "state", static_cast<enums::AlarmControlPanelState>(this->state));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("AlarmControlPanelCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  command: ");
-  out.append(proto_enum_to_string<enums::AlarmControlPanelStateCommand>(this->command));
-  out.append("\n");
+  dump_field(out, "command", static_cast<enums::AlarmControlPanelStateCommand>(this->command));
 
-  out.append("  code: ");
-  out.append("'").append(this->code).append("'");
-  out.append("\n");
-
+  dump_field(out, "code", this->code);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -3717,104 +2283,51 @@ void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_TEXT
 void ListEntitiesTextResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTextResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  min_length: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->min_length);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "min_length", this->min_length);
 
-  out.append("  max_length: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->max_length);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "max_length", this->max_length);
 
-  out.append("  pattern: ");
-  append_quoted_string(out, this->pattern_ref_);
-  out.append("\n");
-
-  out.append("  mode: ");
-  out.append(proto_enum_to_string<enums::TextMode>(this->mode));
-  out.append("\n");
+  dump_field(out, "pattern", this->pattern_ref_);
+  dump_field(out, "mode", static_cast<enums::TextMode>(this->mode));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void TextStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("TextStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  append_quoted_string(out, this->state_ref_);
-  out.append("\n");
-
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "state", this->state_ref_);
+  dump_field(out, "missing_state", this->missing_state);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void TextCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("TextCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  state: ");
-  out.append("'").append(this->state).append("'");
-  out.append("\n");
-
+  dump_field(out, "state", this->state);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -3822,108 +2335,54 @@ void TextCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_DATETIME_DATE
 void ListEntitiesDateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesDateResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void DateStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("DateStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "missing_state", this->missing_state);
 
-  out.append("  year: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->year);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "year", this->year);
 
-  out.append("  month: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->month);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "month", this->month);
 
-  out.append("  day: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->day);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "day", this->day);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void DateCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("DateCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  year: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->year);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "year", this->year);
 
-  out.append("  month: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->month);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "month", this->month);
 
-  out.append("  day: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->day);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "day", this->day);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -3931,108 +2390,54 @@ void DateCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_DATETIME_TIME
 void ListEntitiesTimeResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTimeResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void TimeStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("TimeStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "missing_state", this->missing_state);
 
-  out.append("  hour: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->hour);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "hour", this->hour);
 
-  out.append("  minute: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->minute);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "minute", this->minute);
 
-  out.append("  second: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->second);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "second", this->second);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void TimeCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("TimeCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  hour: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->hour);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "hour", this->hour);
 
-  out.append("  minute: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->minute);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "minute", this->minute);
 
-  out.append("  second: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->second);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "second", this->second);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -4040,71 +2445,36 @@ void TimeCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_EVENT
 void ListEntitiesEventResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesEventResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
-
+  dump_field(out, "device_class", this->device_class_ref_);
   for (const auto &it : this->event_types) {
-    out.append("  event_types: ");
-    append_quoted_string(out, StringRef(it));
-    out.append("\n");
+    dump_field(out, "event_types", it, 4);
   }
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void EventResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("EventResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  event_type: ");
-  append_quoted_string(out, this->event_type_ref_);
-  out.append("\n");
-
+  dump_field(out, "event_type", this->event_type_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -4112,112 +2482,57 @@ void EventResponse::dump_to(std::string &out) const {
 #endif
 #ifdef USE_VALVE
 void ListEntitiesValveResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesValveResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
+  dump_field(out, "device_class", this->device_class_ref_);
+  dump_field(out, "assumed_state", this->assumed_state);
 
-  out.append("  assumed_state: ");
-  out.append(YESNO(this->assumed_state));
-  out.append("\n");
+  dump_field(out, "supports_position", this->supports_position);
 
-  out.append("  supports_position: ");
-  out.append(YESNO(this->supports_position));
-  out.append("\n");
-
-  out.append("  supports_stop: ");
-  out.append(YESNO(this->supports_stop));
-  out.append("\n");
+  dump_field(out, "supports_stop", this->supports_stop);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void ValveStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ValveStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  position: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->position);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "position", this->position);
 
-  out.append("  current_operation: ");
-  out.append(proto_enum_to_string<enums::ValveOperation>(this->current_operation));
-  out.append("\n");
+  dump_field(out, "current_operation", static_cast<enums::ValveOperation>(this->current_operation));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void ValveCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ValveCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  has_position: ");
-  out.append(YESNO(this->has_position));
-  out.append("\n");
+  dump_field(out, "has_position", this->has_position);
 
-  out.append("  position: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->position);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "position", this->position);
 
-  out.append("  stop: ");
-  out.append(YESNO(this->stop));
-  out.append("\n");
+  dump_field(out, "stop", this->stop);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -4225,88 +2540,46 @@ void ValveCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_DATETIME_DATETIME
 void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesDateTimeResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void DateTimeStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("DateTimeStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "missing_state", this->missing_state);
 
-  out.append("  epoch_seconds: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->epoch_seconds);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "epoch_seconds", this->epoch_seconds);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void DateTimeCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("DateTimeCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  epoch_seconds: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->epoch_seconds);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "epoch_seconds", this->epoch_seconds);
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
@@ -4314,119 +2587,56 @@ void DateTimeCommandRequest::dump_to(std::string &out) const {
 #endif
 #ifdef USE_UPDATE
 void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesUpdateResponse {\n");
-  out.append("  object_id: ");
-  append_quoted_string(out, this->object_id_ref_);
-  out.append("\n");
+  dump_field(out, "object_id", this->object_id_ref_);
+  dump_field(out, "key", this->key);
 
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  append_quoted_string(out, this->name_ref_);
-  out.append("\n");
-
+  dump_field(out, "name", this->name_ref_);
 #ifdef USE_ENTITY_ICON
-  out.append("  icon: ");
-  append_quoted_string(out, this->icon_ref_);
-  out.append("\n");
-
+  dump_field(out, "icon", this->icon_ref_);
 #endif
-  out.append("  disabled_by_default: ");
-  out.append(YESNO(this->disabled_by_default));
-  out.append("\n");
+  dump_field(out, "disabled_by_default", this->disabled_by_default);
 
-  out.append("  entity_category: ");
-  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
-  out.append("\n");
+  dump_field(out, "entity_category", static_cast<enums::EntityCategory>(this->entity_category));
 
-  out.append("  device_class: ");
-  append_quoted_string(out, this->device_class_ref_);
-  out.append("\n");
-
+  dump_field(out, "device_class", this->device_class_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void UpdateStateResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("UpdateStateResponse {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  missing_state: ");
-  out.append(YESNO(this->missing_state));
-  out.append("\n");
+  dump_field(out, "missing_state", this->missing_state);
 
-  out.append("  in_progress: ");
-  out.append(YESNO(this->in_progress));
-  out.append("\n");
+  dump_field(out, "in_progress", this->in_progress);
 
-  out.append("  has_progress: ");
-  out.append(YESNO(this->has_progress));
-  out.append("\n");
+  dump_field(out, "has_progress", this->has_progress);
 
-  out.append("  progress: ");
-  snprintf(buffer, sizeof(buffer), "%g", this->progress);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "progress", this->progress);
 
-  out.append("  current_version: ");
-  append_quoted_string(out, this->current_version_ref_);
-  out.append("\n");
-
-  out.append("  latest_version: ");
-  append_quoted_string(out, this->latest_version_ref_);
-  out.append("\n");
-
-  out.append("  title: ");
-  append_quoted_string(out, this->title_ref_);
-  out.append("\n");
-
-  out.append("  release_summary: ");
-  append_quoted_string(out, this->release_summary_ref_);
-  out.append("\n");
-
-  out.append("  release_url: ");
-  append_quoted_string(out, this->release_url_ref_);
-  out.append("\n");
-
+  dump_field(out, "current_version", this->current_version_ref_);
+  dump_field(out, "latest_version", this->latest_version_ref_);
+  dump_field(out, "title", this->title_ref_);
+  dump_field(out, "release_summary", this->release_summary_ref_);
+  dump_field(out, "release_url", this->release_url_ref_);
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
 }
 void UpdateCommandRequest::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
   out.append("UpdateCommandRequest {\n");
-  out.append("  key: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "key", this->key);
 
-  out.append("  command: ");
-  out.append(proto_enum_to_string<enums::UpdateCommand>(this->command));
-  out.append("\n");
+  dump_field(out, "command", static_cast<enums::UpdateCommand>(this->command));
 
 #ifdef USE_DEVICES
-  out.append("  device_id: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
-  out.append(buffer);
-  out.append("\n");
+  dump_field(out, "device_id", this->device_id);
 
 #endif
   out.append("}");
