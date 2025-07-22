@@ -51,7 +51,7 @@ class ESPNowPacket {
   }
 #else
   // Constructor for sent data
-  ESPNowPacket(const uint8_t *mac_addr, esp_now_send_status_t status) { this->init_sent_data(mac_addr, status); }
+  ESPNowPacket(const uint8_t *mac_addr, esp_now_send_status_t status) { this->init_sent_data_(mac_addr, status); }
 #endif
 
   // Destructor to clean up heap allocations
@@ -69,7 +69,7 @@ class ESPNowPacket {
 
   void load_sent_data(const uint8_t *mac_addr, esp_now_send_status_t status) {
     this->type_ = SENT;
-    this->init_sent_data(mac_addr, status);
+    this->init_sent_data_(mac_addr, status);
   }
 
   // Disable copy to prevent double-delete
@@ -110,7 +110,7 @@ class ESPNowPacket {
     this->packet_.receive.info.rx_ctrl = reinterpret_cast<wifi_pkt_rx_ctrl_t *>(&this->packet_.receive.rx_ctrl);
   }
 
-  void init_sent_data(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  void init_sent_data_(const uint8_t *mac_addr, esp_now_send_status_t status) {
     memcpy(this->packet_.sent.address, mac_addr, ESP_NOW_ETH_ALEN);
     this->packet_.sent.status = status;
   }
