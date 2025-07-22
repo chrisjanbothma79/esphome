@@ -598,10 +598,11 @@ class StringType(TypeInfo):
             return self._get_simple_size_calculation(name, force, "add_string_field")
 
         # Check if this is being called from a repeated field context
-        # In that case, 'name' will be 'it' and we need to use .length()
+        # In that case, 'name' will be 'it' and we need to use the repeated version
         if name == "it":
+            # For repeated fields, we need to use add_string_field_repeated which includes field ID
             field_id_size = self.calculate_field_id_size()
-            return f"ProtoSize::add_string_field(total_size, {field_id_size}, it.length());"
+            return f"ProtoSize::add_string_field_repeated(total_size, {field_id_size}, it);"
 
         # For messages that need encoding, use the StringRef size
         field_id_size = self.calculate_field_id_size()

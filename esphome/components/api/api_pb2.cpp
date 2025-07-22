@@ -356,7 +356,7 @@ void ListEntitiesFanResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
   if (!this->supported_preset_modes.empty()) {
     for (const auto &it : this->supported_preset_modes) {
-      ProtoSize::add_string_field(total_size, 1, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 1, it);
     }
   }
 #ifdef USE_DEVICES
@@ -480,7 +480,7 @@ void ListEntitiesLightResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_float_field(total_size, 1, this->max_mireds);
   if (!this->effects.empty()) {
     for (const auto &it : this->effects) {
-      ProtoSize::add_string_field(total_size, 1, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 1, it);
     }
   }
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
@@ -1130,7 +1130,7 @@ void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
   }
   if (!this->supported_custom_fan_modes.empty()) {
     for (const auto &it : this->supported_custom_fan_modes) {
-      ProtoSize::add_string_field(total_size, 1, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 1, it);
     }
   }
   if (!this->supported_presets.empty()) {
@@ -1140,7 +1140,7 @@ void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
   }
   if (!this->supported_custom_presets.empty()) {
     for (const auto &it : this->supported_custom_presets) {
-      ProtoSize::add_string_field(total_size, 2, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 2, it);
     }
   }
   ProtoSize::add_bool_field(total_size, 2, this->disabled_by_default);
@@ -1392,7 +1392,7 @@ void ListEntitiesSelectResponse::calculate_size(uint32_t &total_size) const {
 #endif
   if (!this->options.empty()) {
     for (const auto &it : this->options) {
-      ProtoSize::add_string_field(total_size, 1, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 1, it);
     }
   }
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
@@ -1479,7 +1479,7 @@ void ListEntitiesSirenResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   if (!this->tones.empty()) {
     for (const auto &it : this->tones) {
-      ProtoSize::add_string_field(total_size, 1, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 1, it);
     }
   }
   ProtoSize::add_bool_field(total_size, 1, this->supports_duration);
@@ -2347,7 +2347,7 @@ void VoiceAssistantWakeWord::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->wake_word_ref_.size());
   if (!this->trained_languages.empty()) {
     for (const auto &it : this->trained_languages) {
-      ProtoSize::add_string_field(total_size, 1, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 1, it);
     }
   }
 }
@@ -2364,7 +2364,7 @@ void VoiceAssistantConfigurationResponse::calculate_size(uint32_t &total_size) c
   ProtoSize::add_repeated_message(total_size, 1, this->available_wake_words);
   if (!this->active_wake_words.empty()) {
     for (const auto &it : this->active_wake_words) {
-      ProtoSize::add_string_field(total_size, 1, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 1, it);
     }
   }
   ProtoSize::add_uint32_field(total_size, 1, this->max_active_wake_words);
@@ -2735,7 +2735,7 @@ void ListEntitiesEventResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->device_class_ref_.size());
   if (!this->event_types.empty()) {
     for (const auto &it : this->event_types) {
-      ProtoSize::add_string_field(total_size, 1, it.length());
+      ProtoSize::add_string_field_repeated(total_size, 1, it);
     }
   }
 #ifdef USE_DEVICES
