@@ -40,7 +40,7 @@ static constexpr uint8_t MADCTL_YFLIP = 0x01;  // Mirror the display vertically
 
 static const uint8_t DELAY_FLAG = 0xFF;
 // store a 16 bit value in a buffer, big endian.
-static inline void put16_be(uint8_t *buf, uint16_t value) {
+static inline void put16_be(const uint8_t *buf, uint16_t value) {
   buf[0] = value >> 8;
   buf[1] = value;
 }

@@ -138,7 +138,7 @@ class SdfsDriver : public DriverInterface {
    *
    * @return card_type_t
    */
-  card_type_t card_type() override;
+  SdCardType card_type() override;
 
   uint64_t card_size() override;
   /**
@@ -187,7 +187,7 @@ class SdfsDriver : public DriverInterface {
 #if defined(USE_SDSPI_MODE)
   SpiConnector *connector_ = {NULL};
 #else
-  SdmmcIO *mmc_io = {NULL};
+  SdmmcIO *mmc_io_ = {NULL};
 #endif
   fsys_t *fs_ = NULL;
   uint8_t pdrv_;
@@ -196,7 +196,7 @@ class SdfsDriver : public DriverInterface {
   std::string mountpoint_;  // base_path
   unsigned long sectors_;
   bool supports_crc_;
-  card_type_t type_;
+  SdCardType type_;
   uint32_t last_err_ = 0;
   InternalGPIOPin *pw_ctrl_pin_{NULL};
   InternalGPIOPin *cd_pin_{NULL};

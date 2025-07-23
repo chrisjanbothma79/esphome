@@ -229,8 +229,8 @@ class PN7150 : public nfc::Nfcc, public Component {
 
   uint8_t transceive_(nfc::NciMessage &tx, nfc::NciMessage &rx, uint16_t timeout = NFCC_DEFAULT_TIMEOUT,
                       bool expect_notification = true);
-  virtual uint8_t read_nfcc(nfc::NciMessage &rx, uint16_t timeout) = 0;
-  virtual uint8_t write_nfcc(nfc::NciMessage &tx) = 0;
+  virtual uint8_t read_nfcc_(nfc::NciMessage &rx, uint16_t timeout) = 0;
+  virtual uint8_t write_nfcc_(nfc::NciMessage &tx) = 0;
 
   uint8_t wait_for_irq_(uint16_t timeout = NFCC_DEFAULT_TIMEOUT, bool pin_state = true);
 

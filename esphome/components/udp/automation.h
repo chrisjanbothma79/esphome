@@ -31,7 +31,7 @@ template<typename... Ts> class UDPWriteAction : public Action<Ts...>, public Par
 
  protected:
   bool static_{false};
-  std::function<std::vector<uint8_t>(Ts...)> data_func_{};
+  std::function<std::vector<uint8_t>(ts_...)> data_func_{};
   std::vector<uint8_t> data_static_{};
 };
 

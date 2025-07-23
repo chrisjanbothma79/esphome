@@ -120,12 +120,13 @@ void SdfsHost::dump_config() {
       ESP_LOGCONFIG(TAG, "   SDIO pwr ctrl pin: %d", this->pw_ctrl_pin_);
 
     ESP_LOGCONFIG(TAG, "   SDIO bus slot:      %d", this->bus_slot_);
-    if (this->spi_bus_width_ == BUS_WIDTH_1BIT)
+    if (this->spi_bus_width_ == BUS_WIDTH_1BIT) {
       ESP_LOGCONFIG(TAG, "   SDIO bus_width: 1bit");
-    else if (this->spi_bus_width_ == BUS_WIDTH_4BIT)
+    } else if (this->spi_bus_width_ == BUS_WIDTH_4BIT) {
       ESP_LOGCONFIG(TAG, "   SDIO bus_width: 4bit");
-    else if (this->spi_bus_width_ == BUS_WIDTH_8BIT)
+    } else if (this->spi_bus_width_ == BUS_WIDTH_8BIT) {
       ESP_LOGCONFIG(TAG, "   SDIO bus_width: 8bit");
+    }
 
     ESP_LOGCONFIG(TAG, "   SDIO clk_pin:      %d", this->clk_pin_);
     ESP_LOGCONFIG(TAG, "   SDIO cmd_pin:      %d", this->cmd_pin_);
@@ -174,9 +175,9 @@ void SdfsHost::setup() {
   if (this->cd_pin_ != NULL) {
     this->cd_pin_->setup();
     this->cd_pin_->pin_mode(gpio::FLAG_PULLUP);
-    this->cd_pin_->attach_interrupt(CardDetectInterrupt::card_insert, &this->card_present_st,
+    this->cd_pin_->attach_interrupt(CardDetectInterrupt::card_insert, &this->card_present_st_,
                                     gpio::INTERRUPT_LOW_LEVEL);
-    this->cd_pin_->attach_interrupt(CardDetectInterrupt::card_eject, &this->card_present_st,
+    this->cd_pin_->attach_interrupt(CardDetectInterrupt::card_eject, &this->card_present_st_,
                                     gpio::INTERRUPT_HIGH_LEVEL);
     ESP_LOGD(TAG, "Arm CardDetect interrupt");
   }
@@ -196,10 +197,10 @@ void SdfsHost::setup() {
   drv->set_parent(this);
   this->drv_ = drv;
 #else
-  esp8266SpiDriver *drv = new esp8266SpiDriver();
-  drv->set_connector(this->connector_);
-  drv->set_parent(this);
-  this->drv_ = drv;
+  // esp8266SpiDriver *drv = new esp8266SpiDriver();
+  // drv->set_connector(this->connector_);
+  // drv->set_parent(this);
+  // this->drv_ = drv;
 #endif
 
   if (this->drv_ == NULL) {
@@ -221,7 +222,7 @@ void SdfsHost::setup() {
     this->set_state(SD_SLOT_ST_EMPTY);
     if (this->drv_->attach_card()) {
       this->set_state(SD_SLOT_ST_CARD);
-      card_present = true;
+      card_present_ = true;
       if (this->drv_->mount(path_, false)) {
         this->set_state(SD_SLOT_ST_MOUNT);
 
@@ -257,8 +258,8 @@ void SdfsHost::set_mode(spi::SPIMode mode) { connector_->set_mode(mode); }
  *
  */
 void SdfsHost::loop() {
-  if (this->card_present_st.init) {
-    if ((this->card_present_st.present && (!card_present)) || ((!this->card_present_st.present) && card_present)) {
+  if (this->card_present_st_.init) {
+    if ((this->card_present_st_.present && (!card_present_)) || ((!this->card_present_st_.present) && card_present_)) {
       this->update();
     }
   }
@@ -276,14 +277,14 @@ void SdfsHost::update() {
     fs_ = NULL;
     if (this->drv_->attach_card()) {
       this->set_state(SD_SLOT_ST_CARD);
-      card_present = true;
+      card_present_ = true;
       if (this->drv_->mount(path_, false)) {
         this->set_state(SD_SLOT_ST_MOUNT);
       } else {
         ESP_LOGW(TAG, "Seems card present but cannot mount. %d", this->drv_->get_last_err());
       }
     } else {  // attach_card
-      card_present = false;
+      card_present_ = false;
     }
   }
 }

@@ -218,7 +218,7 @@ bool SdmmcIO::init_slot() {
  * @return true
  * @return false
  */
-sdcard_status_t SdmmcIO::get_disk_status() {  //  is_card
+SdCardStatus SdmmcIO::get_disk_status() {  //  is_card
   assert(this->card_info_);
   esp_err_t err = sdmmc_get_status(this->card_info_);
   if (unlikely(err != ESP_OK)) {
@@ -234,7 +234,7 @@ sdcard_status_t SdmmcIO::get_disk_status() {  //  is_card
  *
  * @return init_status_t
  */
-sdcard_status_t SdmmcIO::init_card() {  //  attach_card
+SdCardStatus SdmmcIO::init_card() {  //  attach_card
   esp_err_t rc;
   rc = sdmmc_card_init(this->host_config_, this->card_info_);
   if (rc != ESP_OK) {
@@ -336,7 +336,7 @@ void SdmmcIO::unmount() {
  * @return true
  * @return false
  */
-local_rc_t SdmmcIO::format() {
+bool SdmmcIO::format() {
   char drv[3] = {(char) ('0' + this->pdrv_), ':', 0};
   FRESULT res = FR_OK;
   esp_err_t err;
@@ -348,7 +348,7 @@ local_rc_t SdmmcIO::format() {
   if (workbuf == NULL) {
     ESP_LOGE(TAG, "not enough mem");
     SET_RC(ERR_TYPE_LOCAL, RC_NO_MEM, "Format. No mem");
-    return RC_NO_MEM;
+    return false;
   }
 
 #ifdef USE_ESP_IDF
@@ -358,7 +358,7 @@ local_rc_t SdmmcIO::format() {
   if (res != FR_OK) {
     SET_RC(ERR_TYPE_FILESYS, res, "Cannot format disk");
     free(workbuf);
-    return RC_NO_CARD;
+    return false;
   }
 #endif
 
@@ -386,12 +386,12 @@ local_rc_t SdmmcIO::format() {
   if (res != FR_OK) {
     SET_RC(ERR_TYPE_FILESYS, res, "Cannot make fs");
     free(workbuf);
-    return RC_UNKNOWN;
+    return false;
   }
 
   free(workbuf);
   ESP_LOGD(TAG, "Prtitioning disk %d completed", this->pdrv_);
-  return RC_OK;
+  return true;
 }
 
 bool SdmmcIO::is_card_mem() { return this->card_info_->is_mem == 1; }

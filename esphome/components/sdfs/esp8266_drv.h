@@ -67,7 +67,7 @@ class esp8266SpiDriver : public DriverInterface {
   fsys_t *get_fs() override { return vol; };
   bool is_mount() { return this->vol != NULL; };
 
-  card_type_t card_type() override;
+  SdCardType card_type() override;
   uint64_t card_size() override;
   size_t num_sectors() override;
   size_t sector_size() override;

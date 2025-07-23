@@ -36,9 +36,9 @@ enum SdConnType {
   SD_SPI = 1,
 };
 
-extern const char *fat_type2str[];
-extern const char *fs_err2str[];
-extern const char *host_st2str[];
+// extern const char *fat_type2str[];
+// extern const char *fs_err2str[];
+// extern const char *host_st2str[];
 const char *sd_state_to_string(SdDriverState state);
 
 /**
@@ -48,14 +48,14 @@ const char *sd_state_to_string(SdDriverState state);
 struct CardDetectInterrupt {
   volatile bool present{true};
   bool init{false};
-  static void card_insert(CardDetectInterrupt *card_status);
-  static void card_eject(CardDetectInterrupt *card_status);
+  static void card_insert(CardDetectInterrupt *data);
+  static void card_eject(CardDetectInterrupt *data);
 };
 
 #ifdef USE_SDSPI_MODE
 class SpiConnector;
 #endif
-class FsInterface;
+// class FsInterface;
 class DriverInterface;
 
 class SdfsHost : public PollingComponent {
@@ -87,7 +87,7 @@ class SdfsHost : public PollingComponent {
   void set_conn_type(SdConnType type) { type_ = type; };
   void set_bus_width(BusWidth busw) { spi_bus_width_ = busw; };
   void set_bus_slot(uint8_t buss) { bus_slot_ = buss; };
-  void set_path(std::string path) { path_ = path; };
+  void set_path(std::string path) { path_ = std::move(path); };
 
   // void set_pw_ctrl_pin(int pin) { pw_ctrl_pin_ = pin; };
   // void set_cd_pin(int pin) { cd_pin_ = pin; };
@@ -111,8 +111,8 @@ class SdfsHost : public PollingComponent {
   // void set_int_pin(int pin) { int_pin_ = pin; };
 
  protected:
-  bool card_present = false;
-  CardDetectInterrupt card_present_st;
+  bool card_present_ = false;
+  CardDetectInterrupt card_present_st_;
 #if defined(USE_SDSPI_MODE)
   SpiConnector *connector_;
 #endif
@@ -164,7 +164,7 @@ class DriverInterface {
   virtual bool test();
   virtual fsys_t *get_fs();
 
-  virtual card_type_t card_type();
+  virtual SdCardType card_type();
   virtual uint64_t card_size();
   virtual size_t num_sectors();
   virtual size_t sector_size();

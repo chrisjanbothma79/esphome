@@ -185,8 +185,8 @@ class RC522 : public PollingComponent {
   void pcd_antenna_on_();
   void pcd_antenna_off_();
 
-  virtual uint8_t pcd_read_register(PcdRegister reg  ///< The register to read from. One of the PCD_Register enums.
-                                    ) = 0;
+  virtual uint8_t pcd_read_register_(PcdRegister reg  ///< The register to read from. One of the PCD_Register enums.
+                                     ) = 0;
 
   /**
    * Reads a number of uint8_ts from the specified register in the MFRC522 chip.

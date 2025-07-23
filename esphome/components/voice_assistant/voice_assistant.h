@@ -221,13 +221,13 @@ class VoiceAssistant : public Component {
 
  protected:
   bool allocate_buffers_();
-  void clear_buffers_();
-  void deallocate_buffers_();
+  void clear_buffers();
+  void deallocate_buffers();
 
-  void set_state_(State state);
-  void set_state_(State state, State desired_state);
-  void signal_stop_();
-  void start_playback_timeout_();
+  void set_state(State state);
+  void set_state(State state, State desired_state);
+  void signal_stop();
+  void start_playback_timeout();
 
   std::unique_ptr<socket::Socket> socket_ = nullptr;
   struct sockaddr_storage dest_addr_;
@@ -257,7 +257,7 @@ class VoiceAssistant : public Component {
   api::APIConnection *api_client_{nullptr};
 
   std::unordered_map<std::string, Timer> timers_;
-  void timer_tick_();
+  void timer_tick();
   Trigger<Timer> *timer_started_trigger_ = new Trigger<Timer>();
   Trigger<Timer> *timer_finished_trigger_ = new Trigger<Timer>();
   Trigger<Timer> *timer_updated_trigger_ = new Trigger<Timer>();
@@ -268,7 +268,7 @@ class VoiceAssistant : public Component {
 
   microphone::MicrophoneSource *mic_source_{nullptr};
 #ifdef USE_SPEAKER
-  void write_speaker_();
+  void write_speaker();
   speaker::Speaker *speaker_{nullptr};
   uint8_t *speaker_buffer_{nullptr};
   size_t speaker_buffer_index_{0};
@@ -311,7 +311,7 @@ class VoiceAssistant : public Component {
 
   AudioMode audio_mode_{AUDIO_MODE_UDP};
   bool udp_socket_running_{false};
-  bool start_udp_socket_();
+  bool start_udp_socket();
 
   Configuration config_{};
 

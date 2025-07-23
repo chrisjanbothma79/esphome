@@ -66,7 +66,7 @@ class OpenthermHub : public Component {
   bool sending_initial_ = true;
   std::unordered_map<MessageId, uint8_t> configured_messages_;
   std::vector<MessageId> messages_;
-  std::vector<MessageId>::const_iterator message_iterator_;
+  std::vector<MessageId>::const_iterator_ message_iterator_;
 
   uint32_t last_conversation_start_ = 0;
   uint32_t last_conversation_end_ = 0;

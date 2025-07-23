@@ -1,20 +1,25 @@
 #if !defined(USE_ESP8266)
+#include "sdfs.h"
 #include "fs_interface.h"
 namespace esphome {
 namespace sdfs {
 
+extern const char *fat_type2str[];
 extern const char *fs_err2str[];
+extern const char *host_st2str[];
+
+// extern const char *fs_err2str[];
 static const char *TAG = "fs_int";
 //------------------------------------------------------------------
 //   FsInterface methods
 //------------------------------------------------------------------
 
-FsInterface::FsInterface(SdfsHost *host) : host(host) {
-  if (host->get_drv() == NULL) {
+FsInterface::FsInterface(SdfsHost *host) : host_(host) {
+  if (host_->get_drv() == NULL) {
     ESP_LOGE(TAG, "SdfsDriver not initialized.");
-    last_err = FR_INT_ERR;
+    last_err_ = FR_INT_ERR;
   }
-  fs = host->get_drv()->get_fs();
+  fs_ = host_->get_drv()->get_fs();
 }
 
 /***********************************************************************
@@ -36,9 +41,9 @@ bool FsInterface::is_ready() {
 #if defined(USE_ESP8266)
   is_fs = vol != NULL;
 #endif
-  is_fs = fs != NULL;
+  is_fs = fs_ != NULL;
   if (!is_fs) {
-    last_err = FR_INT_ERR;
+    last_err_ = FR_INT_ERR;
   }
   return is_fs;
 }
@@ -50,7 +55,7 @@ bool FsInterface::is_ready() {
  * @return true
  * @return false
  */
-bool FsInterface::is_exist(std::string path) {
+bool FsInterface::is_exist(const std::string &path) {
   FRESULT rc;
   if (!is_ready())
     return false;
@@ -63,9 +68,7 @@ bool FsInterface::is_exist(std::string path) {
   // rc = f_open(&fp,cur_path.c_str(),FA_READ);
   // f_close(&fp);
 
-  if (rc == FR_OK)
-    return true;
-  return false;
+  return rc == FR_OK;
 }
 
 /***********************************************************************
@@ -75,10 +78,10 @@ bool FsInterface::is_exist(std::string path) {
  * @return true
  * @return false
  */
-bool FsInterface::is_dir(std::string path) {
+bool FsInterface::is_dir(const std::string &path) {
   finfo info;
-  last_err = f_stat(path.c_str(), &info);
-  return last_err == FR_OK && (info.fattrib & AM_DIR);
+  last_err_ = f_stat(path.c_str(), &info);
+  return last_err_ == FR_OK && (info.fattrib & AM_DIR);
 }
 
 /***********************************************************************
@@ -88,8 +91,8 @@ bool FsInterface::is_dir(std::string path) {
  * @return true
  * @return false
  */
-bool FsInterface::mkdir(std::string name) {
-  FRESULT rc = f_mkdir(name.c_str());
+bool FsInterface::mkdir(const std::string &path) {
+  FRESULT rc = f_mkdir(path.c_str());
   return rc == FR_OK;
 }
 
@@ -101,7 +104,7 @@ bool FsInterface::mkdir(std::string name) {
  */
 // size_t FsInterface::size(std::string path) {
 //   finfo info;
-//   last_err = f_stat(build_path(path).c_str(),&info);
+//   last_err_ = f_stat(build_path(path).c_str(),&info);
 //   return info.fsize;
 // }
 
@@ -112,7 +115,7 @@ bool FsInterface::mkdir(std::string name) {
  * @return true
  * @return false
  */
-bool FsInterface::rmdir(std::string path) {
+bool FsInterface::rmdir(const std::string &path) {
   if (!is_dir(path)) {
     return f_rmdir(path.c_str()) == 0;
   }
@@ -125,9 +128,9 @@ bool FsInterface::rmdir(std::string path) {
  * @param from
  * @param to
  * @return true if sucess
- * @return false eny error (see last_error)
+ * @return false eny error (see last_err_or)
  */
-bool rename(std::string from, std::string to) {
+bool rename(const std::string &from, const std::string &to) {
   FRESULT rc = f_rename(from.c_str(), to.c_str());
   return rc = FR_OK;
 }
@@ -137,7 +140,7 @@ bool rename(std::string from, std::string to) {
  *
  * @return FsIterator
  */
-FsIterator *FsInterface::list(std::string path) { return new FsIterator(host, path); }
+FsIterator *FsInterface::list(const std::string &path) { return new FsIterator(host_, path); }
 
 FileInterface *FsInterface::open_file(std::string path, char mode) {
   FileInterface *file = NULL;
@@ -153,33 +156,33 @@ FileInterface *FsInterface::open_file(std::string path, char mode) {
 /**
  * @brief Construct a new File Interface:: File Interface object
  *
- * @param p absolute path, including mount point
+ * @param path absolute path, including mount point
  * @param mode 'r' open read only, 'a' open for append, 'w' open for write
  */
-FileInterface::FileInterface(std::string p, char mode) : path(p) {
+FileInterface::FileInterface(std::string path, char mode) : path_(path) {
   switch (mode) {
     case 't':
-      open_flag = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
-      truncate = true;
+      open_flag_ = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
+      truncate_ = true;
     case 'w':
-      open_flag = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
+      open_flag_ = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
       break;
     case 'a':
-      open_flag = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS | FA_OPEN_APPEND;
+      open_flag_ = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS | FA_OPEN_APPEND;
       break;
     case 'r':
-      open_flag = FA_READ;
+      open_flag_ = FA_READ;
       break;
     default:
-      last_err = FR_INVALID_PARAMETER;
+      last_err_ = FR_INVALID_PARAMETER;
       return;
   }
 
-  last_err = f_stat(path.c_str(), &info);
-  last_err = f_open(&fp, path.c_str(), open_flag);
-  if (last_err != FR_OK) {
-    ESP_LOGD(TAG, "File open error, %s", fs_err2str[last_err]);
-    f_close(&fp);
+  last_err_ = f_stat(path_.c_str(), &sys_f_info_);
+  last_err_ = f_open(&fp_, path_.c_str(), open_flag_);
+  if (last_err_ != FR_OK) {
+    ESP_LOGD(TAG, "File open error, %s", fs_err2str[last_err_]);
+    f_close(&fp_);
   }
 }
 
@@ -187,7 +190,7 @@ FileInterface::FileInterface(std::string p, char mode) : path(p) {
  * @brief Destroy the File Interface:: File Interface object
  *
  */
-FileInterface::~FileInterface() { f_close(&fp); }
+FileInterface::~FileInterface() { f_close(&fp_); }
 
 /**********************************************************************
  * @brief Close file
@@ -196,8 +199,8 @@ FileInterface::~FileInterface() { f_close(&fp); }
  * @return false
  */
 bool FileInterface::close() {
-  last_err = f_close(&fp);
-  return last_err == FR_OK;
+  last_err_ = f_close(&fp_);
+  return last_err_ == FR_OK;
 }
 
 /**********************************************************************
@@ -207,17 +210,17 @@ bool FileInterface::close() {
  * @param sz
  * @return size_t return read bytes. 0 if end of file. -1 if error
  */
-int FileInterface::read(void *buf, size_t sz) {
+int FileInterface::read(void *buf, size_t size) {
   size_t read = -1;
-  if (open_flag & FA_READ) {
-    if (!f_eof(&fp)) {
-      last_err = f_read(&fp, buf, sz, &read);
+  if (open_flag_ & FA_READ) {
+    if (!f_eof(&fp_)) {
+      last_err_ = f_read(&fp_, buf, size, &read);
     }
 
-    if (last_err != FR_OK) {
+    if (last_err_ != FR_OK) {
       read = -1;
-      ESP_LOGV(TAG, "File write error, %s", fs_err2str[last_err]);
-    } else if (f_eof(&fp)) {
+      ESP_LOGV(TAG, "File write error, %s", fs_err2str[last_err_]);
+    } else if (f_eof(&fp_)) {
       read = 0;
     }
   }
@@ -231,22 +234,22 @@ int FileInterface::read(void *buf, size_t sz) {
  * Current possition can be movet with seek comend.
  *
  * @param buf
- * @param sz
+ * @param size
  * @return size_t  number od write bytes.
  */
-size_t FileInterface::write(void *buf, size_t sz) {
+size_t FileInterface::write(void *buf, size_t size) {
   size_t write = 0;
-  if (open_flag & FA_OPEN_APPEND) {
-    last_err = f_lseek(&fp, f_size(&fp));
+  if (open_flag_ & FA_OPEN_APPEND) {
+    last_err_ = f_lseek(&fp_, f_size(&fp_));
   }
-  if (last_err == FR_OK) {
-    last_err = f_write(&fp, buf, sz, &write);
-    if ((truncate) && (last_err == FR_OK)) {
-      last_err = f_truncate(&fp);
+  if (last_err_ == FR_OK) {
+    last_err_ = f_write(&fp_, buf, size, &write);
+    if ((truncate_) && (last_err_ == FR_OK)) {
+      last_err_ = f_truncate(&fp_);
     }
   }
-  if (last_err != FR_OK) {
-    ESP_LOGV(TAG, "File write error, %s", fs_err2str[last_err]);
+  if (last_err_ != FR_OK) {
+    ESP_LOGV(TAG, "File write error, %s", fs_err2str[last_err_]);
   }
   return write;
 }
@@ -259,8 +262,8 @@ size_t FileInterface::write(void *buf, size_t sz) {
  * @return false
  */
 bool FileInterface::seek(size_t pos) {
-  last_err = f_lseek(&fp, pos);
-  return last_err == FR_OK;
+  last_err_ = f_lseek(&fp_, pos);
+  return last_err_ == FR_OK;
 }
 
 /**********************************************************************
@@ -270,8 +273,8 @@ bool FileInterface::seek(size_t pos) {
  * @return false
  */
 bool FileInterface::flush() {
-  last_err = f_sync(&fp);
-  return last_err == FR_OK;
+  last_err_ = f_sync(&fp_);
+  return last_err_ == FR_OK;
 }
 
 /**********************************************************************
@@ -279,20 +282,20 @@ bool FileInterface::flush() {
  *
  * @param c
  */
-bool FileInterface::put(char c) { return f_putc(c, &fp) > -1; }
+bool FileInterface::put(char c) { return f_putc(c, &fp_) > -1; }
 
 /**********************************************************************
  * @brief Retrun file pointer for extended fiel operation
  *
  * @return fptr*
  */
-fptr *FileInterface::get_fptr() { return &fp; }
+fptr *FileInterface::get_fptr() { return &fp_; }
 /**********************************************************************
  * @brief  Return file path
  *
  * @return std::string
  */
-std::string FileInterface::get_path() { return path; }
+std::string FileInterface::get_path() { return path_; }
 
 /**********************************************************************
  * @brief get file name
@@ -300,8 +303,8 @@ std::string FileInterface::get_path() { return path; }
  * @return std::string
  */
 std::string FileInterface::get_name() {
-  last_err = f_stat(path.c_str(), &info);
-  return std::string(info.fname);
+  last_err_ = f_stat(path_.c_str(), &sys_f_info_);
+  return std::string(sys_f_info_.fname);
 }
 
 /**********************************************************************
@@ -310,32 +313,33 @@ std::string FileInterface::get_name() {
  * @return size_t
  */
 size_t FileInterface::get_size() {
-  last_err = f_stat(path.c_str(), &info);
-  return info.fsize;
+  last_err_ = f_stat(path_.c_str(), &sys_f_info_);
+  return sys_f_info_.fsize;
 }
 
 //------------------------------------------------------------------
 //   FsIterator methods
 //------------------------------------------------------------------
 
-FsIterator::FsIterator(SdfsHost *host, std::string path) : host(host), path(path) {
-  last_err = f_opendir(&dp, path.c_str());
+FsIterator::FsIterator(SdfsHost *host, std::string path) : host_(host), path_(path) {
+  last_err_ = f_opendir(&dp_, path_.c_str());
 }
-FsIterator::~FsIterator() { last_err = f_closedir(&dp); }
-FileInfo *FsIterator::get_next() {
+FsIterator::~FsIterator() { last_err_ = f_closedir(&dp_); }
+
+SdFileInfo *FsIterator::get_next() {
   finfo info;
-  last_err = f_readdir(&dp, &info);
-  if (last_err != FR_OK || info.fname[0] == 0) {
+  last_err_ = f_readdir(&dp_, &info);
+  if (last_err_ != FR_OK || info.fname[0] == 0) {
     return NULL;  // End of dir list
   }
   // FileInfo fi;
-  fi.name = std::string(info.fname);
-  fi.path = path;
-  fi.is_dir = info.fattrib & AM_DIR;
-  fi.is_hidden = info.fattrib & AM_HID;
-  fi.is_system = info.fattrib & AM_SYS;
-  fi.size = info.fsize;
-  return &fi;
+  sd_file_info_.name = std::string(info.fname);
+  sd_file_info_.path = path_;
+  sd_file_info_.is_dir = info.fattrib & AM_DIR;
+  sd_file_info_.is_hidden = info.fattrib & AM_HID;
+  sd_file_info_.is_system = info.fattrib & AM_SYS;
+  sd_file_info_.size = info.fsize;
+  return &sd_file_info_;
 }
 
 }  // namespace sdfs

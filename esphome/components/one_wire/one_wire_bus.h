@@ -60,7 +60,7 @@ class OneWireBus {
   virtual void reset_search() = 0;
 
   /// Search for a 1-Wire device on the bus. Returns 0 if all devices have been found.
-  virtual uint64_t search_int() = 0;
+  virtual uint64_t search_int_() = 0;
 };
 
 }  // namespace one_wire

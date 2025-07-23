@@ -1,18 +1,21 @@
 #pragma once
 #include "sdfs_defines.h"
-#include "sdfs.h"
+// #include "sdfs.h"
 
 #if !defined(USE_ESP8266)
 #include "ff.h"
 #include "dirent.h"
 #include "stdio.h"
-typedef FIL fptr;
-typedef FF_DIR dptr;
-typedef FILINFO finfo;
+
+using fptr = FIL;
+using dptr = FF_DIR;
+using finfo = FILINFO;
+
 #else
+#include "Arduino.h"
 #include "SdFat.h"
-// #include "FsLib/FsVolume.h"
-// #include "FsLib/FsFile.h"
+#include "FsLib/FsVolume.h"
+#include "FsLib/FsFile.h"
 typedef FsBaseFile fptr;
 typedef FsBaseFile dptr;
 #endif
@@ -20,7 +23,7 @@ typedef FsBaseFile dptr;
 namespace esphome {
 namespace sdfs {
 
-typedef struct {
+using SdFileInfo = struct FileInfoStruct {
   std::string name;
   std::string path;
   size_t size;
@@ -29,7 +32,7 @@ typedef struct {
   bool is_hidden = false;
   bool is_system = false;
   bool is_ro = false;
-} FileInfo;
+};
 
 // typedef FRESULT fs_err_t;
 
@@ -42,7 +45,7 @@ class FileInterface {
 #if defined(USE_ESP8266)
   FileInterface(SdfsHost *host, std::string path, char mode);
 #else
-  FileInterface(std::string, char mode);
+  FileInterface(std::string path, char mode);
 #endif
   ~FileInterface();
 
@@ -131,21 +134,23 @@ class FileInterface {
    *
    * @return FRESULT
    */
-  FRESULT get_error() { return last_err; };
+  FRESULT get_error() { return last_err_; };
 
  private:
-  bool truncate = false;
-  uint8_t open_flag = 0;
-  std::string path;
-  fsys_t *fs;
-  fptr fp;
-  FRESULT last_err = FR_OK;
+  bool truncate_ = false;
+  uint8_t open_flag_ = 0;
+  std::string path_;
+  fsys_t *fs_;
+  fptr fp_;
+
+  FRESULT last_err_ = FR_OK;
+
 #if !defined(USE_ESP8266)
-  finfo info;
+  finfo sys_f_info_;
 #endif
 };
 
-class FsInterface;
+// class FsInterface;
 class FsIterator {
  public:
   FsIterator(SdfsHost *, std::string);
@@ -154,9 +159,9 @@ class FsIterator {
   /**
    * @brief Return file information  for next file in directory, for witch we open instance of this class.
    *
-   * @return FileInfo*
+   * @return SdFileInfo*
    */
-  FileInfo *get_next();
+  SdFileInfo *get_next();
 
   /**
    * @brief  Whrn there is no vor files in chain.
@@ -171,23 +176,24 @@ class FsIterator {
    *
    * @return fsys_t*
    */
-  fsys_t *get_fs() { return fs; };
+  fsys_t *get_fs() { return fs_; };
 
   /**
    * @brief Return error num for lase fs operation.
    *
    * @return FRESULT
    */
-  FRESULT get_error() { return last_err; };
+  FRESULT get_error() { return last_err_; };
 
  private:
-  dptr dp;
-  bool eof = false;
-  std::string path;
-  FRESULT last_err = FR_OK;
-  FileInfo fi;
-  SdfsHost *host;
-  fsys_t *fs;
+  dptr dp_;
+  bool eof_ = false;
+  std::string path_;
+  FRESULT last_err_ = FR_OK;
+  SdFileInfo sd_file_info_;
+  SdfsHost *host_;
+  fsys_t *fs_;
+  SdFileInfo sd_file_into_;
 };
 
 class FsInterface {
@@ -206,7 +212,7 @@ class FsInterface {
    * @return true
    * @return false
    */
-  bool is_exist(std::string path);
+  bool is_exist(const std::string &path);
 
   /**
    * @brief Check if name or path is directory.
@@ -215,7 +221,7 @@ class FsInterface {
    * @return true
    * @return false
    */
-  bool is_dir(std::string path);
+  bool is_dir(const std::string &path);
 
   /**
    * @brief  Move (rename) path to file or directory
@@ -225,7 +231,7 @@ class FsInterface {
    * @return true
    * @return false
    */
-  bool rename(std::string from, std::string to);
+  bool rename(const std::string &from, const std::string &to);
 
   /**
    * @brief  Create directory by its path
@@ -234,7 +240,7 @@ class FsInterface {
    * @return true
    * @return false
    */
-  bool mkdir(std::string path);
+  bool mkdir(const std::string &path);
 
   /**
    * @brief  Delete directory
@@ -243,7 +249,7 @@ class FsInterface {
    * @return true
    * @return false
    */
-  bool rmdir(std::string path);
+  bool rmdir(const std::string &path);
 
   /**
    * @brief Return class for iterate through directory objects
@@ -251,7 +257,7 @@ class FsInterface {
    * @param path
    * @return FsIterator*
    */
-  FsIterator *list(std::string path);
+  FsIterator *list(const std::string &path);
 
   /**
    * @brief
@@ -275,15 +281,15 @@ class FsInterface {
   bool is_ready();
 
  protected:
-  FileInfo info;
+  SdFileInfo sd_file_into_;
   // std::string build_path(std::string);
-  std::string path = "/";
-  std::string mount_point = "";
+  std::string path_ = "/";
+  std::string mount_point_ = "";
   // FF_DIR root_object;
-  FRESULT last_err = FR_OK;
-  bool exist = true;
-  SdfsHost *host;
-  fsys_t *fs;
+  FRESULT last_err_ = FR_OK;
+  bool exist_ = true;
+  fsys_t *fs_;
+  SdfsHost *host_ = NULL;
 };
 
 }  // namespace sdfs

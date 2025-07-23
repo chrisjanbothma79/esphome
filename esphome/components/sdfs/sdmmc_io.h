@@ -18,7 +18,7 @@ namespace sdfs {
 //   // sdfs::SpiConnector *conn;
 //   int frequency;
 //   char *base_path;
-//   // card_type_t type;
+//   // SdCardType type;
 //   unsigned long sectors;
 //   bool supports_crc;
 //   int status;
@@ -46,8 +46,8 @@ class SdmmcIO {
 
   bool init();
   bool init_slot();
-  sdcard_status_t init_card();
-  sdcard_status_t get_disk_status();
+  SdCardStatus init_card();
+  SdCardStatus get_disk_status();
   FATFS *mount(std::string);
   local_rc_t format();
   void unmount();

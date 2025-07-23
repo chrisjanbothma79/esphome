@@ -108,7 +108,7 @@ class PacketTransport : public PollingComponent {
  protected:
   // child classes must implement this
   virtual void send_packet(const std::vector<uint8_t> &buf) const = 0;
-  virtual size_t get_max_packet_size() = 0;
+  virtual size_t get_max_packet_size_() = 0;
   virtual bool should_send() { return true; }
 
   // to be called by child classes when a data packet is received.

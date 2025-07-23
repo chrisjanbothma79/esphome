@@ -1,40 +1,51 @@
 #pragma once
-
 #include "esphome/core/log.h"
 
 // #define SPI_CALL_TRACE
+#ifndef USE_ESP8266
+#include "ff.h"
+#endif
 
 #define FREE(ptr) \
   do { \
     free(ptr); \
-    ptr = NULL; \
+    (ptr) = NULL; \
   } while (0)
-
-#define IS_LAST_ERR(x, y) (((this->last_err_ >> 16) == x) && ((this->last_err_ & 0x0000ffff) == y))
 
 #define ERR_TYPE_FRAMEWORK 1  // Errors from framework   // NOLINT
 #define ERR_TYPE_FILESYS 2    // Errors from filesysytems // NOLINT
 #define ERR_TYPE_LOCAL 3      // Local errors // NOLINT
 
+#define IS_LAST_ERR(x, y) (((this->last_err_ >> 16) == (x)) && ((this->last_err_ & 0x0000ffff) == (y)))
+
 namespace esphome {
 namespace sdfs {
 
-typedef enum { C_NONE, C_MMC, C_SD, C_SDHC, C_UNKNOWN } card_type_t;
-typedef enum { RET_STATUS_OK = 0, RET_STATUS_FAIL = 1, RET_STATUS_NOCARD = 2 } sdcard_status_t;
-typedef enum {
-  RC_OK = 1,
-  RC_NO_MEM = 2,
-  RC_INVALID_ARG = 3,
-  RC_NO_CARD = 4,
-  RC_NOT_FORMATED = 5,
-  RC_UNKNOWN = 6
-} local_rc_t;
+// enum class card_type_t { C_NONE, C_MMC, C_SD, C_SDHC, C_UNKNOWN };
+// using enum card_type_t;
+enum class SdCardType { C_NONE, C_MMC, C_SD, C_SDHC, C_UNKNOWN };
+
+#ifndef USE_ESP8266
+using enum SdCardType;
+#endif
+
+enum class SdCardStatus : uint8_t { RET_STATUS_OK = 0, RET_STATUS_FAIL = 1, RET_STATUS_NOCARD = 2 };
+
+#ifndef USE_ESP8266
+using enum SdCardStatus;
+#endif
 
 }  // namespace sdfs
 }  // namespace esphome
-#if defined(USE_ESP8266)
+
+#if !defined(USE_ESP8266)
+using fsys_t = FATFS;
+
+#elif defined(USE_ESP8266)
 #include "FsLib/FsVolume.h"
-typedef FsVolume fsys_t;
+using fsys_t = FsVolume;
+using FRESULT = uint8_t;
+
 typedef enum {
   FR_OK = 0,              /* (0) Succeeded */
   FR_DISK_ERR,            /* (1) A hard error occurred in the low level disk I/O layer */
@@ -58,12 +69,4 @@ typedef enum {
   FR_INVALID_PARAMETER    /* (19) Given parameter is invalid */
 } fs_error;
 
-typedef uint8_t FRESULT;
-
-#elif defined(USE_ARDUINO)
-#include "ff.h"
-typedef FATFS fsys_t;
-#else
-#include "ff.h"
-typedef FATFS fsys_t;
 #endif

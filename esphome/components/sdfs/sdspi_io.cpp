@@ -22,6 +22,10 @@ extern "C" {
 namespace esphome {
 namespace sdfs {
 
+extern const char *fat_type2str[];
+extern const char *fs_err2str[];
+extern const char *host_st2str[];
+
 #define LOCK_SPI s_cards[pdrv]->conn->beginTransaction()
 #define UNLOCK_SPI s_cards[pdrv]->conn->endTransaction()
 
@@ -33,7 +37,7 @@ FATFS *fs_handler;
 
 // uint32_t millis() { return (uint32_t) (esp_timer_get_time() / 1000ULL); }
 
-card_type_t ff_sd_type(uint8_t pdrv) { return s_cards[pdrv]->type; }
+SdCardType ff_sd_type(uint8_t pdrv) { return s_cards[pdrv]->type; }
 size_t ff_sd_sectors(uint8_t pdrv) { return s_cards[pdrv]->sectors; }
 
 /* ********************************************************************

@@ -49,12 +49,16 @@ extern "C" {
 namespace esphome {
 namespace sdfs {
 
+extern const char *fat_type2str[];
+extern const char *fs_err2str[];
+extern const char *host_st2str[];
+
 static const char *const TAG = "sdspi_drv_ard";
 
 SdfsDriver::SdfsDriver() {
   this->pdrv_ = 0xFF;
 #if defined(_HAS_SDMMC_)
-  this->mmc_io = new SdmmcIO();
+  this->mmc_io_ = new SdmmcIO();
 #endif
 }
 
@@ -94,31 +98,31 @@ bool SdfsDriver::init_host(SdConnType bus_type) {
 #if defined(_HAS_SDMMC_)
   // TODO:  set pins
   if (this->bus_type_ == SD_MMC) {
-    this->mmc_io->set_bus_slot(this->parent_->bus_slot_);
-    this->mmc_io->set_bus_width(this->parent_->spi_bus_width_);
+    this->mmc_io_->set_bus_slot(this->parent_->bus_slot_);
+    this->mmc_io_->set_bus_width(this->parent_->spi_bus_width_);
 
     if (this->parent_->cd_pin_ != NULL) {
-      this->mmc_io->set_cd_pin(static_cast<gpio_num_t>(this->parent_->cd_pin_->get_pin()));
+      this->mmc_io_->set_cd_pin(static_cast<gpio_num_t>(this->parent_->cd_pin_->get_pin()));
     }
     if (this->parent_->wp_pin_ != NULL) {
-      this->mmc_io->set_wp_pin(static_cast<gpio_num_t>(this->parent_->wp_pin_->get_pin()));
+      this->mmc_io_->set_wp_pin(static_cast<gpio_num_t>(this->parent_->wp_pin_->get_pin()));
     }
 
-    this->mmc_io->set_clk_pin(static_cast<gpio_num_t>(this->parent_->clk_pin_));
-    this->mmc_io->set_cmd_pin(static_cast<gpio_num_t>(this->parent_->cmd_pin_));
-    this->mmc_io->set_data0_pin(static_cast<gpio_num_t>(this->parent_->data0_pin_));
-    this->mmc_io->set_data1_pin(static_cast<gpio_num_t>(this->parent_->data1_pin_));
-    this->mmc_io->set_data2_pin(static_cast<gpio_num_t>(this->parent_->data2_pin_));
-    this->mmc_io->set_data3_pin(static_cast<gpio_num_t>(this->parent_->data3_pin_));
-    this->mmc_io->set_data4_pin(static_cast<gpio_num_t>(this->parent_->data4_pin_));
-    this->mmc_io->set_data5_pin(static_cast<gpio_num_t>(this->parent_->data5_pin_));
-    this->mmc_io->set_data6_pin(static_cast<gpio_num_t>(this->parent_->data6_pin_));
-    this->mmc_io->set_data7_pin(static_cast<gpio_num_t>(this->parent_->data7_pin_));
+    this->mmc_io_->set_clk_pin(static_cast<gpio_num_t>(this->parent_->clk_pin_));
+    this->mmc_io_->set_cmd_pin(static_cast<gpio_num_t>(this->parent_->cmd_pin_));
+    this->mmc_io_->set_data0_pin(static_cast<gpio_num_t>(this->parent_->data0_pin_));
+    this->mmc_io_->set_data1_pin(static_cast<gpio_num_t>(this->parent_->data1_pin_));
+    this->mmc_io_->set_data2_pin(static_cast<gpio_num_t>(this->parent_->data2_pin_));
+    this->mmc_io_->set_data3_pin(static_cast<gpio_num_t>(this->parent_->data3_pin_));
+    this->mmc_io_->set_data4_pin(static_cast<gpio_num_t>(this->parent_->data4_pin_));
+    this->mmc_io_->set_data5_pin(static_cast<gpio_num_t>(this->parent_->data5_pin_));
+    this->mmc_io_->set_data6_pin(static_cast<gpio_num_t>(this->parent_->data6_pin_));
+    this->mmc_io_->set_data7_pin(static_cast<gpio_num_t>(this->parent_->data7_pin_));
 
-    ret = this->mmc_io->init();
-    this->pdrv_ = this->mmc_io->get_pdrv();
+    ret = this->mmc_io_->init();
+    this->pdrv_ = this->mmc_io_->get_pdrv();
     if (ret) {
-      if (this->mmc_io->init_card() != RET_STATUS_OK) {
+      if (this->mmc_io_->init_card() != RET_STATUS_OK) {
         ret = false;
       }
     }
@@ -172,9 +176,9 @@ bool SdfsDriver::is_card() {
 #endif
 #if defined(_HAS_SDMMC_)
     if (this->bus_type_ == SD_MMC) {
-      ret = this->mmc_io->get_disk_status() == RET_STATUS_OK;
+      ret = this->mmc_io_->get_disk_status() == RET_STATUS_OK;
       if (!ret) {
-        this->mmc_io->unmount();
+        this->mmc_io_->unmount();
       }
     }
 #endif
@@ -202,9 +206,9 @@ bool SdfsDriver::attach_card() {
 #endif
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    // init_status_t status = this->mmc_io->init_card();
+    // init_status_t status = this->mmc_io_->init_card();
     // if ( status == SDMMC_RET_STATUS_OK )
-    is_card = this->mmc_io->init_card() == RET_STATUS_OK;
+    is_card = this->mmc_io_->init_card() == RET_STATUS_OK;
   }
 #endif
   ESP_LOGD(TAG, "Attach card. ret=%s", TRUEFALSE(is_card));
@@ -233,12 +237,12 @@ bool SdfsDriver::mount(std::string mountpoint, bool format) {
 
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    this->fs_ = this->mmc_io->mount(mountpoint);
+    this->fs_ = this->_->mount(mountpoint);
     if ((this->fs_ != NULL) && (IS_LAST_ERR(ERR_TYPE_LOCAL, RC_NOT_FORMATED)) && format) {
       ESP_LOGD(TAG, "Disk mount fail.  Will formated pdrv=%d", this->pdrv_);
-      local_rc_t format_res = this->mmc_io->format();
-      if (format_res == RC_OK) {
-        this->fs_ = this->mmc_io->mount(mountpoint);
+      // local_rc_t format_res = this->mmc_io_->format();
+      if (this->mmc_io_->format()) {
+        this->fs_ = this->mmc_io_->mount(mountpoint);
       }
     }
   }
@@ -303,14 +307,14 @@ void SdfsDriver::unmount() {
 #endif
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    this->mmc_io->unmount();
+    this->mmc_io_->unmount();
   }
 #endif
   this->fs_ = NULL;
 }
 
-card_type_t SdfsDriver::card_type() {
-  card_type_t type = C_NONE;
+SdCardType SdfsDriver::card_type() {
+  SdCardType type = C_NONE;
   if (!is_mount())
     return type;
 
@@ -321,11 +325,11 @@ card_type_t SdfsDriver::card_type() {
 #endif
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    if (this->mmc_io->is_card_mem())
+    if (this->mmc_io_->is_card_mem())
       type = C_UNKNOWN;
-    else if (this->mmc_io->is_card_sdio())
+    else if (this->mmc_io_->is_card_sdio())
       type = C_SD;
-    else if (this->mmc_io->is_card_mmc())
+    else if (this->mmc_io_->is_card_mmc())
       type = C_MMC;
     else
       type = C_UNKNOWN;
@@ -352,7 +356,7 @@ size_t SdfsDriver::num_sectors() {
 #endif
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    sectors = this->mmc_io->sectors();
+    sectors = this->mmc_io_->sectors();
   }
 #endif
   return sectors;
@@ -370,7 +374,7 @@ size_t SdfsDriver::sector_size() {
 #endif
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    size = this->mmc_io->sector_size();
+    size = this->mmc_io_->sector_size();
   }
 #endif
   return size;

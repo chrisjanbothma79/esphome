@@ -55,7 +55,7 @@ typedef struct {
   sdfs::SpiConnector *conn;
   int frequency;
   char *base_path;
-  card_type_t type;
+  SdCardType type;
   unsigned long sectors;
   bool supports_crc;
   int status;
@@ -71,7 +71,7 @@ void sdspi_unmount(uint8_t);
 static const ff_diskio_impl_t *sdimpl_init();
 unsigned long sdGetSectorsCount(uint8_t);
 DSTATUS ff_sd_initialize(uint8_t);
-card_type_t ff_sd_type(uint8_t);
+SdCardType ff_sd_type(uint8_t);
 size_t ff_sd_sectors(uint8_t);
 // uint8_t sdcard_uninit(uint8_t);
 // bool sd_read_raw(uint8_t, uint8_t *, uint32_t);

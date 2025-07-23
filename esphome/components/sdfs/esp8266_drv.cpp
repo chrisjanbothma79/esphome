@@ -128,18 +128,18 @@ bool esp8266SpiDriver::test() {
   return true;
 }
 
-card_type_t esp8266SpiDriver::card_type() {
+SdCardType esp8266SpiDriver::card_type() {
   // SdStatus_t status;
   // this->sd_card->readStatus(reinterpret_cast<uint8_t *>(&status));
   switch (this->sd_card->type()) {
     case SD_CARD_TYPE_SDHC:
-      return C_SDHC;
+      return SdCardType::C_SDHC;
     case SD_CARD_TYPE_SD1:
-      return C_SD;
+      return SdCardType::C_SD;
     default:
-      return C_UNKNOWN;
+      return SdCardType::C_UNKNOWN;
   }
-  return C_UNKNOWN;
+  return SdCardType::C_UNKNOWN;
 }
 
 uint64_t esp8266SpiDriver::card_size() {

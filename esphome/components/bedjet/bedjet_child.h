@@ -16,7 +16,7 @@ class BedJetClient : public Parented<BedJetHub> {
 
  protected:
   friend BedJetHub;
-  virtual std::string describe() = 0;
+  virtual std::string describe_() = 0;
 };
 
 }  // namespace bedjet

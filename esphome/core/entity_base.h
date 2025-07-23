@@ -83,7 +83,7 @@ class EntityBase {
  protected:
   /// The hash_base() function has been deprecated. It is kept in this
   /// class for now, to prevent external components from not compiling.
-  virtual uint32_t hash_base() { return 0L; }
+  virtual uint32_t hash_base_() { return 0L; }
   void calc_object_id_();
 
   StringRef name_;
