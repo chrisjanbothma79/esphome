@@ -11,8 +11,7 @@
 \
  public: \
   void set_##name##_sensor(sensor::Sensor *sensor) { \
-    this->name##_sensor_ = new ld24xx::SensorWithDedup<dedup_type>(); \
-    this->name##_sensor_->sens = sensor; \
+    this->name##_sensor_ = new ld24xx::SensorWithDedup<dedup_type>(sensor); \
   }
 #endif
 
@@ -23,6 +22,8 @@ namespace ld24xx {
 // Helper class to store a sensor with a deduplicator & publish state only when the value changes
 template<typename T> class SensorWithDedup {
  public:
+  SensorWithDedup(sensor::Sensor *sens = nullptr) : sens(sens) {}
+
   void publish_state_if_not_dup(T state) {
     if (this->sens != nullptr && (this->publish_dedup.next(state) || this->state_unknown_)) {
       this->sens->publish_state(static_cast<float>(state));

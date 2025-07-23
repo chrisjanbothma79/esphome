@@ -784,13 +784,11 @@ void LD2410Component::set_light_out_control() {
 
 #ifdef USE_SENSOR
 void LD2410Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) {
-  this->gate_move_sensors_[gate] = new SensorWithDedup<uint8_t>();
-  this->gate_move_sensors_[gate]->sens = s;
+  this->gate_move_sensors_[gate] = new SensorWithDedup<uint8_t>(s);
 }
 
 void LD2410Component::set_gate_still_sensor(uint8_t gate, sensor::Sensor *s) {
-  this->gate_still_sensors_[gate] = new SensorWithDedup<uint8_t>();
-  this->gate_still_sensors_[gate]->sens = s;
+  this->gate_still_sensors_[gate] = new SensorWithDedup<uint8_t>(s);
 }
 #endif
 
