@@ -3,6 +3,7 @@
 #include <memory>
 
 #ifdef USE_SENSOR
+#include "esphome/core/helpers.h"
 #include "esphome/components/sensor/sensor.h"
 
 #define SUB_SENSOR_WITH_DEDUP(name, dedup_type) \
