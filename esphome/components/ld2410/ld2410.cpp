@@ -304,8 +304,10 @@ void LD2410Component::send_command_(uint8_t command, const uint8_t *command_valu
   }
   // frame footer bytes
   this->write_array(CMD_FRAME_FOOTER, sizeof(CMD_FRAME_FOOTER));
-  // FIXME to remove
-  delay(50);  // NOLINT
+
+  if (command != CMD_ENABLE_CONF && command != CMD_DISABLE_CONF) {
+    delay(50);  // NOLINT
+  }
 }
 
 void LD2410Component::handle_periodic_data_() {
@@ -783,6 +785,7 @@ void LD2410Component::set_light_out_control() {
 }
 
 #ifdef USE_SENSOR
+// These could leak memory, but they are only set once prior to 'setup()' and should never be used again.
 void LD2410Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) {
   this->gate_move_sensors_[gate] = new SensorWithDedup<uint8_t>(s);
 }
