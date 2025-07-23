@@ -5,18 +5,16 @@
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 
-// NOLINTBEGIN
 #define SUB_SENSOR_WITH_DEDUP(name, dedup_type) \
  protected: \
-  ld24xx::SensorWithDedup<dedup_type> name##_sensor_; \
+  ld24xx::SensorWithDedup<dedup_type> *name##_sensor_{nullptr}; \
 \
  public: \
   void set_##name##_sensor(sensor::Sensor *sensor) { \
-    this->name##_sensor_.sens = sensor; \
-    this->name##_sensor_.publish_dedup = std::make_unique<Deduplicator<dedup_type>>(); \
+    this->name##_sensor_ = new ld24xx::SensorWithDedup<dedup_type>(); \
+    this->name##_sensor_->sens = sensor; \
   }
 #endif
-// NOLINTEND
 
 namespace esphome {
 namespace ld24xx {
@@ -26,7 +24,7 @@ namespace ld24xx {
 template<typename T> class SensorWithDedup {
  public:
   void publish_state_if_not_dup(T state) {
-    if (this->sens != nullptr && (this->publish_dedup->next(state) || this->state_unknown_)) {
+    if (this->sens != nullptr && (this->publish_dedup.next(state) || this->state_unknown_)) {
       this->sens->publish_state(static_cast<float>(state));
       this->state_unknown_ = false;
     }
@@ -40,7 +38,7 @@ template<typename T> class SensorWithDedup {
   }
 
   sensor::Sensor *sens{nullptr};
-  std::unique_ptr<Deduplicator<T>> publish_dedup;
+  Deduplicator<T> publish_dedup;
 
  protected:
   bool state_unknown_{false};

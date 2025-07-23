@@ -27,8 +27,7 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
 
-#include <memory>
-#include <vector>
+#include <array>
 
 namespace esphome {
 namespace ld2410 {
@@ -128,12 +127,12 @@ class LD2410Component : public Component, public uart::UARTDevice {
   uint8_t version_[6] = {0, 0, 0, 0, 0, 0};
   bool bluetooth_on_{false};
 #ifdef USE_NUMBER
-  std::vector<number::Number *> gate_move_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
-  std::vector<number::Number *> gate_still_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
+  std::array<number::Number *, TOTAL_GATES> gate_move_threshold_numbers_{};
+  std::array<number::Number *, TOTAL_GATES> gate_still_threshold_numbers_{};
 #endif
 #ifdef USE_SENSOR
-  std::vector<SensorWithDedup<uint8_t>> gate_move_sensors_ = std::vector<SensorWithDedup<uint8_t>>(TOTAL_GATES);
-  std::vector<SensorWithDedup<uint8_t>> gate_still_sensors_ = std::vector<SensorWithDedup<uint8_t>>(TOTAL_GATES);
+  std::array<SensorWithDedup<uint8_t> *, TOTAL_GATES> gate_move_sensors_{};
+  std::array<SensorWithDedup<uint8_t> *, TOTAL_GATES> gate_still_sensors_{};
 #endif
 };
 
