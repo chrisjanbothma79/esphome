@@ -22,8 +22,6 @@ ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
 # Handler interfaces that other components can use to register callbacks
 ESPNowReceivedPacketHandler = espnow_ns.class_("ESPNowReceivedPacketHandler")
 ESPNowSentPacketHandler = espnow_ns.class_("ESPNowSentPacketHandler")
-esp_now_recv_info_t = cg.global_ns.struct("esp_now_recv_info_t")
-esp_now_recv_info_t_const_ptr = esp_now_recv_info_t.operator("const").operator("ptr")
 
 ESPNowRecvInfo = espnow_ns.class_("ESPNowRecvInfo")
 ESPNowRecvInfoConstRef = ESPNowRecvInfo.operator("const").operator("ref")
@@ -36,7 +34,7 @@ DeletePeerAction = espnow_ns.class_("DeletePeerAction", automation.Action)
 OnReceiveTrigger = espnow_ns.class_(
     "OnReceiveTrigger",
     automation.Trigger.template(
-        esp_now_recv_info_t_const_ptr,
+        ESPNowRecvInfoConstRef,
         cg.uint8.operator("const").operator("ptr"),
         cg.uint8,
     ),
