@@ -261,21 +261,16 @@ void I2SAudioSpeaker::speaker_task(void *params) {
   const size_t bytes_to_fill_single_dma_buffer =
       this_speaker->current_stream_info_.frames_to_bytes(frames_to_fill_single_dma_buffer);
 
-  bool successful_setup = true;
+  bool successful_setup = false;
   std::unique_ptr<audio::AudioSourceTransferBuffer> transfer_buffer =
       audio::AudioSourceTransferBuffer::create(bytes_to_fill_single_dma_buffer);
 
-  if (transfer_buffer == nullptr) {
-    // Failed to allocate transfer buffer
-    successful_setup = false;
-  } else {
+  if (transfer_buffer != nullptr) {
     std::shared_ptr<RingBuffer> temp_ring_buffer = RingBuffer::create(ring_buffer_size);
-    if (temp_ring_buffer.use_count() == 0) {
-      // Failed to allocate ring buffer
-      successful_setup = false;
-    } else {
+    if (temp_ring_buffer.use_count() == 1) {
       transfer_buffer->set_source(temp_ring_buffer);
       this_speaker->audio_ring_buffer_ = temp_ring_buffer;
+      successful_setup = true;
     }
   }
 
