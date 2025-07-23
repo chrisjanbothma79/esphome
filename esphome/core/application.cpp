@@ -55,6 +55,9 @@ void Application::setup() {
     return a->get_actual_setup_priority() > b->get_actual_setup_priority();
   });
 
+  // Initialize looping_components_ early so enable_pending_loops_() works during setup
+  this->calculate_looping_components_();
+
   for (uint32_t i = 0; i < this->components_.size(); i++) {
     Component *component = this->components_[i];
 
@@ -97,7 +100,6 @@ void Application::setup() {
   clear_setup_priority_overrides();
 
   this->schedule_dump_config();
-  this->calculate_looping_components_();
 }
 void Application::loop() {
   uint8_t new_app_state = 0;
