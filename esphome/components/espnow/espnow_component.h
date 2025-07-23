@@ -131,7 +131,6 @@ class ESPNowComponent : public Component {
   EventPool<ESPNowPacket, MAX_ESP_NOW_QUEUE_SIZE> packet_pool_{};
 
   uint8_t wifi_channel_{0};
-  esp_err_t last_send_state_{false};
   ESPNowState state_{ESPNOW_STATE_OFF};
 
   bool auto_add_peer_{false};
