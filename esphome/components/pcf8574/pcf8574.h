@@ -12,7 +12,7 @@ struct PCF8574ComponentStore {
   ISRInternalGPIOPin pin_intr;
   volatile uint16_t changes{0};
   HighFrequencyLoopRequester high_freq;
-
+  Component *component{nullptr};
   static void gpio_intr(PCF8574ComponentStore *arg);
 };
 

@@ -9,6 +9,8 @@ static const char *const TAG = "pcf8574";
 
 void IRAM_ATTR HOT PCF8574ComponentStore::gpio_intr(PCF8574ComponentStore *arg) {
   arg->changes = arg->changes + 1;
+  // Wake up the component from its disabled loop state
+  arg->component->enable_loop_soon_any_context();
   // Try to get our loop() to be called asap
   arg->high_freq.start();
 }
@@ -27,6 +29,7 @@ void PCF8574Component::setup() {
   if (this->pin_intr_ != nullptr) {
     this->pin_intr_->setup();
     this->store_.pin_intr = this->pin_intr_->to_isr();
+    this->store_.component = this;
     this->pin_intr_->attach_interrupt(PCF8574ComponentStore::gpio_intr, &this->store_, gpio::INTERRUPT_RISING_EDGE);
   }
 }
@@ -36,9 +39,14 @@ void PCF8574Component::loop() {
     this->mode_mask_ = this->input_mask_;
     this->write_gpio_();
     this->first_loop_ = false;
-  }
-  if (!this->mode_mask_) {
-    return;
+    if (!this->mode_mask_) {
+      // No need for loop if there are no inputs to read
+      ESP_LOGD(TAG, "No inputs, disable loop");
+      this->disable_loop();
+      return;
+    } else {
+      this->enable_loop();
+    }
   }
   if (this->pin_intr_ != nullptr) {
     // Check if interrupt fired as "no interrupt" means "no need to read device"
@@ -46,11 +54,15 @@ void PCF8574Component::loop() {
     {
       InterruptLock lock;
       changes = this->store_.changes;
-      if (changes == 0) {
-        return;
+      if (changes > 0) {
+        this->store_.changes = 0;
+        this->store_.high_freq.stop();
       }
-      this->store_.changes = 0;
-      this->store_.high_freq.stop();
+    }
+    if (changes == 0) {
+      // No changes, disable the loop until the next interrupt
+      this->disable_loop();
+      return;
     }
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERY_VERBOSE
     if (changes > 1) {
@@ -97,6 +109,8 @@ void PCF8574Component::pin_mode(uint8_t pin, gpio::Flags flags) {
     this->mode_mask_ &= ~(1 << pin);
     this->input_mask_ &= ~(1 << pin);
   }
+  // Pickup runtime changes
+  this->first_loop_ = true;
 }
 bool PCF8574Component::read_gpio_() {
   if (this->is_failed())
