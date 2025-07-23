@@ -4,6 +4,8 @@ from esphome.components import gpio, i2c
 from esphome.const import CONF_ID, CONF_NAME, CONF_PIN, CONF_FREQUENCY, CONF_ADDRESS
 from esphome import pins
 
+CODEOWNERS = ["@youkorr"]
+
 DEPENDENCIES = ['esp32', 'i2c']
 
 tab5_camera_ns = cg.esphome_ns.namespace('tab5_camera')
