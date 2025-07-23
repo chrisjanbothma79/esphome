@@ -46,7 +46,7 @@ class IDFI2CBus : public InternalI2CBus, public Component {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
   i2c_master_dev_handle_t dev_;
   i2c_master_bus_handle_t bus_;
-  void i2c_scan_() override;
+  void i2c_scan() override;
 #endif
   i2c_port_t port_;
   uint8_t sda_pin_;
