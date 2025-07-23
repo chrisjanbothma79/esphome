@@ -125,6 +125,6 @@ async def to_code(config):
     # Using fork of TinyGPSPlus patched to build on ESP-IDF
     cg.add_library(
         "TinyGPSPlus",
-        "master",
-        "https://github.com/kbx81/TinyGPSPlus.git",
+        None,
+        "https://github.com/esphome/TinyGPSPlus.git#v1.1.0",
     )
