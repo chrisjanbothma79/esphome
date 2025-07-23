@@ -31,18 +31,17 @@ void GT911Touchscreen::setup() {
     this->reset_pin_->setup();
     this->reset_pin_->digital_write(false);
     if (this->interrupt_pin_ != nullptr) {
-      // The interrupt pin is used as an input during reset to select the I2C address.
+      // temporarily set the interrupt pin to output to control address selection
       this->interrupt_pin_->pin_mode(gpio::FLAG_OUTPUT);
-      this->interrupt_pin_->setup();
       this->interrupt_pin_->digital_write(false);
     }
     delay(2);
     this->reset_pin_->digital_write(true);
     delay(50);  // NOLINT
-    if (this->interrupt_pin_ != nullptr) {
-      this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);
-      this->interrupt_pin_->setup();
-    }
+  }
+  if (this->interrupt_pin_ != nullptr) {
+    // set pre-configured input mode
+    this->interrupt_pin_->setup();
   }
 
   // check the configuration of the int line.
@@ -57,9 +56,6 @@ void GT911Touchscreen::setup() {
     if (err == i2c::ERROR_OK) {
       ESP_LOGD(TAG, "Read from switches at address 0x%02X: 0x%02X", this->address_, data[0]);
       if (this->interrupt_pin_ != nullptr) {
-        // datasheet says NOT to use pullup/down on the int line.
-        this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);
-        this->interrupt_pin_->setup();
         this->attach_interrupt_(this->interrupt_pin_,
                                 (data[0] & 1) ? gpio::INTERRUPT_FALLING_EDGE : gpio::INTERRUPT_RISING_EDGE);
       }
