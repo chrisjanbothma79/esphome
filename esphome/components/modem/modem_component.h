@@ -1,3 +1,4 @@
+// This file contains stubs, it will be overridden by future merge of #9807
 #pragma once
 #ifdef USE_ESP_IDF
 
@@ -65,20 +66,22 @@ class ModemComponent : public Component {
   bool is_enabled() { return !is_disabled(); }
 
   // Delegated methods
-  AtCommandResult send_at(const std::string &cmd, uint32_t timeout = 0, bool verbose = false);
-  void enable();
-  void disable();
-  void reset();
+  AtCommandResult send_at(const std::string &cmd, uint32_t timeout = 0, bool verbose = false) {
+    return AtCommandResult{};
+  }
+  void enable(){};
+  void disable(){};
+  void reset(){};
 
-  network::IPAddresses get_ip_addresses();
-  std::string get_use_address() const;
+  network::IPAddresses get_ip_addresses() { return network::IPAddresses{}; }
+  std::string get_use_address() const { return std::string{}; }
 
   // ========== INTERNAL METHODS ==========
   // (In most use cases, you won't need these)
 
-  ModemComponent();
-  void setup() override;
-  void loop() override;
+  ModemComponent(){};
+  void setup() override{};
+  void loop() override{};
 
   void dump_config() override { this->dump_connect_params_(); }
   float get_setup_priority() const override { return setup_priority::WIFI + 1; }  // Just before Wi-Fi
@@ -90,21 +93,21 @@ class ModemComponent : public Component {
 
  protected:
   // ===== State handler methods =====
-  void handle_state_powering_on_();
-  void handle_state_syncing_();
-  void handle_state_init_network_();
-  void handle_state_start_ppp_();
-  void handle_state_wait_ip_();
-  void handle_state_connected_();
-  void handle_state_disconnected_();
-  void handle_state_not_responding_();
-  void handle_state_disabling_();
-  void handle_state_disabled_();
-  void handle_state_powering_off_();
+  void handle_state_powering_on_(){};
+  void handle_state_syncing_(){};
+  void handle_state_init_network_(){};
+  void handle_state_start_ppp_(){};
+  void handle_state_wait_ip_(){};
+  void handle_state_connected_(){};
+  void handle_state_disconnected_(){};
+  void handle_state_not_responding_(){};
+  void handle_state_disabling_(){};
+  void handle_state_disabled_(){};
+  void handle_state_powering_off_(){};
 
-  void abort_(const std::string &message);
-  void loop_delay_(uint32_t delay_ms);
-  void dump_connect_params_();
+  void abort_(const std::string &message){};
+  void loop_delay_(uint32_t delay_ms){};
+  void dump_connect_params_(){};
 
   // Attributes from YAML config
   uint32_t timeout_;
