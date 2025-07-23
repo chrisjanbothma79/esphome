@@ -30,8 +30,8 @@ static const uint8_t TM1651_BRIGHTNESS_DARKEST = 0;
 static const uint8_t TM1651_BRIGHTNESS_TYPICAL = 2;
 static const uint8_t TM1651_BRIGHTNESS_BRIGHTEST = 7;
 
-static const uint8_t TM1651_LEVEL_TAB[]          = { 0b00000000, 0b00000001, 0b00000011, 0b00000111,
-                                                     0b00001111, 0b00011111, 0b00111111, 0b01111111 };
+static const uint8_t TM1651_LEVEL_TAB[] = { 0b00000000, 0b00000001, 0b00000011, 0b00000111,
+                                            0b00001111, 0b00011111, 0b00111111, 0b01111111 };
 
 // public
 
