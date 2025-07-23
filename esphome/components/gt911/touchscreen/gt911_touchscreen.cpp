@@ -8,6 +8,8 @@ namespace gt911 {
 
 static const char *const TAG = "gt911.touchscreen";
 
+static const uint8_t PRIMARY_ADDRESS = 0x5D;    // default I2C address for GT911
+static const uint8_t SECONDARY_ADDRESS = 0x14;  // secondary I2C address for GT911
 static const uint8_t GET_TOUCH_STATE[2] = {0x81, 0x4E};
 static const uint8_t CLEAR_TOUCH_STATE[3] = {0x81, 0x4E, 0x00};
 static const uint8_t GET_TOUCHES[2] = {0x81, 0x4F};
@@ -46,8 +48,8 @@ void GT911Touchscreen::setup() {
   // check the configuration of the int line.
   uint8_t data[4];
   err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
-  if (err != i2c::ERROR_OK && this->address_ == 0x5D) {
-    this->address_ = 0x14;
+  if (err != i2c::ERROR_OK && this->address_ == PRIMARY_ADDRESS) {
+    this->address_ = SECONDARY_ADDRESS;
     err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
   }
   if (err == i2c::ERROR_OK) {
