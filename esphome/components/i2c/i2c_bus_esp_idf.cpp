@@ -1,13 +1,13 @@
 #ifdef USE_ESP_IDF
 
 #include "i2c_bus_esp_idf.h"
+#include <driver/gpio.h>
 #include <cinttypes>
 #include <cstring>
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include <driver/gpio.h>
 
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 3, 0)
 #define SOC_HP_I2C_NUM SOC_I2C_NUM
@@ -166,6 +166,17 @@ void IDFI2CBus::dump_config() {
     }
   }
 }
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
+void IDFI2CBus::i2c_scan_() {
+  for (uint8_t address = 8; address < 120; address++) {
+    auto err = i2c_master_probe(this->bus_, address, 20);
+    if (err == ESP_OK) {
+      this->scan_results_.emplace_back(address, true);
+    }
+  }
+}
+#endif
 
 ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
   // logging is only enabled with vv level, if warnings are shown the caller
