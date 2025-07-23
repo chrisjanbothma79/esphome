@@ -158,8 +158,6 @@ CONF_PCLK_FREQUENCY = "pclk_frequency"
 CONF_NATIVE_WIDTH = "native_width"
 CONF_NATIVE_HEIGHT = "native_height"
 
-CONF_DE_PIN = "de_pin"
-CONF_PCLK_PIN = "pclk_pin"
 CONF_PCLK_INVERTED = "pclk_inverted"
 
 
