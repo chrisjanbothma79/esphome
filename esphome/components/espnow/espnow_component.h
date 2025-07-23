@@ -51,14 +51,27 @@ struct ESPNowPeer {
   bool operator==(const uint8_t *other) const { return memcmp(this->address, other, ESP_NOW_ETH_ALEN) == 0; }
 };
 
+/// Handler interface for receiving ESPNow packets
+/// Components should inherit from this class to handle incoming ESPNow data
 class ESPNowReceivedPacketHandler {
  public:
-  virtual void espnow_received_handler(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
+  /// Called when an ESPNow packet is received
+  /// @param info Information about the received packet (sender MAC, etc.)
+  /// @param data Pointer to the received data payload
+  /// @param size Size of the received data in bytes
+  /// @return true if the packet was handled, false otherwise
+  virtual bool espnow_received_handler(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
 };
 
+/// Handler interface for ESPNow packet transmission status
+/// Components should inherit from this class to handle send confirmations
 class ESPNowSentPacketHandler {
  public:
-  virtual void espnow_sent_handler(const uint8_t *mac_addr, esp_now_send_status_t status) = 0;
+  /// Called when an ESPNow packet transmission is completed
+  /// @param mac_addr MAC address of the recipient
+  /// @param status ESP_NOW_SEND_SUCCESS or ESP_NOW_SEND_FAIL
+  /// @return true if the status was handled, false otherwise
+  virtual bool espnow_sent_handler(const uint8_t *mac_addr, esp_now_send_status_t status) = 0;
 };
 
 class ESPNowComponent : public Component {
@@ -93,7 +106,6 @@ class ESPNowComponent : public Component {
   bool is_wifi_enabled();
 
   esp_err_t send(const uint8_t *peer_address, std::vector<uint8_t> payload);
-  bool get_last_send_state() { return this->last_send_state_; }
 
   void register_received_handler(ESPNowReceivedPacketHandler *handler) { this->received_handlers_.push_back(handler); }
   void register_sent_handler(ESPNowSentPacketHandler *handler) { this->sent_handlers_.push_back(handler); }

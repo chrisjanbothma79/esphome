@@ -125,12 +125,13 @@ class OnReceiveTrigger : public Trigger<const ESPNowRecvInfo &, const uint8_t *,
 
   explicit OnReceiveTrigger(ESPNowComponent *parent) : parent_(parent), has_address_(false) {}
 
-  void espnow_received_handler(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) override {
+  bool espnow_received_handler(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) override {
     bool match = !this->has_address_ || (memcmp(this->address_, info.src_addr, ESP_NOW_ETH_ALEN) == 0);
     if (!match)
-      return;
+      return false;
 
     this->trigger(info, data, size);
+    return false;  // Return false to continue processing other internal handlers
   }
 
  protected:

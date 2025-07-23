@@ -53,6 +53,8 @@ static const LogString *espnow_error_to_str(esp_err_t error) {
       return LOG_STR("Interface does not match");
     case ESP_OK:
       return LOG_STR("OK");
+    case ESP_NOW_SEND_FAIL:
+      return LOG_STR("Send fail");
     default:
       return LOG_STR("Unknown Error");
   }
@@ -127,10 +129,11 @@ void ESPNowComponent::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "  Mac address: %s\n"
                 "  Version: v%" PRIu32 "\n"
-                "  Wi-Fi channel: %d\n"
-                "  Wi-Fi enabled: %s",
-                format_mac_address_pretty(this->own_address_).c_str(), version, this->wifi_channel_,
-                YESNO(this->is_wifi_enabled()));
+                "  Wi-Fi channel: %d",
+                format_mac_address_pretty(this->own_address_).c_str(), version, this->wifi_channel_);
+#ifdef USE_WIFI
+  ESP_LOGCONFIG(TAG, "  Wi-Fi enabled: %s", YESNO(this->is_wifi_enabled()));
+#endif
 }
 
 bool ESPNowComponent::is_wifi_enabled() {
@@ -272,19 +275,26 @@ void ESPNowComponent::loop() {
         if (this->auto_add_peer_ && !esp_now_is_peer_exist(info.src_addr)) {
           this->add_peer(info.src_addr);
         }
-        ESP_LOGD(TAG, "<<< [%s -> %s] %s", format_mac_address_pretty(info.src_addr).c_str(),
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
+        ESP_LOGV(TAG, "<<< [%s -> %s] %s", format_mac_address_pretty(info.src_addr).c_str(),
                  format_mac_address_pretty(info.des_addr).c_str(),
                  format_hex_pretty(packet->packet_.receive.data, packet->packet_.receive.size).c_str());
+#endif
         for (auto *received_handler : this->received_handlers_) {
-          received_handler->espnow_received_handler(info, packet->packet_.receive.data, packet->packet_.receive.size);
+          if (received_handler->espnow_received_handler(info, packet->packet_.receive.data,
+                                                        packet->packet_.receive.size))
+            break;  // If a handler returns true, stop processing further handlers
         }
         break;
       }
       case ESPNowPacket::SENT: {
-        ESP_LOGD(TAG, ">>> [%s] %s", format_mac_address_pretty(packet->packet_.sent.address).c_str(),
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
+        ESP_LOGV(TAG, ">>> [%s] %s", format_mac_address_pretty(packet->packet_.sent.address).c_str(),
                  LOG_STR_ARG(espnow_error_to_str(packet->packet_.sent.status)));
+#endif
         for (auto *sent_handler : this->sent_handlers_) {
-          sent_handler->espnow_sent_handler(packet->packet_.sent.address, packet->packet_.sent.status);
+          if (sent_handler->espnow_sent_handler(packet->packet_.sent.address, packet->packet_.sent.status))
+            break;  // If a handler returns true, stop processing further handlers
         }
         break;
       }
@@ -320,8 +330,13 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, std::vector<uint8_t
          (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_))) {
       this->add_peer(peer_address);
     }
-    this->last_send_state_ = esp_now_send(peer_address, payload.data(), payload.size());
-    return this->last_send_state_;
+    esp_err_t err = esp_now_send(peer_address, payload.data(), payload.size());
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to send packet to %s - %s", format_mac_address_pretty(peer_address).c_str(),
+               LOG_STR_ARG(espnow_error_to_str(err)));
+      this->status_momentary_warning("send-failed");
+    }
+    return err;
   }
 }
 
