@@ -10,10 +10,6 @@
 
 #include "esphome/core/application.h"
 
-#define CHECK_BIT(var, pos) (((var) >> (pos)) & 1)
-#define highbyte(val) (uint8_t)((val) >> 8)
-#define lowbyte(val) (uint8_t)((val) &0xff)
-
 namespace esphome {
 namespace ld2410 {
 
@@ -165,6 +161,9 @@ static constexpr uint8_t CMD_BLUETOOTH = 0xA4;
 static constexpr uint8_t CMD_MAX_MOVE_VALUE = 0x00;
 static constexpr uint8_t CMD_MAX_STILL_VALUE = 0x01;
 static constexpr uint8_t CMD_DURATION_VALUE = 0x02;
+// Bitmasks for target states
+static constexpr uint8_t MOVE_BITMASK = 0x01;
+static constexpr uint8_t STILL_BITMASK = 0x02;
 // Header & Footer size
 static constexpr uint8_t HEADER_FOOTER_SIZE = 4;
 // Command Header & Footer
@@ -350,10 +349,10 @@ void LD2410Component::handle_periodic_data_() {
     this->target_binary_sensor_->publish_state(target_state != 0x00);
   }
   if (this->moving_target_binary_sensor_ != nullptr) {
-    this->moving_target_binary_sensor_->publish_state(CHECK_BIT(target_state, 0));
+    this->moving_target_binary_sensor_->publish_state(target_state & MOVE_BITMASK);
   }
   if (this->still_target_binary_sensor_ != nullptr) {
-    this->still_target_binary_sensor_->publish_state(CHECK_BIT(target_state, 1));
+    this->still_target_binary_sensor_->publish_state(target_state & STILL_BITMASK);
   }
 #endif
   /*

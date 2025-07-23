@@ -2,6 +2,9 @@
 
 #include <memory>
 
+#define highbyte(val) (uint8_t)((val) >> 8)
+#define lowbyte(val) (uint8_t)((val) &0xff)
+
 #ifdef USE_SENSOR
 #include "esphome/core/helpers.h"
 #include "esphome/components/sensor/sensor.h"
