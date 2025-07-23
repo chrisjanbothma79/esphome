@@ -18,8 +18,7 @@ static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
 
 #define ERROR_CHECK(err) \
   if ((err) != i2c::ERROR_OK) { \
-    ESP_LOGE(TAG, "Failed to communicate!"); \
-    this->status_set_warning(); \
+    this->status_set_warning("Communication failure"); \
     return; \
   }
 
@@ -46,11 +45,15 @@ void GT911Touchscreen::setup() {
 
   // check the configuration of the int line.
   uint8_t data[4];
-  err = this->write(GET_SWITCHES, 2);
+  err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
+  if (err != i2c::ERROR_OK && this->address_ == 0x5D) {
+    this->address_ = 0x14;
+    err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
+  }
   if (err == i2c::ERROR_OK) {
     err = this->read(data, 1);
     if (err == i2c::ERROR_OK) {
-      ESP_LOGD(TAG, "Read from switches: 0x%02X", data[0]);
+      ESP_LOGD(TAG, "Read from switches at address 0x%02X: 0x%02X", this->address_, data[0]);
       if (this->interrupt_pin_ != nullptr) {
         // datasheet says NOT to use pullup/down on the int line.
         this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);
@@ -63,7 +66,7 @@ void GT911Touchscreen::setup() {
   if (this->x_raw_max_ == 0 || this->y_raw_max_ == 0) {
     // no calibration? Attempt to read the max values from the touchscreen.
     if (err == i2c::ERROR_OK) {
-      err = this->write(GET_MAX_VALUES, 2);
+      err = this->write(GET_MAX_VALUES, sizeof(GET_MAX_VALUES));
       if (err == i2c::ERROR_OK) {
         err = this->read(data, sizeof(data));
         if (err == i2c::ERROR_OK) {
@@ -75,15 +78,12 @@ void GT911Touchscreen::setup() {
       }
     }
     if (err != i2c::ERROR_OK) {
-      ESP_LOGE(TAG, "Failed to read calibration values from touchscreen!");
-      this->mark_failed();
+      this->mark_failed("Failed to read calibration");
       return;
     }
   }
   if (err != i2c::ERROR_OK) {
-    ESP_LOGE(TAG, "Failed to communicate!");
-    this->mark_failed();
-    return;
+    this->mark_failed("Failed to communicate");
   }
 
   ESP_LOGCONFIG(TAG, "GT911 Touchscreen setup complete");
@@ -94,7 +94,7 @@ void GT911Touchscreen::update_touches() {
   uint8_t touch_state = 0;
   uint8_t data[MAX_TOUCHES + 1][8];  // 8 bytes each for each point, plus extra space for the key byte
 
-  err = this->write(GET_TOUCH_STATE, sizeof(GET_TOUCH_STATE), false);
+  err = this->write(GET_TOUCH_STATE, sizeof(GET_TOUCH_STATE));
   ERROR_CHECK(err);
   err = this->read(&touch_state, 1);
   ERROR_CHECK(err);
@@ -106,7 +106,7 @@ void GT911Touchscreen::update_touches() {
     return;
   }
 
-  err = this->write(GET_TOUCHES, sizeof(GET_TOUCHES), false);
+  err = this->write(GET_TOUCHES, sizeof(GET_TOUCHES));
   ERROR_CHECK(err);
   // num_of_touches is guaranteed to be 0..5. Also read the key data
   err = this->read(data[0], sizeof(data[0]) * num_of_touches + 1);
