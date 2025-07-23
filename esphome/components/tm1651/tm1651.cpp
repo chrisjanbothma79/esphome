@@ -15,8 +15,8 @@ static const uint8_t CLOCK_CYCLE = 8;
 static const uint8_t HALF_CLOCK_CYCLE = CLOCK_CYCLE / 2;
 static const uint8_t QUARTER_CLOCK_CYCLE = CLOCK_CYCLE / 4;
 
-static const uint8_t ADDR_FIXED = 0x44; // fixed address mode
-static const uint8_t ADDR_START = 0xC0; // address of the display register
+static const uint8_t ADDR_FIXED = 0x44;  // fixed address mode
+static const uint8_t ADDR_START = 0xC0;  // address of the display register
 
 static const uint8_t DISPLAY_OFF = 0x80;
 static const uint8_t DISPLAY_ON = 0x88;
@@ -30,8 +30,8 @@ static const uint8_t TM1651_BRIGHTNESS_DARKEST = 0;
 static const uint8_t TM1651_BRIGHTNESS_TYPICAL = 2;
 static const uint8_t TM1651_BRIGHTNESS_BRIGHTEST = 7;
 
-static const uint8_t TM1651_LEVEL_TAB[] = { 0b00000000, 0b00000001, 0b00000011, 0b00000111,
-                                            0b00001111, 0b00011111, 0b00111111, 0b01111111 };
+static const uint8_t TM1651_LEVEL_TAB[] = {0b00000000, 0b00000001, 0b00000011, 0b00000111,
+                                           0b00001111, 0b00011111, 0b00111111, 0b01111111};
 
 // public
 
@@ -58,18 +58,25 @@ void TM1651Display::dump_config() {
 
 void TM1651Display::set_brightness(uint8_t new_brightness) {
   this->brightness_ = this->remap_brightness_(new_brightness);
-  if (this->display_on_) { this->update_brightness_(DISPLAY_ON); }
+  if (this->display_on_) {
+    this->update_brightness_(DISPLAY_ON);
+  }
 }
 
 void TM1651Display::set_level(uint8_t new_level) {
-  if (new_level > MAX_DISPLAY_LEVELS) new_level = MAX_DISPLAY_LEVELS;
+  if (new_level > MAX_DISPLAY_LEVELS)
+    new_level = MAX_DISPLAY_LEVELS;
   this->level_ = new_level;
-  if (this->display_on_) { this->display_level_(); }
+  if (this->display_on_) {
+    this->display_level_();
+  }
 }
 
 void TM1651Display::set_level_percent(uint8_t percentage) {
   this->level_ = this->calculate_level_(percentage);
-  if (this->display_on_) { this->display_level_(); }
+  if (this->display_on_) {
+    this->display_level_();
+  }
 }
 
 void TM1651Display::turn_off() {
@@ -87,11 +94,12 @@ void TM1651Display::turn_on() {
 // protected
 
 uint8_t TM1651Display::calculate_level_(uint8_t percentage) {
-  if (percentage > PERCENT100) percentage = PERCENT100;
+  if (percentage > PERCENT100)
+    percentage = PERCENT100;
   // scale 0-100% to 0-7 display levels
   // use integer arithmetic with rounding
   uint16_t initial_scaling = (percentage * MAX_DISPLAY_LEVELS) + PERCENT50;
-  return (uint8_t)(initial_scaling / PERCENT100);
+  return (uint8_t) (initial_scaling / PERCENT100);
 }
 
 void TM1651Display::display_level_() {
@@ -106,8 +114,10 @@ void TM1651Display::display_level_() {
 }
 
 uint8_t TM1651Display::remap_brightness_(uint8_t new_brightness) {
-  if (new_brightness <= 1) return TM1651_BRIGHTNESS_DARKEST;
-  if (new_brightness == 2) return TM1651_BRIGHTNESS_TYPICAL;
+  if (new_brightness <= 1)
+    return TM1651_BRIGHTNESS_DARKEST;
+  if (new_brightness == 2)
+    return TM1651_BRIGHTNESS_TYPICAL;
 
   // new_brightness >= 3
   return TM1651_BRIGHTNESS_BRIGHTEST;
@@ -124,7 +134,7 @@ void TM1651Display::update_brightness_(uint8_t on_off_control) {
 bool TM1651Display::write_byte_(uint8_t data) {
   // data bit written to DIO when CLK is low
   for (uint8_t i = 0; i < 8; i++) {
-    this->half_cycle_clock_low_((bool)(data & 0x01));
+    this->half_cycle_clock_low_((bool) (data & 0x01));
     this->half_cycle_clock_high_();
     data >>= 1;
   }
@@ -135,7 +145,7 @@ bool TM1651Display::write_byte_(uint8_t data) {
 }
 
 void TM1651Display::half_cycle_clock_low_(bool data_bit) {
-   // first half cycle, clock low and write data bit
+  // first half cycle, clock low and write data bit
   this->clk_pin_->digital_write(LINE_LOW);
   delayMicroseconds(QUARTER_CLOCK_CYCLE);
 
