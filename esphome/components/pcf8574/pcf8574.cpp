@@ -112,7 +112,7 @@ bool PCF8574Component::read_gpio_() {
   }
 
   if (!success) {
-    this->status_set_warning();
+    this->status_set_warning("read from i2c device failed");
     return false;
   }
   this->status_clear_warning();
@@ -130,10 +130,9 @@ bool PCF8574Component::write_gpio_() {
   data[0] = value;
   data[1] = value >> 8;
   if (this->write(data, this->pcf8575_ ? 2 : 1) != i2c::ERROR_OK) {
-    this->status_set_warning();
+    this->status_set_warning("write to i2c device failed");
     return false;
   }
-
   this->status_clear_warning();
   return true;
 }
