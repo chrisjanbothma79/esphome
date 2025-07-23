@@ -14,7 +14,7 @@ from esphome.const import (
 )
 from esphome.core import CORE
 
-CODEOWNERS = ["@nielsnl68", "@jesserockz"]
+CODEOWNERS = ["@jesserockz"]
 
 espnow_ns = cg.esphome_ns.namespace("espnow")
 ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
