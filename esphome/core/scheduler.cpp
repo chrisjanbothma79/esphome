@@ -196,7 +196,7 @@ void retry_handler(const std::shared_ptr<RetryArgs> &args) {
     return;
   // second execution of `func` happens after `initial_wait_time`
   args->scheduler->set_timer_common_(
-      args->component, SchedulerItem::TIMEOUT, false, &args->name, args->current_interval,
+      args->component, Scheduler::SchedulerItem::TIMEOUT, false, &args->name, args->current_interval,
       [args]() { retry_handler(args); }, true);
   // backoff_increase_factor applied to third & later executions
   args->current_interval *= args->backoff_increase_factor;
