@@ -19,18 +19,18 @@
 #endif
 
 #define LOG_SENSOR_WITH_DEDUP_SAFE(tag, name, sensor) \
-  if (sensor != nullptr) { \
-    LOG_SENSOR(tag, name, sensor->sens); \
+  if ((sensor) != nullptr) { \
+    LOG_SENSOR(tag, name, (sensor)->sens); \
   }
 
 #define SAFE_PUBLISH_SENSOR(name, value) \
-  if (name != nullptr) { \
-    name->publish_state_if_not_dup(value); \
+  if ((name) != nullptr) { \
+    (name)->publish_state_if_not_dup(value); \
   }
 
 #define SAFE_PUBLISH_SENSOR_UNKNOWN(name) \
-  if (name != nullptr) { \
-    name->publish_state_unknown(); \
+  if ((name) != nullptr) { \
+    (name)->publish_state_unknown(); \
   }
 
 #define highbyte(val) (uint8_t)((val) >> 8)
