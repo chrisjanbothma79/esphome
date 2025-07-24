@@ -4,6 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_LOGS, CONF_TYPE
 
 AUTO_LOAD = ["zephyr_ble_server"]
+CODEOWNERS = ["@tomaszduda23"]
 
 ble_nus_ns = cg.esphome_ns.namespace("ble_nus")
 BLENUS = ble_nus_ns.class_("BLENUS", cg.Component)
