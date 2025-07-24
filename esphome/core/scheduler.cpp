@@ -178,13 +178,27 @@ struct RetryArgs {
   Scheduler *scheduler;
 };
 
-static void retry_handler(const std::shared_ptr<RetryArgs> &args) {
+void retry_handler(const std::shared_ptr<RetryArgs> &args) {
+  ESP_LOGVV(TAG, "retry_handler: name='%s', countdown=%d", args->name.c_str(), args->retry_countdown);
   RetryResult const retry_result = args->func(--args->retry_countdown);
-  if (retry_result == RetryResult::DONE || args->retry_countdown <= 0)
+  if (retry_result == RetryResult::DONE || args->retry_countdown <= 0) {
+    ESP_LOGVV(TAG, "retry_handler: Stopping retry for '%s' (done or countdown=0)", args->name.c_str());
     return;
-  // second execution of `func` happens after `initial_wait_time`
-  args->scheduler->set_timeout(args->component, args->name, args->current_interval, [args]() { retry_handler(args); });
-  // backoff_increase_factor applied to third & later executions
+  }
+
+  // Use reschedule_timeout_ to check for cancellation
+  ESP_LOGVV(TAG, "retry_handler: Attempting to schedule next retry for '%s' in %dms", args->name.c_str(),
+            args->current_interval);
+
+  bool scheduled = args->scheduler->reschedule_timeout_(args->component, args->name, args->current_interval,
+                                                        [args]() { retry_handler(args); });
+
+  if (!scheduled) {
+    ESP_LOGVV(TAG, "retry_handler: Retry '%s' was cancelled, not scheduling next iteration", args->name.c_str());
+    return;
+  }
+
+  // Only update interval if we actually scheduled
   args->current_interval *= args->backoff_increase_factor;
 }
 

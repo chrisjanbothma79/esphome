@@ -10,7 +10,7 @@ esphome:
 host:
 api:
 logger:
-  level: VERBOSE
+  level: VERY_VERBOSE
 
 globals:
   - id: simple_retry_counter

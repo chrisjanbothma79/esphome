@@ -15,8 +15,15 @@
 namespace esphome {
 
 class Component;
+struct RetryArgs;
+
+// Forward declaration of retry_handler - needs to be non-static for friend declaration
+void retry_handler(const std::shared_ptr<RetryArgs> &args);
 
 class Scheduler {
+  // Allow retry_handler to access protected members
+  friend void ::esphome::retry_handler(const std::shared_ptr<RetryArgs> &args);
+
  public:
   // Public API - accepts std::string for backward compatibility
   void set_timeout(Component *component, const std::string &name, uint32_t timeout, std::function<void()> func);
@@ -156,6 +163,23 @@ class Scheduler {
   size_t cleanup_();
   void pop_raw_();
 
+  // Reschedule a timeout only if it hasn't been cancelled
+  // Used by retry handler to avoid race conditions with cancel_retry
+  bool reschedule_timeout_(Component *component, const std::string &name, uint32_t timeout,
+                           std::function<void()> func) {
+    // For retry timeouts, check if cancelled before scheduling
+    if (!name.empty() && name.substr(0, 6) == "retry$") {
+      LockGuard lock(this->lock_);
+      if (this->has_cancelled_timeout_locked_(component, name.c_str())) {
+        return false;  // Indicate scheduling was skipped
+      }
+    }
+
+    // Not cancelled or not a retry - proceed with normal scheduling
+    this->set_timeout(component, name, timeout, std::move(func));
+    return true;
+  }
+
  private:
   // Helper to cancel items by name - must be called with lock held
   bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
@@ -195,6 +219,40 @@ class Scheduler {
   // Helper to check if item should be skipped
   bool should_skip_item_(const SchedulerItem *item) const {
     return item->remove || (item->component != nullptr && item->component->is_failed());
+  }
+
+  // Template helper to check if any item in a container matches our criteria
+  template<typename Container>
+  bool has_cancelled_timeout_in_container_(const Container &container, Component *component,
+                                           const char *name_cstr) const {
+    for (const auto &item : container) {
+      if (item->component == component && item->type == SchedulerItem::TIMEOUT && item->remove &&
+          item->get_name() != nullptr && strcmp(item->get_name(), name_cstr) == 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Helper to check if a cancelled timeout exists with the given name
+  // Must be called with lock held
+  bool has_cancelled_timeout_locked_(Component *component, const char *name_cstr) const {
+    if (name_cstr == nullptr)
+      return false;
+
+    // Check all containers using the template helper
+    if (has_cancelled_timeout_in_container_(this->items_, component, name_cstr))
+      return true;
+
+    if (has_cancelled_timeout_in_container_(this->to_add_, component, name_cstr))
+      return true;
+
+#ifndef ESPHOME_THREAD_SINGLE
+    if (has_cancelled_timeout_in_container_(this->defer_queue_, component, name_cstr))
+      return true;
+#endif
+
+    return false;
   }
 
   Mutex lock_;
