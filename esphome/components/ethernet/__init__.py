@@ -112,7 +112,9 @@ def _is_framework_spi_polling_mode_supported():
             return True
         if cv.Version(5, 3, 0) > framework_version >= cv.Version(5, 2, 1):
             return True
-        return cv.Version(5, 2, 0) > framework_version >= cv.Version(5, 1, 4)
+        if cv.Version(5, 2, 0) > framework_version >= cv.Version(5, 1, 4):  # noqa: SIM103
+            return True
+        return False
     if CORE.using_arduino:
         return framework_version >= cv.Version(3, 0, 0)
     # fail safe: Unknown framework
