@@ -1,9 +1,6 @@
-from esphome.components.spi import TYPE_QUAD
-
-from .. import MODE_RGB
-from . import DriverChip, delay
-from .commands import (
+from esphome.components.mipi import (
     MIPI,
+    MODE_RGB,
     NORON,
     PAGESEL,
     PIXFMT,
@@ -15,7 +12,10 @@ from .commands import (
     WCE,
     WRAM,
     WRCTRLD,
+    DriverChip,
+    delay,
 )
+from esphome.components.spi import TYPE_QUAD
 
 DriverChip(
     "T-DISPLAY-S3-AMOLED",
