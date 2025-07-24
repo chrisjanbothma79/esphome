@@ -35,6 +35,8 @@ enum class SdCardStatus : uint8_t { RET_STATUS_OK = 0, RET_STATUS_FAIL = 1, RET_
 using enum SdCardStatus;
 #endif
 
+enum class LocalRC : uint8_t { RC_NO_MEM = 1, RC_INVALID_ARG = 2, RC_NOT_FORMATED = 3 };
+
 }  // namespace sdfs
 }  // namespace esphome
 

@@ -49,7 +49,7 @@ class SdmmcIO {
   SdCardStatus init_card();
   SdCardStatus get_disk_status();
   FATFS *mount(std::string);
-  local_rc_t format();
+  bool format();
   void unmount();
   uint8_t get_pdrv();
   bool is_card_mem();

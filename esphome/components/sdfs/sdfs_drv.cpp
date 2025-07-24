@@ -237,11 +237,12 @@ bool SdfsDriver::mount(std::string mountpoint, bool format) {
 
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    this->fs_ = this->_->mount(mountpoint);
-    if ((this->fs_ != NULL) && (IS_LAST_ERR(ERR_TYPE_LOCAL, RC_NOT_FORMATED)) && format) {
-      ESP_LOGD(TAG, "Disk mount fail.  Will formated pdrv=%d", this->pdrv_);
+    this->fs_ = this->mmc_io_->mount(mountpoint);
+    if ((this->fs_ == NULL) && (last_err_ == FR_NO_FILESYSTEM || last_err_ == FR_INT_ERR) && format) {
+      ESP_LOGW(TAG, "Mount fail. Format flag %s, pdrv %d", TRUEFALSE(format), this->pdrv_);
       // local_rc_t format_res = this->mmc_io_->format();
       if (this->mmc_io_->format()) {
+        ESP_LOGD(TAG, "Formatting. pdrv=%d. %d", this->pdrv_);
         this->fs_ = this->mmc_io_->mount(mountpoint);
       }
     }
@@ -249,7 +250,7 @@ bool SdfsDriver::mount(std::string mountpoint, bool format) {
 #endif
 
   if (this->fs_ == NULL) {
-    ESP_LOGD(TAG, "Disk mount fail. pdrv=%d", this->pdrv_);
+    ESP_LOGD(TAG, "Mount fail. rc=%d, pdrv=%d", this->last_err_, this->pdrv_);
     return false;
   }
   ESP_LOGD(TAG, "Disk mounnted. pdrv=%d, fs type %s", this->pdrv_, fat_type2str[this->fs_->fs_type]);

@@ -7,15 +7,16 @@
 #include "diskio_sdmmc.h"
 #include "sdmmc_cmd.h"
 #include "esp_vfs_fat.h"
+#include "esp_err.h"
 
 namespace esphome {
 namespace sdfs {
 
-#define SET_RC(x, y, str) \
-  do { \
-    this->last_err_ = (x << 16) | y; \
-    ESP_LOGE(TAG, str " (0x%x)%s.", y, esp_err_to_name(y)); \
-  } while (0)
+// #define SET_RC(x, y, str) \
+//   do { \
+//     this->last_err_ = (x << 16) | (y); \
+//     ESP_LOGE(TAG, (str) " (0x%x)%s.", (y), esp_err_to_name(y)); \
+//   } while (0)
 
 // #define FF_DRV_NOT_USED 0xFF
 static const char *TAG = "sdmmc_io";
@@ -34,7 +35,8 @@ SdmmcIO::SdmmcIO() {
   sdmmc_host_t new_config = SDMMC_HOST_DEFAULT();
   this->host_config_ = (sdmmc_host_t *) calloc(sizeof(sdmmc_host_t), 1);
   if (this->host_config_ == NULL) {
-    SET_RC(ERR_TYPE_LOCAL, RC_NO_MEM, "Init sdmmc. No mem");
+    last_err_ = ESP_ERR_NO_MEM;
+    ESP_LOGE(TAG, "Init err. %s", esp_err_to_name(ESP_ERR_NO_MEM));
     return;
   }
 
@@ -43,8 +45,8 @@ SdmmcIO::SdmmcIO() {
 
   this->slot_config_ = (sdmmc_slot_config_t *) calloc(sizeof(sdmmc_slot_config_t), 1);
   if (this->slot_config_ == NULL) {
-    ESP_LOGD(TAG, "Not enaught memeory for initialize sdmmc");
-    SET_RC(ERR_TYPE_LOCAL, RC_NO_MEM, "Init sdmmc. No mem");
+    last_err_ = ESP_ERR_NO_MEM;
+    ESP_LOGE(TAG, "Init err. %s", esp_err_to_name(ESP_ERR_NO_MEM));
     FREE(this->host_config_);
     return;
   }
@@ -52,7 +54,8 @@ SdmmcIO::SdmmcIO() {
   //   Allocate mem for Detected  CARD_CONFIG
   this->card_info_ = (sdmmc_card_t *) calloc(sizeof(sdmmc_card_t) + sizeof(sdmmc_host_t), 1);
   if (this->card_info_ == NULL) {
-    SET_RC(ERR_TYPE_LOCAL, RC_NO_MEM, "Init sdmmc. No mem");
+    last_err_ = ESP_ERR_NO_MEM;
+    ESP_LOGE(TAG, "Init err. %s", esp_err_to_name(ESP_ERR_NO_MEM));
     FREE(this->host_config_);
     FREE(this->slot_config_);
     return;
@@ -60,7 +63,8 @@ SdmmcIO::SdmmcIO() {
 
   this->mount_config_ = (esp_vfs_fat_mount_config_t *) calloc(sizeof(esp_vfs_fat_mount_config_t), 1);
   if (this->card_info_ == NULL) {
-    SET_RC(ERR_TYPE_LOCAL, RC_NO_MEM, "Init sdmmc. No mem");
+    this->last_err_ = ESP_ERR_NO_MEM;
+    ESP_LOGE(TAG, "Init err. %s", esp_err_to_name(ESP_ERR_NO_MEM));
     FREE(this->host_config_);
     FREE(this->slot_config_);
     FREE(this->card_info_);
@@ -116,8 +120,13 @@ bool SdmmcIO::init() {
   }
 
   //   Select  drive for mount.
-  if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == FF_DRV_NOT_USED) {
-    SET_RC(ERR_TYPE_FRAMEWORK, rc, "the maximum count of volumes is already mounted");
+  rc = ff_diskio_get_drive(&pdrv);
+  if (rc != ESP_OK || pdrv == FF_DRV_NOT_USED) {
+    if (pdrv == FF_DRV_NOT_USED)
+      rc = ESP_ERR_NOT_FOUND;
+    else
+      last_err_ = rc;
+    ESP_LOGE(TAG, "Init err. %s", esp_err_to_name(last_err_));
     return false;
   }
 
@@ -142,7 +151,8 @@ bool SdmmcIO::init() {
 
 #ifdef SOC_SDMMC_USE_GPIO_MATRIX
   if ((this->clk_pin_ == GPIO_NUM_NC) || (this->cmd_pin_ == GPIO_NUM_NC) || (this->data0_pin_ == GPIO_NUM_NC)) {
-    SET_RC(ERR_TYPE_LOCAL, RC_INVALID_ARG, "clk_pin, cmd_pin, data0_pin must be defined.");
+    last_err_ = ESP_ERR_INVALID_ARG;
+    ESP_LOGE(TAG, "Init sdmmc. clk_pin, cmd_pin, data0_pin must be defined.");
     return false;
   }
   this->slot_config_->clk = static_cast<gpio_num_t>(this->clk_pin_);
@@ -172,7 +182,8 @@ bool SdmmcIO::init() {
   slot_num = this->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
   rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
-    SET_RC(ERR_TYPE_FRAMEWORK, rc, "Failed to init slot host");
+    last_err_ = rc;
+    ESP_LOGE(TAG, "Init slot. %s", esp_err_to_name(last_err_));
     return false;
   }
   ESP_LOGI(TAG, "SDMMC Init bus, slot %d, width %d", slot_num, this->slot_config_->width);
@@ -203,7 +214,8 @@ bool SdmmcIO::init_slot() {
   uint8_t slot_num = this->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
   esp_err_t rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
-    SET_RC(ERR_TYPE_FRAMEWORK, rc, "Failed to init slot host");
+    last_err_ = rc;
+    ESP_LOGE(TAG, "Init slot. %s", esp_err_to_name(last_err_));
     return false;
   }
   ESP_LOGI(TAG, "Reset slot inicialization, slot %d, width %d", slot_num, this->slot_config_->width);
@@ -220,9 +232,10 @@ bool SdmmcIO::init_slot() {
  */
 SdCardStatus SdmmcIO::get_disk_status() {  //  is_card
   assert(this->card_info_);
-  esp_err_t err = sdmmc_get_status(this->card_info_);
-  if (unlikely(err != ESP_OK)) {
-    ESP_LOGE(TAG, "Check status failed (0x%x)%s", err, esp_err_to_name(err));
+  esp_err_t rc = sdmmc_get_status(this->card_info_);
+  if (unlikely(rc != ESP_OK)) {
+    last_err_ = rc;
+    ESP_LOGE(TAG, "Check status. %s", esp_err_to_name(last_err_));
     return RET_STATUS_FAIL;
   }
   return RET_STATUS_OK;
@@ -238,11 +251,12 @@ SdCardStatus SdmmcIO::init_card() {  //  attach_card
   esp_err_t rc;
   rc = sdmmc_card_init(this->host_config_, this->card_info_);
   if (rc != ESP_OK) {
+    this->last_err_ = rc;
     if (rc = ESP_ERR_TIMEOUT) {
-      this->last_err_ = (ERR_TYPE_FRAMEWORK << 16) | rc;
+      ESP_LOGW(TAG, "Init card. No card. %s", esp_err_to_name(last_err_));
       return RET_STATUS_NOCARD;
     } else {
-      SET_RC(ERR_TYPE_FRAMEWORK, rc, "Failed to init card");
+      ESP_LOGE(TAG, "Init card. %s", esp_err_to_name(last_err_));
       return RET_STATUS_FAIL;
     }
   }
@@ -262,37 +276,41 @@ FATFS *SdmmcIO::mount(std::string mountpoint) {
   FATFS *fs = NULL;
   esp_err_t rc = ESP_OK;
   FRESULT mount_rc = FR_OK;
+  this->last_err_ = 0;
 
   ff_diskio_register_sdmmc(this->pdrv_, this->card_info_);
-
   char drv[3] = {(char) ('0' + this->pdrv_), ':', 0};
-  ESP_LOGD(TAG, "Disk registered. pdrv=%i, drv=%s, path=%s", this->pdrv_, drv, mountpoint_.c_str());
+  ESP_LOGD(TAG, "Mounting fs. pdrv=%i, drv=%s, path=%s", this->pdrv_, drv, mountpoint_.c_str());
 
   rc = esp_vfs_fat_register(mountpoint_.c_str(), drv, this->mount_config_->max_files, &fs);
-  if (rc == ESP_ERR_INVALID_STATE) {
+  if ((rc == ESP_ERR_INVALID_STATE) || (rc == ESP_OK)) {
     // it's okay, already registered with VFS
   } else if (rc != ESP_OK) {
-    SET_RC(ERR_TYPE_FRAMEWORK, rc, "esp_vfs_fat_register failed");
-    goto unregister_fs;
+    last_err_ = rc;
+    ESP_LOGE(TAG, "Register fs err. %s", esp_err_to_name(last_err_));
+    esp_vfs_fat_unregister_path(mountpoint_.c_str());
+    return NULL;
   }
 
   mount_rc = f_mount(fs, drv, 1);
   if (mount_rc != FR_OK) {
-    if ((mount_rc == FR_NO_FILESYSTEM || mount_rc == FR_INT_ERR)) {
-      SET_RC(ERR_TYPE_LOCAL, RC_NOT_FORMATED, "Cannot mount");
+    last_err_ = mount_rc;
+    if ((mount_rc == FR_NO_FILESYSTEM || mount_rc == FR_INT_ERR)) {  // sd card not formated
+      ESP_LOGE(TAG, "Cannot mount. No fs on media. rc=%d", mount_rc);
     }
-    SET_RC(ERR_TYPE_FILESYS, mount_rc, "Cannot mount");
-    goto unregister_fs;
+    ESP_LOGE(TAG, "Mount err. rc=%d", mount_rc);
+    esp_vfs_fat_unregister_path(mountpoint_.c_str());
+    return NULL;
   }
 
   return fs;
 
-unregister_fs:
-  ESP_LOGD(TAG, "Reset registration");
-  esp_vfs_fat_unregister_path(mountpoint_.c_str());
-  // FREE(this->mount_config_);
-  // this->fs_ = NULL;
-  return NULL;
+  // unregister_fs:
+  //   ESP_LOGD(TAG, "Reset registration");
+  //   esp_vfs_fat_unregister_path(mountpoint_.c_str());
+  //   // FREE(this->mount_config_);
+  //   // this->fs_ = NULL;
+  //   return NULL;
 }
 
 /**********************************************************************
@@ -309,20 +327,23 @@ void SdmmcIO::unmount() {
   char drv[3] = {(char) ('0' + this->pdrv_), ':', 0};
   FRESULT res = f_mount(0, drv, 0);
   if (res != FR_OK) {
-    SET_RC(ERR_TYPE_FILESYS, res, "Unmount return");
+    last_err_ = res;
+    ESP_LOGE(TAG, "Unmount err. rc=%d", res);
   }
 
   //  Clear registration
   rc = esp_vfs_fat_unregister_path(mountpoint_.c_str());
   if ((rc != ESP_OK) && (rc != ESP_ERR_INVALID_STATE)) {
-    SET_RC(ERR_TYPE_FRAMEWORK, rc, "Cannot unregister root path");
+    last_err_ = res;
+    ESP_LOGE(TAG, "Unmount err. Invalid state. rc=%d", res);
   }
 
   //  Reinit slot
   uint8_t slot_num = this->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
   rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
-    SET_RC(ERR_TYPE_FRAMEWORK, rc, "Failed to init slot host");
+    last_err_ = rc;
+    ESP_LOGE(TAG, "Reset slot err. %s", esp_err_to_name);
     return;
   }
   ESP_LOGI(TAG, "Reset slot inicialization, slot %d, width %d", slot_num, this->slot_config_->width);
@@ -342,12 +363,12 @@ bool SdmmcIO::format() {
   esp_err_t err;
   const size_t workbuf_size = 4096;
   void *workbuf = NULL;
-  ESP_LOGW(TAG, "partitioning card");
+  ESP_LOGW(TAG, "Partitioning card");
 
   workbuf = ff_memalloc(workbuf_size);
   if (workbuf == NULL) {
-    ESP_LOGE(TAG, "not enough mem");
-    SET_RC(ERR_TYPE_LOCAL, RC_NO_MEM, "Format. No mem");
+    last_err_ = ESP_ERR_NO_MEM;
+    ESP_LOGE(TAG, "Format err. %s", esp_err_to_name(last_err_));
     return false;
   }
 
@@ -356,19 +377,20 @@ bool SdmmcIO::format() {
   LBA_t plist[] = {100, 0, 0, 0};
   res = f_fdisk(this->pdrv_, plist, workbuf);
   if (res != FR_OK) {
-    SET_RC(ERR_TYPE_FILESYS, res, "Cannot format disk");
+    last_err_ = res;
+    ESP_LOGE(TAG, "Format err. rc=%d", res);
     free(workbuf);
     return false;
   }
 #endif
 
-  size_t alloc_unit_size = this->mount_config_->allocation_unit_size;
-  const size_t max_sectors_per_cylinder = 128;
-  const size_t max_size = this->card_info_->csd.sector_size * max_sectors_per_cylinder;
-  alloc_unit_size = MAX(alloc_unit_size, this->card_info_->csd.sector_size);
-  alloc_unit_size = MIN(alloc_unit_size, max_size);
+  // size_t alloc_unit_size = this->mount_config_->allocation_unit_size;
+  // const size_t max_sectors_per_cylinder = 128;
+  // const size_t max_size = this->card_info_->csd.sector_size * max_sectors_per_cylinder;
+  // alloc_unit_size = MAX(alloc_unit_size, this->card_info_->csd.sector_size);
+  // alloc_unit_size = MIN(alloc_unit_size, max_size);
 
-  ESP_LOGD(TAG, "Prtitioning disk (f_mkfs), Allocation unit size=%d", alloc_unit_size);
+  // ESP_LOGD(TAG, "Prtitioning disk (f_mkfs), Allocation unit size=%d", alloc_unit_size);
 
 #ifdef USE_ESP_IDF
   const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, alloc_unit_size};
@@ -384,7 +406,8 @@ bool SdmmcIO::format() {
   //   res = f_mkfs(drv, &opt, workbuf, workbuf_size);
   // #endif
   if (res != FR_OK) {
-    SET_RC(ERR_TYPE_FILESYS, res, "Cannot make fs");
+    last_err_ = res;
+    ESP_LOGE(TAG, "mkfs err. rc=%d", res);
     free(workbuf);
     return false;
   }
