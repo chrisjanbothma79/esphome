@@ -317,7 +317,7 @@ def preload_core_config(config, result) -> str:
 
     target_platforms = []
 
-    for domain in config.keys():
+    for domain in config:
         if domain.startswith("."):
             continue
         if _is_target_platform(domain):
