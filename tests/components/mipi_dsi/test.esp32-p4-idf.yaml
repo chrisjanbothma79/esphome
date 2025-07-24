@@ -7,9 +7,9 @@ display:
   - platform: mipi_dsi
     model: JC1060P470
 
-light:
-  - platform: mipi_dsi
-    id: backlight_id
+#light:
+  #- platform: mipi_dsi
+    #id: backlight_id
 
 i2c:
   sda: GPIO7
