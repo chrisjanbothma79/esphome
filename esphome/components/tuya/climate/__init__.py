@@ -46,16 +46,15 @@ TuyaClimate = tuya_ns.class_("TuyaClimate", climate.Climate, cg.Component)
 
 
 def validate_temperature_multipliers(value):
-    if CONF_TEMPERATURE_MULTIPLIER in value:
-        if (
-            CONF_CURRENT_TEMPERATURE_MULTIPLIER in value
-            or CONF_TARGET_TEMPERATURE_MULTIPLIER in value
-        ):
-            raise cv.Invalid(
-                f"Cannot have {CONF_TEMPERATURE_MULTIPLIER} at the same time as "
-                f"{CONF_CURRENT_TEMPERATURE_MULTIPLIER} and "
-                f"{CONF_TARGET_TEMPERATURE_MULTIPLIER}"
-            )
+    if CONF_TEMPERATURE_MULTIPLIER in value and (
+        CONF_CURRENT_TEMPERATURE_MULTIPLIER in value
+        or CONF_TARGET_TEMPERATURE_MULTIPLIER in value
+    ):
+        raise cv.Invalid(
+            f"Cannot have {CONF_TEMPERATURE_MULTIPLIER} at the same time as "
+            f"{CONF_CURRENT_TEMPERATURE_MULTIPLIER} and "
+            f"{CONF_TARGET_TEMPERATURE_MULTIPLIER}"
+        )
     if (
         CONF_CURRENT_TEMPERATURE_MULTIPLIER in value
         and CONF_TARGET_TEMPERATURE_MULTIPLIER not in value
@@ -83,28 +82,30 @@ def validate_temperature_multipliers(value):
 
 
 def validate_cooling_values(value):
-    if CONF_SUPPORTS_COOL in value:
-        cooling_supported = value[CONF_SUPPORTS_COOL]
-        if not cooling_supported and CONF_ACTIVE_STATE in value:
-            active_state_config = value[CONF_ACTIVE_STATE]
-            if (
-                CONF_COOLING_VALUE in active_state_config
-                or CONF_COOLING_STATE_PIN in value
-            ):
-                raise cv.Invalid(
-                    f"Device does not support cooling, but {CONF_COOLING_VALUE} or {CONF_COOLING_STATE_PIN} specified."
-                    f" Please add '{CONF_SUPPORTS_COOL}: true' to your configuration."
-                )
-        elif cooling_supported and CONF_ACTIVE_STATE in value:
-            active_state_config = value[CONF_ACTIVE_STATE]
-            if (
-                CONF_COOLING_VALUE not in active_state_config
-                and CONF_COOLING_STATE_PIN not in value
-            ):
-                raise cv.Invalid(
-                    f"Either {CONF_ACTIVE_STATE} {CONF_COOLING_VALUE} or {CONF_COOLING_STATE_PIN} is required if"
-                    f" {CONF_SUPPORTS_COOL}: true' is in your configuration."
-                )
+    if (
+        CONF_SUPPORTS_COOL in value
+        and not value[CONF_SUPPORTS_COOL]
+        and CONF_ACTIVE_STATE in value
+        and (
+            CONF_COOLING_VALUE in value[CONF_ACTIVE_STATE]
+            or CONF_COOLING_STATE_PIN in value
+        )
+    ):
+        raise cv.Invalid(
+            f"Device does not support cooling, but {CONF_COOLING_VALUE} or {CONF_COOLING_STATE_PIN} specified."
+            f" Please add '{CONF_SUPPORTS_COOL}: true' to your configuration."
+        )
+    elif (
+        CONF_SUPPORTS_COOL in value
+        and value[CONF_SUPPORTS_COOL]
+        and CONF_ACTIVE_STATE in value
+        and CONF_COOLING_VALUE not in value[CONF_ACTIVE_STATE]
+        and CONF_COOLING_STATE_PIN not in value
+    ):
+        raise cv.Invalid(
+            f"Either {CONF_ACTIVE_STATE} {CONF_COOLING_VALUE} or {CONF_COOLING_STATE_PIN} is required if"
+            f" {CONF_SUPPORTS_COOL}: true' is in your configuration."
+        )
     return value
 
 
