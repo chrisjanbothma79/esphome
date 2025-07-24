@@ -11,8 +11,7 @@
 
 #include "ble_scan_result.h"
 
-namespace esphome {
-namespace esp32_ble {
+namespace esphome::esp32_ble {
 
 // Compile-time verification that ESP-IDF scan complete events only contain a status field
 // This ensures our reinterpret_cast in ble.cpp is safe
@@ -134,13 +133,13 @@ class BLEEvent {
   }
 
   // Destructor to clean up heap allocations
-  ~BLEEvent() { this->cleanup_heap_data(); }
+  ~BLEEvent() { this->release(); }
 
   // Default constructor for pre-allocation in pool
   BLEEvent() : type_(GAP) {}
 
-  // Clean up any heap-allocated data
-  void cleanup_heap_data() {
+  // Invoked on return to EventPool - clean up any heap-allocated data
+  void release() {
     if (this->type_ == GAP) {
       return;
     }
@@ -161,19 +160,19 @@ class BLEEvent {
 
   // Load new event data for reuse (replaces previous event data)
   void load_gap_event(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
-    this->cleanup_heap_data();
+    this->release();
     this->type_ = GAP;
     this->init_gap_data_(e, p);
   }
 
   void load_gattc_event(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
-    this->cleanup_heap_data();
+    this->release();
     this->type_ = GATTC;
     this->init_gattc_data_(e, i, p);
   }
 
   void load_gatts_event(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
-    this->cleanup_heap_data();
+    this->release();
     this->type_ = GATTS;
     this->init_gatts_data_(e, i, p);
   }
@@ -395,7 +394,6 @@ static_assert(sizeof(esp_ble_sec_t) <= 73, "esp_ble_sec_t is larger than BLEScan
 
 // BLEEvent total size: 84 bytes (80 byte union + 1 byte type + 3 bytes padding)
 
-}  // namespace esp32_ble
-}  // namespace esphome
+}  // namespace esphome::esp32_ble
 
 #endif

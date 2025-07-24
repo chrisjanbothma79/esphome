@@ -1,9 +1,9 @@
 #ifdef USE_ESP32
 
 #include "ble.h"
-#include "ble_event_pool.h"
 
 #include "esphome/core/application.h"
+#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
 #include <esp_bt.h>
@@ -19,8 +19,7 @@
 #include <esp32-hal-bt.h>
 #endif
 
-namespace esphome {
-namespace esp32_ble {
+namespace esphome::esp32_ble {
 
 static const char *const TAG = "esp32_ble";
 
@@ -516,13 +515,12 @@ void ESP32BLE::dump_config() {
         break;
     }
     ESP_LOGCONFIG(TAG,
-                  "ESP32 BLE:\n"
-                  "  MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n"
+                  "BLE:\n"
+                  "  MAC address: %s\n"
                   "  IO Capability: %s",
-                  mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5],
-                  io_capability_s);
+                  format_mac_address_pretty(mac_address).c_str(), io_capability_s);
   } else {
-    ESP_LOGCONFIG(TAG, "ESP32 BLE: bluetooth stack is not enabled");
+    ESP_LOGCONFIG(TAG, "Bluetooth stack is not enabled");
   }
 }
 
@@ -539,7 +537,6 @@ uint64_t ble_addr_to_uint64(const esp_bd_addr_t address) {
 
 ESP32BLE *global_ble = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-}  // namespace esp32_ble
-}  // namespace esphome
+}  // namespace esphome::esp32_ble
 
 #endif
