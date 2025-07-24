@@ -221,6 +221,9 @@ async def to_code(config):
     if reset_pin := config.get(CONF_RESET_PIN):
         reset = await cg.gpio_pin_expression(reset_pin)
         cg.add(var.set_reset_pin(reset))
+    if enable_pin := config.get(CONF_ENABLE_PIN):
+        enable = [await cg.gpio_pin_expression(pin) for pin in enable_pin]
+        cg.add(var.set_enable_pins(enable))
 
     if model.rotation_as_transform(config):
         config[CONF_ROTATION] = 0

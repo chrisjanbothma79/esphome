@@ -53,6 +53,7 @@ class MIPI_DSI : public display::Display {
   display::DisplayType get_display_type() override { return display::DisplayType::DISPLAY_TYPE_COLOR; }
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
+  void set_enable_pins(std::vector<GPIOPin *> enable_pins) { this->enable_pins_ = std::move(enable_pins); }
   void set_pclk_frequency(uint32_t pclk_frequency) { this->pclk_frequency_ = pclk_frequency; }
   int get_width_internal() override { return this->width_; }
   int get_height_internal() override { return this->height_; }
@@ -92,6 +93,7 @@ class MIPI_DSI : public display::Display {
                          int x_pad);
   bool check_buffer_();
   GPIOPin *reset_pin_{nullptr};
+  std::vector<GPIOPin *> enable_pins_{};
   size_t width_{};
   size_t height_{};
   uint8_t madctl_{};
