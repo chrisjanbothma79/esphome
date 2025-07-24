@@ -200,33 +200,17 @@ void LD2410Component::dump_config() {
 #endif
 #ifdef USE_SENSOR
   ESP_LOGCONFIG(TAG, "Sensors:");
-  if (this->light_sensor_ != nullptr) {
-    LOG_SENSOR("  ", "Light", this->light_sensor_->sens);
-  }
-  if (this->detection_distance_sensor_ != nullptr) {
-    LOG_SENSOR("  ", "DetectionDistance", this->detection_distance_sensor_->sens);
-  }
-  if (this->moving_target_distance_sensor_ != nullptr) {
-    LOG_SENSOR("  ", "MovingTargetDistance", this->moving_target_distance_sensor_->sens);
-  }
-  if (this->moving_target_energy_sensor_ != nullptr) {
-    LOG_SENSOR("  ", "MovingTargetEnergy", this->moving_target_energy_sensor_->sens);
-  }
-  if (this->still_target_distance_sensor_ != nullptr) {
-    LOG_SENSOR("  ", "StillTargetDistance", this->still_target_distance_sensor_->sens);
-  }
-  if (this->still_target_energy_sensor_ != nullptr) {
-    LOG_SENSOR("  ", "StillTargetEnergy", this->still_target_energy_sensor_->sens);
-  }
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "Light", this->light_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "DetectionDistance", this->detection_distance_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "MovingTargetDistance", this->moving_target_distance_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "MovingTargetEnergy", this->moving_target_energy_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "StillTargetDistance", this->still_target_distance_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "StillTargetEnergy", this->still_target_energy_sensor_);
   for (auto &s : this->gate_move_sensors_) {
-    if (s != nullptr) {
-      LOG_SENSOR("  ", "GateMove", s->sens);
-    }
+    LOG_SENSOR_WITH_DEDUP_SAFE("  ", "GateMove", s);
   }
   for (auto &s : this->gate_still_sensors_) {
-    if (s != nullptr) {
-      LOG_SENSOR("  ", "GateStill", s->sens);
-    }
+    LOG_SENSOR_WITH_DEDUP_SAFE("  ", "GateStill", s);
   }
 #endif
 #ifdef USE_TEXT_SENSOR
@@ -378,24 +362,17 @@ void LD2410Component::handle_periodic_data_() {
     Detect distance: 16~17th bytes
   */
 #ifdef USE_SENSOR
-  if (this->moving_target_distance_sensor_ != nullptr) {
-    this->moving_target_distance_sensor_->publish_state_if_not_dup(
-        ld2410::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH]));
-  }
-  if (this->moving_target_energy_sensor_ != nullptr) {
-    this->moving_target_energy_sensor_->publish_state_if_not_dup(this->buffer_data_[MOVING_ENERGY]);
-  }
-  if (this->still_target_distance_sensor_ != nullptr) {
-    this->still_target_distance_sensor_->publish_state_if_not_dup(
-        ld2410::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH]));
-  }
-  if (this->still_target_energy_sensor_ != nullptr) {
-    this->still_target_energy_sensor_->publish_state_if_not_dup(this->buffer_data_[STILL_ENERGY]);
-  }
-  if (this->detection_distance_sensor_ != nullptr) {
-    this->detection_distance_sensor_->publish_state_if_not_dup(
-        ld2410::two_byte_to_int(this->buffer_data_[DETECT_DISTANCE_LOW], this->buffer_data_[DETECT_DISTANCE_HIGH]));
-  }
+  SAFE_PUBLISH_SENSOR(
+      this->moving_target_distance_sensor_,
+      ld2410::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH]))
+  SAFE_PUBLISH_SENSOR(this->moving_target_energy_sensor_, this->buffer_data_[MOVING_ENERGY])
+  SAFE_PUBLISH_SENSOR(
+      this->still_target_distance_sensor_,
+      ld2410::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH]));
+  SAFE_PUBLISH_SENSOR(this->still_target_energy_sensor_, this->buffer_data_[STILL_ENERGY]);
+  SAFE_PUBLISH_SENSOR(
+      this->detection_distance_sensor_,
+      ld2410::two_byte_to_int(this->buffer_data_[DETECT_DISTANCE_LOW], this->buffer_data_[DETECT_DISTANCE_HIGH]));
 
   if (engineering_mode) {
     /*
@@ -404,38 +381,26 @@ void LD2410Component::handle_periodic_data_() {
       Moving energy: 20~28th bytes
     */
     for (uint8_t i = 0; i < TOTAL_GATES; i++) {
-      if (this->gate_move_sensors_[i] != nullptr) {
-        this->gate_move_sensors_[i]->publish_state_if_not_dup(this->buffer_data_[MOVING_SENSOR_START + i]);
-      }
+      SAFE_PUBLISH_SENSOR(this->gate_move_sensors_[i], this->buffer_data_[MOVING_SENSOR_START + i])
     }
     /*
       Still energy: 29~37th bytes
     */
     for (uint8_t i = 0; i < TOTAL_GATES; i++) {
-      if (this->gate_still_sensors_[i] != nullptr) {
-        this->gate_still_sensors_[i]->publish_state_if_not_dup(this->buffer_data_[STILL_SENSOR_START + i]);
-      }
+      SAFE_PUBLISH_SENSOR(this->gate_still_sensors_[i], this->buffer_data_[STILL_SENSOR_START + i])
     }
     /*
       Light sensor: 38th bytes
     */
-    if (this->light_sensor_ != nullptr) {
-      this->light_sensor_->publish_state_if_not_dup(this->buffer_data_[LIGHT_SENSOR]);
-    }
+    SAFE_PUBLISH_SENSOR(this->light_sensor_, this->buffer_data_[LIGHT_SENSOR])
   } else {
     for (auto &gate_move_sensor : this->gate_move_sensors_) {
-      if (gate_move_sensor != nullptr) {
-        gate_move_sensor->publish_state_unknown();
-      }
+      SAFE_PUBLISH_SENSOR_UNKNOWN(gate_move_sensor)
     }
     for (auto &gate_still_sensor : this->gate_still_sensors_) {
-      if (gate_still_sensor != nullptr) {
-        gate_still_sensor->publish_state_unknown();
-      }
+      SAFE_PUBLISH_SENSOR_UNKNOWN(gate_still_sensor)
     }
-    if (this->light_sensor_ != nullptr) {
-      this->light_sensor_->publish_state_unknown();
-    }
+    SAFE_PUBLISH_SENSOR_UNKNOWN(this->light_sensor_)
   }
 #endif
 #ifdef USE_BINARY_SENSOR
