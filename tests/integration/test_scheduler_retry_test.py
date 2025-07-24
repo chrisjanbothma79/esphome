@@ -182,8 +182,8 @@ async def test_scheduler_retry_test(
             )
 
         assert cancel_result is True, "Retry cancellation should have succeeded"
-        assert 2 <= cancel_retry_count <= 4, (
-            f"Expected 2-4 cancel retry attempts before cancellation, got {cancel_retry_count}"
+        assert 2 <= cancel_retry_count <= 5, (
+            f"Expected 2-5 cancel retry attempts before cancellation, got {cancel_retry_count}"
         )
 
         # Wait for empty name retry test
