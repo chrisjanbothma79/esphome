@@ -43,10 +43,14 @@ void MIPI_DSI::setup() {
     this->smark_failed("new_panel_io_dbi failed", err);
     return;
   }
+  auto pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+  if (this->color_depth_ == display::COLOR_BITNESS_888) {
+    pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB888;
+  }
   esp_lcd_dpi_panel_config_t dpi_config = {.virtual_channel = 0,
                                            .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
                                            .dpi_clock_freq_mhz = this->pclk_frequency_,
-                                           .pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565,
+                                           .pixel_format = pixel_format,
                                            .num_fbs = 1,  // number of frame buffers to allocate
                                            .video_timing =
                                                {
@@ -102,19 +106,12 @@ void MIPI_DSI::setup() {
         this->mark_failed("Malformed init sequence");
         return;
       }
-      auto arg_byte = vec[index];
-      switch (cmd) {
-        case SLEEP_OUT: {
-          // are we ready, boots?
-          int duration = when - millis();
-          if (duration > 0) {
-            ESP_LOGD(TAG, "Sleep %dms", duration);
-            delay(duration);
-          }
-        } break;
-
-        default:
-          break;
+      if (cmd == SLEEP_OUT) {
+        // are we ready, boots?
+        int duration = when - millis();
+        if (duration > 0) {
+          delay(duration);
+        }
       }
       const auto *ptr = vec.data() + index;
       ESP_LOGVV(TAG, "Command %02X, length %d, byte(s) %s", cmd, num_args,
@@ -177,7 +174,7 @@ void MIPI_DSI::draw_pixels_at(int x_start, int y_start, int w, int h, const uint
     return;
   // if color mapping is required, pass the buck.
   // note that endianness is not considered here - it is assumed to match!
-  if (bitness != display::COLOR_BITNESS_565) {
+  if (bitness != this->color_depth_) {
     display::Display::draw_pixels_at(x_start, y_start, w, h, ptr, order, bitness, big_endian, x_offset, y_offset,
                                      x_pad);
   }
@@ -299,6 +296,22 @@ void MIPI_DSI::fill(Color color) {
       std::fill_n(ptr_16, this->width_ * this->height_, new_color);
       break;
     }
+
+    case display::COLOR_BITNESS_888:
+      if (this->color_mode_ == display::COLOR_ORDER_BGR) {
+        for (size_t i = 1; i != this->width_ * this->height_; i++) {
+          this->buffer_[i * 3 + 0] = color.b;
+          this->buffer_[i * 3 + 1] = color.g;
+          this->buffer_[i * 3 + 2] = color.r;
+        }
+      } else {
+        for (size_t i = 1; i != this->width_ * this->height_; i++) {
+          this->buffer_[i * 3 + 0] = color.r;
+          this->buffer_[i * 3 + 1] = color.g;
+          this->buffer_[i * 3 + 2] = color.b;
+        }
+      }
+
     default:
       break;
   }
