@@ -137,7 +137,7 @@ void MIPI_DSI::setup() {
     return;
   }
 
-  ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
+  ESP_LOGCONFIG(TAG, "MIPI DSI setup complete");
 }
 
 void MIPI_DSI::update() {
