@@ -209,7 +209,6 @@ class Scheduler {
   bool has_cancelled_timeout_in_container_(const Container &container, Component *component,
                                            const char *name_cstr) const {
     for (const auto &item : container) {
-      // Use matches_item_ with skip_removed=false to find cancelled items
       if (item->remove && this->matches_item_(item, component, name_cstr, SchedulerItem::TIMEOUT, false)) {
         return true;
       }
