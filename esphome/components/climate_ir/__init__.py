@@ -4,7 +4,13 @@ from esphome import core
 import esphome.codegen as cg
 from esphome.components import climate, remote_base, sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_SENSOR, CONF_SUPPORTS_COOL, CONF_SUPPORTS_HEAT, CONF_HUMIDITY_SENSOR
+from esphome.const import (
+    CONF_HUMIDITY_SENSOR,
+    CONF_ID,
+    CONF_SENSOR,
+    CONF_SUPPORTS_COOL,
+    CONF_SUPPORTS_HEAT,
+)
 from esphome.cpp_generator import MockObjClass
 
 _LOGGER = logging.getLogger(__name__)
