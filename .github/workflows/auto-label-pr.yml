@@ -86,6 +86,7 @@ jobs:
                 'has-tests',
                 'needs-tests',
                 'needs-docs',
+                'needs-codeowners',
                 'too-big',
                 'labeller-recheck'
               ].includes(label)
@@ -383,6 +384,20 @@ jobs:
               }
             }
 
+            // Strategy: CODEOWNERS check for new components
+            if (labels.has('new-component')) {
+              // Check if CODEOWNERS file was modified in this PR
+              const codeownersModified = prFiles.some(file =>
+                file.filename === 'CODEOWNERS' &&
+                (file.status === 'modified' || file.status === 'added') &&
+                (file.additions || 0) > 0
+              );
+
+              if (!codeownersModified) {
+                labels.add('needs-codeowners');
+              }
+            }
+
             // Convert Set to Array
             let finalLabels = Array.from(labels);
 
@@ -433,6 +448,13 @@ jobs:
                   reviewBody = `${BOT_COMMENT_MARKER}\nThis PR is too large with ${nonTestChanges} line changes (excluding tests). Please consider breaking it down into smaller, focused PRs to make review easier and reduce the risk of conflicts.\n\nFor guidance on breaking down large PRs, see: https://developers.esphome.io/contributing/submitting-your-work/#but-howwww-looonnnggg`;
                 }
 
+                // Check if we also need to add CODEOWNERS message
+                if (finalLabels.includes('needs-codeowners')) {
+                  const prAuthor = context.payload.pull_request.user.login;
+                  const codeownersMessage = `\n\n---\n\nHey there @${prAuthor},\nThanks for submitting this pull request! Can you add yourself as a codeowner for this integration? This way we can notify you if a bug report for this integration is reported.\nIn \`__init__.py\` of the integration, please add:\n\n\`\`\`python\nCODEOWNERS = ["@${prAuthor}"]\n\`\`\`\n\nAnd run \`script/build_codeowners.py\``;
+                  reviewBody += codeownersMessage;
+                }
+
                 // Request changes on the PR
                 await github.rest.pulls.createReview({
                   owner,
@@ -441,7 +463,7 @@ jobs:
                   body: reviewBody,
                   event: 'REQUEST_CHANGES'
                 });
-                console.log('Created new "too big" review requesting changes');
+                console.log('Created new review requesting changes');
               } else {
                 console.log('Skipping review creation - existing bot review already requesting changes');
               }
@@ -450,7 +472,7 @@ jobs:
               const wasPreviouslyTooBig = currentLabels.includes('too-big');
 
               if (wasPreviouslyTooBig || isMegaPR) {
-                console.log('PR is no longer too big or has mega-pr label - dismissing bot reviews');
+                console.log('PR is no longer too big or has mega-pr label - handling bot reviews');
 
                 // Get all reviews on this PR to find reviews to dismiss
                 const { data: reviews } = await github.rest.pulls.listReviews({
@@ -466,21 +488,125 @@ jobs:
                   review.body && review.body.includes(BOT_COMMENT_MARKER)
                 );
 
-                // Dismiss bot reviews
+                // Track if we created a CODEOWNERS review from a combined review
+                let createdCodeownersFromCombined = false;
+
+                // Handle each bot review
                 for (const review of botReviews) {
+                  try {
+                    const reviewHasCodeowners = review.body.includes('CODEOWNERS');
+                    const stillNeedsCodeowners = finalLabels.includes('needs-codeowners');
+
+                    if (reviewHasCodeowners && stillNeedsCodeowners) {
+                      // This is a combined review and we still need CODEOWNERS - update to CODEOWNERS-only
+                      const prAuthor = context.payload.pull_request.user.login;
+                      const newReviewBody = `${BOT_COMMENT_MARKER}\nHey there @${prAuthor},\nThanks for submitting this pull request! Can you add yourself as a codeowner for this integration? This way we can notify you if a bug report for this integration is reported.\nIn \`__init__.py\` of the integration, please add:\n\n\`\`\`python\nCODEOWNERS = ["@${prAuthor}"]\n\`\`\`\n\nAnd run \`script/build_codeowners.py\``;
+
+                      // Update the existing review
+                      await github.rest.pulls.updateReview({
+                        owner,
+                        repo,
+                        pull_number: pr_number,
+                        review_id: review.id,
+                        body: newReviewBody
+                      });
+                      console.log(`Updated combined review ${review.id} to CODEOWNERS-only`);
+                      createdCodeownersFromCombined = true;
+                    } else {
+                      // Regular dismissal for reviews that don't need CODEOWNERS or don't have CODEOWNERS
+                      await github.rest.pulls.dismissReview({
+                        owner,
+                        repo,
+                        pull_number: pr_number,
+                        review_id: review.id,
+                        message: isMegaPR ?
+                          'Review dismissed: mega-pr label was added' :
+                          'Review dismissed: PR size is now acceptable'
+                      });
+                      console.log(`Dismissed review ${review.id}`);
+                    }
+                  } catch (error) {
+                    console.log(`Failed to handle review ${review.id}:`, error.message);
+                  }
+                }
+
+                // Store the flag for use in CODEOWNERS review logic
+                context.createdCodeownersFromCombined = createdCodeownersFromCombined;
+              }
+            }
+
+            // Strategy: CODEOWNERS review for new components (when not too big)
+            if (!((tooManyLabels || tooManyChanges) && !isMegaPR)) {
+              const needsCodeowners = finalLabels.includes('needs-codeowners');
+              const hasCodeownersLabel = currentLabels.includes('needs-codeowners');
+
+              if (needsCodeowners && !hasCodeownersLabel) {
+                // Check if we already created a CODEOWNERS review from a combined review update
+                const createdFromCombined = context.createdCodeownersFromCombined || false;
+
+                if (!createdFromCombined) {
+                  // Get all reviews on this PR to check for existing CODEOWNERS bot reviews
+                  const { data: reviews } = await github.rest.pulls.listReviews({
+                    owner,
+                    repo,
+                    pull_number: pr_number
+                  });
+
+                  // Check if there's already an active CODEOWNERS bot review
+                  const existingCodeownersReview = reviews.find(review =>
+                    review.user.type === 'Bot' &&
+                    review.state === 'CHANGES_REQUESTED' &&
+                    review.body && review.body.includes(BOT_COMMENT_MARKER) &&
+                    review.body.includes('CODEOWNERS')
+                  );
+
+                  if (!existingCodeownersReview) {
+                    const prAuthor = context.payload.pull_request.user.login;
+                    const reviewBody = `${BOT_COMMENT_MARKER}\nHey there @${prAuthor},\nThanks for submitting this pull request! Can you add yourself as a codeowner for this integration? This way we can notify you if a bug report for this integration is reported.\nIn \`__init__.py\` of the integration, please add:\n\n\`\`\`python\nCODEOWNERS = ["@${prAuthor}"]\n\`\`\`\n\nAnd run \`script/build_codeowners.py\``;
+
+                    // Request changes on the PR
+                    await github.rest.pulls.createReview({
+                      owner,
+                      repo,
+                      pull_number: pr_number,
+                      body: reviewBody,
+                      event: 'REQUEST_CHANGES'
+                  });
+                  console.log('Created new CODEOWNERS review requesting changes');
+                } else {
+                  console.log('Skipping CODEOWNERS review creation - already created from combined review update');
+                }
+              } else if (!needsCodeowners && hasCodeownersLabel) {
+                // CODEOWNERS was added, dismiss any CODEOWNERS reviews
+                console.log('CODEOWNERS conditions met - dismissing CODEOWNERS reviews');
+
+                const { data: reviews } = await github.rest.pulls.listReviews({
+                  owner,
+                  repo,
+                  pull_number: pr_number
+                });
+
+                // Find CODEOWNERS bot reviews that requested changes
+                const codeownersReviews = reviews.filter(review =>
+                  review.user.type === 'Bot' &&
+                  review.state === 'CHANGES_REQUESTED' &&
+                  review.body && review.body.includes(BOT_COMMENT_MARKER) &&
+                  review.body.includes('CODEOWNERS')
+                );
+
+                // Dismiss CODEOWNERS reviews
+                for (const review of codeownersReviews) {
                   try {
                     await github.rest.pulls.dismissReview({
                       owner,
                       repo,
                       pull_number: pr_number,
                       review_id: review.id,
-                      message: isMegaPR ?
-                        'Review dismissed: mega-pr label was added' :
-                        'Review dismissed: PR size is now acceptable'
+                      message: 'Review dismissed: CODEOWNERS requirements met'
                     });
-                    console.log(`Dismissed review ${review.id}`);
+                    console.log(`Dismissed CODEOWNERS review ${review.id}`);
                   } catch (error) {
-                    console.log(`Failed to dismiss review ${review.id}:`, error.message);
+                    console.log(`Failed to dismiss CODEOWNERS review ${review.id}:`, error.message);
                   }
                 }
               }
