@@ -61,7 +61,7 @@ static const LogString *espnow_error_to_str(esp_err_t error) {
 }
 
 std::string peer_str(uint8_t *peer) {
-  if (peer == nullptr) {
+  if (peer == nullptr || peer[0] == 0) {
     return "[Not Set]";
   } else if (memcmp(peer, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0) {
     return "[Broadcast]";
@@ -326,7 +326,7 @@ void ESPNowComponent::loop() {
   }
 }
 
-esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const std::vector<uint8_t> &payload,
+esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payload, size_t size,
                                 const send_callback_t &callback) {
   if (this->state_ != ESPNOW_STATE_ENABLED) {
     return ESP_ERR_ESPNOW_NOT_INIT;
@@ -353,7 +353,7 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const std::vector<u
       return ESP_ERR_ESPNOW_NO_MEM;
     }
     // Load the packet data
-    packet->load_data(peer_address, payload, callback);
+    packet->load_data(peer_address, payload, size, callback);
     // Push the packet to the send queue
     this->send_packet_queue_.push(packet);
     return ESP_OK;

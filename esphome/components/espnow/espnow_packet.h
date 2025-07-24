@@ -118,12 +118,12 @@ class ESPNowPacket {
 
 class ESPNowSendPacket {
  public:
-  ESPNowSendPacket(const uint8_t *peer_address, const std::vector<uint8_t> &payload, const send_callback_t &&callback)
+  ESPNowSendPacket(const uint8_t *peer_address, const uint8_t *payload, size_t size, const send_callback_t &&callback)
       : callback_(callback) {
-    this->init_data_(peer_address, payload);
+    this->init_data_(peer_address, payload, size);
   }
-  ESPNowSendPacket(const uint8_t *peer_address, const std::vector<uint8_t> &payload) {
-    this->init_data_(peer_address, payload);
+  ESPNowSendPacket(const uint8_t *peer_address, const uint8_t *payload, size_t size) {
+    this->init_data_(peer_address, payload, size);
   }
 
   // Default constructor for pre-allocation in pool
@@ -135,13 +135,13 @@ class ESPNowSendPacket {
   ESPNowSendPacket(const ESPNowSendPacket &) = delete;
   ESPNowSendPacket &operator=(const ESPNowSendPacket &) = delete;
 
-  void load_data(const uint8_t *peer_address, const std::vector<uint8_t> &payload, const send_callback_t &callback) {
-    this->init_data_(peer_address, payload);
+  void load_data(const uint8_t *peer_address, const uint8_t *payload, size_t size, const send_callback_t &callback) {
+    this->init_data_(peer_address, payload, size);
     this->callback_ = callback;
   }
 
-  void load_data(const uint8_t *peer_address, const std::vector<uint8_t> &payload) {
-    this->init_data_(peer_address, payload);
+  void load_data(const uint8_t *peer_address, const uint8_t *payload, size_t size) {
+    this->init_data_(peer_address, payload, size);
     this->callback_ = nullptr;  // Reset callback
   }
 
@@ -151,14 +151,14 @@ class ESPNowSendPacket {
   send_callback_t callback_{nullptr};      // Callback to call when the send operation is complete
 
  private:
-  void init_data_(const uint8_t *peer_address, const std::vector<uint8_t> &payload) {
+  void init_data_(const uint8_t *peer_address, const uint8_t *payload, size_t size) {
     memcpy(this->address_, peer_address, ESP_NOW_ETH_ALEN);
-    if (payload.size() > ESP_NOW_MAX_DATA_LEN) {
+    if (size > ESP_NOW_MAX_DATA_LEN) {
       this->size_ = 0;
       return;
     }
-    this->size_ = payload.size();
-    memcpy(this->data_, payload.data(), this->size_);
+    this->size_ = size;
+    memcpy(this->data_, payload, this->size_);
   }
 };
 

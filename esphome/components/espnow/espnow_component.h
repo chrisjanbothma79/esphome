@@ -105,6 +105,10 @@ class ESPNowComponent : public Component {
   /// @param callback Callback to call when the send operation is complete
   /// @return ESP_OK on success, or an error code on failure
   esp_err_t send(const uint8_t *peer_address, const std::vector<uint8_t> &payload,
+                 const send_callback_t &callback = nullptr) {
+    return this->send(peer_address, payload.data(), payload.size(), callback);
+  }
+  esp_err_t send(const uint8_t *peer_address, const uint8_t *payload, size_t size,
                  const send_callback_t &callback = nullptr);
 
   void register_received_handler(ESPNowReceivedPacketHandler *handler) { this->received_handlers_.push_back(handler); }
