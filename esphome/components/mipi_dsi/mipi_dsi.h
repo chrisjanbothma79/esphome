@@ -3,7 +3,7 @@
 //
 #pragma once
 
-// only applicable on ESP32-S3
+// only applicable on ESP32-P4
 #ifdef USE_ESP32_VARIANT_ESP32P4
 #include "esphome/core/component.h"
 #include "esphome/core/application.h"
