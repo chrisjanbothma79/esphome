@@ -1,4 +1,4 @@
-from esphome import automation
+from esphome import automation, core
 import esphome.codegen as cg
 from esphome.components import wifi
 from esphome.components.udp import CONF_ON_RECEIVE
@@ -9,10 +9,12 @@ from esphome.const import (
     CONF_DATA,
     CONF_ENABLE_ON_BOOT,
     CONF_ID,
+    CONF_ON_ERROR,
     CONF_TRIGGER_ID,
     CONF_WIFI,
 )
 from esphome.core import CORE
+from esphome.types import ConfigType
 
 CODEOWNERS = ["@jesserockz"]
 
@@ -21,7 +23,6 @@ ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
 
 # Handler interfaces that other components can use to register callbacks
 ESPNowReceivedPacketHandler = espnow_ns.class_("ESPNowReceivedPacketHandler")
-ESPNowSentPacketHandler = espnow_ns.class_("ESPNowSentPacketHandler")
 
 ESPNowRecvInfo = espnow_ns.class_("ESPNowRecvInfo")
 ESPNowRecvInfoConstRef = ESPNowRecvInfo.operator("const").operator("ref")
@@ -43,6 +44,9 @@ OnReceiveTrigger = espnow_ns.class_(
 
 CONF_AUTO_ADD_PEER = "auto_add_peer"
 CONF_PEERS = "peers"
+CONF_ON_SENT = "on_sent"
+CONF_CONTINUE_ON_ERROR = "continue_on_error"
+CONF_WAIT_FOR_SENT = "wait_for_sent"
 
 MAX_ESPNOW_PACKET_SIZE = 250  # Maximum size of the payload in bytes
 
@@ -146,6 +150,10 @@ PEER_SCHEMA = cv.Schema(
 SEND_SCHEMA = PEER_SCHEMA.extend(
     {
         cv.Required(CONF_DATA): cv.templatable(_validate_raw_data),
+        cv.Optional(CONF_ON_SENT): automation.validate_action_list,
+        cv.Optional(CONF_ON_ERROR): automation.validate_action_list,
+        cv.Optional(CONF_WAIT_FOR_SENT, default=True): cv.boolean,
+        cv.Optional(CONF_CONTINUE_ON_ERROR, default=True): cv.boolean,
     }
 )
 
@@ -167,7 +175,12 @@ SEND_SCHEMA = PEER_SCHEMA.extend(
         key=CONF_DATA,
     ),
 )
-async def send_action(config, action_id, template_arg, args):
+async def send_action(
+    config: ConfigType,
+    action_id: core.ID,
+    template_arg: cg.TemplateArguments,
+    args: list[tuple],
+):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
 
@@ -182,6 +195,18 @@ async def send_action(config, action_id, template_arg, args):
         cg.add(var.set_data_template(templ))
     else:
         cg.add(var.set_data_static(data))
+
+    cg.add(var.set_wait_for_sent(config[CONF_WAIT_FOR_SENT]))
+    cg.add(var.set_continue_on_error(config[CONF_CONTINUE_ON_ERROR]))
+
+    if on_sent_config := config.get(CONF_ON_SENT):
+        actions = await automation.build_action_list(on_sent_config, template_arg, args)
+        cg.add(var.add_on_sent(actions))
+    if on_error_config := config.get(CONF_ON_ERROR):
+        actions = await automation.build_action_list(
+            on_error_config, template_arg, args
+        )
+        cg.add(var.add_on_error(actions))
     return var
 
 
@@ -201,7 +226,12 @@ async def send_action(config, action_id, template_arg, args):
         key=CONF_ADDRESS,
     ),
 )
-async def peer_action(config, action_id, template_arg, args):
+async def peer_action(
+    config: ConfigType,
+    action_id: core.ID,
+    template_arg: cg.TemplateArguments,
+    args: list[tuple],
+):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     await _register_peer(var, config, args)
@@ -220,7 +250,12 @@ async def peer_action(config, action_id, template_arg, args):
         key=CONF_CHANNEL,
     ),
 )
-async def channel_action(config, action_id, template_arg, args):
+async def channel_action(
+    config: ConfigType,
+    action_id: core.ID,
+    template_arg: cg.TemplateArguments,
+    args: list[tuple],
+):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     template_ = await cg.templatable(config[CONF_CHANNEL], args, cg.uint8)

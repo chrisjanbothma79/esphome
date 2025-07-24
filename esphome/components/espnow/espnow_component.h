@@ -24,7 +24,8 @@ namespace esphome {
 namespace espnow {
 
 // Maximum size of the ESPNow event queue - must be power of 2 for lock-free queue
-static constexpr size_t MAX_ESP_NOW_QUEUE_SIZE = 16;
+static constexpr size_t MAX_ESP_NOW_SEND_QUEUE_SIZE = 16;
+static constexpr size_t MAX_ESP_NOW_RECEIVE_QUEUE_SIZE = 16;
 
 enum class ESPNowTriggers : uint8_t {
   TRIGGER_NONE = 0,
@@ -63,17 +64,6 @@ class ESPNowReceivedPacketHandler {
   virtual bool espnow_received_handler(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
 };
 
-/// Handler interface for ESPNow packet transmission status
-/// Components should inherit from this class to handle send confirmations
-class ESPNowSentPacketHandler {
- public:
-  /// Called when an ESPNow packet transmission is completed
-  /// @param mac_addr MAC address of the recipient
-  /// @param status ESP_NOW_SEND_SUCCESS or ESP_NOW_SEND_FAIL
-  /// @return true if the status was handled, false otherwise
-  virtual bool espnow_sent_handler(const uint8_t *mac_addr, esp_now_send_status_t status) = 0;
-};
-
 class ESPNowComponent : public Component {
  public:
   ESPNowComponent();
@@ -105,10 +95,18 @@ class ESPNowComponent : public Component {
   void set_enable_on_boot(bool enable_on_boot) { this->enable_on_boot_ = enable_on_boot; }
   bool is_wifi_enabled();
 
-  esp_err_t send(const uint8_t *peer_address, std::vector<uint8_t> payload);
+  /// @brief Queue a packet to be sent to a specific peer address.
+  /// This method will add the packet to the internal queue and
+  /// call the callback when the packet is sent.
+  /// Only one packet will be sent at any given time and the next one will not be sent until
+  /// the previous one has been acknowledged or failed.
+  /// @param peer_address MAC address of the peer to send the packet to
+  /// @param payload Data payload to send
+  /// @param callback Callback to call when the send operation is complete
+  /// @return ESP_OK on success, or an error code on failure
+  esp_err_t send(const uint8_t *peer_address, std::vector<uint8_t> payload, const send_callback_t &&callback = nullptr);
 
   void register_received_handler(ESPNowReceivedPacketHandler *handler) { this->received_handlers_.push_back(handler); }
-  void register_sent_handler(ESPNowSentPacketHandler *handler) { this->sent_handlers_.push_back(handler); }
 
  protected:
   friend void on_data_received(const esp_now_recv_info_t *info, const uint8_t *data, int size);
@@ -118,17 +116,20 @@ class ESPNowComponent : public Component {
   friend void on_send_report(const uint8_t *mac_addr, esp_now_send_status_t status);
 #endif
 
+ protected:
   void enable_();
-
- private:
+  void send_();
   std::vector<ESPNowReceivedPacketHandler *> received_handlers_;
-  std::vector<ESPNowSentPacketHandler *> sent_handlers_;
 
   std::vector<ESPNowPeer> peers_{};
 
   uint8_t own_address_[ESP_NOW_ETH_ALEN]{0};
-  LockFreeQueue<ESPNowPacket, MAX_ESP_NOW_QUEUE_SIZE> packet_queue_{};
-  EventPool<ESPNowPacket, MAX_ESP_NOW_QUEUE_SIZE> packet_pool_{};
+  LockFreeQueue<ESPNowPacket, MAX_ESP_NOW_RECEIVE_QUEUE_SIZE> receive_packet_queue_{};
+  EventPool<ESPNowPacket, MAX_ESP_NOW_RECEIVE_QUEUE_SIZE> receive_packet_pool_{};
+
+  LockFreeQueue<ESPNowSendPacket, MAX_ESP_NOW_SEND_QUEUE_SIZE> send_packet_queue_{};
+  EventPool<ESPNowSendPacket, MAX_ESP_NOW_SEND_QUEUE_SIZE> send_packet_pool_{};
+  ESPNowSendPacket *current_send_packet_{nullptr};  // Currently sending packet, nullptr if none
 
   uint8_t wifi_channel_{0};
   ESPNowState state_{ESPNOW_STATE_OFF};

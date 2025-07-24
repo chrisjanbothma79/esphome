@@ -79,10 +79,10 @@ void on_send_report(const uint8_t *mac_addr, esp_now_send_status_t status)
 #endif
 {
   // Allocate an event from the pool
-  ESPNowPacket *packet = global_esp_now->packet_pool_.allocate();
+  ESPNowPacket *packet = global_esp_now->receive_packet_pool_.allocate();
   if (packet == nullptr) {
     // No events available - queue is full or we're out of memory
-    global_esp_now->packet_queue_.increment_dropped_count();
+    global_esp_now->receive_packet_queue_.increment_dropped_count();
     return;
   }
 
@@ -94,16 +94,16 @@ void on_send_report(const uint8_t *mac_addr, esp_now_send_status_t status)
 #endif
 
   // Push the packet to the queue
-  global_esp_now->packet_queue_.push(packet);
+  global_esp_now->receive_packet_queue_.push(packet);
   // Push always because we're the only producer and the pool ensures we never exceed queue size
 }
 
 void on_data_received(const esp_now_recv_info_t *info, const uint8_t *data, int size) {
   // Allocate an event from the pool
-  ESPNowPacket *packet = global_esp_now->packet_pool_.allocate();
+  ESPNowPacket *packet = global_esp_now->receive_packet_pool_.allocate();
   if (packet == nullptr) {
     // No events available - queue is full or we're out of memory
-    global_esp_now->packet_queue_.increment_dropped_count();
+    global_esp_now->receive_packet_queue_.increment_dropped_count();
     return;
   }
 
@@ -111,7 +111,7 @@ void on_data_received(const esp_now_recv_info_t *info, const uint8_t *data, int 
   packet->load_received_data(info, data, size);
 
   // Push the packet to the queue
-  global_esp_now->packet_queue_.push(packet);
+  global_esp_now->receive_packet_queue_.push(packet);
   // Push always because we're the only producer and the pool ensures we never exceed queue size
 }
 
@@ -267,7 +267,8 @@ void ESPNowComponent::loop() {
   }
 #endif
 
-  ESPNowPacket *packet = this->packet_queue_.pop();
+  // Process received packets
+  ESPNowPacket *packet = this->receive_packet_queue_.pop();
   while (packet != nullptr) {
     switch (packet->type_) {
       case ESPNowPacket::RECEIVED: {
@@ -292,9 +293,10 @@ void ESPNowComponent::loop() {
         ESP_LOGV(TAG, ">>> [%s] %s", format_mac_address_pretty(packet->packet_.sent.address).c_str(),
                  LOG_STR_ARG(espnow_error_to_str(packet->packet_.sent.status)));
 #endif
-        for (auto *sent_handler : this->sent_handlers_) {
-          if (sent_handler->espnow_sent_handler(packet->packet_.sent.address, packet->packet_.sent.status))
-            break;  // If a handler returns true, stop processing further handlers
+        if (this->current_send_packet_ != nullptr) {
+          this->current_send_packet_->callback_(packet->packet_.sent.status);
+          this->send_packet_pool_.release(this->current_send_packet_);
+          this->current_send_packet_ = nullptr;  // Reset current packet after sending
         }
         break;
       }
@@ -302,18 +304,30 @@ void ESPNowComponent::loop() {
         break;
     }
     // Return the packet to the pool
-    this->packet_pool_.release(packet);
-    packet = this->packet_queue_.pop();
+    this->receive_packet_pool_.release(packet);
+    packet = this->receive_packet_queue_.pop();
   }
 
-  // Log dropped packets periodically
-  uint16_t dropped = this->packet_queue_.get_and_reset_dropped_count();
-  if (dropped > 0) {
-    ESP_LOGW(TAG, "Dropped %u packets due to buffer overflow", dropped);
+  // Process sending packet queue
+  if (this->current_send_packet_ == nullptr) {
+    this->send_();
+  }
+
+  // Log dropped received packets periodically
+  uint16_t received_dropped = this->receive_packet_queue_.get_and_reset_dropped_count();
+  if (received_dropped > 0) {
+    ESP_LOGW(TAG, "Dropped %u received packets due to buffer overflow", received_dropped);
+  }
+
+  // Log dropped send packets periodically
+  uint16_t send_dropped = this->send_packet_queue_.get_and_reset_dropped_count();
+  if (send_dropped > 0) {
+    ESP_LOGW(TAG, "Dropped %u send packets due to buffer overflow", send_dropped);
   }
 }
 
-esp_err_t ESPNowComponent::send(const uint8_t *peer_address, std::vector<uint8_t> payload) {
+esp_err_t ESPNowComponent::send(const uint8_t *peer_address, std::vector<uint8_t> payload,
+                                const send_callback_t &&callback) {
   if (this->state_ != ESPNOW_STATE_ENABLED) {
     return ESP_ERR_ESPNOW_NOT_INIT;
   } else if (this->is_failed()) {
@@ -330,13 +344,37 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, std::vector<uint8_t
          (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_))) {
       this->add_peer(peer_address);
     }
-    esp_err_t err = esp_now_send(peer_address, payload.data(), payload.size());
-    if (err != ESP_OK) {
-      ESP_LOGE(TAG, "Failed to send packet to %s - %s", format_mac_address_pretty(peer_address).c_str(),
-               LOG_STR_ARG(espnow_error_to_str(err)));
-      this->status_momentary_warning("send-failed");
+    // Allocate a packet from the pool
+    ESPNowSendPacket *packet = this->send_packet_pool_.allocate();
+    if (packet == nullptr) {
+      this->send_packet_queue_.increment_dropped_count();
+      ESP_LOGE(TAG, "Failed to allocate send packet from pool");
+      this->status_momentary_warning("send-packet-pool-full");
+      return ESP_ERR_ESPNOW_NO_MEM;
     }
-    return err;
+    // Load the packet data
+    packet->load_data(peer_address, payload, std::move(callback));
+    // Push the packet to the send queue
+    this->send_packet_queue_.push(packet);
+    return ESP_OK;
+  }
+}
+
+void ESPNowComponent::send_() {
+  ESPNowSendPacket *packet = this->send_packet_queue_.pop();
+  if (packet == nullptr) {
+    return;  // No packets to send
+  }
+
+  this->current_send_packet_ = packet;
+  esp_err_t err = esp_now_send(packet->address_, packet->data_, packet->size_);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to send packet to %s - %s", format_mac_address_pretty(packet->address_).c_str(),
+             LOG_STR_ARG(espnow_error_to_str(err)));
+    this->status_momentary_warning("send-failed");
+    this->send_packet_pool_.release(packet);
+    this->current_send_packet_ = nullptr;  // Reset current packet
+    return;
   }
 }
 
