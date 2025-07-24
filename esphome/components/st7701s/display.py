@@ -7,14 +7,12 @@ from esphome.components.mipi import (
     CONF_HSYNC_BACK_PORCH,
     CONF_HSYNC_FRONT_PORCH,
     CONF_HSYNC_PULSE_WIDTH,
+    CONF_PCLK_FREQUENCY,
+    CONF_PCLK_INVERTED,
     CONF_PCLK_PIN,
     CONF_VSYNC_BACK_PORCH,
     CONF_VSYNC_FRONT_PORCH,
     CONF_VSYNC_PULSE_WIDTH,
-)
-from esphome.components.rpi_dpi_rgb.display import (
-    CONF_PCLK_FREQUENCY,
-    CONF_PCLK_INVERTED,
 )
 import esphome.config_validation as cv
 from esphome.const import (
