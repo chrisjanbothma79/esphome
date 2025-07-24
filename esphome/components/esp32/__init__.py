@@ -31,7 +31,7 @@ from esphome.const import (
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
     PLATFORM_ESP32,
-    CoreModel,
+    ThreadModel,
     __version__,
 )
 from esphome.core import CORE, HexInt, TimePeriod
@@ -714,7 +714,7 @@ async def to_code(config):
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
     cg.add_define("ESPHOME_VARIANT", VARIANT_FRIENDLY[config[CONF_VARIANT]])
-    cg.add_define(CoreModel.MULTI_ATOMICS)
+    cg.add_define(ThreadModel.MULTI_ATOMICS)
 
     cg.add_platformio_option("lib_ldf_mode", "off")
     cg.add_platformio_option("lib_compat_mode", "strict")
