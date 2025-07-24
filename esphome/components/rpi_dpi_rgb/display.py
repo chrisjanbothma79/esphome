@@ -3,11 +3,13 @@ import esphome.codegen as cg
 from esphome.components import display
 from esphome.components.esp32 import const, only_on_variant
 from esphome.components.mipi import (
+    CONF_DE_PIN,
     CONF_HSYNC_BACK_PORCH,
     CONF_HSYNC_FRONT_PORCH,
     CONF_HSYNC_PULSE_WIDTH,
     CONF_PCLK_FREQUENCY,
     CONF_PCLK_INVERTED,
+    CONF_PCLK_PIN,
     CONF_VSYNC_BACK_PORCH,
     CONF_VSYNC_FRONT_PORCH,
     CONF_VSYNC_PULSE_WIDTH,
@@ -36,9 +38,6 @@ from esphome.const import (
 )
 
 DEPENDENCIES = ["esp32"]
-
-CONF_DE_PIN = "de_pin"
-CONF_PCLK_PIN = "pclk_pin"
 
 rpi_dpi_rgb_ns = cg.esphome_ns.namespace("rpi_dpi_rgb")
 RPI_DPI_RGB = rpi_dpi_rgb_ns.class_("RpiDpiRgb", display.Display, cg.Component)

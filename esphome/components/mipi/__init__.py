@@ -148,17 +148,19 @@ COLOR_ORDERS = {
     MODE_BGR: ColorOrder.COLOR_ORDER_BGR,
 }
 
-CONF_HSYNC_PULSE_WIDTH = "hsync_pulse_width"
 CONF_HSYNC_BACK_PORCH = "hsync_back_porch"
 CONF_HSYNC_FRONT_PORCH = "hsync_front_porch"
-CONF_VSYNC_PULSE_WIDTH = "vsync_pulse_width"
+CONF_HSYNC_PULSE_WIDTH = "hsync_pulse_width"
 CONF_VSYNC_BACK_PORCH = "vsync_back_porch"
 CONF_VSYNC_FRONT_PORCH = "vsync_front_porch"
+CONF_VSYNC_PULSE_WIDTH = "vsync_pulse_width"
 CONF_PCLK_FREQUENCY = "pclk_frequency"
-CONF_NATIVE_WIDTH = "native_width"
-CONF_NATIVE_HEIGHT = "native_height"
-
 CONF_PCLK_INVERTED = "pclk_inverted"
+CONF_NATIVE_HEIGHT = "native_height"
+CONF_NATIVE_WIDTH = "native_width"
+
+CONF_DE_PIN = "de_pin"
+CONF_PCLK_PIN = "pclk_pin"
 
 
 def power_of_two(value):
@@ -196,8 +198,10 @@ def dimension_schema(rounding):
 
 def map_sequence(value):
     """
+    Maps one entry in a sequence to a command and data bytes.
     The format is a repeated sequence of [CMD, <data>] where <data> is s a sequence of bytes. The length is inferred
     from the length of the sequence and should not be explicit.
+    A single integer can be provided where there are no data bytes, in which case it is treated as a command.
     A delay can be inserted by specifying "- delay N" where N is in ms
     """
     if isinstance(value, str) and value.lower().startswith("delay "):
@@ -207,8 +211,6 @@ def map_sequence(value):
             cv.Range(TimePeriod(milliseconds=1), TimePeriod(milliseconds=255)),
         )(value)
         return DELAY_FLAG, delay_value.total_milliseconds
-    if isinstance(value, int):
-        return (value,)
     value = cv.All(cv.ensure_list(cv.int_range(0, 255)), cv.Length(1, 254))(value)
     return tuple(value)
 
@@ -232,7 +234,7 @@ class DriverChip:
         self.defaults = defaults
         DriverChip.models[name] = self
 
-    def extend(self, name, **kwargs):
+    def extend(self, name, **kwargs) -> "DriverChip":
         defaults = self.defaults.copy()
         if (
             CONF_WIDTH in defaults
@@ -249,13 +251,13 @@ class DriverChip:
         defaults.update(kwargs)
         return DriverChip(name, initsequence=self.initsequence, **defaults)
 
-    def get_default(self, key, fallback: Any = False):
+    def get_default(self, key, fallback: Any = False) -> Any:
         return self.defaults.get(key, fallback)
 
-    def option(self, name, fallback=False):
+    def option(self, name, fallback=False) -> cv.Optional:
         return cv.Optional(name, default=self.get_default(name, fallback))
 
-    def rotation_as_transform(self, config):
+    def rotation_as_transform(self, config) -> bool:
         """
         Check if a rotation can be implemented in hardware using the MADCTL register.
         A rotation of 180 is always possible, 90 and 270 are possible if the model supports swapping X and Y.
@@ -265,7 +267,7 @@ class DriverChip:
             self.get_default(CONF_SWAP_XY) != cv.UNDEFINED or rotation == 180
         )
 
-    def get_dimensions(self, config):
+    def get_dimensions(self, config) -> tuple[int, int, int, int]:
         if CONF_DIMENSIONS in config:
             # Explicit dimensions, just use as is
             dimensions = config[CONF_DIMENSIONS]
@@ -302,7 +304,7 @@ class DriverChip:
             offset_height, offset_width = offset_width, offset_height
         return width, height, offset_width, offset_height
 
-    def get_transform(self, config):
+    def get_transform(self, config) -> dict[str, bool]:
         can_transform = self.rotation_as_transform(config)
         transform = config.get(
             CONF_TRANSFORM,
@@ -328,7 +330,7 @@ class DriverChip:
             transform[CONF_TRANSFORM] = True
         return transform
 
-    def get_sequence(self, config):
+    def get_sequence(self, config) -> tuple[tuple[int, ...], int]:
         """
         Create the init sequence for the display.
         Use the default sequence from the model, if any, and append any custom sequence provided in the config.
@@ -383,7 +385,7 @@ class DriverChip:
         ), madctl
 
 
-def requires_buffer(config):
+def requires_buffer(config) -> bool:
     """
     Check if the display configuration requires a buffer. It will do so if any drawing methods are configured.
     :param config:
@@ -394,5 +396,8 @@ def requires_buffer(config):
     )
 
 
-def get_color_depth(config):
+def get_color_depth(config) -> int:
+    """
+    Get the color depth in bits from the configuration.
+    """
     return int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
