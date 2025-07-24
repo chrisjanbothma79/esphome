@@ -177,8 +177,8 @@ class Scheduler {
 
   // Helper function to check if item matches criteria for cancellation
   inline bool HOT matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
-                                SchedulerItem::Type type) {
-    if (item->component != component || item->type != type || item->remove) {
+                                SchedulerItem::Type type, bool skip_removed = true) {
+    if (item->component != component || item->type != type || (skip_removed && item->remove)) {
       return false;
     }
     const char *item_name = item->get_name();
@@ -209,8 +209,8 @@ class Scheduler {
   bool has_cancelled_timeout_in_container_(const Container &container, Component *component,
                                            const char *name_cstr) const {
     for (const auto &item : container) {
-      if (item->component == component && item->type == SchedulerItem::TIMEOUT && item->remove &&
-          item->get_name() != nullptr && strcmp(item->get_name(), name_cstr) == 0) {
+      // Use matches_item_ with skip_removed=false to find cancelled items
+      if (item->remove && this->matches_item_(item, component, name_cstr, SchedulerItem::TIMEOUT, false)) {
         return true;
       }
     }
