@@ -177,7 +177,7 @@ class Scheduler {
 
   // Helper function to check if item matches criteria for cancellation
   inline bool HOT matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
-                                SchedulerItem::Type type, bool skip_removed = true) {
+                                SchedulerItem::Type type, bool skip_removed = true) const {
     if (item->component != component || item->type != type || (skip_removed && item->remove)) {
       return false;
     }
