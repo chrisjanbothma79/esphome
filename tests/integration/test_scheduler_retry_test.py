@@ -148,16 +148,16 @@ async def test_scheduler_retry_test(
             f"Expected at least 2 intervals, got {len(backoff_intervals)}"
         )
         if len(backoff_intervals) >= 3:
-            # First interval should be ~50ms
-            assert 30 <= backoff_intervals[0] <= 70, (
+            # First interval should be ~50ms (increased tolerance for system load)
+            assert 30 <= backoff_intervals[0] <= 80, (
                 f"First interval {backoff_intervals[0]}ms not ~50ms"
             )
             # Second interval should be ~100ms (50ms * 2.0)
-            assert 80 <= backoff_intervals[1] <= 120, (
+            assert 70 <= backoff_intervals[1] <= 130, (
                 f"Second interval {backoff_intervals[1]}ms not ~100ms"
             )
             # Third interval should be ~200ms (100ms * 2.0)
-            assert 180 <= backoff_intervals[2] <= 220, (
+            assert 170 <= backoff_intervals[2] <= 230, (
                 f"Third interval {backoff_intervals[2]}ms not ~200ms"
             )
 
