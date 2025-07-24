@@ -71,17 +71,17 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
       }
     };
     if (this->flags_.address_is_static && this->flags_.data_is_static) {
-      this->parent_->send(this->address_static_.data(), this->data_static_, std::move(send_callback));
+      this->parent_->send(this->address_static_.data(), this->data_static_, send_callback);
     } else if (this->flags_.address_is_static) {
       auto data = this->data_func_(x...);
-      this->parent_->send(this->address_static_.data(), data, std::move(send_callback));
+      this->parent_->send(this->address_static_.data(), data, send_callback);
     } else if (this->flags_.data_is_static) {
       auto address = this->address_func_(x...);
-      this->parent_->send(address.data(), this->data_static_, std::move(send_callback));
+      this->parent_->send(address.data(), this->data_static_, send_callback);
     } else {
       auto address = this->address_func_(x...);
       auto data = this->data_func_(x...);
-      this->parent_->send(address.data(), data, std::move(send_callback));
+      this->parent_->send(address.data(), data, send_callback);
     }
     if (!this->flags_.wait_for_sent) {
       this->play_next_(x...);

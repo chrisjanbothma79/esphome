@@ -326,8 +326,8 @@ void ESPNowComponent::loop() {
   }
 }
 
-esp_err_t ESPNowComponent::send(const uint8_t *peer_address, std::vector<uint8_t> payload,
-                                const send_callback_t &&callback) {
+esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const std::vector<uint8_t> &payload,
+                                const send_callback_t &callback) {
   if (this->state_ != ESPNOW_STATE_ENABLED) {
     return ESP_ERR_ESPNOW_NOT_INIT;
   } else if (this->is_failed()) {
