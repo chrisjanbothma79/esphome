@@ -28,7 +28,6 @@ const uint8_t INVERT_OFF = 0x20;
 const uint8_t INVERT_ON = 0x21;
 const uint8_t DISPLAY_ON = 0x29;
 const uint8_t CMD2_BKSEL = 0xFF;
-const uint8_t CMD2_BK0[5] = {0x77, 0x01, 0x00, 0x00, 0x10};
 const uint8_t DELAY_FLAG = 0xFF;
 const uint8_t MADCTL_BGR = 0x08;
 const uint8_t MADCTL_MX = 0x40;
@@ -37,16 +36,10 @@ const uint8_t MADCTL_MV = 0x20;     // row/column swap
 const uint8_t MADCTL_XFLIP = 0x02;  // Mirror the display horizontally
 const uint8_t MADCTL_YFLIP = 0x01;  // Mirror the display vertically
 
-enum PixelMode {
-  PIXEL_MODE_8 = 1,
-  PIXEL_MODE_16 = 2,
-  PIXEL_MODE_18 = 3,
-};
-
 class MIPI_DSI : public display::Display {
  public:
-  MIPI_DSI(size_t width, size_t height, display::ColorBitness color_depth)
-      : width_(width), height_(height), color_depth_(color_depth) {}
+  MIPI_DSI(size_t width, size_t height, display::ColorBitness color_depth, uint8_t pixel_mode)
+      : width_(width), height_(height), color_depth_(color_depth), pixel_mode_(pixel_mode) {}
   display::ColorOrder get_color_mode() { return this->color_mode_; }
   void set_color_mode(display::ColorOrder color_mode) { this->color_mode_ = color_mode; }
   void set_invert_colors(bool invert_colors) { this->invert_colors_ = invert_colors; }
@@ -82,7 +75,7 @@ class MIPI_DSI : public display::Display {
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
 
   void draw_pixel_at(int x, int y, Color color) override;
-  void fill(Color color);
+  void fill(Color color) override;
   int get_width() override;
   int get_height() override;
 
@@ -112,6 +105,7 @@ class MIPI_DSI : public display::Display {
   bool invert_colors_{};
   display::ColorOrder color_mode_{display::COLOR_ORDER_BGR};
   display::ColorBitness color_depth_;
+  uint8_t pixel_mode_{};
 
   esp_lcd_panel_handle_t handle_{};
   esp_lcd_dsi_bus_handle_t bus_handle_{};
