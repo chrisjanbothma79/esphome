@@ -135,7 +135,7 @@ class ESPNowSendPacket {
   ESPNowSendPacket(const ESPNowSendPacket &) = delete;
   ESPNowSendPacket &operator=(const ESPNowSendPacket &) = delete;
 
-  void load_data(const uint8_t *peer_address, const std::vector<uint8_t> &payload, const send_callback_t &&callback) {
+  void load_data(const uint8_t *peer_address, const std::vector<uint8_t> &payload, const send_callback_t &callback) {
     this->init_data_(peer_address, payload);
     this->callback_ = callback;
   }

@@ -353,7 +353,7 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const std::vector<u
       return ESP_ERR_ESPNOW_NO_MEM;
     }
     // Load the packet data
-    packet->load_data(peer_address, payload, std::move(callback));
+    packet->load_data(peer_address, payload, callback);
     // Push the packet to the send queue
     this->send_packet_queue_.push(packet);
     return ESP_OK;
