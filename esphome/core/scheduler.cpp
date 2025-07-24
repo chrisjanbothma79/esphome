@@ -64,8 +64,9 @@ static void validate_static_string(const char *name) {
 // avoid the main thread modifying the list while it is being accessed.
 
 // Common implementation for both timeout and interval
-void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
-                                      const void *name_ptr, uint32_t delay, std::function<void()> func) {
+bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
+                                      const void *name_ptr, uint32_t delay, std::function<void()> func,
+                                      bool is_reschedule) {
   // Get the name as const char*
   const char *name_cstr = this->get_name_cstr_(is_static_string, name_ptr);
 
@@ -73,7 +74,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     // Still need to cancel existing timer if name is not empty
     LockGuard guard{this->lock_};
     this->cancel_item_locked_(component, name_cstr, type);
-    return;
+    return true;
   }
 
   // Create and populate the scheduler item
@@ -90,9 +91,18 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
     LockGuard guard{this->lock_};
+
+    // For retry reschedules, check if there's a cancelled timeout first
+    if (is_reschedule && name_cstr != nullptr && strncmp(name_cstr, "retry$", 6) == 0) {
+      if (this->has_cancelled_timeout_locked_(component, name_cstr)) {
+        // Skip scheduling - the retry was cancelled
+        return false;
+      }
+    }
+
     this->cancel_item_locked_(component, name_cstr, type);
     this->defer_queue_.push_back(std::move(item));
-    return;
+    return true;
   }
 #endif /* not ESPHOME_THREAD_SINGLE */
 
@@ -130,12 +140,22 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
 #endif /* ESPHOME_DEBUG_SCHEDULER */
 
   LockGuard guard{this->lock_};
+
+  // For retry reschedules, check if there's a cancelled timeout first
+  if (is_reschedule && name_cstr != nullptr && type == SchedulerItem::TIMEOUT && strncmp(name_cstr, "retry$", 6) == 0) {
+    if (this->has_cancelled_timeout_locked_(component, name_cstr)) {
+      // Skip scheduling - the retry was cancelled
+      return false;
+    }
+  }
+
   // If name is provided, do atomic cancel-and-add
   // Cancel existing items
   this->cancel_item_locked_(component, name_cstr, type);
   // Add new item directly to to_add_
   // since we have the lock held
   this->to_add_.push_back(std::move(item));
+  return true;
 }
 
 void HOT Scheduler::set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func) {

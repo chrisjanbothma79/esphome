@@ -153,8 +153,9 @@ class Scheduler {
   };
 
   // Common implementation for both timeout and interval
-  void set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
-                         uint32_t delay, std::function<void()> func);
+  // Returns true if scheduled, false if skipped (only relevant when is_reschedule=true)
+  bool set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
+                         uint32_t delay, std::function<void()> func, bool is_reschedule = false);
 
   uint64_t millis_64_(uint32_t now);
   // Cleanup logically deleted items from the scheduler
@@ -165,19 +166,10 @@ class Scheduler {
 
   // Reschedule a timeout only if it hasn't been cancelled
   // Used by retry handler to avoid race conditions with cancel_retry
+  // Returns true if scheduled, false if skipped due to cancellation
   bool reschedule_timeout_(Component *component, const std::string &name, uint32_t timeout,
                            std::function<void()> func) {
-    // For retry timeouts, check if cancelled before scheduling
-    if (!name.empty() && name.substr(0, 6) == "retry$") {
-      LockGuard lock(this->lock_);
-      if (this->has_cancelled_timeout_locked_(component, name.c_str())) {
-        return false;  // Indicate scheduling was skipped
-      }
-    }
-
-    // Not cancelled or not a retry - proceed with normal scheduling
-    this->set_timer_common_(component, SchedulerItem::TIMEOUT, false, &name, timeout, std::move(func));
-    return true;
+    return this->set_timer_common_(component, SchedulerItem::TIMEOUT, false, &name, timeout, std::move(func), true);
   }
 
  private:
