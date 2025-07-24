@@ -1,7 +1,6 @@
 import esphome.codegen as cg
 from esphome.components import i2c, light
 from esphome.components.light import RESTORE_MODES
-from esphome.components.mipi_dsi import mipi_dsi_ns
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_DEFAULT_TRANSITION_LENGTH,
@@ -9,6 +8,8 @@ from esphome.const import (
     CONF_OUTPUT_ID,
     CONF_RESTORE_MODE,
 )
+
+from .. import mipi_dsi_ns
 
 DsiBacklight = mipi_dsi_ns.class_(
     "DsiBacklight", light.LightOutput, cg.Component, i2c.I2CDevice
