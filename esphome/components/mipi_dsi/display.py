@@ -1,4 +1,6 @@
+import importlib
 import logging
+import pkgutil
 
 from esphome import pins
 import esphome.codegen as cg
@@ -9,6 +11,7 @@ from esphome.components.const import (
     CONF_BYTE_ORDER,
     CONF_DRAW_ROUNDING,
 )
+from esphome.components.display import CONF_SHOW_TEST_CARD
 from esphome.components.esp32 import const, only_on_variant
 from esphome.components.mipi import (
     CONF_COLOR_DEPTH,
@@ -49,11 +52,9 @@ from esphome.const import (
     CONF_TRANSFORM,
     CONF_WIDTH,
 )
+from esphome.final_validate import full_config
 
-from ...final_validate import full_config
-from ..display import CONF_SHOW_TEST_CARD
-from . import mipi_dsi_ns
-from .models import guition, m5stack, waveshare
+from . import mipi_dsi_ns, models
 
 DEPENDENCIES = ["esp32"]
 DOMAIN = "mipi_dsi"
@@ -74,11 +75,12 @@ CONF_LANES = "lanes"
 
 DriverChip("CUSTOM")
 
-# This loop is a noop, but suppresses linting of side-effect-only imports
-for _ in (waveshare, m5stack, guition):
-    pass
+# Import all models dynamically from the models package
 
-MODELS = DriverChip.models
+for module_info in pkgutil.iter_modules(models.__path__):
+    importlib.import_module(f".models.{module_info.name}", package=__package__)
+
+MODELS = DriverChip.get_models()
 
 COLOR_DEPTHS = {
     16: ColorBitness.COLOR_BITNESS_565,
@@ -92,7 +94,7 @@ if getattr(cv, "bps", None) is None:
 
 
 def model_schema(config):
-    model = DriverChip.models[config[CONF_MODEL].upper()]
+    model = MODELS[config[CONF_MODEL].upper()]
     transform = cv.Schema(
         {
             cv.Required(CONF_MIRROR_X): cv.boolean,
@@ -203,7 +205,7 @@ FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
-    model = DriverChip.models[config[CONF_MODEL].upper()]
+    model = MODELS[config[CONF_MODEL].upper()]
     color_depth = COLOR_DEPTHS[get_color_depth(config)]
     width, height, _offset_width, _offset_height = model.get_dimensions(config)
     var = cg.new_Pvariable(config[CONF_ID], width, height, color_depth)
