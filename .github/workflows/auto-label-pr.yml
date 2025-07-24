@@ -571,8 +571,9 @@ jobs:
                       pull_number: pr_number,
                       body: reviewBody,
                       event: 'REQUEST_CHANGES'
-                  });
-                  console.log('Created new CODEOWNERS review requesting changes');
+                    });
+                    console.log('Created new CODEOWNERS review requesting changes');
+                  }
                 } else {
                   console.log('Skipping CODEOWNERS review creation - already created from combined review update');
                 }
