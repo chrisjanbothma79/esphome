@@ -337,7 +337,7 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payl
   } else if (memcmp(peer_address, this->own_address_, ESP_NOW_ETH_ALEN) == 0) {
     return ESP_ERR_ESPNOW_OWN_PEER_ADDRESS;
   } else {
-    if (payload.size() > ESP_NOW_MAX_DATA_LEN) {
+    if (size > ESP_NOW_MAX_DATA_LEN) {
       return ESP_ERR_ESPNOW_PAYLOAD_SIZE;
     }
     if ((!esp_now_is_peer_exist(peer_address) &&
