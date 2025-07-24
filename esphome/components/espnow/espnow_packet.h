@@ -119,7 +119,7 @@ class ESPNowPacket {
 class ESPNowSendPacket {
  public:
   ESPNowSendPacket(const uint8_t *peer_address, const std::vector<uint8_t> &payload, const send_callback_t &&callback)
-      : callback_(std::move(callback)) {
+      : callback_(callback) {
     this->init_data_(peer_address, payload);
   }
   ESPNowSendPacket(const uint8_t *peer_address, const std::vector<uint8_t> &payload) {
