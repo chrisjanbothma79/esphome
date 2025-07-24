@@ -153,9 +153,9 @@ class Scheduler {
   };
 
   // Common implementation for both timeout and interval
-  // Returns true if scheduled, false if skipped (only relevant when is_reschedule=true)
+  // Returns true if scheduled, false if skipped (only relevant when is_retry=true)
   bool set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
-                         uint32_t delay, std::function<void()> func, bool is_reschedule = false);
+                         uint32_t delay, std::function<void()> func, bool is_retry = false);
 
   uint64_t millis_64_(uint32_t now);
   // Cleanup logically deleted items from the scheduler
@@ -164,11 +164,10 @@ class Scheduler {
   size_t cleanup_();
   void pop_raw_();
 
-  // Reschedule a timeout only if it hasn't been cancelled
+  // Schedule a retry timeout only if it hasn't been cancelled
   // Used by retry handler to avoid race conditions with cancel_retry
   // Returns true if scheduled, false if skipped due to cancellation
-  bool reschedule_timeout_(Component *component, const std::string &name, uint32_t timeout,
-                           std::function<void()> func) {
+  bool schedule_retry_(Component *component, const std::string &name, uint32_t timeout, std::function<void()> func) {
     return this->set_timer_common_(component, SchedulerItem::TIMEOUT, false, &name, timeout, std::move(func), true);
   }
 
@@ -223,27 +222,6 @@ class Scheduler {
         return true;
       }
     }
-    return false;
-  }
-
-  // Helper to check if a cancelled timeout exists with the given name
-  // Must be called with lock held
-  bool has_cancelled_timeout_locked_(Component *component, const char *name_cstr) const {
-    if (name_cstr == nullptr)
-      return false;
-
-    // Check all containers using the template helper
-    if (has_cancelled_timeout_in_container_(this->items_, component, name_cstr))
-      return true;
-
-    if (has_cancelled_timeout_in_container_(this->to_add_, component, name_cstr))
-      return true;
-
-#ifndef ESPHOME_THREAD_SINGLE
-    if (has_cancelled_timeout_in_container_(this->defer_queue_, component, name_cstr))
-      return true;
-#endif
-
     return false;
   }
 

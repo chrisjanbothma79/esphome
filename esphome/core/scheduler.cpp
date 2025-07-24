@@ -65,8 +65,7 @@ static void validate_static_string(const char *name) {
 
 // Common implementation for both timeout and interval
 bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
-                                      const void *name_ptr, uint32_t delay, std::function<void()> func,
-                                      bool is_reschedule) {
+                                      const void *name_ptr, uint32_t delay, std::function<void()> func, bool is_retry) {
   // Get the name as const char*
   const char *name_cstr = this->get_name_cstr_(is_static_string, name_ptr);
 
@@ -91,15 +90,6 @@ bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
     LockGuard guard{this->lock_};
-
-    // For retry reschedules, check if there's a cancelled timeout first
-    if (is_reschedule && name_cstr != nullptr && strncmp(name_cstr, "retry$", 6) == 0) {
-      if (this->has_cancelled_timeout_locked_(component, name_cstr)) {
-        // Skip scheduling - the retry was cancelled
-        return false;
-      }
-    }
-
     this->cancel_item_locked_(component, name_cstr, type);
     this->defer_queue_.push_back(std::move(item));
     return true;
@@ -141,12 +131,12 @@ bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
 
   LockGuard guard{this->lock_};
 
-  // For retry reschedules, check if there's a cancelled timeout first
-  if (is_reschedule && name_cstr != nullptr && type == SchedulerItem::TIMEOUT && strncmp(name_cstr, "retry$", 6) == 0) {
-    if (this->has_cancelled_timeout_locked_(component, name_cstr)) {
-      // Skip scheduling - the retry was cancelled
-      return false;
-    }
+  // For retries, check if there's a cancelled timeout first
+  if (is_retry && name_cstr != nullptr && type == SchedulerItem::TIMEOUT &&
+      (has_cancelled_timeout_in_container_(this->items_, component, name_cstr) ||
+       has_cancelled_timeout_in_container_(this->to_add_, component, name_cstr))) {
+    // Skip scheduling - the retry was cancelled
+    return false;
   }
 
   // If name is provided, do atomic cancel-and-add
@@ -206,12 +196,12 @@ void retry_handler(const std::shared_ptr<RetryArgs> &args) {
     return;
   }
 
-  // Use reschedule_timeout_ to check for cancellation
+  // Use schedule_retry_ to check for cancellation
   ESP_LOGVV(TAG, "retry_handler: Attempting to schedule next retry for '%s' in %dms", args->name.c_str(),
             args->current_interval);
 
-  bool scheduled = args->scheduler->reschedule_timeout_(args->component, args->name, args->current_interval,
-                                                        [args]() { retry_handler(args); });
+  bool scheduled = args->scheduler->schedule_retry_(args->component, args->name, args->current_interval,
+                                                    [args]() { retry_handler(args); });
 
   if (!scheduled) {
     ESP_LOGVV(TAG, "retry_handler: Retry '%s' was cancelled, not scheduling next iteration", args->name.c_str());
