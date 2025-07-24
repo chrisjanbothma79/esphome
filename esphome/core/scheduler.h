@@ -176,7 +176,7 @@ class Scheduler {
     }
 
     // Not cancelled or not a retry - proceed with normal scheduling
-    this->set_timeout(component, name, timeout, std::move(func));
+    this->set_timer_common_(component, SchedulerItem::TIMEOUT, false, &name, timeout, std::move(func));
     return true;
   }
 
