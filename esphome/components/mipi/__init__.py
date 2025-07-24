@@ -358,7 +358,7 @@ class DriverChip:
         if not isinstance(pixel_mode, int):
             if not pixel_mode.endswith("bit"):
                 pixel_mode = f"{pixel_mode}bit"
-                pixel_mode = PIXEL_MODES[pixel_mode]
+            pixel_mode = PIXEL_MODES[pixel_mode]
         sequence.append((PIXFMT, pixel_mode))
 
         # Does the chip use the flipping bits for mirroring rather than the reverse order bits?
