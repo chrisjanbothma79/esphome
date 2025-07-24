@@ -34,11 +34,10 @@ from esphome.const import (
     CONF_PORT,
     CONF_SUBSTITUTIONS,
     CONF_TOPIC,
-    PLATFORM_BK72XX,
+    ENV_NOGITIGNORE,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
     PLATFORM_RP2040,
-    PLATFORM_RTL87XX,
     SECRETS_FILES,
 )
 from esphome.core import CORE, EsphomeError, coroutine
@@ -211,6 +210,9 @@ def wrap_to_code(name, comp):
 
 
 def write_cpp(config):
+    if not get_bool_env(ENV_NOGITIGNORE):
+        writer.write_gitignore()
+
     generate_cpp_contents(config)
     return write_cpp_file()
 
@@ -227,10 +229,13 @@ def generate_cpp_contents(config):
 
 
 def write_cpp_file():
-    writer.write_platformio_project()
-
     code_s = indent(CORE.cpp_main_section)
     writer.write_cpp(code_s)
+
+    from esphome.build_gen import platformio
+
+    platformio.write_project()
+
     return 0
 
 
@@ -354,7 +359,7 @@ def upload_program(config, args, host):
         if CORE.target_platform in (PLATFORM_RP2040):
             return upload_using_platformio(config, args.device)
 
-        if CORE.target_platform in (PLATFORM_BK72XX, PLATFORM_RTL87XX):
+        if CORE.is_libretiny:
             return upload_using_platformio(config, host)
 
         return 1  # Unknown target platform

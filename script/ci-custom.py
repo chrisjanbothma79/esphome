@@ -241,6 +241,9 @@ def lint_ext_check(fname):
         "docker/ha-addon-rootfs/**",
         "docker/*.py",
         "script/*",
+        "CLAUDE.md",
+        "GEMINI.md",
+        ".github/copilot-instructions.md",
     ]
 )
 def lint_executable_bit(fname):
@@ -270,7 +273,7 @@ def lint_newline(fname):
     return "File contains Windows newline. Please set your editor to Unix newline mode."
 
 
-@lint_content_check(exclude=["*.svg"])
+@lint_content_check(exclude=["*.svg", ".clang-tidy.hash"])
 def lint_end_newline(fname, content):
     if content and not content.endswith("\n"):
         return "File does not end with a newline, please add an empty line at the end of the file."
@@ -559,6 +562,12 @@ def lint_relative_py_import(fname):
         "esphome/components/libretiny/core.cpp",
         "esphome/components/host/core.cpp",
         "esphome/components/zephyr/core.cpp",
+        "esphome/components/esp32/helpers.cpp",
+        "esphome/components/esp8266/helpers.cpp",
+        "esphome/components/rp2040/helpers.cpp",
+        "esphome/components/libretiny/helpers.cpp",
+        "esphome/components/host/helpers.cpp",
+        "esphome/components/zephyr/helpers.cpp",
         "esphome/components/http_request/httplib.h",
     ],
 )
@@ -566,13 +575,15 @@ def lint_namespace(fname, content):
     expected_name = re.match(
         r"^esphome/components/([^/]+)/.*", fname.replace(os.path.sep, "/")
     ).group(1)
-    search = f"namespace {expected_name}"
-    if search in content:
+    # Check for both old style and C++17 nested namespace syntax
+    search_old = f"namespace {expected_name}"
+    search_new = f"namespace esphome::{expected_name}"
+    if search_old in content or search_new in content:
         return None
     return (
         "Invalid namespace found in C++ file. All integration C++ files should put all "
         "functions in a separate namespace that matches the integration's name. "
-        f"Please make sure the file contains {highlight(search)}"
+        f"Please make sure the file contains {highlight(search_old)} or {highlight(search_new)}"
     )
 
 
