@@ -87,11 +87,6 @@ COLOR_DEPTHS = {
     24: ColorBitness.COLOR_BITNESS_888,
 }
 
-if getattr(cv, "bps", None) is None:
-    # If the bps validator is not available, we need to define it ourselves
-
-    cv.bps = cv.float_with_unit("bits per second", "(bps|bits/s|bit/s)?")
-
 
 def model_schema(config):
     model = MODELS[config[CONF_MODEL].upper()]
@@ -179,7 +174,6 @@ def model_schema(config):
 
 
 def _config_schema(config):
-    # First get the model
     config = cv.Schema(
         {
             cv.Required(CONF_MODEL): cv.one_of(*MODELS, upper=True),

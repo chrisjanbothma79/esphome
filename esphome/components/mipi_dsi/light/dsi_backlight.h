@@ -12,9 +12,9 @@ class DsiBacklight : public light::LightOutput, public Component, public i2c::I2
   void setup() override;
   light::LightTraits get_traits() override;
   void write_state(light::LightState *state) override;
-  bool can_proceed() override { return this->setup_completed_; };
 
  protected:
+  uint8_t brightness_{0xD0};
   bool setup_completed_{false};
 };
 }  // namespace mipi_dsi

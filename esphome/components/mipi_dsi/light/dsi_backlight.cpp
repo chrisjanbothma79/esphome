@@ -11,6 +11,7 @@ void DsiBacklight::setup() {
   this->write_byte(REG_96, 0x00);
   this->set_timeout(100, [this] {
     this->write_byte(REG_96, 0xFF);
+    this->write_byte(REG_PWM, this->brightness_);
     this->setup_completed_ = true;
   });
 }
@@ -22,7 +23,10 @@ light::LightTraits DsiBacklight::get_traits() {
 void DsiBacklight::write_state(light::LightState *state) {
   float bright;
   state->current_values_as_brightness(&bright);
-  this->write_byte(REG_PWM, (uint8_t) (bright * 255.0f));
+  this->brightness_ = (uint8_t) (bright * 255.0f);
+  if (this->setup_completed_) {
+    this->write_byte(REG_PWM, this->brightness_);
+  }
 };
 }  // namespace mipi_dsi
 }  // namespace esphome
