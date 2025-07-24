@@ -122,7 +122,7 @@ def model_schema(config):
     cv_dimensions = (
         cv.Optional if model.get_default(CONF_WIDTH) and not swap_xy else cv.Required
     )
-    pixel_modes = (PIXEL_MODE_16BIT, PIXEL_MODE_24BIT)
+    pixel_modes = (PIXEL_MODE_16BIT, PIXEL_MODE_24BIT, "16", "24")
     schema = display.FULL_DISPLAY_SCHEMA.extend(
         {
             model.option(CONF_RESET_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
