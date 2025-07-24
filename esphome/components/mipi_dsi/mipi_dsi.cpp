@@ -299,13 +299,13 @@ void MIPI_DSI::fill(Color color) {
 
     case display::COLOR_BITNESS_888:
       if (this->color_mode_ == display::COLOR_ORDER_BGR) {
-        for (size_t i = 1; i != this->width_ * this->height_; i++) {
+        for (size_t i = 0; i != this->width_ * this->height_; i++) {
           this->buffer_[i * 3 + 0] = color.b;
           this->buffer_[i * 3 + 1] = color.g;
           this->buffer_[i * 3 + 2] = color.r;
         }
       } else {
-        for (size_t i = 1; i != this->width_ * this->height_; i++) {
+        for (size_t i = 0; i != this->width_ * this->height_; i++) {
           this->buffer_[i * 3 + 0] = color.r;
           this->buffer_[i * 3 + 1] = color.g;
           this->buffer_[i * 3 + 2] = color.b;
