@@ -11,13 +11,7 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 
 CODEOWNERS = ["@esphome/core"]
-
-
-def AUTO_LOAD():
-    if CORE.target_platform == "nrf52":
-        return []
-    return ["md5", "safe_mode"]
-
+AUTO_LOAD = ["md5", "safe_mode"]
 
 IS_PLATFORM_COMPONENT = True
 
