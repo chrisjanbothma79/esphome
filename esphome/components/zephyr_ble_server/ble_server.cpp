@@ -10,7 +10,7 @@ namespace zephyr_ble_server {
 
 static const char *const TAG = "zephyr_ble_server";
 
-static struct k_work advertise_work;
+static struct k_work advertise_work;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 #define DEVICE_NAME CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)

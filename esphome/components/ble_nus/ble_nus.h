@@ -9,7 +9,7 @@ namespace esphome {
 namespace ble_nus {
 
 class BLENUS : public Component {
-  enum tx_status {
+  enum TxStatus {
     TX_DISABLED,
     TX_ENABLED,
     TX_BUSY,
@@ -24,11 +24,11 @@ class BLENUS : public Component {
   void set_expose_log(bool expose_log) { this->expose_log_ = expose_log; }
 
  protected:
-  static void send_enabled_callback_(bt_nus_send_status status);
-  static void tx_callback_(bt_conn *conn);
-  static void rx_callback_(bt_conn *conn, const uint8_t *const data, uint16_t len);
-  static void connected_(bt_conn *conn, uint8_t err);
-  static void disconnected_(bt_conn *conn, uint8_t reason);
+  static void send_enabled_callback(bt_nus_send_status status);
+  static void tx_callback(bt_conn *conn);
+  static void rx_callback(bt_conn *conn, const uint8_t *data, uint16_t len);
+  static void connected(bt_conn *conn, uint8_t err);
+  static void disconnected(bt_conn *conn, uint8_t reason);
 
   bt_conn *conn_ = nullptr;
   ring_buf tx_ringbuf_;

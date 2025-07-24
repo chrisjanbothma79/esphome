@@ -22,23 +22,23 @@ size_t BLENUS::write_array(const uint8_t *data, size_t len) {
   return ring_buf_put(&tx_ringbuf_, data, len);
 }
 
-void BLENUS::connected_(bt_conn *conn, uint8_t err) {
+void BLENUS::connected(bt_conn *conn, uint8_t err) {
   if (err == 0) {
     global_ble_nus->conn_ = bt_conn_ref(conn);
   }
 }
 
-void BLENUS::disconnected_(bt_conn *conn, uint8_t reason) {
+void BLENUS::disconnected(bt_conn *conn, uint8_t reason) {
   bt_conn_unref(global_ble_nus->conn_);
   global_ble_nus->conn_ = nullptr;
 }
 
-void BLENUS::tx_callback_(bt_conn *conn) {
+void BLENUS::tx_callback(bt_conn *conn) {
   atomic_cas(&global_ble_nus->tx_status_, TX_BUSY, TX_ENABLED);
   ESP_LOGVV(TAG, "Sent operation completed");
 }
 
-void BLENUS::send_enabled_callback_(bt_nus_send_status status) {
+void BLENUS::send_enabled_callback(bt_nus_send_status status) {
   switch (status) {
     case BT_NUS_SEND_STATUS_ENABLED:
       atomic_set(&global_ble_nus->tx_status_, TX_ENABLED);
@@ -56,7 +56,7 @@ void BLENUS::send_enabled_callback_(bt_nus_send_status status) {
   }
 }
 
-void BLENUS::rx_callback_(bt_conn *conn, const uint8_t *const data, uint16_t len) {
+void BLENUS::rx_callback(bt_conn *conn, const uint8_t *const data, uint16_t len) {
   ESP_LOGD(TAG, "Received %d bytes.", len);
 }
 
@@ -67,16 +67,16 @@ BLENUS::BLENUS(size_t buffer_size) {
 
 void BLENUS::setup() {
   bt_nus_cb callbacks = {
-      .received = rx_callback_,
-      .sent = tx_callback_,
-      .send_enabled = send_enabled_callback_,
+      .received = rx_callback,
+      .sent = tx_callback,
+      .send_enabled = send_enabled_callback,
   };
 
   bt_nus_init(&callbacks);
 
   static bt_conn_cb conn_callbacks = {
-      .connected = BLENUS::connected_,
-      .disconnected = BLENUS::disconnected_,
+      .connected = BLENUS::connected,
+      .disconnected = BLENUS::disconnected,
   };
 
   bt_conn_cb_register(&conn_callbacks);
