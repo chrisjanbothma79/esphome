@@ -2048,8 +2048,7 @@ def main() -> None:
 
 #include "proto.h"
 
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 """
 
@@ -2060,8 +2059,7 @@ namespace api {
     #include "esphome/core/helpers.h"
     #include <cstring>
 
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 """
 
@@ -2075,8 +2073,7 @@ namespace api {
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
 
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 // Helper function to append a quoted string, handling empty StringRef
 static inline void append_quoted_string(std::string &out, const StringRef &ref) {
@@ -2268,19 +2265,16 @@ static void dump_field(std::string &out, const char *field_name, T value, int in
 
     content += """\
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
 """
     cpp += """\
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
 """
 
     dump_cpp += """\
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
 
 #endif  // HAS_PROTO_MESSAGE_DUMP
 """
@@ -2302,8 +2296,7 @@ static void dump_field(std::string &out, const char *field_name, T value, int in
 
 #include "api_pb2.h"
 
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 """
 
@@ -2312,8 +2305,7 @@ namespace api {
 #include "api_pb2_service.h"
 #include "esphome/core/log.h"
 
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 static const char *const TAG = "api.service";
 
@@ -2454,13 +2446,11 @@ static const char *const TAG = "api.service";
 
     hpp += """\
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
 """
     cpp += """\
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
 """
 
     with open(root / "api_pb2_service.h", "w", encoding="utf-8") as f:
