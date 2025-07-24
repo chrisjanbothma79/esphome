@@ -401,6 +401,13 @@ def upload_program(config, args, host):
 
 
 def show_logs(config, args, port):
+    try:
+        module = importlib.import_module("esphome.components." + CORE.target_platform)
+        if getattr(module, "show_logs")(config, args, port):
+            return 0
+    except AttributeError:
+        pass
+
     if "logger" not in config:
         raise EsphomeError("Logger is not configured!")
     if get_port_type(port) == "SERIAL":
