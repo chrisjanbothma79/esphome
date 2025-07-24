@@ -158,6 +158,18 @@ SEND_SCHEMA = PEER_SCHEMA.extend(
 )
 
 
+def _validate_send_action(config):
+    if not config[CONF_WAIT_FOR_SENT] and not config[CONF_CONTINUE_ON_ERROR]:
+        raise cv.Invalid(
+            f"'{CONF_CONTINUE_ON_ERROR}' cannot be false if '{CONF_WAIT_FOR_SENT}' is false as the automation will not wait for the failed result.",
+            path=[CONF_CONTINUE_ON_ERROR],
+        )
+    return config
+
+
+SEND_SCHEMA.add_extra(_validate_send_action)
+
+
 @automation.register_action(
     "espnow.send",
     SendAction,
