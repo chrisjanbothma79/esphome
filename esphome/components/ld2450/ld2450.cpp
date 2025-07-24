@@ -172,7 +172,7 @@ static inline float calculate_angle(float base, float hypotenuse) {
   if (base < 0.0f || hypotenuse <= 0.0f) {
     return 0.0f;
   }
-  float angle_radians = std::acosf(base / hypotenuse);
+  float angle_radians = acosf(base / hypotenuse);
   float angle_degrees = angle_radians * (180.0f / std::numbers::pi_v<float>);
   return angle_degrees;
 }
@@ -522,7 +522,7 @@ void LD2450Component::handle_periodic_data_() {
       direction = DIRECTION_STATIONARY;
     }
     text_sensor::TextSensor *tsd = this->direction_text_sensors_[index];
-    auto dir_str = find_str(ld2450::DIRECTION_BY_UINT, direction);
+    const auto *dir_str = find_str(ld2450::DIRECTION_BY_UINT, direction);
     if (tsd != nullptr && (!tsd->has_state() || tsd->get_state() != dir_str)) {
       tsd->publish_state(dir_str);
     }
