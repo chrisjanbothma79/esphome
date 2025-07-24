@@ -157,7 +157,6 @@ void MIPI_DSI::update() {
   if (this->buffer_ == nullptr || this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
     return;
   ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
-  // Some chips require that the drawing window be aligned on certain boundaries
   int w = this->x_high_ - this->x_low_ + 1;
   int h = this->y_high_ - this->y_low_ + 1;
   this->write_to_display_(this->x_low_, this->y_low_, w, h, this->buffer_, this->x_low_, this->y_low_,
@@ -225,7 +224,7 @@ bool MIPI_DSI::check_buffer_() {
 
 void MIPI_DSI::draw_pixel_at(int x, int y, Color color) {
   if (!this->get_clipping().inside(x, y))
-    return;  // NOLINT
+    return;
 
   switch (this->rotation_) {
     case display::DISPLAY_ROTATION_0_DEGREES:
@@ -362,7 +361,8 @@ void MIPI_DSI::dump_config() {
                 "\n  VSync Pulse Width: %u"
                 "\n  VSync Back Porch: %u"
                 "\n  VSync Front Porch: %u"
-                "\n  Pixel Mode: %d bit"
+                "\n  Buffer Color Depth: %d bit"
+                "\n  Display Pixel Mode: %d bit"
                 "\n  Color Order: %s"
                 "\n  Invert Colors: %s"
                 "\n  Pixel Clock: %dMHz",
@@ -370,7 +370,7 @@ void MIPI_DSI::dump_config() {
                 YESNO(this->madctl_ & (MADCTL_YFLIP | MADCTL_MY)), YESNO(this->madctl_ & MADCTL_MV), this->rotation_,
                 this->lanes_, this->lane_bit_rate_, this->hsync_pulse_width_, this->hsync_back_porch_,
                 this->hsync_front_porch_, this->vsync_pulse_width_, this->vsync_back_porch_, this->vsync_front_porch_,
-                PIXEL_MODES[this->madctl_ & 0x03], this->madctl_ & MADCTL_BGR ? "BGR" : "RGB",
+                (3 - this->color_depth_) * 8, this->pixel_mode_, this->madctl_ & MADCTL_BGR ? "BGR" : "RGB",
                 YESNO(this->invert_colors_), this->pclk_frequency_);
   LOG_PIN("  Reset Pin ", this->reset_pin_);
 }
