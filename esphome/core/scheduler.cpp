@@ -64,7 +64,7 @@ static void validate_static_string(const char *name) {
 // avoid the main thread modifying the list while it is being accessed.
 
 // Common implementation for both timeout and interval
-bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
+void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
                                       const void *name_ptr, uint32_t delay, std::function<void()> func, bool is_retry) {
   // Get the name as const char*
   const char *name_cstr = this->get_name_cstr_(is_static_string, name_ptr);
@@ -73,7 +73,7 @@ bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     // Still need to cancel existing timer if name is not empty
     LockGuard guard{this->lock_};
     this->cancel_item_locked_(component, name_cstr, type);
-    return true;
+    return;
   }
 
   // Create and populate the scheduler item
@@ -92,7 +92,7 @@ bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     LockGuard guard{this->lock_};
     this->cancel_item_locked_(component, name_cstr, type);
     this->defer_queue_.push_back(std::move(item));
-    return true;
+    return;
   }
 #endif /* not ESPHOME_THREAD_SINGLE */
 
@@ -136,7 +136,10 @@ bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
       (has_cancelled_timeout_in_container_(this->items_, component, name_cstr) ||
        has_cancelled_timeout_in_container_(this->to_add_, component, name_cstr))) {
     // Skip scheduling - the retry was cancelled
-    return false;
+#ifdef ESPHOME_DEBUG_SCHEDULER
+    ESP_LOGD(TAG, "Skipping retry '%s' - found cancelled item", name_cstr);
+#endif
+    return;
   }
 
   // If name is provided, do atomic cancel-and-add
@@ -145,7 +148,6 @@ bool HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   // Add new item directly to to_add_
   // since we have the lock held
   this->to_add_.push_back(std::move(item));
-  return true;
 }
 
 void HOT Scheduler::set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func) {
@@ -200,15 +202,10 @@ void retry_handler(const std::shared_ptr<RetryArgs> &args) {
   ESP_LOGVV(TAG, "retry_handler: Attempting to schedule next retry for '%s' in %dms", args->name.c_str(),
             args->current_interval);
 
-  bool scheduled = args->scheduler->schedule_retry_(args->component, args->name, args->current_interval,
-                                                    [args]() { retry_handler(args); });
+  args->scheduler->schedule_retry_(args->component, args->name, args->current_interval,
+                                   [args]() { retry_handler(args); });
 
-  if (!scheduled) {
-    ESP_LOGVV(TAG, "retry_handler: Retry '%s' was cancelled, not scheduling next iteration", args->name.c_str());
-    return;
-  }
-
-  // Only update interval if we actually scheduled
+  // Update interval for next retry (if not cancelled)
   args->current_interval *= args->backoff_increase_factor;
 }
 
