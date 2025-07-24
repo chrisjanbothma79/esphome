@@ -1,8 +1,5 @@
 #include "ld2412.h"
-#include "esphome/core/application.h"
-#include "esphome/core/helpers.h"
 
-#include <utility>
 #ifdef USE_NUMBER
 #include "esphome/components/number/number.h"
 #endif
@@ -10,9 +7,8 @@
 #include "esphome/components/sensor/sensor.h"
 #endif
 
-#define CHECK_BIT(var, pos) (((var) >> (pos)) & 1)
-#define highbyte(val) (uint8_t)((val) >> 8)
-#define lowbyte(val) (uint8_t)((val) &0xff)
+#include "esphome/core/application.h"
+#include "esphome/core/helpers.h"
 
 namespace esphome {
 namespace ld2412 {
@@ -154,45 +150,48 @@ template<size_t N> const char *find_str(const Uint8ToString (&arr)[N], uint8_t v
   return "";  // Not found
 }
 
-static const uint8_t DEFAULT_PRESENCE_TIMEOUT = 5;  // Default used when number component is not defined
+static constexpr uint8_t DEFAULT_PRESENCE_TIMEOUT = 5;  // Default used when number component is not defined
 // Commands
-static const uint8_t CMD_ENABLE_CONF = 0xFF;
-static const uint8_t CMD_DISABLE_CONF = 0xFE;
-static const uint8_t CMD_ENABLE_ENG = 0x62;
-static const uint8_t CMD_DISABLE_ENG = 0x63;
-static const uint8_t CMD_QUERY_BASIC_CONF = 0x12;
-static const uint8_t CMD_BASIC_CONF = 0x02;
-static const uint8_t CMD_QUERY_VERSION = 0xA0;
-static const uint8_t CMD_QUERY_DISTANCE_RESOLUTION = 0x11;
-static const uint8_t CMD_SET_DISTANCE_RESOLUTION = 0x01;
-static const uint8_t CMD_QUERY_LIGHT_CONTROL = 0x1C;
-static const uint8_t CMD_SET_LIGHT_CONTROL = 0x0C;
-static const uint8_t CMD_SET_BAUD_RATE = 0xA1;
-static const uint8_t CMD_QUERY_MAC_ADDRESS = 0xA5;
-static const uint8_t CMD_FACTORY_RESET = 0xA2;
-static const uint8_t CMD_RESTART = 0xA3;
-static const uint8_t CMD_BLUETOOTH = 0xA4;
-static const uint8_t CMD_DYNAMIC_BACKGROUND_CORRECTION = 0x0B;
-static const uint8_t CMD_QUERY_DYNAMIC_BACKGROUND_CORRECTION = 0x1B;
-static const uint8_t CMD_MOTION_GATE_SENS = 0x03;
-static const uint8_t CMD_QUERY_MOTION_GATE_SENS = 0x13;
-static const uint8_t CMD_STATIC_GATE_SENS = 0x04;
-static const uint8_t CMD_QUERY_STATIC_GATE_SENS = 0x14;
-static const uint8_t CMD_NONE = 0x00;
+static constexpr uint8_t CMD_ENABLE_CONF = 0xFF;
+static constexpr uint8_t CMD_DISABLE_CONF = 0xFE;
+static constexpr uint8_t CMD_ENABLE_ENG = 0x62;
+static constexpr uint8_t CMD_DISABLE_ENG = 0x63;
+static constexpr uint8_t CMD_QUERY_BASIC_CONF = 0x12;
+static constexpr uint8_t CMD_BASIC_CONF = 0x02;
+static constexpr uint8_t CMD_QUERY_VERSION = 0xA0;
+static constexpr uint8_t CMD_QUERY_DISTANCE_RESOLUTION = 0x11;
+static constexpr uint8_t CMD_SET_DISTANCE_RESOLUTION = 0x01;
+static constexpr uint8_t CMD_QUERY_LIGHT_CONTROL = 0x1C;
+static constexpr uint8_t CMD_SET_LIGHT_CONTROL = 0x0C;
+static constexpr uint8_t CMD_SET_BAUD_RATE = 0xA1;
+static constexpr uint8_t CMD_QUERY_MAC_ADDRESS = 0xA5;
+static constexpr uint8_t CMD_FACTORY_RESET = 0xA2;
+static constexpr uint8_t CMD_RESTART = 0xA3;
+static constexpr uint8_t CMD_BLUETOOTH = 0xA4;
+static constexpr uint8_t CMD_DYNAMIC_BACKGROUND_CORRECTION = 0x0B;
+static constexpr uint8_t CMD_QUERY_DYNAMIC_BACKGROUND_CORRECTION = 0x1B;
+static constexpr uint8_t CMD_MOTION_GATE_SENS = 0x03;
+static constexpr uint8_t CMD_QUERY_MOTION_GATE_SENS = 0x13;
+static constexpr uint8_t CMD_STATIC_GATE_SENS = 0x04;
+static constexpr uint8_t CMD_QUERY_STATIC_GATE_SENS = 0x14;
+static constexpr uint8_t CMD_NONE = 0x00;
 // Commands values
-static const uint8_t CMD_MAX_MOVE_VALUE = 0x00;
-static const uint8_t CMD_MAX_STILL_VALUE = 0x01;
-static const uint8_t CMD_DURATION_VALUE = 0x02;
+static constexpr uint8_t CMD_MAX_MOVE_VALUE = 0x00;
+static constexpr uint8_t CMD_MAX_STILL_VALUE = 0x01;
+static constexpr uint8_t CMD_DURATION_VALUE = 0x02;
+// Bitmasks for target states
+static constexpr uint8_t MOVE_BITMASK = 0x01;
+static constexpr uint8_t STILL_BITMASK = 0x02;
 // Header & Footer size
-static const uint8_t HEADER_FOOTER_SIZE = 4;
+static constexpr uint8_t HEADER_FOOTER_SIZE = 4;
 // Command Header & Footer
-static const uint8_t CMD_FRAME_HEADER[HEADER_FOOTER_SIZE] = {0xFD, 0xFC, 0xFB, 0xFA};
-static const uint8_t CMD_FRAME_FOOTER[HEADER_FOOTER_SIZE] = {0x04, 0x03, 0x02, 0x01};
+static constexpr uint8_t CMD_FRAME_HEADER[HEADER_FOOTER_SIZE] = {0xFD, 0xFC, 0xFB, 0xFA};
+static constexpr uint8_t CMD_FRAME_FOOTER[HEADER_FOOTER_SIZE] = {0x04, 0x03, 0x02, 0x01};
 // Data Header & Footer
-static const uint8_t DATA_FRAME_HEADER[HEADER_FOOTER_SIZE] = {0xF4, 0xF3, 0xF2, 0xF1};
-static const uint8_t DATA_FRAME_FOOTER[HEADER_FOOTER_SIZE] = {0xF8, 0xF7, 0xF6, 0xF5};
+static constexpr uint8_t DATA_FRAME_HEADER[HEADER_FOOTER_SIZE] = {0xF4, 0xF3, 0xF2, 0xF1};
+static constexpr uint8_t DATA_FRAME_FOOTER[HEADER_FOOTER_SIZE] = {0xF8, 0xF7, 0xF6, 0xF5};
 // MAC address the module uses when Bluetooth is disabled
-static const uint8_t NO_MAC[] = {0x08, 0x05, 0x04, 0x03, 0x02, 0x01};
+static constexpr uint8_t NO_MAC[] = {0x08, 0x05, 0x04, 0x03, 0x02, 0x01};
 
 static inline int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
 
@@ -212,57 +211,64 @@ void LD2412Component::dump_config() {
                 "  Throttle: %u ms",
                 version.c_str(), mac_str.c_str(), this->throttle_);
 #ifdef USE_BINARY_SENSOR
+  ESP_LOGCONFIG(TAG, "Binary Sensors:");
   LOG_BINARY_SENSOR("  ", "DynamicBackgroundCorrectionStatus",
                     this->dynamic_background_correction_status_binary_sensor_);
-  LOG_BINARY_SENSOR("  ", "MovingTargetBinarySensor", this->moving_target_binary_sensor_);
-  LOG_BINARY_SENSOR("  ", "StillTargetBinarySensor", this->still_target_binary_sensor_);
-  LOG_BINARY_SENSOR("  ", "TargetBinarySensor", this->target_binary_sensor_);
+  LOG_BINARY_SENSOR("  ", "MovingTarget", this->moving_target_binary_sensor_);
+  LOG_BINARY_SENSOR("  ", "StillTarget", this->still_target_binary_sensor_);
+  LOG_BINARY_SENSOR("  ", "Target", this->target_binary_sensor_);
 #endif
 #ifdef USE_SENSOR
-  LOG_SENSOR("  ", "LightSensor", this->light_sensor_);
-  LOG_SENSOR("  ", "DetectionDistanceSensor", this->detection_distance_sensor_);
-  LOG_SENSOR("  ", "MovingTargetDistanceSensor", this->moving_target_distance_sensor_);
-  LOG_SENSOR("  ", "MovingTargetEnergySensor", this->moving_target_energy_sensor_);
-  LOG_SENSOR("  ", "StillTargetDistanceSensor", this->still_target_distance_sensor_);
-  LOG_SENSOR("  ", "StillTargetEnergySensor", this->still_target_energy_sensor_);
-  for (sensor::Sensor *s : this->gate_still_sensors_) {
-    LOG_SENSOR("  ", "NthGateStillSesnsor", s);
+  ESP_LOGCONFIG(TAG, "Sensors:");
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "Light", this->light_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "DetectionDistance", this->detection_distance_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "MovingTargetDistance", this->moving_target_distance_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "MovingTargetEnergy", this->moving_target_energy_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "StillTargetDistance", this->still_target_distance_sensor_);
+  LOG_SENSOR_WITH_DEDUP_SAFE("  ", "StillTargetEnergy", this->still_target_energy_sensor_);
+  for (auto &s : this->gate_still_sensors_) {
+    LOG_SENSOR_WITH_DEDUP_SAFE("  ", "GateStill", s);
   }
-  for (sensor::Sensor *s : this->gate_move_sensors_) {
-    LOG_SENSOR("  ", "NthGateMoveSesnsor", s);
+  for (auto &s : this->gate_move_sensors_) {
+    LOG_SENSOR_WITH_DEDUP_SAFE("  ", "GateMove", s);
   }
 #endif
 #ifdef USE_TEXT_SENSOR
-  LOG_TEXT_SENSOR("  ", "MacTextSensor", this->mac_text_sensor_);
-  LOG_TEXT_SENSOR("  ", "VersionTextSensor", this->version_text_sensor_);
+  ESP_LOGCONFIG(TAG, "Text Sensors:");
+  LOG_TEXT_SENSOR("  ", "MAC address", this->mac_text_sensor_);
+  LOG_TEXT_SENSOR("  ", "Version", this->version_text_sensor_);
 #endif
 #ifdef USE_NUMBER
-  LOG_NUMBER("  ", "LightThresholdNumber", this->light_threshold_number_);
-  LOG_NUMBER("  ", "MaxDistanceGateNumber", this->max_distance_gate_number_);
-  LOG_NUMBER("  ", "MinDistanceGateNumber", this->min_distance_gate_number_);
-  LOG_NUMBER("  ", "TimeoutNumber", this->timeout_number_);
+  ESP_LOGCONFIG(TAG, "Numbers:");
+  LOG_NUMBER("  ", "LightThreshold", this->light_threshold_number_);
+  LOG_NUMBER("  ", "MaxDistanceGate", this->max_distance_gate_number_);
+  LOG_NUMBER("  ", "MinDistanceGate", this->min_distance_gate_number_);
+  LOG_NUMBER("  ", "Timeout", this->timeout_number_);
   for (number::Number *n : this->gate_move_threshold_numbers_) {
-    LOG_NUMBER("  ", "Move Thresholds Number", n);
+    LOG_NUMBER("  ", "Move Thresholds", n);
   }
   for (number::Number *n : this->gate_still_threshold_numbers_) {
-    LOG_NUMBER("  ", "Still Thresholds Number", n);
+    LOG_NUMBER("  ", "Still Thresholds", n);
   }
 #endif
 #ifdef USE_SELECT
-  LOG_SELECT("  ", "BaudRateSelect", this->baud_rate_select_);
-  LOG_SELECT("  ", "DistanceResolutionSelect", this->distance_resolution_select_);
-  LOG_SELECT("  ", "LightFunctionSelect", this->light_function_select_);
-  LOG_SELECT("  ", "OutPinLevelSelect", this->out_pin_level_select_);
+  ESP_LOGCONFIG(TAG, "Selects:");
+  LOG_SELECT("  ", "BaudRate", this->baud_rate_select_);
+  LOG_SELECT("  ", "DistanceResolution", this->distance_resolution_select_);
+  LOG_SELECT("  ", "LightFunction", this->light_function_select_);
+  LOG_SELECT("  ", "OutPinLevel", this->out_pin_level_select_);
 #endif
 #ifdef USE_SWITCH
-  LOG_SWITCH("  ", "BluetoothSwitch", this->bluetooth_switch_);
-  LOG_SWITCH("  ", "EngineeringModeSwitch", this->engineering_mode_switch_);
+  ESP_LOGCONFIG(TAG, "Switches:");
+  LOG_SWITCH("  ", "Bluetooth", this->bluetooth_switch_);
+  LOG_SWITCH("  ", "EngineeringMode", this->engineering_mode_switch_);
 #endif
 #ifdef USE_BUTTON
-  LOG_BUTTON("  ", "FactoryResetButton", this->factory_reset_button_);
-  LOG_BUTTON("  ", "QueryButton", this->query_button_);
-  LOG_BUTTON("  ", "RestartButton", this->restart_button_);
-  LOG_BUTTON("  ", "StartDynamicBackgroundCorrectionButton", this->start_dynamic_background_correction_button_);
+  ESP_LOGCONFIG(TAG, "Buttons:");
+  LOG_BUTTON("  ", "FactoryReset", this->factory_reset_button_);
+  LOG_BUTTON("  ", "Query", this->query_button_);
+  LOG_BUTTON("  ", "Restart", this->restart_button_);
+  LOG_BUTTON("  ", "StartDynamicBackgroundCorrection", this->start_dynamic_background_correction_button_);
 #endif
 }
 
@@ -329,8 +335,11 @@ void LD2412Component::send_command_(uint8_t command, const uint8_t *command_valu
   }
   // frame footer bytes
   this->write_array(CMD_FRAME_FOOTER, HEADER_FOOTER_SIZE);
-  // FIXME to remove
-  delay(50);  // NOLINT
+
+  if (command != CMD_ENABLE_CONF && command != CMD_DISABLE_CONF) {
+    delay(30);  // NOLINT
+  }
+  delay(20);  // NOLINT
 }
 
 void LD2412Component::handle_periodic_data_() {
@@ -373,10 +382,10 @@ void LD2412Component::handle_periodic_data_() {
     this->target_binary_sensor_->publish_state(target_state != 0x00);
   }
   if (this->moving_target_binary_sensor_ != nullptr) {
-    this->moving_target_binary_sensor_->publish_state(CHECK_BIT(target_state, 0));
+    this->moving_target_binary_sensor_->publish_state(target_state & MOVE_BITMASK);
   }
   if (this->still_target_binary_sensor_ != nullptr) {
-    this->still_target_binary_sensor_->publish_state(CHECK_BIT(target_state, 1));
+    this->still_target_binary_sensor_->publish_state(target_state & STILL_BITMASK);
   }
 #endif
   /*
@@ -387,48 +396,24 @@ void LD2412Component::handle_periodic_data_() {
     Detect distance: 16~17th bytes
   */
 #ifdef USE_SENSOR
-  if (this->moving_target_distance_sensor_ != nullptr) {
-    int new_moving_target_distance =
-        target_state != 0x00
-            ? ld2412::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH])
-            : 0;
-    if (this->moving_target_distance_sensor_->get_state() != new_moving_target_distance) {
-      this->moving_target_distance_sensor_->publish_state(new_moving_target_distance);
-    }
-  }
-  if (this->moving_target_energy_sensor_ != nullptr) {
-    int new_moving_target_energy = target_state != 0x00 ? this->buffer_data_[MOVING_ENERGY] : 0;
-    if (this->moving_target_energy_sensor_->get_state() != new_moving_target_energy) {
-      this->moving_target_energy_sensor_->publish_state(new_moving_target_energy);
-    }
-  }
-  if (this->still_target_distance_sensor_ != nullptr) {
-    int new_still_target_distance =
-        target_state != 0x00
-            ? ld2412::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH])
-            : 0;
-    if (this->still_target_distance_sensor_->get_state() != new_still_target_distance) {
-      this->still_target_distance_sensor_->publish_state(new_still_target_distance);
-    }
-  }
-  if (this->still_target_energy_sensor_ != nullptr) {
-    int new_still_target_energy = target_state != 0x00 ? this->buffer_data_[STILL_ENERGY] : 0;
-    if (this->still_target_energy_sensor_->get_state() != new_still_target_energy) {
-      this->still_target_energy_sensor_->publish_state(new_still_target_energy);
-    }
-  }
+  SAFE_PUBLISH_SENSOR(
+      this->moving_target_distance_sensor_,
+      ld2412::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH]))
+  SAFE_PUBLISH_SENSOR(this->moving_target_energy_sensor_, this->buffer_data_[MOVING_ENERGY])
+  SAFE_PUBLISH_SENSOR(
+      this->still_target_distance_sensor_,
+      ld2412::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH]))
+  SAFE_PUBLISH_SENSOR(this->still_target_energy_sensor_, this->buffer_data_[STILL_ENERGY])
   if (this->detection_distance_sensor_ != nullptr) {
     int new_detect_distance = 0;
-    if (target_state != 0x00 && CHECK_BIT(target_state, 0)) {
+    if (target_state != 0x00 && (target_state & MOVE_BITMASK)) {
       new_detect_distance =
           ld2412::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH]);
     } else if (target_state != 0x00) {
       new_detect_distance =
           ld2412::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH]);
     }
-    if (this->detection_distance_sensor_->get_state() != new_detect_distance) {
-      this->detection_distance_sensor_->publish_state(new_detect_distance);
-    }
+    this->detection_distance_sensor_->publish_state_if_not_dup(new_detect_distance);
   }
   if (engineering_mode) {
     /*
@@ -436,44 +421,27 @@ void LD2412Component::handle_periodic_data_() {
       Still distance range: 19th byte
       Moving energy: 20~28th bytes
     */
-    for (std::vector<sensor::Sensor *>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
-      sensor::Sensor *s = this->gate_move_sensors_[i];
-      if (s != nullptr) {
-        s->publish_state(this->buffer_data_[MOVING_SENSOR_START + i]);
-      }
+    for (uint8_t i = 0; i < TOTAL_GATES; i++) {
+      SAFE_PUBLISH_SENSOR(this->gate_move_sensors_[i], this->buffer_data_[MOVING_SENSOR_START + i])
     }
     /*
       Still energy: 29~37th bytes
     */
-    for (std::vector<sensor::Sensor *>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
-      sensor::Sensor *s = this->gate_still_sensors_[i];
-      if (s != nullptr) {
-        s->publish_state(this->buffer_data_[STILL_SENSOR_START + i]);
-      }
+    for (uint8_t i = 0; i < TOTAL_GATES; i++) {
+      SAFE_PUBLISH_SENSOR(this->gate_still_sensors_[i], this->buffer_data_[STILL_SENSOR_START + i])
     }
     /*
       Light sensor: 38th bytes
     */
-    if (this->light_sensor_ != nullptr) {
-      int new_light_sensor = this->buffer_data_[LIGHT_SENSOR];
-      if (this->light_sensor_->get_state() != new_light_sensor) {
-        this->light_sensor_->publish_state(new_light_sensor);
-      }
-    }
+    SAFE_PUBLISH_SENSOR(this->light_sensor_, this->buffer_data_[LIGHT_SENSOR])
   } else {
-    for (auto *s : this->gate_move_sensors_) {
-      if (s != nullptr && !std::isnan(s->get_state())) {
-        s->publish_state(NAN);
-      }
+    for (auto &gate_move_sensor : this->gate_move_sensors_) {
+      SAFE_PUBLISH_SENSOR_UNKNOWN(gate_move_sensor)
     }
-    for (auto *s : this->gate_still_sensors_) {
-      if (s != nullptr && !std::isnan(s->get_state())) {
-        s->publish_state(NAN);
-      }
+    for (auto &gate_still_sensor : this->gate_still_sensors_) {
+      SAFE_PUBLISH_SENSOR_UNKNOWN(gate_still_sensor)
     }
-    if (this->light_sensor_ != nullptr && !std::isnan(this->light_sensor_->get_state())) {
-      this->light_sensor_->publish_state(NAN);
-    }
+    SAFE_PUBLISH_SENSOR_UNKNOWN(this->light_sensor_)
   }
 #endif
   // the radar module won't tell us when it's done, so we just have to keep polling...
@@ -889,8 +857,13 @@ void LD2412Component::set_light_out_control() {
 }
 
 #ifdef USE_SENSOR
-void LD2412Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) { this->gate_move_sensors_[gate] = s; }
-void LD2412Component::set_gate_still_sensor(uint8_t gate, sensor::Sensor *s) { this->gate_still_sensors_[gate] = s; }
+// These could leak memory, but they are only set once prior to 'setup()' and should never be used again.
+void LD2412Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) {
+  this->gate_move_sensors_[gate] = new SensorWithDedup<uint8_t>(s);
+}
+void LD2412Component::set_gate_still_sensor(uint8_t gate, sensor::Sensor *s) {
+  this->gate_still_sensors_[gate] = new SensorWithDedup<uint8_t>(s);
+}
 #endif
 
 }  // namespace ld2412

@@ -22,15 +22,20 @@
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
 #endif
+#include "esphome/components/ld24xx/ld24xx.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
 
+#include <array>
+
 namespace esphome {
 namespace ld2412 {
 
-static const uint8_t MAX_LINE_LENGTH = 54;  // Max characters for serial buffer
-static const uint8_t TOTAL_GATES = 14;      // Total number of gates supported by the LD2412
+using namespace ld24xx;
+
+static constexpr uint8_t MAX_LINE_LENGTH = 54;  // Max characters for serial buffer
+static constexpr uint8_t TOTAL_GATES = 14;      // Total number of gates supported by the LD2412
 
 class LD2412Component : public Component, public uart::UARTDevice {
 #ifdef USE_BINARY_SENSOR
@@ -40,12 +45,12 @@ class LD2412Component : public Component, public uart::UARTDevice {
   SUB_BINARY_SENSOR(target)
 #endif
 #ifdef USE_SENSOR
-  SUB_SENSOR(light)
-  SUB_SENSOR(detection_distance)
-  SUB_SENSOR(moving_target_distance)
-  SUB_SENSOR(moving_target_energy)
-  SUB_SENSOR(still_target_distance)
-  SUB_SENSOR(still_target_energy)
+  SUB_SENSOR_WITH_DEDUP(light, uint8_t)
+  SUB_SENSOR_WITH_DEDUP(detection_distance, int)
+  SUB_SENSOR_WITH_DEDUP(moving_target_distance, int)
+  SUB_SENSOR_WITH_DEDUP(moving_target_energy, uint8_t)
+  SUB_SENSOR_WITH_DEDUP(still_target_distance, int)
+  SUB_SENSOR_WITH_DEDUP(still_target_energy, uint8_t)
 #endif
 #ifdef USE_TEXT_SENSOR
   SUB_TEXT_SENSOR(mac)
@@ -126,12 +131,12 @@ class LD2412Component : public Component, public uart::UARTDevice {
   bool bluetooth_on_{false};
   bool dynamic_background_correction_active_{false};
 #ifdef USE_NUMBER
-  std::vector<number::Number *> gate_move_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
-  std::vector<number::Number *> gate_still_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
+  std::array<number::Number *, TOTAL_GATES> gate_move_threshold_numbers_{};
+  std::array<number::Number *, TOTAL_GATES> gate_still_threshold_numbers_{};
 #endif
 #ifdef USE_SENSOR
-  std::vector<sensor::Sensor *> gate_move_sensors_ = std::vector<sensor::Sensor *>(TOTAL_GATES);
-  std::vector<sensor::Sensor *> gate_still_sensors_ = std::vector<sensor::Sensor *>(TOTAL_GATES);
+  std::array<SensorWithDedup<uint8_t> *, TOTAL_GATES> gate_move_sensors_{};
+  std::array<SensorWithDedup<uint8_t> *, TOTAL_GATES> gate_still_sensors_{};
 #endif
 };
 
