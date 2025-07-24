@@ -6,6 +6,7 @@ esp_ldo:
 display:
   - platform: mipi_dsi
     model: JC1060P470
+    enable_pin: GPIO22
 
 #light:
   #- platform: mipi_dsi

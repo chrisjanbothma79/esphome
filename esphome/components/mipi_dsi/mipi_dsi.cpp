@@ -14,12 +14,11 @@ static bool notify_refresh_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel
 void MIPI_DSI::setup() {
   ESP_LOGCONFIG(TAG, "Running Setup");
 
-  /*for (auto *pin : this->enable_pins_) {
+  for (auto *pin : this->enable_pins_) {
     pin->setup();
     pin->digital_write(true);
   }
   delay(10);
-*/
 
   esp_lcd_dsi_bus_config_t bus_config = {
       .bus_id = 0,  // index from 0, specify the DSI host to use
