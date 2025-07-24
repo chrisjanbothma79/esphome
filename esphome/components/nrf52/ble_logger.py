@@ -29,7 +29,7 @@ async def logger_scan(name):
     _LOGGER.info("Scanning bluetooth for %s...", name)
     device = await BleakScanner.find_device_by_name(name)
     if not device:
-        _LOGGER.warning(f"{name} Bluetooth LE device was not found!")
+        _LOGGER.warning("%s Bluetooth LE device was not found!", name)
     return device
 
 
