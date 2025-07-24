@@ -2,6 +2,16 @@ from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
 from esphome.components.esp32 import const, only_on_variant
+from esphome.components.mipi import (
+    CONF_DE_PIN,
+    CONF_HSYNC_BACK_PORCH,
+    CONF_HSYNC_FRONT_PORCH,
+    CONF_HSYNC_PULSE_WIDTH,
+    CONF_PCLK_PIN,
+    CONF_VSYNC_BACK_PORCH,
+    CONF_VSYNC_FRONT_PORCH,
+    CONF_VSYNC_PULSE_WIDTH,
+)
 from esphome.components.rpi_dpi_rgb.display import (
     CONF_PCLK_FREQUENCY,
     CONF_PCLK_INVERTED,
@@ -35,16 +45,6 @@ from esphome.const import (
 from esphome.core import TimePeriod
 
 from .init_sequences import ST7701S_INITS, cmd
-
-CONF_DE_PIN = "de_pin"
-CONF_PCLK_PIN = "pclk_pin"
-
-CONF_HSYNC_PULSE_WIDTH = "hsync_pulse_width"
-CONF_HSYNC_BACK_PORCH = "hsync_back_porch"
-CONF_HSYNC_FRONT_PORCH = "hsync_front_porch"
-CONF_VSYNC_PULSE_WIDTH = "vsync_pulse_width"
-CONF_VSYNC_BACK_PORCH = "vsync_back_porch"
-CONF_VSYNC_FRONT_PORCH = "vsync_front_porch"
 
 DEPENDENCIES = ["spi", "esp32"]
 
