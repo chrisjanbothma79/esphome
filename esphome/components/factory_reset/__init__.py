@@ -67,7 +67,7 @@ CONFIG_SCHEMA = cv.All(
 def _final_validate(config):
     if CORE.is_esp8266 and CONF_RESETS_REQUIRED in config:
         fconfig = full_config.get()
-        if not fconfig.get_config_for_path([KEY_ESP8266])[CONF_RESTORE_FROM_FLASH]:
+        if not fconfig.get_config_for_path([KEY_ESP8266, CONF_RESTORE_FROM_FLASH]):
             raise cv.Invalid(
                 "'resets_required' needs 'restore_from_flash' to be enabled in the  'esp8266' configuration"
             )
