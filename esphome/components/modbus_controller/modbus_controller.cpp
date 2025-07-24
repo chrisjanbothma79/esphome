@@ -392,15 +392,7 @@ size_t ModbusController::create_register_ranges_() {
     }
 
     if (curr->start_address == r.start_address && curr->register_type == r.register_type) {
-      // use the lowest non zero value for the whole range
-      // Because zero is the default value for skip_updates it is excluded from getting the min value.
-      if (curr->skip_updates != 0) {
-        if (r.skip_updates != 0) {
-          r.skip_updates = std::min(r.skip_updates, curr->skip_updates);
-        } else {
-          r.skip_updates = curr->skip_updates;
-        }
-      }
+      r.skip_updates = std::min(r.skip_updates, curr->skip_updates);
 
       // add sensor to this range
       r.sensors.insert(curr);
