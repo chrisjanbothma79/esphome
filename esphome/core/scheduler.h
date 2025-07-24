@@ -163,12 +163,6 @@ class Scheduler {
   size_t cleanup_();
   void pop_raw_();
 
-  // Schedule a retry timeout only if it hasn't been cancelled
-  // Used by retry handler to avoid race conditions with cancel_retry
-  void schedule_retry_(Component *component, const std::string &name, uint32_t timeout, std::function<void()> func) {
-    this->set_timer_common_(component, SchedulerItem::TIMEOUT, false, &name, timeout, std::move(func), true);
-  }
-
  private:
   // Helper to cancel items by name - must be called with lock held
   bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
