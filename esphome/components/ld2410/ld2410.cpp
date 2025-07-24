@@ -1,6 +1,5 @@
 #include "ld2410.h"
 
-#include <utility>
 #ifdef USE_NUMBER
 #include "esphome/components/number/number.h"
 #endif

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <memory>
+#include "esphome/core/defines.h"
 
-#define highbyte(val) (uint8_t)((val) >> 8)
-#define lowbyte(val) (uint8_t)((val) &0xff)
+#include <memory>
 
 #ifdef USE_SENSOR
 #include "esphome/core/helpers.h"
@@ -19,6 +18,9 @@
   }
 #endif
 
+#define highbyte(val) (uint8_t)((val) >> 8)
+#define lowbyte(val) (uint8_t)((val) &0xff)
+
 namespace esphome {
 namespace ld24xx {
 
@@ -29,24 +31,19 @@ template<typename T> class SensorWithDedup {
   SensorWithDedup(sensor::Sensor *sens = nullptr) : sens(sens) {}
 
   void publish_state_if_not_dup(T state) {
-    if (this->sens != nullptr && (this->publish_dedup.next(state) || this->state_unknown_)) {
+    if (this->sens != nullptr && this->publish_dedup.next(state)) {
       this->sens->publish_state(static_cast<float>(state));
-      this->state_unknown_ = false;
     }
   }
 
   void publish_state_unknown() {
-    if (this->sens != nullptr && !this->state_unknown_) {
+    if (this->sens != nullptr && this->publish_dedup.next_unknown()) {
       this->sens->publish_state(NAN);
-      this->state_unknown_ = true;
     }
   }
 
   sensor::Sensor *sens{nullptr};
   Deduplicator<T> publish_dedup;
-
- protected:
-  bool state_unknown_{false};
 };
 #endif
 }  // namespace ld24xx
