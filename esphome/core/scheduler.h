@@ -1,7 +1,13 @@
 #pragma once
 
+#include "esphome/core/defines.h"
 #include <vector>
 #include <memory>
+#include <cstring>
+#include <deque>
+#ifdef ESPHOME_THREAD_MULTI_ATOMICS
+#include <atomic>
+#endif
 
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
@@ -50,9 +56,16 @@ class Scheduler {
                  std::function<RetryResult(uint8_t)> func, float backoff_increase_factor = 1.0f);
   bool cancel_retry(Component *component, const std::string &name);
 
-  optional<uint32_t> next_schedule_in();
+  // Calculate when the next scheduled item should run
+  // @param now Fresh timestamp from millis() - must not be stale/cached
+  // Returns the time in milliseconds until the next scheduled item, or nullopt if no items
+  // This method performs cleanup of removed items before checking the schedule
+  // IMPORTANT: This method should only be called from the main thread (loop task).
+  optional<uint32_t> next_schedule_in(uint32_t now);
 
-  void call();
+  // Execute all scheduled items that are ready
+  // @param now Fresh timestamp from millis() - must not be stale/cached
+  void call(uint32_t now);
 
   void process_to_add();
 
@@ -97,9 +110,9 @@ class Scheduler {
     SchedulerItem(const SchedulerItem &) = delete;
     SchedulerItem &operator=(const SchedulerItem &) = delete;
 
-    // Default move operations
-    SchedulerItem(SchedulerItem &&) = default;
-    SchedulerItem &operator=(SchedulerItem &&) = default;
+    // Delete move operations: SchedulerItem objects are only managed via unique_ptr, never moved directly
+    SchedulerItem(SchedulerItem &&) = delete;
+    SchedulerItem &operator=(SchedulerItem &&) = delete;
 
     // Helper to get the name regardless of storage type
     const char *get_name() const { return name_is_dynamic ? name_.dynamic_name : name_.static_name; }
@@ -112,16 +125,17 @@ class Scheduler {
         name_is_dynamic = false;
       }
 
-      if (!name || !name[0]) {
+      if (!name) {
+        // nullptr case - no name provided
         name_.static_name = nullptr;
       } else if (make_copy) {
-        // Make a copy for dynamic strings
+        // Make a copy for dynamic strings (including empty strings)
         size_t len = strlen(name);
         name_.dynamic_name = new char[len + 1];
         memcpy(name_.dynamic_name, name, len + 1);
         name_is_dynamic = true;
       } else {
-        // Use static string directly
+        // Use static string directly (including empty strings)
         name_.static_name = name;
       }
     }
@@ -135,27 +149,91 @@ class Scheduler {
   void set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
                          uint32_t delay, std::function<void()> func);
 
-  uint64_t millis_();
-  void cleanup_();
+  uint64_t millis_64_(uint32_t now);
+  // Cleanup logically deleted items from the scheduler
+  // Returns the number of items remaining after cleanup
+  // IMPORTANT: This method should only be called from the main thread (loop task).
+  size_t cleanup_();
   void pop_raw_();
-  void push_(std::unique_ptr<SchedulerItem> item);
+
+ private:
+  // Helper to cancel items by name - must be called with lock held
+  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
+
+  // Helper to extract name as const char* from either static string or std::string
+  inline const char *get_name_cstr_(bool is_static_string, const void *name_ptr) {
+    return is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
+  }
+
   // Common implementation for cancel operations
-  bool cancel_item_common_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
+  bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
-  bool cancel_item_(Component *component, const std::string &name, SchedulerItem::Type type);
-  bool cancel_item_(Component *component, const char *name, SchedulerItem::Type type);
+  // Helper function to check if item matches criteria for cancellation
+  inline bool HOT matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
+                                SchedulerItem::Type type) {
+    if (item->component != component || item->type != type || item->remove) {
+      return false;
+    }
+    const char *item_name = item->get_name();
+    if (item_name == nullptr) {
+      return false;
+    }
+    // Fast path: if pointers are equal
+    // This is effective because the core ESPHome codebase uses static strings (const char*)
+    // for component names. The std::string overloads exist only for compatibility with
+    // external components, but are rarely used in practice.
+    if (item_name == name_cstr) {
+      return true;
+    }
+    // Slow path: compare string contents
+    return strcmp(name_cstr, item_name) == 0;
+  }
 
-  bool empty_() {
-    this->cleanup_();
-    return this->items_.empty();
+  // Helper to execute a scheduler item
+  void execute_item_(SchedulerItem *item, uint32_t now);
+
+  // Helper to check if item should be skipped
+  bool should_skip_item_(const SchedulerItem *item) const {
+    return item->remove || (item->component != nullptr && item->component->is_failed());
   }
 
   Mutex lock_;
   std::vector<std::unique_ptr<SchedulerItem>> items_;
   std::vector<std::unique_ptr<SchedulerItem>> to_add_;
-  uint32_t last_millis_{0};
-  uint16_t millis_major_{0};
+#ifndef ESPHOME_THREAD_SINGLE
+  // Single-core platforms don't need the defer queue and save 40 bytes of RAM
+  std::deque<std::unique_ptr<SchedulerItem>> defer_queue_;  // FIFO queue for defer() calls
+#endif                                                      /* ESPHOME_THREAD_SINGLE */
   uint32_t to_remove_{0};
+
+#ifdef ESPHOME_THREAD_MULTI_ATOMICS
+  /*
+   * Multi-threaded platforms with atomic support: last_millis_ needs atomic for lock-free updates
+   *
+   * MEMORY-ORDERING NOTE
+   * --------------------
+   * `last_millis_` and `millis_major_` form a single 64-bit timestamp split in half.
+   * Writers publish `last_millis_` with memory_order_release and readers use
+   * memory_order_acquire. This ensures that once a reader sees the new low word,
+   * it also observes the corresponding increment of `millis_major_`.
+   */
+  std::atomic<uint32_t> last_millis_{0};
+#else  /* not ESPHOME_THREAD_MULTI_ATOMICS */
+  // Platforms without atomic support or single-threaded platforms
+  uint32_t last_millis_{0};
+#endif /* else ESPHOME_THREAD_MULTI_ATOMICS */
+
+  /*
+   * Upper 16 bits of the 64-bit millis counter. Incremented only while holding
+   * `lock_`; read concurrently. Atomic (relaxed) avoids a formal data race.
+   * Ordering relative to `last_millis_` is provided by its release store and the
+   * corresponding acquire loads.
+   */
+#ifdef ESPHOME_THREAD_MULTI_ATOMICS
+  std::atomic<uint16_t> millis_major_{0};
+#else  /* not ESPHOME_THREAD_MULTI_ATOMICS */
+  uint16_t millis_major_{0};
+#endif /* else ESPHOME_THREAD_MULTI_ATOMICS */
 };
 
 }  // namespace esphome
