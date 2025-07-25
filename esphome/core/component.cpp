@@ -149,7 +149,7 @@ uint8_t Component::get_component_state() const { return this->component_state_; 
 void Component::call() {
   uint8_t state = this->component_state_ & COMPONENT_STATE_MASK;
   switch (state) {
-    case COMPONENT_STATE_CONSTRUCTION:
+    case COMPONENT_STATE_CONSTRUCTION: {
       // State Construction: Call setup and set state to setup
       this->set_component_state_(COMPONENT_STATE_SETUP);
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
@@ -162,6 +162,7 @@ void Component::call() {
       ESP_LOGD(TAG, "Setup %s took %ums", this->get_component_source(), setup_time);
 #endif
       break;
+    }
     case COMPONENT_STATE_SETUP:
       // State setup: Call first loop and set state to loop
       this->set_component_state_(COMPONENT_STATE_LOOP);
