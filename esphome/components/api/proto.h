@@ -907,8 +907,10 @@ class ProtoService {
       this->on_unauthenticated_access();
       return false;
     }
-#endif
     return true;
+#else
+    return true;
+#endif
   }
 };
 
