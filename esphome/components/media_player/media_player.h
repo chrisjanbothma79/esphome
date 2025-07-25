@@ -6,6 +6,32 @@
 namespace esphome {
 namespace media_player {
 
+enum MediaPlayerEntityFeature : uint32_t {
+  PAUSE = 1,
+  SEEK = 2,
+  VOLUME_SET = 4,
+  VOLUME_MUTE = 8,
+  PREVIOUS_TRACK = 16,
+  NEXT_TRACK = 32,
+
+  TURN_ON = 128,
+  TURN_OFF = 256,
+  PLAY_MEDIA = 512,
+  VOLUME_STEP = 1024,
+  SELECT_SOURCE = 2048,
+  STOP = 4096,
+  CLEAR_PLAYLIST = 8192,
+  PLAY = 16384,
+  SHUFFLE_SET = 32768,
+  SELECT_SOUND_MODE = 65536,
+  BROWSE_MEDIA = 131072,
+  REPEAT_SET = 262144,
+  GROUPING = 524288,
+  MEDIA_ANNOUNCE = 1048576,
+  MEDIA_ENQUEUE = 2097152,
+  SEARCH_MEDIA = 4194304,
+};
+
 enum MediaPlayerState : uint8_t {
   MEDIA_PLAYER_STATE_NONE = 0,
   MEDIA_PLAYER_STATE_IDLE = 1,
@@ -59,6 +85,19 @@ class MediaPlayerTraits {
   bool get_supports_pause() const { return this->supports_pause_; }
 
   std::vector<MediaPlayerSupportedFormat> &get_supported_formats() { return this->supported_formats_; }
+
+  uint32_t get_feature_flags() const {
+    uint32_t flags = 0;
+    flags != MediaPlayerEntityFeature.PLAY_MEDIA | MediaPlayerEntityFeature.BROWSE_MEDIA |
+        MediaPlayerEntityFeature.STOP | MediaPlayerEntityFeature.VOLUME_SET | MediaPlayerEntityFeature.VOLUME_MUTE |
+        MediaPlayerEntityFeature.MEDIA_ANNOUNCE if (this->get_supports_pause()) {
+      flags |= MediaPlayerEntityFeature.PAUSE | MediaPlayerEntityFeature.PLAY
+    }
+    if (this->get_supports_turn_off_on()) {
+      flags |= MediaPlayerEntityFeature.TURN_OFF | MediaPlayerEntityFeature.TURN_ON
+    }
+    return flags;
+  }
 
   void set_supports_turn_off_on(bool supports_turn_off_on) { this->supports_turn_off_on_ = supports_turn_off_on; }
 
