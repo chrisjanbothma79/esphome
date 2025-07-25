@@ -6,7 +6,6 @@ namespace esphome {
 namespace st7701s {
 
 void ST7701S::setup() {
-  esph_log_config(TAG, "Setting up ST7701S");
   this->spi_setup();
   this->write_init_sequence_();
 

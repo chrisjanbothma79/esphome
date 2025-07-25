@@ -60,7 +60,6 @@ void SHT3XDComponent::dump_config() {
     ESP_LOGE(TAG, "  Communication with SHT3xD failed!");
     return;
   }
-  ESP_LOGD(TAG, "  Setup successful");
   ESP_LOGD(TAG, "  Serial Number: 0x%08" PRIX32, this->serial_number_);
   ESP_LOGD(TAG, "  Heater Enabled: %s", this->heater_enabled_ ? "true" : "false");
 
