@@ -56,7 +56,6 @@ void MY9231OutputComponent::setup() {
     this->send_dcki_pulses_(32 * this->num_chips_);
     this->init_chips_(command);
   }
-  ESP_LOGV(TAG, "  Chips initialized.");
 }
 void MY9231OutputComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "MY9231:");
