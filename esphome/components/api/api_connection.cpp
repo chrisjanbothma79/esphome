@@ -242,9 +242,11 @@ void APIConnection::loop() {
   }
 #endif
 
+#ifdef USE_API_HOMEASSISTANT_STATES
   if (state_subs_at_ >= 0) {
     this->process_state_subscriptions_();
   }
+#endif
 }
 
 bool APIConnection::send_disconnect_response(const DisconnectRequest &msg) {
@@ -1494,6 +1496,7 @@ bool APIConnection::send_device_info_response(const DeviceInfoRequest &msg) {
   return this->send_message(resp, DeviceInfoResponse::MESSAGE_TYPE);
 }
 
+#ifdef USE_API_HOMEASSISTANT_STATES
 void APIConnection::on_home_assistant_state_response(const HomeAssistantStateResponse &msg) {
   for (auto &it : this->parent_->get_state_subs()) {
     if (it.entity_id == msg.entity_id && it.attribute.value() == msg.attribute) {
@@ -1501,6 +1504,7 @@ void APIConnection::on_home_assistant_state_response(const HomeAssistantStateRes
     }
   }
 }
+#endif
 #ifdef USE_API_SERVICES
 void APIConnection::execute_service(const ExecuteServiceRequest &msg) {
   bool found = false;
@@ -1532,9 +1536,11 @@ bool APIConnection::send_noise_encryption_set_key_response(const NoiseEncryption
   return this->send_message(resp, NoiseEncryptionSetKeyResponse::MESSAGE_TYPE);
 }
 #endif
+#ifdef USE_API_HOMEASSISTANT_STATES
 void APIConnection::subscribe_home_assistant_states(const SubscribeHomeAssistantStatesRequest &msg) {
   state_subs_at_ = 0;
 }
+#endif
 bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
   if (this->flags_.remove)
     return false;
