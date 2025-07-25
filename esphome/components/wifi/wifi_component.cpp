@@ -261,6 +261,7 @@ void WiFiComponent::setup_ap_config_() {
     this->ap_.set_ssid(name);
   }
   ESP_LOGCONFIG(TAG,
+                "Setting up AP:\n"
                 "  AP SSID: '%s'\n"
                 "  AP Password: '%s'",
                 this->ap_.get_ssid().c_str(), this->ap_.get_password().c_str());
