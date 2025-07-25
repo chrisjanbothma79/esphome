@@ -1,6 +1,5 @@
 import esphome.codegen as cg
 from esphome.components import climate_ir
-import esphome.config_validation as cv
 
 AUTO_LOAD = ["climate_ir"]
 
