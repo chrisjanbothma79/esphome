@@ -119,7 +119,7 @@ def test_code_generation(
 
     main_cpp = generate_main(component_fixture_path("mipi_dsi.yaml"))
     assert (
-        "mipi_dsi_mipi_dsi_id = new mipi_dsi::MIPI_DSI(800, 1280, display::COLOR_BITNESS_565);"
+        "mipi_dsi_mipi_dsi_id = new mipi_dsi::MIPI_DSI(800, 1280, display::COLOR_BITNESS_565, 16);"
         in main_cpp
     )
     assert "set_init_sequence({224, 1, 0, 225, 1, 147, 226, 1," in main_cpp
