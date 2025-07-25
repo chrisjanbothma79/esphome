@@ -26,7 +26,9 @@ static const uint16_t SCD4X_CMD_FACTORY_RESET = 0x3632;
 static const uint16_t SCD4X_CMD_GET_FEATURESET = 0x202f;
 static const float SCD4X_TEMPERATURE_OFFSET_MULTIPLIER = (1 << 16) / 175.0f;
 
-void SCD4XComponent::setup() {  // the sensor needs 1000 ms to enter the idle state
+void SCD4XComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+  // the sensor needs 1000 ms to enter the idle state
   this->set_timeout(1000, [this]() {
     this->status_clear_error();
     if (!this->write_command(SCD4X_CMD_STOP_MEASUREMENTS)) {

@@ -10,7 +10,10 @@ static const char *const TAG = "dps310";
 void DPS310Component::setup() {
   uint8_t coef_data_raw[DPS310_NUM_COEF_REGS];
   auto timer = DPS310_INIT_TIMEOUT;
-  uint8_t reg = 0;  // first, reset the sensor
+  uint8_t reg = 0;
+
+  ESP_LOGCONFIG(TAG, "Running setup");
+  // first, reset the sensor
   if (!this->write_byte(DPS310_REG_RESET, DPS310_CMD_RESET)) {
     this->mark_failed();
     return;

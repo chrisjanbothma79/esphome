@@ -70,6 +70,7 @@ bool DallasTemperatureSensor::read_scratch_pad_() {
 }
 
 void DallasTemperatureSensor::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
   if (!this->check_address_())
     return;
   if (!this->read_scratch_pad_())

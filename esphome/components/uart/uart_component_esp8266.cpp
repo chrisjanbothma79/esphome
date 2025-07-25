@@ -55,7 +55,9 @@ uint32_t ESP8266UartComponent::get_config() {
   return config;
 }
 
-void ESP8266UartComponent::setup() {  // Use Arduino HardwareSerial UARTs if all used pins match the ones
+void ESP8266UartComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+  // Use Arduino HardwareSerial UARTs if all used pins match the ones
   // preconfigured by the platform. For example if RX disabled but TX pin
   // is 1 we still want to use Serial.
   SerialConfig config = static_cast<SerialConfig>(get_config());

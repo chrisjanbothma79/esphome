@@ -8,6 +8,7 @@ namespace dht {
 static const char *const TAG = "dht";
 
 void DHT::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
   this->pin_->digital_write(true);
   this->pin_->setup();
   this->pin_->digital_write(true);

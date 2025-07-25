@@ -182,13 +182,15 @@ static inline bool validate_header_footer(const uint8_t *header_footer, const ui
 }
 
 void LD2450Component::setup() {
-#ifdef USE_NUMBER if (this->presence_timeout_number_ != nullptr) {
-  this->pref_ = global_preferences->make_preference<float>(this->presence_timeout_number_->get_object_id_hash());
-  this->set_presence_timeout();
-}
+  ESP_LOGCONFIG(TAG, "Running setup");
+#ifdef USE_NUMBER
+  if (this->presence_timeout_number_ != nullptr) {
+    this->pref_ = global_preferences->make_preference<float>(this->presence_timeout_number_->get_object_id_hash());
+    this->set_presence_timeout();
+  }
 #endif
-this->restart_and_read_all_info();
-}  // namespace ld2450
+  this->restart_and_read_all_info();
+}
 
 void LD2450Component::dump_config() {
   std::string mac_str =
@@ -948,5 +950,5 @@ float LD2450Component::restore_from_flash_() {
 }
 #endif
 
-}  // namespace esphome
+}  // namespace ld2450
 }  // namespace esphome

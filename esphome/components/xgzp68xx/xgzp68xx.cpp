@@ -69,6 +69,7 @@ void XGZP68XXComponent::update() {
 }
 
 void XGZP68XXComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
   uint8_t config;
 
   // Display some sample bits to confirm we are talking to the sensor

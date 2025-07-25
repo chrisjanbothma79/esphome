@@ -6,7 +6,10 @@ namespace qwiic_pir {
 
 static const char *const TAG = "qwiic_pir";
 
-void QwiicPIRComponent::setup() {  // Verify I2C communcation by reading and verifying the chip ID
+void QwiicPIRComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+
+  // Verify I2C communcation by reading and verifying the chip ID
   uint8_t chip_id;
   if (!this->read_byte(QWIIC_PIR_CHIP_ID, &chip_id)) {
     ESP_LOGE(TAG, "Failed to read chip ID");

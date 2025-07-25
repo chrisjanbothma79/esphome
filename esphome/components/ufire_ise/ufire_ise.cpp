@@ -9,6 +9,8 @@ namespace ufire_ise {
 static const char *const TAG = "ufire_ise";
 
 void UFireISEComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+
   uint8_t version;
   if (!this->read_byte(REGISTER_VERSION, &version) && version != 0xFF) {
     this->mark_failed();

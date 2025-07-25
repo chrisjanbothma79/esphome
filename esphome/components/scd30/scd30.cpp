@@ -26,7 +26,10 @@ static const uint16_t SCD30_CMD_TEMPERATURE_OFFSET = 0x5403;
 static const uint16_t SCD30_CMD_SOFT_RESET = 0xD304;
 
 void SCD30Component::setup() {
-#ifdef USE_ESP8266 Wire.setClockStretchLimit(150000);
+  ESP_LOGCONFIG(TAG, "Running setup");
+
+#ifdef USE_ESP8266
+  Wire.setClockStretchLimit(150000);
 #endif
 
   /// Firmware version identification

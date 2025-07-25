@@ -127,7 +127,10 @@ void BMP581Component::setup() {
    *  6) Configure and prime IIR Filter(s), if enabled
    */
 
-  this->error_code_ = NONE;  ////////////////////
+  this->error_code_ = NONE;
+  ESP_LOGCONFIG(TAG, "Running setup");
+
+  ////////////////////
   // 1) Soft reboot //
   ////////////////////
 

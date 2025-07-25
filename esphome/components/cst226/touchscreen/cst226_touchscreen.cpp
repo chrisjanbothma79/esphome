@@ -6,6 +6,7 @@ namespace cst226 {
 static const char *const TAG = "cst226.touchscreen";
 
 void CST226Touchscreen::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
   if (this->reset_pin_ != nullptr) {
     this->reset_pin_->setup();
     this->reset_pin_->digital_write(true);

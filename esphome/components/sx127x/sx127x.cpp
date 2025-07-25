@@ -49,7 +49,10 @@ void SX127x::write_fifo_(const std::vector<uint8_t> &packet) {
   this->disable();
 }
 
-void SX127x::setup() {  // setup reset
+void SX127x::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+
+  // setup reset
   this->rst_pin_->setup();
 
   // setup dio0

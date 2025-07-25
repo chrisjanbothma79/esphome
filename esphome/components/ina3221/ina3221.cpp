@@ -21,7 +21,9 @@ static const uint8_t INA3221_REGISTER_CHANNEL3_BUS_VOLTAGE = 0x06;
 // A0 = SDA -> 0x42
 // A0 = SCL -> 0x43
 
-void INA3221Component::setup() {  // Config Register
+void INA3221Component::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+  // Config Register
   // 0bx000000000000000 << 15 RESET Bit (1 -> trigger reset)
   if (!this->write_byte_16(INA3221_REGISTER_CONFIG, 0x8000)) {
     this->mark_failed();

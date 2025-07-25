@@ -32,7 +32,10 @@ const uint32_t SHORTEST_BASELINE_STORE_INTERVAL = 3600;
 // Store anyway if the baseline difference exceeds the max storage diff value
 const uint32_t MAXIMUM_STORAGE_DIFF = 50;
 
-void SGP30Component::setup() {  // Serial Number identification
+void SGP30Component::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+
+  // Serial Number identification
   uint16_t raw_serial_number[3];
   if (!this->get_register(SGP30_CMD_GET_SERIAL_ID, raw_serial_number, 3)) {
     this->mark_failed();

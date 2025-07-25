@@ -62,8 +62,9 @@ static float get_ps_gain_coeff(PsGain gain) {
   return PS_GAIN[gain & 0b11];
 }
 
-void LTRAlsPsComponent::setup() {  // As per datasheet we need to wait at least 100ms after power on to get ALS chip
-                                   // responsive
+void LTRAlsPsComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+  // As per datasheet we need to wait at least 100ms after power on to get ALS chip responsive
   this->set_timeout(100, [this]() { this->state_ = State::DELAYED_SETUP; });
 }
 

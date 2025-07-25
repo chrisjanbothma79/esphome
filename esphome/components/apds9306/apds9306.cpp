@@ -54,6 +54,8 @@ enum {  // APDS9306 registers
   }
 
 void APDS9306::setup() {
+  ESP_LOGCONFIG(TAG, "Running setup");
+
   uint8_t id;
   if (!this->read_byte(APDS9306_PART_ID, &id)) {  // Part ID register
     this->error_code_ = COMMUNICATION_FAILED;
