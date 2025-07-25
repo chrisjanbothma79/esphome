@@ -47,8 +47,6 @@ void PCF8574Component::loop() {
       ESP_LOGD(TAG, "No inputs, disable loop");
       this->disable_loop();
       return;
-    } else {
-      this->enable_loop();
     }
   }
   if (this->pin_intr_ != nullptr) {
@@ -114,8 +112,9 @@ void PCF8574Component::pin_mode(uint8_t pin, gpio::Flags flags) {
     this->mode_mask_ &= ~(1 << pin);
     this->input_mask_ &= ~(1 << pin);
   }
-  // Pickup runtime changes
+  // This could be a change during runtime, be sure to pickup changes
   this->first_loop_ = true;
+  this->enable_loop();
 }
 
 bool PCF8574Component::read_gpio_() {
