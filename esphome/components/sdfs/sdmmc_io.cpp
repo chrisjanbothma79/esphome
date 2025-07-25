@@ -12,12 +12,6 @@
 namespace esphome {
 namespace sdfs {
 
-// #define SET_RC(x, y, str) \
-//   do { \
-//     this->last_err_ = (x << 16) | (y); \
-//     ESP_LOGE(TAG, (str) " (0x%x)%s.", (y), esp_err_to_name(y)); \
-//   } while (0)
-
 // #define FF_DRV_NOT_USED 0xFF
 static const char *TAG = "sdmmc_io";
 
@@ -393,7 +387,8 @@ bool SdmmcIO::format() {
   // ESP_LOGD(TAG, "Prtitioning disk (f_mkfs), Allocation unit size=%d", alloc_unit_size);
 
 #ifdef USE_ESP_IDF
-  const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, alloc_unit_size};
+  const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, 0};
+  // const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, alloc_unit_size};
   res = f_mkfs(drv, &opt, workbuf, workbuf_size);
 #elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
   const MKFS_PARM opt = {(BYTE) FM_ANY, 0, 0, 0, 0};
