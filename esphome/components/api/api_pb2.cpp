@@ -1770,7 +1770,7 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
 #ifdef USE_DEVICES
   buffer.encode_uint32(10, this->device_id);
 #endif
-  buffer.encode_bool(11, this->supports_turn_off_on);
+  buffer.encode_uint32(11, this->feature_flags);
 }
 void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
@@ -1786,7 +1786,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
 #ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 #endif
-  ProtoSize::add_bool_field(total_size, 1, this->supports_turn_off_on);
+  ProtoSize::add_uint32_field(total_size, 1, this->feature_flags);
 }
 void MediaPlayerStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);

@@ -2984,8 +2984,9 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("\n");
 
 #endif
-  out.append("  supports_turn_off_on: ");
-  out.append(YESNO(this->supports_turn_off_on));
+  out.append("  feature_flags: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->feature_flags);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
