@@ -14,6 +14,7 @@ from esphome.components.const import (
 from esphome.components.display import CONF_SHOW_TEST_CARD
 from esphome.components.esp32 import const, only_on_variant
 from esphome.components.mipi import (
+    COLOR_ORDERS,
     CONF_COLOR_DEPTH,
     CONF_HSYNC_BACK_PORCH,
     CONF_HSYNC_FRONT_PORCH,
@@ -65,10 +66,6 @@ MIPI_DSI = mipi_dsi_ns.class_("MIPI_DSI", display.Display, cg.Component)
 ColorOrder = display.display_ns.enum("ColorMode")
 ColorBitness = display.display_ns.enum("ColorBitness")
 
-COLOR_ORDERS = {
-    "RGB": ColorOrder.COLOR_ORDER_RGB,
-    "BGR": ColorOrder.COLOR_ORDER_BGR,
-}
 
 CONF_LANE_BIT_RATE = "lane_bit_rate"
 CONF_LANES = "lanes"
