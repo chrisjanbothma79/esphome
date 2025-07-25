@@ -285,6 +285,8 @@ void GetInhibitTimeCommand::on_message() {
       ESP_LOGD(TAG, "Failed to parse response");
       this->error_ = true;  // command is done
     } else {
+      // The module tends to add 0.001 when this value is set, remove it here
+      this->inhibit_time_.value() = floor(this->inhibit_time_.value() * 500.0) / 500.0;
       this->parent_->set_inhibit_time(this->inhibit_time_.value(), false);
       this->done_ = true;  // command is done
     }

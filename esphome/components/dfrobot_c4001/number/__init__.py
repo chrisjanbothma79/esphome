@@ -219,7 +219,7 @@ async def to_code(config):
         cg.add(sens0609_hub.set_inhibit_time_number(n))
     if threshold_factor := config.get(CONF_THRESHOLD_FACTOR):
         n = await number.new_number(
-            threshold_factor, min_value=0.0, max_value=25.0, step=0.1
+            threshold_factor, min_value=0, max_value=65535, step=1
         )
         await cg.register_parented(n, config[CONF_DFROBOT_C4001_ID])
         cg.add(sens0609_hub.set_threshold_factor_number(n))
