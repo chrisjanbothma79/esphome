@@ -89,10 +89,7 @@ bool AM2315C::convert_(uint8_t *data, float &humidity, float &temperature) {
   return this->crc8_(data, 6) == data[6];
 }
 
-void AM2315C::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-
-  // get status
+void AM2315C::setup() {  // get status
   uint8_t status = 0;
   if (this->read(&status, 1) != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "Read failed!");

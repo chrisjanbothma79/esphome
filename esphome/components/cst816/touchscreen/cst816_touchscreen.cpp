@@ -39,7 +39,6 @@ void CST816Touchscreen::continue_setup_() {
 }
 
 void CST816Touchscreen::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   if (this->reset_pin_ != nullptr) {
     this->reset_pin_->setup();
     this->reset_pin_->digital_write(true);

@@ -23,9 +23,7 @@ static const uint8_t QMC5883L_REGISTER_CONTROL_1 = 0x09;
 static const uint8_t QMC5883L_REGISTER_CONTROL_2 = 0x0A;
 static const uint8_t QMC5883L_REGISTER_PERIOD = 0x0B;
 
-void QMC5883LComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-  // Soft Reset
+void QMC5883LComponent::setup() {  // Soft Reset
   if (!this->write_byte(QMC5883L_REGISTER_CONTROL_2, 1 << 7)) {
     this->error_code_ = COMMUNICATION_FAILED;
     this->mark_failed();

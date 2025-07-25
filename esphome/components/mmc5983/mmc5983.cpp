@@ -66,10 +66,7 @@ void MMC5983Component::update() {
   }
 }
 
-void MMC5983Component::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-
-  // Verify product id.
+void MMC5983Component::setup() {  // Verify product id.
   const uint8_t mmc5983_product_id = 0x30;
   uint8_t id;
   i2c::ErrorCode err = this->read_register(PRODUCT_ID_ADDR, &id, 1);

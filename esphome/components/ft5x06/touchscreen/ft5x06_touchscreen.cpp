@@ -9,7 +9,6 @@ namespace ft5x06 {
 static const char *const TAG = "ft5x06.touchscreen";
 
 void FT5x06Touchscreen::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   if (this->interrupt_pin_ != nullptr) {
     this->interrupt_pin_->setup();
     this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);

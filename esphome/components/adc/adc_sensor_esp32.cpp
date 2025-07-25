@@ -36,9 +36,7 @@ const LogString *adc_unit_to_str(adc_unit_t unit) {
   }
 }
 
-void ADCSensor::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->get_name().c_str());
-  // Check if another sensor already initialized this ADC unit
+void ADCSensor::setup() {  // Check if another sensor already initialized this ADC unit
   if (ADCSensor::shared_adc_handles[this->adc_unit_] == nullptr) {
     adc_oneshot_unit_init_cfg_t init_config = {};  // Zero initialize
     init_config.unit_id = this->adc_unit_;

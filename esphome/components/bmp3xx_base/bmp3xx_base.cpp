@@ -69,9 +69,7 @@ static const LogString *iir_filter_to_str(IIRFilter filter) {
 }
 
 void BMP3XXComponent::setup() {
-  this->error_code_ = NONE;
-  ESP_LOGCONFIG(TAG, "Running setup");
-  // Call the Device base class "initialise" function
+  this->error_code_ = NONE;  // Call the Device base class "initialise" function
   if (!reset()) {
     ESP_LOGE(TAG, "Failed to reset");
     this->error_code_ = ERROR_SENSOR_RESET;

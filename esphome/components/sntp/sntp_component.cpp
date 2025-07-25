@@ -15,11 +15,7 @@ namespace sntp {
 static const char *const TAG = "sntp";
 
 void SNTPComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-#if defined(USE_ESP32)
-  if (esp_sntp_enabled()) {
-    esp_sntp_stop();
-  }
+#if defined(USE_ESP32) if (esp_sntp_enabled()) { esp_sntp_stop(); }
   esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
   size_t i = 0;
   for (auto &server : this->servers_) {

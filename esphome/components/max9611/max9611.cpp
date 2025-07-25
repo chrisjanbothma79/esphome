@@ -30,9 +30,7 @@ static const float VOUT_LSB = 14.0 / 1000.0;  // 14mV/LSB
 static const float TEMP_LSB = 0.48;           // 0.48C/LSB
 static const float MICRO_VOLTS_PER_VOLT = 1000000.0;
 
-void MAX9611Component::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-  // Perform dummy-read
+void MAX9611Component::setup() {  // Perform dummy-read
   uint8_t value;
   this->read(&value, 1);
   // Configuration Stage.

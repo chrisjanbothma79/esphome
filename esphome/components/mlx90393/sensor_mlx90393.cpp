@@ -102,9 +102,7 @@ bool MLX90393Cls::apply_all_settings_() {
   return result == MLX90393::STATUS_OK;
 }
 
-void MLX90393Cls::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-  // note the two arguments A0 and A1 which are used to construct an i2c address
+void MLX90393Cls::setup() {  // note the two arguments A0 and A1 which are used to construct an i2c address
   // we can hard-code these because we never actually use the constructed address
   // see the transceive function above, which uses the address from I2CComponent
   this->mlx_.begin_with_hal(this, 0, 0);
