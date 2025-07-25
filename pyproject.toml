@@ -109,6 +109,7 @@ required-version = ">=0.5.0"
 target-version = "py311"
 exclude = ['generated']
 
+[tool.ruff.lint]
 select = [
   "E",    # pycodestyle
   "F",    # pyflakes/autoflake
