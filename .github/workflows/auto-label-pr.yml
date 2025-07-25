@@ -298,9 +298,10 @@ jobs:
                     const dir = pattern.slice(0, -1);
                     regex = new RegExp(`^${dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
                   } else if (pattern.includes('*')) {
+                    // First escape all regex special chars except *, then replace * with .*
                     const regexPattern = pattern
-                      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                      .replace(/\\*/g, '.*');
+                      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+                      .replace(/\*/g, '.*');
                     regex = new RegExp(`^${regexPattern}$`);
                   } else {
                     regex = new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
