@@ -19,6 +19,9 @@ globals:
   - id: backoff_retry_counter
     type: int
     initial_value: '0'
+  - id: backoff_last_attempt_time
+    type: uint32_t
+    initial_value: '0'
   - id: immediate_done_counter
     type: int
     initial_value: '0'
@@ -101,18 +104,18 @@ script:
       - logger.log: "=== Test 2: Retry with backoff ==="
       - lambda: |-
           auto *component = id(backoff_retry_sensor);
-          static uint32_t backoff_start_time = 0;
-          static uint32_t last_attempt_time = 0;
-
-          backoff_start_time = millis();
-          last_attempt_time = backoff_start_time;
 
           App.scheduler.set_retry(component, "backoff_retry", 50, 4,
             [](uint8_t retry_countdown) {
               id(backoff_retry_counter)++;
               uint32_t now = millis();
-              uint32_t interval = now - last_attempt_time;
-              last_attempt_time = now;
+              uint32_t interval = 0;
+
+              // Only calculate interval after first attempt
+              if (id(backoff_retry_counter) > 1) {
+                interval = now - id(backoff_last_attempt_time);
+              }
+              id(backoff_last_attempt_time) = now;
 
               ESP_LOGI("test", "Backoff retry attempt %d (countdown=%d, interval=%dms)",
                        id(backoff_retry_counter), retry_countdown, interval);
