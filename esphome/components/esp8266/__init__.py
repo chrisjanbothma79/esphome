@@ -15,6 +15,7 @@ from esphome.const import (
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
     PLATFORM_ESP8266,
+    ThreadModel,
 )
 from esphome.core import CORE, coroutine_with_priority
 from esphome.helpers import copy_file_if_changed
@@ -180,11 +181,14 @@ async def to_code(config):
     cg.add(esp8266_ns.setup_preferences())
 
     cg.add_platformio_option("lib_ldf_mode", "off")
+    cg.add_platformio_option("lib_compat_mode", "strict")
 
     cg.add_platformio_option("board", config[CONF_BOARD])
     cg.add_build_flag("-DUSE_ESP8266")
+    cg.set_cpp_standard("gnu++20")
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_define("ESPHOME_VARIANT", "ESP8266")
+    cg.add_define(ThreadModel.SINGLE)
 
     cg.add_platformio_option("extra_scripts", ["post:post_build.py"])
 

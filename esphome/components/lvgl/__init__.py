@@ -2,6 +2,7 @@ import logging
 
 from esphome.automation import build_automation, register_action, validate_automation
 import esphome.codegen as cg
+from esphome.components.const import CONF_COLOR_DEPTH, CONF_DRAW_ROUNDING
 from esphome.components.display import Display
 import esphome.config_validation as cv
 from esphome.const import (
@@ -17,14 +18,14 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_TYPE,
 )
-from esphome.core import CORE, ID
+from esphome.core import CORE, ID, Lambda
 from esphome.cpp_generator import MockObj
 from esphome.final_validate import full_config
 from esphome.helpers import write_file_if_changed
 
 from . import defines as df, helpers, lv_validation as lvalid
-from .automation import disp_update, focused_widgets, update_to_code
-from .defines import CONF_DRAW_ROUNDING, add_define
+from .automation import disp_update, focused_widgets, refreshed_widgets, update_to_code
+from .defines import add_define
 from .encoders import (
     ENCODERS_CONFIG,
     encoders_to_code,
@@ -185,7 +186,7 @@ def multi_conf_validate(configs: list[dict]):
     for config in configs[1:]:
         for item in (
             df.CONF_LOG_LEVEL,
-            df.CONF_COLOR_DEPTH,
+            CONF_COLOR_DEPTH,
             df.CONF_BYTE_ORDER,
             df.CONF_TRANSPARENCY_KEY,
         ):
@@ -239,6 +240,13 @@ def final_validation(configs):
                     "A non adjustable arc may not be focused",
                     path,
                 )
+        for w in refreshed_widgets:
+            path = global_config.get_path_for_id(w)
+            widget_conf = global_config.get_config_for_path(path[:-1])
+            if not any(isinstance(v, Lambda) for v in widget_conf.values()):
+                raise cv.Invalid(
+                    f"Widget '{w}' does not have any templated properties to refresh",
+                )
 
 
 async def to_code(configs):
@@ -267,11 +275,11 @@ async def to_code(configs):
         "LVGL_LOG_LEVEL",
         cg.RawExpression(f"ESPHOME_LOG_LEVEL_{config_0[df.CONF_LOG_LEVEL]}"),
     )
-    add_define("LV_COLOR_DEPTH", config_0[df.CONF_COLOR_DEPTH])
+    add_define("LV_COLOR_DEPTH", config_0[CONF_COLOR_DEPTH])
     for font in helpers.lv_fonts_used:
         add_define(f"LV_FONT_{font.upper()}")
 
-    if config_0[df.CONF_COLOR_DEPTH] == 16:
+    if config_0[CONF_COLOR_DEPTH] == 16:
         add_define(
             "LV_COLOR_16_SWAP",
             "1" if config_0[df.CONF_BYTE_ORDER] == "big_endian" else "0",
@@ -313,7 +321,7 @@ async def to_code(configs):
             frac = 2
         elif frac > 0.19:
             frac = 4
-        else:
+        elif frac != 0:
             frac = 8
         displays = [
             await cg.get_variable(display) for display in config[df.CONF_DISPLAYS]
@@ -323,7 +331,7 @@ async def to_code(configs):
             displays,
             frac,
             config[df.CONF_FULL_REFRESH],
-            config[df.CONF_DRAW_ROUNDING],
+            config[CONF_DRAW_ROUNDING],
             config[df.CONF_RESUME_ON_INPUT],
         )
         await cg.register_component(lv_component, config)
@@ -408,13 +416,13 @@ LVGL_SCHEMA = cv.All(
             {
                 cv.GenerateID(CONF_ID): cv.declare_id(LvglComponent),
                 cv.GenerateID(df.CONF_DISPLAYS): display_schema,
-                cv.Optional(df.CONF_COLOR_DEPTH, default=16): cv.one_of(16),
+                cv.Optional(CONF_COLOR_DEPTH, default=16): cv.one_of(16),
                 cv.Optional(
                     df.CONF_DEFAULT_FONT, default="montserrat_14"
                 ): lvalid.lv_font,
                 cv.Optional(df.CONF_FULL_REFRESH, default=False): cv.boolean,
-                cv.Optional(df.CONF_DRAW_ROUNDING, default=2): cv.positive_int,
-                cv.Optional(CONF_BUFFER_SIZE, default="100%"): cv.percentage,
+                cv.Optional(CONF_DRAW_ROUNDING, default=2): cv.positive_int,
+                cv.Optional(CONF_BUFFER_SIZE, default=0): cv.percentage,
                 cv.Optional(df.CONF_LOG_LEVEL, default="WARN"): cv.one_of(
                     *df.LV_LOG_LEVELS, upper=True
                 ),
@@ -458,7 +466,7 @@ LVGL_SCHEMA = cv.All(
                 ): lvalid.lv_color,
                 cv.Optional(df.CONF_THEME): cv.Schema(
                     {
-                        cv.Optional(name): obj_schema(w)
+                        cv.Optional(name): obj_schema(w).extend(FULL_STYLE_SCHEMA)
                         for name, w in WIDGET_TYPES.items()
                     }
                 ),
