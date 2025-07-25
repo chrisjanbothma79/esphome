@@ -128,7 +128,6 @@ void MicroWakeWord::setup() {
         }
       });
 #endif
-  ESP_LOGCONFIG(TAG, "Micro Wake Word initialized");
 }
 
 void MicroWakeWord::inference_task(void *params) {
