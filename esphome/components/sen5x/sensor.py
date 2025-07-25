@@ -105,6 +105,7 @@ NOX_SENSOR = cv.Schema(
     }
 )
 
+
 def float_previously_pct(value):
     if isinstance(value, str) and "%" in value:
         raise cv.Invalid(
