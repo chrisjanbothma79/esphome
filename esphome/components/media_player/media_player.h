@@ -88,7 +88,7 @@ class MediaPlayerTraits {
 
   uint32_t get_feature_flags() const {
     uint32_t flags = 0;
-    flags != MediaPlayerEntityFeature::PLAY_MEDIA | MediaPlayerEntityFeature::BROWSE_MEDIA |
+    flags |= MediaPlayerEntityFeature::PLAY_MEDIA | MediaPlayerEntityFeature::BROWSE_MEDIA |
         MediaPlayerEntityFeature::STOP | MediaPlayerEntityFeature::VOLUME_SET | MediaPlayerEntityFeature::VOLUME_MUTE |
         MediaPlayerEntityFeature::MEDIA_ANNOUNCE;
     if (this->get_supports_pause()) {
