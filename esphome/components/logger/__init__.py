@@ -193,7 +193,7 @@ def validate_local_no_higher_than_global(value):
 Logger = logger_ns.class_("Logger", cg.Component)
 LoggerMessageTrigger = logger_ns.class_(
     "LoggerMessageTrigger",
-    automation.Trigger.template(cg.int_, cg.const_char_ptr, cg.const_char_ptr),
+    automation.Trigger.template(cg.uint8, cg.const_char_ptr, cg.const_char_ptr),
 )
 
 
@@ -346,14 +346,13 @@ async def to_code(config):
     if config.get(CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH):
         cg.add_build_flag("-DUSE_STORE_LOG_STR_IN_FLASH")
 
-    if CORE.using_arduino:
-        if config[CONF_HARDWARE_UART] == USB_CDC:
-            cg.add_build_flag("-DARDUINO_USB_CDC_ON_BOOT=1")
-            if CORE.is_esp32 and get_esp32_variant() in (
-                VARIANT_ESP32C3,
-                VARIANT_ESP32C6,
-            ):
-                cg.add_build_flag("-DARDUINO_USB_MODE=1")
+    if CORE.using_arduino and config[CONF_HARDWARE_UART] == USB_CDC:
+        cg.add_build_flag("-DARDUINO_USB_CDC_ON_BOOT=1")
+        if CORE.is_esp32 and get_esp32_variant() in (
+            VARIANT_ESP32C3,
+            VARIANT_ESP32C6,
+        ):
+            cg.add_build_flag("-DARDUINO_USB_MODE=1")
 
     if CORE.using_esp_idf:
         if config[CONF_HARDWARE_UART] == USB_CDC:
@@ -390,7 +389,7 @@ async def to_code(config):
         await automation.build_automation(
             trigger,
             [
-                (cg.int_, "level"),
+                (cg.uint8, "level"),
                 (cg.const_char_ptr, "tag"),
                 (cg.const_char_ptr, "message"),
             ],
