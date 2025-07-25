@@ -370,6 +370,8 @@ class DriverChip:
         # Set pixel format if not already in the custom sequence
         pixel_mode = config[CONF_PIXEL_MODE]
         if not isinstance(pixel_mode, int):
+            if not pixel_mode.endswith("bit"):
+                pixel_mode = f"{pixel_mode}bit"
             pixel_mode = PIXEL_MODES[pixel_mode]
         sequence.append((PIXFMT, pixel_mode))
 
