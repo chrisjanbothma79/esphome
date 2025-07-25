@@ -43,8 +43,6 @@ void AGS10Component::setup() {
   } else {
     ESP_LOGE(TAG, "AGS10 Sensor Resistance: unknown");
   }
-
-  ESP_LOGD(TAG, "Sensor initialized");
 }
 
 void AGS10Component::update() {
