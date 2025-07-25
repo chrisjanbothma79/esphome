@@ -148,7 +148,6 @@ async def to_code(config):
     if config.get(CONF_ACTIONS) or config[CONF_CUSTOM_SERVICES]:
         cg.add_define("USE_API_SERVICES")
 
-    # Set USE_API_HOMEASSISTANT_STATES if enabled
     if config[CONF_HOMEASSISTANT_STATES]:
         cg.add_define("USE_API_HOMEASSISTANT_STATES")
 
