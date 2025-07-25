@@ -114,7 +114,7 @@ select = [
   "E",    # pycodestyle
   "F",    # pyflakes/autoflake
   "I",    # isort
-  "PERF", # performance 
+  "PERF", # performance
   "PL",   # pylint
   "SIM",  # flake8-simplify
   "UP",   # pyupgrade
