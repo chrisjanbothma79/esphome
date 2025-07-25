@@ -109,14 +109,14 @@ required-version = ">=0.5.0"
 target-version = "py311"
 exclude = ['generated']
 
-[tool.ruff.lint]
 select = [
-  "E", # pycodestyle
-  "F", # pyflakes/autoflake
-  "I", # isort
-  "PERF", # performance
-  "PL", # pylint
-  "UP", # pyupgrade
+  "E",    # pycodestyle
+  "F",    # pyflakes/autoflake
+  "I",    # isort
+  "PERF", # performance 
+  "PL",   # pylint
+  "SIM",  # flake8-simplify
+  "UP",   # pyupgrade
 ]
 
 ignore = [
