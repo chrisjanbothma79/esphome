@@ -1,21 +1,55 @@
 #ifdef USE_ESP32_VARIANT_ESP32S3
-#include "st7701s.h"
+#include "mipi_rgb.h"
 #include "esphome/core/log.h"
+#include "esp_lcd_panel_rgb.h"
 
 namespace esphome {
-namespace st7701s {
+namespace mipi_rgb {
 
-void ST7701S::setup() {
-  esph_log_config(TAG, "Setting up ST7701S");
+static const uint8_t DELAY_FLAG = 0xFF;
+static constexpr uint8_t MADCTL_MY = 0x80;     // Bit 7 Bottom to top
+static constexpr uint8_t MADCTL_MX = 0x40;     // Bit 6 Right to left
+static constexpr uint8_t MADCTL_MV = 0x20;     // Bit 5 Swap axes
+static constexpr uint8_t MADCTL_ML = 0x10;     // Bit 4 Refresh bottom to top
+static constexpr uint8_t MADCTL_BGR = 0x08;    // Bit 3 Blue-Green-Red pixel order
+static constexpr uint8_t MADCTL_XFLIP = 0x02;  // Mirror the display horizontally
+static constexpr uint8_t MADCTL_YFLIP = 0x01;  // Mirror the display vertically
+
+void MipiRgb::setup_enables_() {
+  if (!this->enable_pins_.empty()) {
+    for (auto *pin : this->enable_pins_) {
+      pin->setup();
+      pin->digital_write(true);
+    }
+    delay(10);
+  }
+  if (this->reset_pin_ != nullptr) {
+    this->reset_pin_->setup();
+    this->reset_pin_->digital_write(true);
+    delay(5);
+    this->reset_pin_->digital_write(false);
+    delay(5);
+    this->reset_pin_->digital_write(true);
+  }
+}
+
+void MipiRgbSpi::setup() {
+  this->setup_enables_();
   this->spi_setup();
   this->write_init_sequence_();
+  this->common_setup_();
+}
 
+void MipiRgb::setup() {
+  this->setup_enables_();
+  this->common_setup_();
+}
+
+void MipiRgb::common_setup_() {
   esp_lcd_rgb_panel_config_t config{};
   config.flags.fb_in_psram = 1;
-#if ESP_IDF_VERSION_MAJOR >= 5
   config.bounce_buffer_size_px = this->width_ * 10;
   config.num_fbs = 1;
-#endif  // ESP_IDF_VERSION_MAJOR
   config.timings.h_res = this->width_;
   config.timings.v_res = this->height_;
   config.timings.hsync_pulse_width = this->hsync_pulse_width_;
@@ -27,7 +61,6 @@ void ST7701S::setup() {
   config.timings.flags.pclk_active_neg = this->pclk_inverted_;
   config.timings.pclk_hz = this->pclk_frequency_;
   config.clk_src = LCD_CLK_SRC_PLL160M;
-  config.psram_trans_align = 64;
   size_t data_pin_count = sizeof(this->data_pins_) / sizeof(this->data_pins_[0]);
   for (size_t i = 0; i != data_pin_count; i++) {
     config.data_gpio_nums[i] = this->data_pins_[i]->get_pin();
@@ -42,52 +75,97 @@ void ST7701S::setup() {
   ESP_ERROR_CHECK(esp_lcd_panel_reset(this->handle_));
   ESP_ERROR_CHECK(esp_lcd_panel_init(this->handle_));
   if (err != ESP_OK) {
-    esph_log_e(TAG, "lcd_new_rgb_panel failed: %s", esp_err_to_name(err));
+    ESP_LOGE(TAG, "lcd_new_rgb_panel failed: %s", esp_err_to_name(err));
   }
-  esph_log_config(TAG, "ST7701S setup complete");
+  ESP_LOGCONFIG(TAG, "MipiRgb setup complete");
 }
 
-void ST7701S::loop() {
-#if ESP_IDF_VERSION_MAJOR >= 5
+void MipiRgb::loop() {
   if (this->handle_ != nullptr)
     esp_lcd_rgb_panel_restart(this->handle_);
-#endif  // ESP_IDF_VERSION_MAJOR
 }
 
-void ST7701S::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
+void MipiRgb::update() {
+  if (this->auto_clear_enabled_) {
+    this->clear();
+  }
+  if (this->show_test_card_) {
+    this->test_card();
+  } else if (this->page_ != nullptr) {
+    this->page_->get_writer()(*this);
+  } else if (this->writer_.has_value()) {
+    (*this->writer_)(*this);
+  } else {
+    this->stop_poller();
+  }
+  if (this->buffer_ == nullptr || this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
+    return;
+  ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
+  int w = this->x_high_ - this->x_low_ + 1;
+  int h = this->y_high_ - this->y_low_ + 1;
+  this->write_to_display_(this->x_low_, this->y_low_, w, h, reinterpret_cast<const uint8_t *>(this->buffer_),
+                          this->x_low_, this->y_low_, this->width_ - w - this->x_low_);
+  // invalidate watermarks
+  this->x_low_ = this->width_;
+  this->y_low_ = this->height_;
+  this->x_high_ = 0;
+  this->y_high_ = 0;
+}
+
+void MipiRgb::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                              display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) {
   if (w <= 0 || h <= 0)
     return;
   // if color mapping is required, pass the buck.
   // note that endianness is not considered here - it is assumed to match!
   if (bitness != display::COLOR_BITNESS_565) {
-    return display::Display::draw_pixels_at(x_start, y_start, w, h, ptr, order, bitness, big_endian, x_offset, y_offset,
-                                            x_pad);
+    Display::draw_pixels_at(x_start, y_start, w, h, ptr, order, bitness, big_endian, x_offset, y_offset, x_pad);
+    this->write_to_display_(x_start, y_start, w, h, reinterpret_cast<const uint8_t *>(this->buffer_), x_start, y_start,
+                            this->width_ - w - x_start);
+  } else {
+    this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
   }
-  x_start += this->offset_x_;
-  y_start += this->offset_y_;
-  esp_err_t err;
+}
+
+void MipiRgb::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+                                int x_pad) {
+  esp_err_t err = ESP_OK;
+  auto stride = (x_offset + w + x_pad) * 2;
+  ptr += y_offset * stride + x_offset * 2;  // skip to the first pixel
   // x_ and y_offset are offsets into the source buffer, unrelated to our own offsets into the display.
-  if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
-    // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
+  if (x_offset == 0 && x_pad == 0) {
     err = esp_lcd_panel_draw_bitmap(this->handle_, x_start, y_start, x_start + w, y_start + h, ptr);
   } else {
     // draw line by line
-    auto stride = x_offset + w + x_pad;
     for (int y = 0; y != h; y++) {
-      err = esp_lcd_panel_draw_bitmap(this->handle_, x_start, y + y_start, x_start + w, y + y_start + 1,
-                                      ptr + ((y + y_offset) * stride + x_offset) * 2);
+      err = esp_lcd_panel_draw_bitmap(this->handle_, x_start, y + y_start, x_start + w, y + y_start + 1, ptr);
       if (err != ESP_OK)
         break;
+      ptr += stride;  // next line
     }
   }
   if (err != ESP_OK)
-    esph_log_e(TAG, "lcd_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
+    ESP_LOGE(TAG, "lcd_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
 }
 
-void ST7701S::draw_pixel_at(int x, int y, Color color) {
+bool MipiRgb::check_buffer_() {
+  if (this->is_failed())
+    return false;
+  if (this->buffer_ != nullptr)
+    return true;
+  // this is dependent on the enum values.
+  RAMAllocator<uint16_t> allocator;
+  this->buffer_ = allocator.allocate(this->height_ * this->width_);
+  if (this->buffer_ == nullptr) {
+    this->mark_failed("Could not allocate buffer for display!");
+    return false;
+  }
+  return true;
+}
+
+void MipiRgb::draw_pixel_at(int x, int y, Color color) {
   if (!this->get_clipping().inside(x, y))
-    return;  // NOLINT
+    return;
 
   switch (this->rotation_) {
     case display::DISPLAY_ROTATION_0_DEGREES:
@@ -105,14 +183,63 @@ void ST7701S::draw_pixel_at(int x, int y, Color color) {
       y = this->height_ - y - 1;
       break;
   }
-  auto pixel = convert_big_endian(display::ColorUtil::color_to_565(color));
-
-  this->draw_pixels_at(x, y, 1, 1, (const uint8_t *) &pixel, display::COLOR_ORDER_RGB, display::COLOR_BITNESS_565, true,
-                       0, 0, 0);
-  App.feed_wdt();
+  if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
+    return;
+  }
+  if (!this->check_buffer_())
+    return;
+  size_t pos = (y * this->width_) + x;
+  uint8_t hi_byte = static_cast<uint8_t>(color.r & 0xF8) | (color.g >> 5);
+  uint8_t lo_byte = static_cast<uint8_t>((color.g & 0x1C) << 3) | (color.b >> 3);
+  uint16_t new_color = hi_byte | (lo_byte << 8);  // big endian
+  if (this->buffer_[pos] == new_color)
+    return;
+  this->buffer_[pos] = new_color;
+  // low and high watermark may speed up drawing from buffer
+  if (x < this->x_low_)
+    this->x_low_ = x;
+  if (y < this->y_low_)
+    this->y_low_ = y;
+  if (x > this->x_high_)
+    this->x_high_ = x;
+  if (y > this->y_high_)
+    this->y_high_ = y;
+}
+void MipiRgb::fill(Color color) {
+  if (!this->check_buffer_())
+    return;
+  auto *ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
+  uint8_t hi_byte = static_cast<uint8_t>(color.r & 0xF8) | (color.g >> 5);
+  uint8_t lo_byte = static_cast<uint8_t>((color.g & 0x1C) << 3) | (color.b >> 3);
+  uint16_t new_color = lo_byte | (hi_byte << 8);  // little endian
+  std::fill_n(ptr_16, this->width_ * this->height_, new_color);
 }
 
-void ST7701S::write_command_(uint8_t value) {
+int MipiRgb::get_width() {
+  switch (this->rotation_) {
+    case display::DISPLAY_ROTATION_90_DEGREES:
+    case display::DISPLAY_ROTATION_270_DEGREES:
+      return this->get_height_internal();
+    case display::DISPLAY_ROTATION_0_DEGREES:
+    case display::DISPLAY_ROTATION_180_DEGREES:
+    default:
+      return this->get_width_internal();
+  }
+}
+
+int MipiRgb::get_height() {
+  switch (this->rotation_) {
+    case display::DISPLAY_ROTATION_0_DEGREES:
+    case display::DISPLAY_ROTATION_180_DEGREES:
+      return this->get_height_internal();
+    case display::DISPLAY_ROTATION_90_DEGREES:
+    case display::DISPLAY_ROTATION_270_DEGREES:
+    default:
+      return this->get_width_internal();
+  }
+}
+
+void MipiRgbSpi::write_command_(uint8_t value) {
   this->enable();
   if (this->dc_pin_ == nullptr) {
     this->write(value, 9);
@@ -124,7 +251,7 @@ void ST7701S::write_command_(uint8_t value) {
   this->disable();
 }
 
-void ST7701S::write_data_(uint8_t value) {
+void MipiRgbSpi::write_data_(uint8_t value) {
   this->enable();
   if (this->dc_pin_ == nullptr) {
     this->write(value | 0x100, 9);
@@ -139,60 +266,105 @@ void ST7701S::write_data_(uint8_t value) {
  * this relies upon the init sequence being well-formed, which is guaranteed by the Python init code.
  */
 
-void ST7701S::write_sequence_(uint8_t cmd, size_t len, const uint8_t *bytes) {
-  this->write_command_(cmd);
-  while (len-- != 0)
-    this->write_data_(*bytes++);
-}
-
-void ST7701S::write_init_sequence_() {
-  for (size_t i = 0; i != this->init_sequence_.size();) {
-    uint8_t cmd = this->init_sequence_[i++];
-    size_t len = this->init_sequence_[i++];
-    if (len == ST7701S_DELAY_FLAG) {
-      ESP_LOGV(TAG, "Delay %dms", cmd);
+void MipiRgbSpi::write_init_sequence_() {
+  size_t index = 0;
+  auto &vec = this->init_sequence_;
+  while (index != vec.size()) {
+    if (vec.size() - index < 2) {
+      this->mark_failed("Malformed init sequence");
+      return;
+    }
+    uint8_t cmd = vec[index++];
+    uint8_t x = vec[index++];
+    if (x == DELAY_FLAG) {
+      ESP_LOGD(TAG, "Delay %dms", cmd);
       delay(cmd);
     } else {
-      this->write_sequence_(cmd, len, &this->init_sequence_[i]);
-      i += len;
-      ESP_LOGV(TAG, "Command %X, %d bytes", cmd, len);
-      if (cmd == SW_RESET_CMD)
-        delay(6);
+      uint8_t num_args = x & 0x7F;
+      if (vec.size() - index < num_args) {
+        this->mark_failed("Malformed init sequence");
+        return;
+      }
+      if (cmd == SLEEP_OUT) {
+        delay(120);  // NOLINT
+      }
+      const auto *ptr = vec.data() + index;
+      ESP_LOGD(TAG, "Write command %02X, length %d, byte(s) %s", cmd, num_args,
+               format_hex_pretty(ptr, num_args, '.', false).c_str());
+      index += num_args;
+      this->write_command_(cmd);
+      while (num_args-- != 0)
+        this->write_data_(*ptr++);
+      if (cmd == SLEEP_OUT)
+        delay(10);
     }
   }
-  // st7701 does not appear to support axis swapping
-  this->write_sequence_(CMD2_BKSEL, sizeof(CMD2_BK0), CMD2_BK0);
-  this->write_command_(SDIR_CMD);  // this is in the BK0 command set
-  this->write_data_(this->mirror_x_ ? 0x04 : 0x00);
-  uint8_t val = this->color_mode_ == display::COLOR_ORDER_BGR ? 0x08 : 0x00;
-  if (this->mirror_y_)
-    val |= 0x10;
-  this->write_command_(MADCTL_CMD);
-  this->write_data_(val);
-  ESP_LOGD(TAG, "write MADCTL %X", val);
-  this->write_command_(this->invert_colors_ ? INVERT_ON : INVERT_OFF);
-  // can't avoid this inline delay due to the need to complete setup before anything else tries to draw.
-  delay(120);  // NOLINT
-  this->write_command_(SLEEP_OUT);
-  this->write_command_(DISPLAY_ON);
   this->spi_teardown();  // SPI not needed after this
+  this->init_sequence_.clear();
   delay(10);
 }
 
-void ST7701S::dump_config() {
-  ESP_LOGCONFIG("", "ST7701S RGB LCD");
-  ESP_LOGCONFIG(TAG, "  Height: %u", this->height_);
-  ESP_LOGCONFIG(TAG, "  Width: %u", this->width_);
-  LOG_PIN("  CS Pin: ", this->cs_);
-  LOG_PIN("  DC Pin: ", this->dc_pin_);
-  LOG_PIN("  DE Pin: ", this->de_pin_);
-  LOG_PIN("  Reset Pin: ", this->reset_pin_);
-  size_t data_pin_count = sizeof(this->data_pins_) / sizeof(this->data_pins_[0]);
-  for (size_t i = 0; i != data_pin_count; i++)
-    ESP_LOGCONFIG(TAG, "  Data pin %d: %s", i, (this->data_pins_[i])->dump_summary().c_str());
-  ESP_LOGCONFIG(TAG, "  SPI Data rate: %dMHz", (unsigned) (this->data_rate_ / 1000000));
+static std::string get_pin_name(GPIOPin *pin) {
+  if (pin == nullptr)
+    return "None";
+  return pin->dump_summary();
 }
 
-}  // namespace st7701s
+void MipiRgb::dump_config() {
+  ESP_LOGCONFIG(TAG,
+                "MIPI_RGB LCD"
+                "\n  Model: %s"
+                "\n  Width: %u"
+                "\n  Height: %u"
+                "\n  Rotation: %d degrees"
+                "\n  HSync Pulse Width: %u"
+                "\n  HSync Back Porch: %u"
+                "\n  HSync Front Porch: %u"
+                "\n  VSync Pulse Width: %u"
+                "\n  VSync Back Porch: %u"
+                "\n  VSync Front Porch: %u"
+                "\n  Invert Colors: %s"
+                "\n  Pixel Clock: %dMHz"
+                "\n  Reset Pin: %s"
+                "\n  DE Pin: %s"
+                "\n  PCLK Pin: %s"
+                "\n  HSYNC Pin: %s"
+                "\n  VSYNC Pin: %s",
+                this->model_, this->width_, this->height_, this->rotation_, this->hsync_pulse_width_,
+                this->hsync_back_porch_, this->hsync_front_porch_, this->vsync_pulse_width_, this->vsync_back_porch_,
+                this->vsync_front_porch_, YESNO(this->invert_colors_), this->pclk_frequency_ / 1000000,
+                get_pin_name(this->reset_pin_).c_str(), get_pin_name(this->de_pin_).c_str(),
+                get_pin_name(this->pclk_pin_).c_str(), get_pin_name(this->hsync_pin_).c_str(),
+                get_pin_name(this->vsync_pin_).c_str());
+
+  auto bgr = this->madctl_ & MADCTL_BGR != 0;
+  size_t i = 0;
+  for (; i != 5; i++) {
+    ESP_LOGCONFIG(TAG, "  %s pin %d: %s", bgr ? "Blue" : "Red", i, this->data_pins_[i]->dump_summary().c_str());
+  }
+  for (; i != 11; i++) {
+    ESP_LOGCONFIG(TAG, "  Green pin %d: %s", i, this->data_pins_[i]->dump_summary().c_str());
+  }
+  for (; i != 16; i++) {
+    ESP_LOGCONFIG(TAG, "  %s pin %d: %s", bgr ? "Red" : "Blue", i, this->data_pins_[i]->dump_summary().c_str());
+  }
+}
+
+void MipiRgbSpi::dump_config() {
+  MipiRgb::dump_config();
+  LOG_PIN("  CS Pin: ", this->cs_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
+  ESP_LOGCONFIG(TAG,
+                "  SPI Data rate: %uMHz"
+                "\n  Mirror X: %s"
+                "\n  Mirror Y: %s"
+                "\n  Swap X/Y: %s"
+                "\n  Color Order: %s",
+                (unsigned) (this->data_rate_ / 1000000), YESNO(this->madctl_ & (MADCTL_XFLIP | MADCTL_MX)),
+                YESNO(this->madctl_ & (MADCTL_YFLIP | MADCTL_MY | MADCTL_ML)), YESNO(this->madctl_ & MADCTL_MV),
+                this->madctl_ & MADCTL_BGR ? "BGR" : "RGB");
+}
+
+}  // namespace mipi_rgb
 }  // namespace esphome
 #endif  // USE_ESP32_VARIANT_ESP32S3
