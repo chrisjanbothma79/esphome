@@ -94,7 +94,7 @@ NOX_SENSOR = cv.Schema(
                 cv.Optional(CONF_LEARNING_TIME_OFFSET_HOURS, default=12): cv.int_range(
                     1, 1000
                 ),
-                cv.Optional(CONF_LEARNING_TIME_GAIN_HOURS, default=12): cv..int_,
+                cv.Optional(CONF_LEARNING_TIME_GAIN_HOURS, default=12): cv.int_,
                 cv.Optional(
                     CONF_GATING_MAX_DURATION_MINUTES, default=720
                 ): cv.int_range(0, 3000),
