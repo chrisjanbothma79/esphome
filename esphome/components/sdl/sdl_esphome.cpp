@@ -6,7 +6,6 @@ namespace esphome {
 namespace sdl {
 
 void Sdl::setup() {
-  ESP_LOGD(TAG, "Starting setup");
   SDL_Init(SDL_INIT_VIDEO);
   this->window_ = SDL_CreateWindow(App.get_name().c_str(), this->pos_x_, this->pos_y_, this->width_, this->height_,
                                    this->window_options_);
