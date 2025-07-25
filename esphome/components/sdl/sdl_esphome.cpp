@@ -15,7 +15,6 @@ void Sdl::setup() {
   this->texture_ =
       SDL_CreateTexture(this->renderer_, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STATIC, this->width_, this->height_);
   SDL_SetTextureBlendMode(this->texture_, SDL_BLENDMODE_BLEND);
-  ESP_LOGD(TAG, "Setup Complete");
 }
 void Sdl::update() {
   this->do_update_();

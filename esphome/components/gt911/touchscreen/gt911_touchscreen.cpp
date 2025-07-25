@@ -82,8 +82,6 @@ void GT911Touchscreen::setup() {
   if (err != i2c::ERROR_OK) {
     this->mark_failed("Failed to communicate");
   }
-
-  ESP_LOGCONFIG(TAG, "GT911 Touchscreen setup complete");
 }
 
 void GT911Touchscreen::update_touches() {

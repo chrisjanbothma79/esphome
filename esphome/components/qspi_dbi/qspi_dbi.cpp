@@ -112,7 +112,6 @@ void QspiDbi::write_init_sequence_() {
   }
   this->reset_params_(true);
   this->setup_complete_ = true;
-  ESP_LOGCONFIG(TAG, "QSPI_DBI setup complete");
 }
 
 void QspiDbi::set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {

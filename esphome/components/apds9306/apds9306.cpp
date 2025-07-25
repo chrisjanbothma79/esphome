@@ -84,8 +84,6 @@ void APDS9306::setup() {
 
   // Set to active mode
   APDS9306_WRITE_BYTE(APDS9306_MAIN_CTRL, 0x02);
-
-  ESP_LOGCONFIG(TAG, "APDS9306 setup complete");
 }
 
 void APDS9306::dump_config() {

@@ -94,7 +94,6 @@ void CST226Touchscreen::continue_setup_() {
     }
   }
   this->setup_complete_ = true;
-  ESP_LOGCONFIG(TAG, "CST226 Touchscreen setup complete");
 }
 void CST226Touchscreen::update_button_state_(bool state) {
   if (this->button_touched_ == state)

@@ -14,8 +14,6 @@ void CHSC6XTouchscreen::setup() {
   if (this->y_raw_max_ == this->y_raw_min_) {
     this->y_raw_max_ = this->display_->get_native_height();
   }
-
-  ESP_LOGCONFIG(TAG, "CHSC6X Touchscreen setup complete");
 }
 
 void CHSC6XTouchscreen::update_touches() {

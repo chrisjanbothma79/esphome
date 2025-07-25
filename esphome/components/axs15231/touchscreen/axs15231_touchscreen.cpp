@@ -35,7 +35,6 @@ void AXS15231Touchscreen::setup() {
   if (this->y_raw_max_ == 0) {
     this->y_raw_max_ = this->display_->get_native_height();
   }
-  ESP_LOGCONFIG(TAG, "AXS15231 Touchscreen setup complete");
 }
 
 void AXS15231Touchscreen::update_touches() {

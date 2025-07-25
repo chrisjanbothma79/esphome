@@ -23,7 +23,6 @@ bool MCP2515::setup_internal() {
   if (this->set_mode_(this->mcp_mode_) != canbus::ERROR_OK)
     return false;
   uint8_t err_flags = this->get_error_flags_();
-  ESP_LOGD(TAG, "mcp2515 setup done, error_flags = %02X", err_flags);
   return true;
 }
 
