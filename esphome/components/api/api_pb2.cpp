@@ -1720,6 +1720,7 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
+  buffer.encode_bool(8, this->supports_pause);
   for (auto &it : this->supported_formats) {
     buffer.encode_message(9, it, true);
   }
@@ -1737,6 +1738,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
 #endif
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
+  ProtoSize::add_bool_field(total_size, 1, this->supports_pause);
   ProtoSize::add_repeated_message(total_size, 1, this->supported_formats);
 #ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);

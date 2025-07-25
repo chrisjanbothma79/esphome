@@ -1692,10 +1692,11 @@ class MediaPlayerSupportedFormat : public ProtoMessage {
 class ListEntitiesMediaPlayerResponse : public InfoResponseProtoMessage {
  public:
   static constexpr uint8_t MESSAGE_TYPE = 63;
-  static constexpr uint8_t ESTIMATED_SIZE = 78;
+  static constexpr uint8_t ESTIMATED_SIZE = 80;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "list_entities_media_player_response"; }
 #endif
+  bool supports_pause{false};
   std::vector<MediaPlayerSupportedFormat> supported_formats{};
   uint32_t feature_flags{0};
   void encode(ProtoWriteBuffer buffer) const override;
