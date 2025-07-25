@@ -860,7 +860,9 @@ class ProtoService {
   virtual bool is_authenticated() = 0;
   virtual bool is_connection_setup() = 0;
   virtual void on_fatal_error() = 0;
+#ifdef USE_API_PASSWORD
   virtual void on_unauthenticated_access() = 0;
+#endif
   virtual void on_no_setup_connection() = 0;
   /**
    * Create a buffer with a reserved size.
@@ -901,10 +903,12 @@ class ProtoService {
     if (!this->check_connection_setup_()) {
       return false;
     }
+#ifdef USE_API_PASSWORD
     if (!this->is_authenticated()) {
       this->on_unauthenticated_access();
       return false;
     }
+#endif
     return true;
   }
 };
