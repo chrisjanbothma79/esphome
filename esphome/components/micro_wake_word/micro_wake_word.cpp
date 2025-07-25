@@ -72,8 +72,6 @@ void MicroWakeWord::dump_config() {
 }
 
 void MicroWakeWord::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-
   this->frontend_config_.window.size_ms = FEATURE_DURATION_MS;
   this->frontend_config_.window.step_size_ms = this->features_step_size_;
   this->frontend_config_.filterbank.num_channels = PREPROCESSOR_FEATURE_SIZE;
