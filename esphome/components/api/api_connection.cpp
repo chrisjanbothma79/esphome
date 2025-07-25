@@ -1830,9 +1830,7 @@ void APIConnection::process_state_subscriptions_() {
   resp.set_entity_id(StringRef(it.entity_id));
 
   // Avoid string copy by directly using the optional's value if it exists
-  if (it.attribute.has_value()) {
-    resp.set_attribute(StringRef(it.attribute.value()));
-  }
+  resp.set_attribute(it.attribute.has_value() ? StringRef(it.attribute.value()) : StringRef(""));
 
   resp.once = it.once;
   if (this->send_message(resp, SubscribeHomeAssistantStateResponse::MESSAGE_TYPE)) {
