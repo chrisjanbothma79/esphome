@@ -34,6 +34,7 @@ from esphome.const import (
     CONF_PORT,
     CONF_SUBSTITUTIONS,
     CONF_TOPIC,
+    ENV_NOGITIGNORE,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
     PLATFORM_RP2040,
@@ -118,9 +119,7 @@ def mqtt_logging_enabled(mqtt_config):
         return False
     if CONF_TOPIC not in log_topic:
         return False
-    if log_topic.get(CONF_LEVEL, None) == "NONE":
-        return False
-    return True
+    return log_topic.get(CONF_LEVEL, None) != "NONE"
 
 
 def get_port_type(port):
@@ -209,6 +208,9 @@ def wrap_to_code(name, comp):
 
 
 def write_cpp(config):
+    if not get_bool_env(ENV_NOGITIGNORE):
+        writer.write_gitignore()
+
     generate_cpp_contents(config)
     return write_cpp_file()
 
@@ -225,10 +227,13 @@ def generate_cpp_contents(config):
 
 
 def write_cpp_file():
-    writer.write_platformio_project()
-
     code_s = indent(CORE.cpp_main_section)
     writer.write_cpp(code_s)
+
+    from esphome.build_gen import platformio
+
+    platformio.write_project()
+
     return 0
 
 
