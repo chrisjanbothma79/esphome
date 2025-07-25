@@ -1824,6 +1824,7 @@ uint16_t APIConnection::try_send_ping_request(EntityBase *entity, APIConnection 
   return encode_message_to_buffer(req, PingRequest::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
+#ifdef USE_API_HOMEASSISTANT_STATES
 void APIConnection::process_state_subscriptions_() {
   const auto &subs = this->parent_->get_state_subs();
   if (this->state_subs_at_ >= static_cast<int>(subs.size())) {
@@ -1843,6 +1844,7 @@ void APIConnection::process_state_subscriptions_() {
     this->state_subs_at_++;
   }
 }
+#endif  // USE_API_HOMEASSISTANT_STATES
 
 }  // namespace esphome::api
 #endif
