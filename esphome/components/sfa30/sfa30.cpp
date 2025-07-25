@@ -32,8 +32,6 @@ void SFA30Component::setup() {
     this->mark_failed();
     return;
   }
-
-  ESP_LOGD(TAG, "Sensor initialized");
 }
 
 void SFA30Component::dump_config() {
