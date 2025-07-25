@@ -10,6 +10,7 @@ from esphome.components.const import (
     CONF_BYTE_ORDER,
     CONF_DRAW_ROUNDING,
 )
+from esphome.components.display import CONF_SHOW_TEST_CARD
 from esphome.components.esp32 import const, only_on_variant
 from esphome.components.mipi import (
     COLOR_ORDERS,
@@ -40,7 +41,9 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BLUE,
     CONF_COLOR_ORDER,
+    CONF_CS_PIN,
     CONF_DATA_PINS,
+    CONF_DATA_RATE,
     CONF_DC_PIN,
     CONF_DIMENSIONS,
     CONF_ENABLE_PIN,
@@ -64,12 +67,12 @@ from esphome.const import (
     CONF_VSYNC_PIN,
     CONF_WIDTH,
 )
+from esphome.final_validate import full_config
 
-from ...final_validate import full_config
-from ..display import CONF_SHOW_TEST_CARD
+from ..spi import CONF_SPI_MODE, SPI_DATA_RATE_SCHEMA, SPI_MODE_OPTIONS, SPIComponent
 from . import models
 
-DEPENDENCIES = ["esp32"]
+DEPENDENCIES = ["esp32", "psram"]
 
 mipi_rgb_ns = cg.esphome_ns.namespace("mipi_rgb")
 mipi_rgb = mipi_rgb_ns.class_("MipiRgb", display.Display, cg.Component)
@@ -192,7 +195,9 @@ def model_schema(config):
                     }
                 ),
             ),
-            model.option(CONF_DE_PIN): pins.internal_gpio_output_pin_schema,
+            model.option(
+                CONF_DE_PIN, cv.UNDEFINED
+            ): pins.internal_gpio_output_pin_schema,
             model.option(CONF_PCLK_PIN): pins.internal_gpio_output_pin_schema,
             model.option(CONF_HSYNC_PIN): pins.internal_gpio_output_pin_schema,
             model.option(CONF_VSYNC_PIN): pins.internal_gpio_output_pin_schema,
@@ -202,9 +207,15 @@ def model_schema(config):
     if uses_spi:
         schema = schema.extend(
             {
+                cv.GenerateID(CONF_SPI_ID): cv.use_id(SPIComponent),
                 model.option(CONF_DC_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
+                model.option(CONF_DATA_RATE, "1MHz"): SPI_DATA_RATE_SCHEMA,
+                model.option(CONF_SPI_MODE, "MODE0"): cv.enum(
+                    SPI_MODE_OPTIONS, upper=True
+                ),
+                model.option(CONF_CS_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
             }
-        ).extend(spi.spi_device_schema(cs_pin_required=False, default_data_rate=1e6))
+        )
     return schema
 
 
@@ -283,10 +294,9 @@ async def to_code(config):
         dpins = dpins[8:16] + dpins[0:8]
     else:
         dpins = config[CONF_DATA_PINS]
-    for pin in dpins:
+    for index, pin in enumerate(dpins):
         data_pin = await cg.gpio_pin_expression(pin)
         cg.add(var.add_data_pin(data_pin, index))
-        index += 1
 
     if dc_pin := config.get(CONF_DC_PIN):
         dc = await cg.gpio_pin_expression(dc_pin)
@@ -299,8 +309,9 @@ async def to_code(config):
     if model.rotation_as_transform(config):
         config[CONF_ROTATION] = 0
 
-    pin = await cg.gpio_pin_expression(config[CONF_DE_PIN])
-    cg.add(var.set_de_pin(pin))
+    if de_pin := config.get(CONF_DE_PIN):
+        pin = await cg.gpio_pin_expression(de_pin)
+        cg.add(var.set_de_pin(pin))
     pin = await cg.gpio_pin_expression(config[CONF_PCLK_PIN])
     cg.add(var.set_pclk_pin(pin))
     pin = await cg.gpio_pin_expression(config[CONF_HSYNC_PIN])

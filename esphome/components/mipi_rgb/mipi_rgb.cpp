@@ -69,13 +69,20 @@ void MipiRgb::common_setup_() {
   config.disp_gpio_num = -1;
   config.hsync_gpio_num = this->hsync_pin_->get_pin();
   config.vsync_gpio_num = this->vsync_pin_->get_pin();
-  config.de_gpio_num = this->de_pin_->get_pin();
+  if (this->de_pin_) {
+    config.de_gpio_num = this->de_pin_->get_pin();
+  } else {
+    config.de_gpio_num = -1;
+  }
   config.pclk_gpio_num = this->pclk_pin_->get_pin();
   esp_err_t err = esp_lcd_new_rgb_panel(&config, &this->handle_);
-  ESP_ERROR_CHECK(esp_lcd_panel_reset(this->handle_));
-  ESP_ERROR_CHECK(esp_lcd_panel_init(this->handle_));
+  if (err == ESP_OK)
+    err = esp_lcd_panel_reset(this->handle_);
+  if (err == ESP_OK)
+    err = esp_lcd_panel_init(this->handle_);
   if (err != ESP_OK) {
-    ESP_LOGE(TAG, "lcd_new_rgb_panel failed: %s", esp_err_to_name(err));
+    auto msg = str_sprintf("lcd setup failed: %s", esp_err_to_name(err));
+    this->mark_failed(msg.c_str());
   }
   ESP_LOGCONFIG(TAG, "MipiRgb setup complete");
 }
@@ -86,6 +93,8 @@ void MipiRgb::loop() {
 }
 
 void MipiRgb::update() {
+  if (this->is_failed())
+    return;
   if (this->auto_clear_enabled_) {
     this->clear();
   }
@@ -114,7 +123,7 @@ void MipiRgb::update() {
 
 void MipiRgb::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                              display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) {
-  if (w <= 0 || h <= 0)
+  if (w <= 0 || h <= 0 || this->is_failed())
     return;
   // if color mapping is required, pass the buck.
   // note that endianness is not considered here - it is assumed to match!
@@ -164,7 +173,7 @@ bool MipiRgb::check_buffer_() {
 }
 
 void MipiRgb::draw_pixel_at(int x, int y, Color color) {
-  if (!this->get_clipping().inside(x, y))
+  if (!this->get_clipping().inside(x, y) || this->is_failed())
     return;
 
   switch (this->rotation_) {
@@ -310,6 +319,12 @@ static std::string get_pin_name(GPIOPin *pin) {
   return pin->dump_summary();
 }
 
+void MipiRgb::dump_pins_(uint8_t start, uint8_t end, const char *name, uint8_t offset) {
+  for (uint8_t i = start; i != end; i++) {
+    ESP_LOGCONFIG(TAG, "  %s pin %d: %s", name, offset++, this->data_pins_[i]->dump_summary().c_str());
+  }
+}
+
 void MipiRgb::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "MIPI_RGB LCD"
@@ -337,16 +352,16 @@ void MipiRgb::dump_config() {
                 get_pin_name(this->pclk_pin_).c_str(), get_pin_name(this->hsync_pin_).c_str(),
                 get_pin_name(this->vsync_pin_).c_str());
 
-  auto bgr = this->madctl_ & MADCTL_BGR != 0;
-  size_t i = 0;
-  for (; i != 5; i++) {
-    ESP_LOGCONFIG(TAG, "  %s pin %d: %s", bgr ? "Blue" : "Red", i, this->data_pins_[i]->dump_summary().c_str());
-  }
-  for (; i != 11; i++) {
-    ESP_LOGCONFIG(TAG, "  Green pin %d: %s", i, this->data_pins_[i]->dump_summary().c_str());
-  }
-  for (; i != 16; i++) {
-    ESP_LOGCONFIG(TAG, "  %s pin %d: %s", bgr ? "Red" : "Blue", i, this->data_pins_[i]->dump_summary().c_str());
+  if (this->madctl_ & MADCTL_BGR) {
+    this->dump_pins_(8, 13, "Blue", 0);
+    this->dump_pins_(13, 16, "Green", 0);
+    this->dump_pins_(0, 3, "Green", 3);
+    this->dump_pins_(3, 8, "Red", 0);
+  } else {
+    this->dump_pins_(8, 13, "Red", 0);
+    this->dump_pins_(13, 16, "Green", 0);
+    this->dump_pins_(0, 3, "Green", 3);
+    this->dump_pins_(3, 8, "Blue", 0);
   }
 }
 

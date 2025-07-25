@@ -60,6 +60,7 @@ class MipiRgb : public display::Display {
   display::DisplayType get_display_type() override { return display::DisplayType::DISPLAY_TYPE_COLOR; }
   int get_width_internal() override { return this->width_; }
   int get_height_internal() override { return this->height_; }
+  void dump_pins_(uint8_t start, uint8_t end, const char *name, uint8_t offset);
   void dump_config() override;
   void draw_pixel_at(int x, int y, Color color) override;
 
