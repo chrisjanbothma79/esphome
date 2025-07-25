@@ -90,7 +90,6 @@ void MR24HPC1Component::setup() {
   memset(this->sg_frame_buf_, 0, FRAME_BUF_MAX_SIZE);
 
   this->set_interval(8000, [this]() { this->update_(); });
-  ESP_LOGCONFIG(TAG, "Set up MR24HPC1 complete");
 }
 
 // Timed polling of radar data

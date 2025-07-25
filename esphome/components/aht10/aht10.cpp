@@ -78,8 +78,6 @@ void AHT10Component::setup() {
     this->mark_failed();
     return;
   }
-
-  ESP_LOGV(TAG, "Initialization complete");
 }
 
 void AHT10Component::restart_read_() {
