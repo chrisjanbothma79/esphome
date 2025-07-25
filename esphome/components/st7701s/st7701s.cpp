@@ -40,7 +40,6 @@ void ST7701S::setup() {
   if (err != ESP_OK) {
     esph_log_e(TAG, "lcd_new_rgb_panel failed: %s", esp_err_to_name(err));
   }
-  esph_log_config(TAG, "ST7701S setup complete");
 }
 
 void ST7701S::loop() {

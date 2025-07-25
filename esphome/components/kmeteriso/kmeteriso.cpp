@@ -45,7 +45,6 @@ void KMeterISOComponent::setup() {
     this->mark_failed();
     return;
   }
-  ESP_LOGCONFIG(TAG, "The device was successfully setup.");
 }
 
 float KMeterISOComponent::get_setup_priority() const { return setup_priority::DATA; }
