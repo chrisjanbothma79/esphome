@@ -153,13 +153,13 @@ void Component::call() {
       // State Construction: Call setup and set state to setup
       this->set_component_state_(COMPONENT_STATE_SETUP);
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
-      ESP_LOGD(TAG, "Setting up %s...", this->get_component_source());
+      ESP_LOGD(TAG, "Setting up %s", this->get_component_source());
       uint32_t start_time = millis();
 #endif
       this->call_setup();
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
       uint32_t setup_time = millis() - start_time;
-      ESP_LOGD(TAG, "%s setup complete (took %ums)", this->get_component_source(), setup_time);
+      ESP_LOGD(TAG, "%s setup took %ums", this->get_component_source(), setup_time);
 #endif
       break;
     case COMPONENT_STATE_SETUP:
