@@ -13,8 +13,7 @@
 #include <vector>
 #include <functional>
 
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 // Client information structure
 struct ClientInfo {
@@ -229,7 +228,9 @@ class APIConnection : public APIServerConnection {
   }
   uint8_t get_log_subscription_level() const { return this->flags_.log_subscription; }
   void on_fatal_error() override;
+#ifdef USE_API_PASSWORD
   void on_unauthenticated_access() override;
+#endif
   void on_no_setup_connection() override;
   ProtoWriteBuffer create_buffer(uint32_t reserve_size) override {
     // FIXME: ensure no recursive writes can happen
@@ -723,6 +724,5 @@ class APIConnection : public APIServerConnection {
   }
 };
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
 #endif

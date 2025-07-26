@@ -36,7 +36,6 @@ static const uint8_t TM1651_LEVEL_TAB[] = {0b00000000, 0b00000001, 0b00000011, 0
 // public
 
 void TM1651Display::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   this->clk_pin_->setup();
   this->clk_pin_->pin_mode(gpio::FLAG_OUTPUT);
 

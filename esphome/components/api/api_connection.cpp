@@ -31,8 +31,7 @@
 #include "esphome/components/voice_assistant/voice_assistant.h"
 #endif
 
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 // Read a maximum of 5 messages per loop iteration to prevent starving other components.
 // This is a balance between API responsiveness and allowing other components to run.
@@ -1591,10 +1590,12 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint8_t message_type) {
   // Do not set last_traffic_ on send
   return true;
 }
+#ifdef USE_API_PASSWORD
 void APIConnection::on_unauthenticated_access() {
   this->on_fatal_error();
   ESP_LOGD(TAG, "%s access without authentication", this->get_client_combined_info().c_str());
 }
+#endif
 void APIConnection::on_no_setup_connection() {
   this->on_fatal_error();
   ESP_LOGD(TAG, "%s access without full connection", this->get_client_combined_info().c_str());
@@ -1837,6 +1838,5 @@ uint16_t APIConnection::try_send_ping_request(EntityBase *entity, APIConnection 
   return encode_message_to_buffer(req, PingRequest::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
 #endif
