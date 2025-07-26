@@ -69,8 +69,8 @@ To bit_cast(const From &src) {
 }
 #endif
 
-[[deprecated("Use std::lerp instead. Note! Different order of arguments")]] float lerp(float completion, float start,
-                                                                                       float end) {
+[[deprecated("Use std::lerp instead. Note! Different order of arguments")]] inline float lerp(float completion,
+                                                                                              float start, float end) {
   return start + (end - start) * completion;
 }
 
