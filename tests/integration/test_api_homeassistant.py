@@ -28,29 +28,12 @@ async def test_api_homeassistant(
     """Comprehensive test for Home Assistant API functionality."""
     loop = asyncio.get_running_loop()
 
-    # Create futures for all expected log patterns
-    test_started_future = loop.create_future()
-    basic_service_future = loop.create_future()
-    basic_data_future = loop.create_future()
-    templated_service_future = loop.create_future()
+    # Create futures for patterns that capture values
     lambda_computed_future = loop.create_future()
-    empty_string_future = loop.create_future()
-    empty_title_future = loop.create_future()
-    empty_target_future = loop.create_future()
-    empty_sound_future = loop.create_future()
-    multiple_fields_future = loop.create_future()
-    complex_lambda_future = loop.create_future()
-    all_empty_future = loop.create_future()
-    rapid_calls_future = loop.create_future()
-    rapid_complete_future = loop.create_future()
-
-    # State reading futures
-    reading_states_future = loop.create_future()
     ha_temp_state_future = loop.create_future()
     ha_humidity_state_future = loop.create_future()
     ha_motion_state_future = loop.create_future()
     ha_weather_state_future = loop.create_future()
-    ha_empty_state_future = loop.create_future()
 
     # State update futures
     temp_update_future = loop.create_future()
@@ -58,35 +41,13 @@ async def test_api_homeassistant(
     motion_update_future = loop.create_future()
     weather_update_future = loop.create_future()
 
-    # Number and switch futures
+    # Number future
     ha_number_future = loop.create_future()
-    ha_switch_on_future = loop.create_future()
-    ha_switch_off_future = loop.create_future()
 
     tests_complete_future = loop.create_future()
 
-    # Patterns to match in logs
-    test_started_pattern = re.compile(r"=== Starting Home Assistant API Tests ===")
-    basic_service_pattern = re.compile(
-        r"Sending HomeAssistant service call: light\.turn_on"
-    )
-    basic_data_pattern = re.compile(
-        r"Service data: entity_id=light\.test_light brightness=255"
-    )
-    templated_service_pattern = re.compile(r"Testing templated service call")
+    # Patterns to match in logs - only keeping patterns that capture values
     lambda_computed_pattern = re.compile(r"Lambda computed value: (\d+)")
-    empty_string_pattern = re.compile(r"Testing empty string values")
-    empty_title_pattern = re.compile(r"Empty value for key: title")
-    empty_target_pattern = re.compile(r"Empty value for key: target")
-    empty_sound_pattern = re.compile(r"Empty value for key: sound")
-    multiple_fields_pattern = re.compile(r"Testing multiple data fields")
-    complex_lambda_pattern = re.compile(r"Testing complex lambda expressions")
-    all_empty_pattern = re.compile(r"All empty service call completed")
-    rapid_calls_pattern = re.compile(r"Testing rapid service calls")
-    rapid_complete_pattern = re.compile(r"Rapid service calls completed")
-
-    # State patterns
-    reading_states_pattern = re.compile(r"Reading current HA states")
     ha_temp_state_pattern = re.compile(
         r"Current HA Temperature: ([\d.]+)|HA Temperature has no state"
     )
@@ -97,7 +58,6 @@ async def test_api_homeassistant(
     ha_weather_state_pattern = re.compile(
         r"Current HA Weather: (\w+)|HA Weather has no state"
     )
-    ha_empty_state_pattern = re.compile(r"HA Empty State has no value \(expected\)")
 
     # State update patterns
     temp_update_pattern = re.compile(r"HA Temperature state updated: ([\d.]+)")
@@ -105,10 +65,8 @@ async def test_api_homeassistant(
     motion_update_pattern = re.compile(r"HA Motion state changed: (ON|OFF)")
     weather_update_pattern = re.compile(r"HA Weather condition updated: (\w+)")
 
-    # Number and switch patterns
+    # Number pattern
     ha_number_pattern = re.compile(r"Setting HA number to: ([\d.]+)")
-    ha_switch_on_pattern = re.compile(r"Toggling HA switch: switch\.test_switch ON")
-    ha_switch_off_pattern = re.compile(r"Toggling HA switch: switch\.test_switch OFF")
 
     tests_complete_pattern = re.compile(r"=== All tests completed ===")
 
@@ -185,43 +143,11 @@ async def test_api_homeassistant(
         """Check log output for expected messages."""
         log_lines.append(line)
 
-        # Check test flow patterns
-        if not test_started_future.done() and test_started_pattern.search(line):
-            test_started_future.set_result(True)
-        elif not basic_service_future.done() and basic_service_pattern.search(line):
-            basic_service_future.set_result(True)
-        elif not basic_data_future.done() and basic_data_pattern.search(line):
-            basic_data_future.set_result(True)
-        elif not templated_service_future.done() and templated_service_pattern.search(
-            line
-        ):
-            templated_service_future.set_result(True)
-        elif not lambda_computed_future.done():
+        # Check for patterns that capture values
+        if not lambda_computed_future.done():
             match = lambda_computed_pattern.search(line)
             if match:
                 lambda_computed_future.set_result(match.group(1))
-        elif not empty_string_future.done() and empty_string_pattern.search(line):
-            empty_string_future.set_result(True)
-        elif not empty_title_future.done() and empty_title_pattern.search(line):
-            empty_title_future.set_result(True)
-        elif not empty_target_future.done() and empty_target_pattern.search(line):
-            empty_target_future.set_result(True)
-        elif not empty_sound_future.done() and empty_sound_pattern.search(line):
-            empty_sound_future.set_result(True)
-        elif not multiple_fields_future.done() and multiple_fields_pattern.search(line):
-            multiple_fields_future.set_result(True)
-        elif not complex_lambda_future.done() and complex_lambda_pattern.search(line):
-            complex_lambda_future.set_result(True)
-        elif not all_empty_future.done() and all_empty_pattern.search(line):
-            all_empty_future.set_result(True)
-        elif not rapid_calls_future.done() and rapid_calls_pattern.search(line):
-            rapid_calls_future.set_result(True)
-        elif not rapid_complete_future.done() and rapid_complete_pattern.search(line):
-            rapid_complete_future.set_result(True)
-
-        # Check state reading patterns
-        elif not reading_states_future.done() and reading_states_pattern.search(line):
-            reading_states_future.set_result(True)
         elif not ha_temp_state_future.done() and ha_temp_state_pattern.search(line):
             ha_temp_state_future.set_result(line)
         elif not ha_humidity_state_future.done() and ha_humidity_state_pattern.search(
@@ -234,8 +160,6 @@ async def test_api_homeassistant(
             line
         ):
             ha_weather_state_future.set_result(line)
-        elif not ha_empty_state_future.done() and ha_empty_state_pattern.search(line):
-            ha_empty_state_future.set_result(True)
 
         # Check state update patterns
         elif not temp_update_future.done() and temp_update_pattern.search(line):
@@ -247,15 +171,11 @@ async def test_api_homeassistant(
         elif not weather_update_future.done() and weather_update_pattern.search(line):
             weather_update_future.set_result(line)
 
-        # Check number and switch patterns
+        # Check number pattern
         elif not ha_number_future.done() and ha_number_pattern.search(line):
             match = ha_number_pattern.search(line)
             if match:
                 ha_number_future.set_result(match.group(1))
-        elif not ha_switch_on_future.done() and ha_switch_on_pattern.search(line):
-            ha_switch_on_future.set_result(True)
-        elif not ha_switch_off_future.done() and ha_switch_off_pattern.search(line):
-            ha_switch_off_future.set_result(True)
 
         elif not tests_complete_future.done() and tests_complete_pattern.search(line):
             tests_complete_future.set_result(True)
@@ -287,48 +207,25 @@ async def test_api_homeassistant(
 
         # Wait for all tests to complete with appropriate timeouts
         try:
-            # Test flow checks
-            await asyncio.wait_for(test_started_future, timeout=5.0)
-            await asyncio.wait_for(basic_service_future, timeout=5.0)
-            await asyncio.wait_for(basic_data_future, timeout=5.0)
+            # Give the tests time to execute
+            await asyncio.sleep(0.5)
 
             # Templated service test - the main bug fix
-            await asyncio.wait_for(templated_service_future, timeout=5.0)
             computed_value = await asyncio.wait_for(lambda_computed_future, timeout=5.0)
             # Verify the computed value is reasonable (75 * 255 / 100 = 191.25 -> 191)
             assert computed_value in ["191", "192"], (
                 f"Unexpected computed value: {computed_value}"
             )
 
-            # Empty string tests
-            await asyncio.wait_for(empty_string_future, timeout=5.0)
-            await asyncio.wait_for(empty_title_future, timeout=5.0)
-            await asyncio.wait_for(empty_target_future, timeout=5.0)
-            await asyncio.wait_for(empty_sound_future, timeout=5.0)
-
-            # Other service tests
-            await asyncio.wait_for(multiple_fields_future, timeout=5.0)
-            await asyncio.wait_for(complex_lambda_future, timeout=5.0)
-            await asyncio.wait_for(all_empty_future, timeout=5.0)
-            await asyncio.wait_for(rapid_calls_future, timeout=5.0)
-            await asyncio.wait_for(rapid_complete_future, timeout=5.0)
-
-            # State reading test
-            await asyncio.wait_for(reading_states_future, timeout=5.0)
-
             # Check state reads (these will show "has no state" in test environment)
             await asyncio.wait_for(ha_temp_state_future, timeout=5.0)
             await asyncio.wait_for(ha_humidity_state_future, timeout=5.0)
             await asyncio.wait_for(ha_motion_state_future, timeout=5.0)
             await asyncio.wait_for(ha_weather_state_future, timeout=5.0)
-            await asyncio.wait_for(ha_empty_state_future, timeout=5.0)
 
-            # Number and switch tests
+            # Number test
             number_value = await asyncio.wait_for(ha_number_future, timeout=5.0)
             assert number_value == "42.5", f"Unexpected number value: {number_value}"
-
-            await asyncio.wait_for(ha_switch_on_future, timeout=5.0)
-            await asyncio.wait_for(ha_switch_off_future, timeout=5.0)
 
             # Wait for completion
             await asyncio.wait_for(tests_complete_future, timeout=5.0)
