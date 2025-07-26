@@ -5,6 +5,7 @@ esp32:
     advanced:
       enable_lwip_mdns_queries: true
       enable_lwip_bridge_interface: true
+      loop_task_stack_size: 16384
 
 wifi:
   ssid: MySSID

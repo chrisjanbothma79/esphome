@@ -77,6 +77,7 @@ CONF_COMPILER_OPTIMIZATION = "compiler_optimization"
 CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES = "enable_idf_experimental_features"
 CONF_ENABLE_LWIP_ASSERT = "enable_lwip_assert"
 CONF_RELEASE = "release"
+CONF_LOOP_TASK_STACK_SIZE = "loop_task_stack_size"
 
 ASSERTION_LEVELS = {
     "DISABLE": "CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_DISABLE",
@@ -301,6 +302,9 @@ def _format_framework_espidf_version(
         return f"pioarduino/framework-espidf@https://github.com/pioarduino/esp-idf/releases/download/v{str(ver)}.{release}/esp-idf-v{str(ver)}.zip"
     return f"pioarduino/framework-espidf@https://github.com/pioarduino/esp-idf/releases/download/v{str(ver)}/esp-idf-v{str(ver)}.zip"
 
+
+# The default stack size for loop_task
+DEFAULT_LOOP_TASK_STACK_SIZE = 8192
 
 # NOTE: Keep this in mind when updating the recommended version:
 #  * New framework historically have had some regressions, especially for WiFi.
@@ -619,6 +623,9 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                     cv.Optional(
                         CONF_ENABLE_LWIP_BRIDGE_INTERFACE, default=False
                     ): cv.boolean,
+                    cv.Optional(
+                        CONF_LOOP_TASK_STACK_SIZE, default=DEFAULT_LOOP_TASK_STACK_SIZE
+                    ): cv.int_range(DEFAULT_LOOP_TASK_STACK_SIZE, 65536),
                 }
             ),
             cv.Optional(CONF_COMPONENTS, default=[]): cv.ensure_list(
@@ -740,6 +747,9 @@ async def to_code(config):
         cg.add_build_flag("-DUSE_ESP32_FRAMEWORK_ESP_IDF")
         cg.add_build_flag("-Wno-nonnull-compare")
 
+        cg.add_define(
+            "LOOP_TASK_STACK_SIZE", conf[CONF_ADVANCED][CONF_LOOP_TASK_STACK_SIZE]
+        )
         cg.add_platformio_option("platform_packages", [conf[CONF_SOURCE]])
 
         # platformio/toolchain-esp32ulp does not support linux_aarch64 yet and has not been updated for over 2 years
