@@ -9,9 +9,12 @@ import pytest
 from esphome.components.esp32 import VARIANTS
 import esphome.config_validation as cv
 from esphome.const import PlatformFramework
+from tests.component_tests.types import SetCoreConfigCallable
 
 
-def test_esp32_config(set_core_config) -> None:
+def test_esp32_config(
+    set_core_config: SetCoreConfigCallable,
+) -> None:
     set_core_config(PlatformFramework.ESP32_IDF)
 
     from esphome.components.esp32 import CONFIG_SCHEMA
@@ -60,12 +63,25 @@ def test_esp32_config(set_core_config) -> None:
             r"Option 'variant' does not match selected board. @ data\['variant'\]",
             id="mismatched_board_variant_config",
         ),
+        pytest.param(
+            {
+                "variant": "esp32s2",
+                "framework": {
+                    "type": "esp-idf",
+                    "advanced": {"execute_from_psram": True},
+                },
+            },
+            r"'execute_from_psram' is only supported on ESP32S3 variant @ data\['advanced'\]\['execute_from_psram'\]",
+            id="execute_from_psram_invalid_for_variant_config",
+        ),
     ],
 )
 def test_esp32_configuration_errors(
     config: Any,
     error_match: str,
+    set_core_config: SetCoreConfigCallable,
 ) -> None:
+    set_core_config(PlatformFramework.ESP32_IDF)
     """Test detection of invalid configuration."""
     from esphome.components.esp32 import CONFIG_SCHEMA
 

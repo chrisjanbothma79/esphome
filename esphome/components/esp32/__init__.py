@@ -76,6 +76,7 @@ CONF_ASSERTION_LEVEL = "assertion_level"
 CONF_COMPILER_OPTIMIZATION = "compiler_optimization"
 CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES = "enable_idf_experimental_features"
 CONF_ENABLE_LWIP_ASSERT = "enable_lwip_assert"
+CONF_EXECUTE_FROM_PSRAM = "execute_from_psram"
 CONF_RELEASE = "release"
 
 ASSERTION_LEVELS = {
@@ -518,10 +519,33 @@ def _detect_variant(value):
     return value
 
 
-def final_validate(config):
-    if not (
-        pio_options := fv.full_config.get()[CONF_ESPHOME].get(CONF_PLATFORMIO_OPTIONS)
+def _check_advanced(config):
+    if (
+        config.get(CONF_FRAMEWORK, {})
+        .get(CONF_ADVANCED, {})
+        .get(CONF_EXECUTE_FROM_PSRAM)
+        and config[CONF_VARIANT] != VARIANT_ESP32S3
     ):
+        raise cv.Invalid(
+            f"'{CONF_EXECUTE_FROM_PSRAM}' is only supported on {VARIANT_ESP32S3} variant",
+            path=[CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+        )
+    return config
+
+
+def final_validate(config):
+    fconf = fv.full_config.get()
+    advanced = config.get(CONF_FRAMEWORK, {}).get(CONF_ADVANCED, {})
+    if advanced.get(CONF_EXECUTE_FROM_PSRAM, False) and "psram" not in fconf:
+        raise cv.Invalid(
+            f"{CONF_EXECUTE_FROM_PSRAM} requires PSRAM to be enabled",
+            path=[CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+        )
+    if config[CONF_VARIANT] != VARIANT_ESP32 and CONF_IGNORE_EFUSE_MAC_CRC in advanced:
+        raise cv.Invalid(
+            f"{CONF_IGNORE_EFUSE_MAC_CRC} is not supported on {config[CONF_VARIANT]}"
+        )
+    if not (pio_options := fconf[CONF_ESPHOME].get(CONF_PLATFORMIO_OPTIONS)):
         # Not specified or empty
         return config
 
@@ -535,15 +559,6 @@ def final_validate(config):
     if pio_flash_size_key in pio_options:
         raise cv.Invalid(
             f"Please specify {CONF_FLASH_SIZE} within esp32 configuration only"
-        )
-
-    if (
-        config[CONF_VARIANT] != VARIANT_ESP32
-        and CONF_ADVANCED in (conf_fw := config[CONF_FRAMEWORK])
-        and CONF_IGNORE_EFUSE_MAC_CRC in conf_fw[CONF_ADVANCED]
-    ):
-        raise cv.Invalid(
-            f"{CONF_IGNORE_EFUSE_MAC_CRC} is not supported on {config[CONF_VARIANT]}"
         )
 
     return config
@@ -619,6 +634,7 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                     cv.Optional(
                         CONF_ENABLE_LWIP_BRIDGE_INTERFACE, default=False
                     ): cv.boolean,
+                    cv.Optional(CONF_EXECUTE_FROM_PSRAM): cv.boolean,
                 }
             ),
             cv.Optional(CONF_COMPONENTS, default=[]): cv.ensure_list(
@@ -698,6 +714,7 @@ CONFIG_SCHEMA = cv.All(
     ),
     _detect_variant,
     _set_default_framework,
+    _check_advanced,
     set_core_data,
     cv.has_at_least_one_key(CONF_BOARD, CONF_VARIANT),
 )
@@ -784,6 +801,9 @@ async def to_code(config):
             add_idf_sdkconfig_option("CONFIG_LWIP_DNS_SUPPORT_MDNS_QUERIES", False)
         if not advanced.get(CONF_ENABLE_LWIP_BRIDGE_INTERFACE, False):
             add_idf_sdkconfig_option("CONFIG_LWIP_BRIDGEIF_MAX_PORTS", 0)
+        if advanced.get(CONF_EXECUTE_FROM_PSRAM, False):
+            add_idf_sdkconfig_option("CONFIG_SPIRAM_FETCH_INSTRUCTIONS", True)
+            add_idf_sdkconfig_option("CONFIG_SPIRAM_RODATA", True)
 
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
         if CONF_PARTITIONS in config:
