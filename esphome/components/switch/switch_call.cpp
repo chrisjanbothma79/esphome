@@ -27,6 +27,7 @@ void SwitchCall::perform() {
 
   if (this->state_.has_value()) {
     ESP_LOGD(TAG, "'%s' - Setting state to %s", name, ONOFF(this->state_.value()));
+    parent->control(state_.value());
   }
 }
 }  // namespace switch_
