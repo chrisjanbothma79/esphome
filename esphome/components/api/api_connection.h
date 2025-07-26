@@ -299,7 +299,6 @@ class APIConnection : public APIServerConnection {
   void complete_authentication_();
 
 #ifdef USE_API_HOMEASSISTANT_STATES
-  // Process state subscriptions efficiently
   void process_state_subscriptions_();
 #endif  // USE_API_HOMEASSISTANT_STATES
 
