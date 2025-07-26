@@ -108,7 +108,7 @@ void BluetoothConnection::send_service_for_discovery_() {
   if (total_char_count == 0) {
     // No characteristics, just send the service response
     api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
-    return
+    return;
   }
 
   // Reserve space and process characteristics
