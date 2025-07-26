@@ -48,16 +48,10 @@ async def test_api_homeassistant(
 
     # Patterns to match in logs - only keeping patterns that capture values
     lambda_computed_pattern = re.compile(r"Lambda computed value: (\d+)")
-    ha_temp_state_pattern = re.compile(
-        r"Current HA Temperature: ([\d.]+)|HA Temperature has no state"
-    )
-    ha_humidity_state_pattern = re.compile(
-        r"Current HA Humidity: ([\d.]+)|HA Humidity has no state"
-    )
+    ha_temp_state_pattern = re.compile(r"Current HA Temperature: ([\d.]+)")
+    ha_humidity_state_pattern = re.compile(r"Current HA Humidity: ([\d.]+)")
     ha_motion_state_pattern = re.compile(r"Current HA Motion: (ON|OFF)")
-    ha_weather_state_pattern = re.compile(
-        r"Current HA Weather: (\w+)|HA Weather has no state"
-    )
+    ha_weather_state_pattern = re.compile(r"Current HA Weather: (\w+)")
 
     # State update patterns
     temp_update_pattern = re.compile(r"HA Temperature state updated: ([\d.]+)")
@@ -143,6 +137,10 @@ async def test_api_homeassistant(
         """Check log output for expected messages."""
         log_lines.append(line)
 
+        # Debug: print lines that might be relevant
+        if "HA " in line or "HomeAssistant" in line:
+            print(f"[DEBUG] {line}")
+
         # Check for patterns that capture values
         if not lambda_computed_future.done():
             match = lambda_computed_pattern.search(line)
@@ -193,6 +191,12 @@ async def test_api_homeassistant(
         # Subscribe to HomeAssistant service calls
         client.subscribe_service_calls(on_service_call)
 
+        # Send some Home Assistant states for our sensors to read
+        client.send_home_assistant_state("sensor.external_temperature", "", "22.5")
+        client.send_home_assistant_state("sensor.external_humidity", "", "65.0")
+        client.send_home_assistant_state("binary_sensor.external_motion", "", "ON")
+        client.send_home_assistant_state("weather.home", "condition", "sunny")
+
         # List entities and services
         _, services = await client.list_entities_services()
 
@@ -214,11 +218,20 @@ async def test_api_homeassistant(
                 f"Unexpected computed value: {computed_value}"
             )
 
-            # Check state reads (these will show "has no state" in test environment)
-            await asyncio.wait_for(ha_temp_state_future, timeout=5.0)
-            await asyncio.wait_for(ha_humidity_state_future, timeout=5.0)
-            await asyncio.wait_for(ha_motion_state_future, timeout=5.0)
-            await asyncio.wait_for(ha_weather_state_future, timeout=5.0)
+            # Check state reads - verify we received the mocked values
+            temp_line = await asyncio.wait_for(ha_temp_state_future, timeout=5.0)
+            assert "Current HA Temperature: 22.5" in temp_line
+
+            humidity_line = await asyncio.wait_for(
+                ha_humidity_state_future, timeout=5.0
+            )
+            assert "Current HA Humidity: 65.0" in humidity_line
+
+            motion_line = await asyncio.wait_for(ha_motion_state_future, timeout=5.0)
+            assert "Current HA Motion: ON" in motion_line
+
+            weather_line = await asyncio.wait_for(ha_weather_state_future, timeout=5.0)
+            assert "Current HA Weather: sunny" in weather_line
 
             # Number test
             number_value = await asyncio.wait_for(ha_number_future, timeout=5.0)
