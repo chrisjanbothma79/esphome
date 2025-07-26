@@ -117,26 +117,16 @@ def data_pin_set(length):
 
 def model_schema(config):
     model = MODELS[config[CONF_MODEL].upper()]
-    transform = cv.Schema(
-        {
-            cv.Required(CONF_MIRROR_X): cv.boolean,
-            cv.Required(CONF_MIRROR_Y): cv.boolean,
-        }
-    )
-    if model.can_swap_xy:
-        transform = transform.extend(
-            {
-                cv.Required(CONF_SWAP_XY): cv.boolean,
-            }
-        )
-    else:
-        transform = transform.extend(
-            {
-                cv.Optional(CONF_SWAP_XY): cv.invalid(
-                    "Axis swapping not supported by this model"
+    if transforms := model.transforms:
+        transform = cv.Schema({cv.Required(x): cv.boolean for x in transforms})
+        for x in (CONF_SWAP_XY, CONF_MIRROR_X, CONF_MIRROR_Y):
+            if x not in transforms:
+                transform = transform.extend(
+                    {cv.Optional(x): cv.invalid(f"{x} not supported by this model")}
                 )
-            }
-        )
+    else:
+        transform = cv.invalid("This model does not support transforms")
+
     # RPI model does not use an init sequence, indicates with empty list
     if model.initsequence is None:
         # Custom model requires an init sequence

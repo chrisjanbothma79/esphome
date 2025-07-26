@@ -272,12 +272,15 @@ class DriverChip:
         return self.defaults.get(key, fallback)
 
     @property
-    def can_swap_xy(self) -> bool:
+    def transforms(self) -> set[str]:
         """
-        Check if the model supports swapping X and Y axes.
-        If the swap_xy default is cv.UNDEFINED, it means the model does not support it.
+        Return the available transforms for this model.
         """
-        return self.get_default(CONF_SWAP_XY) != cv.UNDEFINED
+        if self.get_default("no_transform", False):
+            return set()
+        if self.get_default(CONF_SWAP_XY) != cv.UNDEFINED:
+            return {CONF_MIRROR_X, CONF_MIRROR_Y, CONF_SWAP_XY}
+        return {CONF_MIRROR_X, CONF_MIRROR_Y}
 
     def option(self, name, fallback=False) -> cv.Optional:
         return cv.Optional(name, default=self.get_default(name, fallback))
@@ -285,12 +288,17 @@ class DriverChip:
     def rotation_as_transform(self, config) -> bool:
         """
         Check if a rotation can be implemented in hardware using the MADCTL register.
-        A rotation of 180 is always possible, 90 and 270 are possible if the model supports swapping X and Y.
+        A rotation of 180 is always possible if x and y mirroring are supported, 90 and 270 are possible if the model supports swapping X and Y.
         """
+        transforms = self.transforms
         rotation = config.get(CONF_ROTATION, 0)
-        return rotation and (
-            self.get_default(CONF_SWAP_XY) != cv.UNDEFINED or rotation == 180
-        )
+        if rotation == 0 or not transforms:
+            return False
+        if rotation == 180:
+            return CONF_MIRROR_X in transforms and CONF_MIRROR_Y in transforms
+        if rotation == 90:
+            return CONF_SWAP_XY in transforms and CONF_MIRROR_X in transforms
+        return CONF_SWAP_XY in transforms and CONF_MIRROR_Y in transforms
 
     def get_dimensions(self, config) -> tuple[int, int, int, int]:
         if CONF_DIMENSIONS in config:
@@ -315,10 +323,10 @@ class DriverChip:
 
         # if mirroring axes and there are offsets, also mirror the offsets to cater for situations where
         # the offset is asymmetric
-        if transform[CONF_MIRROR_X]:
+        if transform.get(CONF_MIRROR_X):
             native_width = self.get_default(CONF_NATIVE_WIDTH, width + offset_width * 2)
             offset_width = native_width - width - offset_width
-        if transform[CONF_MIRROR_Y]:
+        if transform.get(CONF_MIRROR_Y):
             native_height = self.get_default(
                 CONF_NATIVE_HEIGHT, height + offset_height * 2
             )
@@ -334,24 +342,31 @@ class DriverChip:
         transform = config.get(
             CONF_TRANSFORM,
             {
-                CONF_MIRROR_X: self.get_default(CONF_MIRROR_X, False),
-                CONF_MIRROR_Y: self.get_default(CONF_MIRROR_Y, False),
-                CONF_SWAP_XY: self.get_default(CONF_SWAP_XY, False),
+                CONF_MIRROR_X: self.get_default(CONF_MIRROR_X),
+                CONF_MIRROR_Y: self.get_default(CONF_MIRROR_Y),
+                CONF_SWAP_XY: self.get_default(CONF_SWAP_XY),
             },
         )
+        # fill in defaults if not provided
+        mirror_x = transform.get(CONF_MIRROR_X, self.get_default(CONF_MIRROR_X))
+        mirror_y = transform.get(CONF_MIRROR_Y, self.get_default(CONF_MIRROR_Y))
+        swap_xy = transform.get(CONF_SWAP_XY, self.get_default(CONF_SWAP_XY))
+        transform[CONF_MIRROR_X] = mirror_x
+        transform[CONF_MIRROR_Y] = mirror_y
+        transform[CONF_SWAP_XY] = swap_xy
 
         # Can we use the MADCTL register to set the rotation?
         if can_transform and CONF_TRANSFORM not in config:
             rotation = config[CONF_ROTATION]
             if rotation == 180:
-                transform[CONF_MIRROR_X] = not transform[CONF_MIRROR_X]
-                transform[CONF_MIRROR_Y] = not transform[CONF_MIRROR_Y]
+                transform[CONF_MIRROR_X] = not mirror_x
+                transform[CONF_MIRROR_Y] = not mirror_y
             elif rotation == 90:
-                transform[CONF_SWAP_XY] = not transform[CONF_SWAP_XY]
-                transform[CONF_MIRROR_X] = not transform[CONF_MIRROR_X]
+                transform[CONF_SWAP_XY] = not swap_xy
+                transform[CONF_MIRROR_X] = not mirror_x
             else:
-                transform[CONF_SWAP_XY] = not transform[CONF_SWAP_XY]
-                transform[CONF_MIRROR_Y] = not transform[CONF_MIRROR_Y]
+                transform[CONF_SWAP_XY] = not swap_xy
+                transform[CONF_MIRROR_Y] = not mirror_y
             transform[CONF_TRANSFORM] = True
         return transform
 

@@ -6,7 +6,7 @@ from esphome.components.mipi import (
     DriverChip,
 )
 from esphome.config_validation import UNDEFINED
-from esphome.const import CONF_COLOR_ORDER, CONF_MIRROR_X, CONF_MIRROR_Y
+from esphome.const import CONF_COLOR_ORDER, CONF_HEIGHT, CONF_MIRROR_X, CONF_MIRROR_Y
 
 SDIR_CMD = 0xC7
 
@@ -18,22 +18,31 @@ class ST7701S(DriverChip):
         madctl = 0x00
         if config[CONF_COLOR_ORDER] == MODE_BGR:
             madctl |= 0x08
-        if transform[CONF_MIRROR_Y]:
+        if transform.get(CONF_MIRROR_Y):
             madctl |= MADCTL_ML
         sequence.append((MADCTL, madctl))
         sdir = 0
-        if transform[CONF_MIRROR_X]:
+        if transform.get(CONF_MIRROR_X):
             sdir |= 0x04
             madctl |= MADCTL_XFLIP
         sequence.append((SDIR_CMD, sdir))
         return madctl
+
+    @property
+    def transforms(self) -> set[str]:
+        """
+        The ST7701 never supports axis swapping, and mirroring the y-axis only works for full height.
+        """
+        if self.get_default(CONF_HEIGHT) != 864:
+            return {CONF_MIRROR_X}
+        return {CONF_MIRROR_X, CONF_MIRROR_Y}
 
 
 # fmt: off
 st7701s = ST7701S(
     "ST7701S",
     width=480,
-    height=480,
+    height=864,
     swap_xy=UNDEFINED,
     hsync_front_porch=20,
     hsync_back_porch=10,
@@ -62,7 +71,7 @@ st7701s = ST7701S(
         (0xED, 0xAB, 0x89, 0x76, 0x54, 0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x20, 0x45, 0x67, 0x98, 0xBA,),
         (0xFF, 0x77, 0x01, 0x00, 0x00, 0x13),  # Page 3
         (0xE5, 0xE4),
-        (0xFF, 0x77, 0x01, 0x00, 0x00, 0x00),  # Page 0
+        (0xFF, 0x77, 0x01, 0x00, 0x00, 0x10),  # Page 0
         (0xCD, 0x08),
     )
 )
