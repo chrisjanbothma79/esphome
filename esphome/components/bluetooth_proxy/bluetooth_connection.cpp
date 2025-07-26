@@ -102,8 +102,6 @@ void BluetoothConnection::send_service_for_discovery_() {
   if (char_count_status != ESP_GATT_OK) {
     ESP_LOGW(TAG, "[%d] [%s] Error getting characteristic count, status=%d", this->connection_index_,
              this->address_str().c_str(), char_count_status);
-    // Send the message (we already checked api_conn is not null at the beginning)
-    api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
     return;
   }
 
