@@ -120,7 +120,7 @@ void BluetoothConnection::send_service_for_discovery_() {
       } else if (char_status != ESP_GATT_OK) {
         ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
                  this->address_str().c_str(), char_status);
-        break;
+        return;
       }
 
       service_resp.characteristics.emplace_back();
@@ -139,7 +139,10 @@ void BluetoothConnection::send_service_for_discovery_() {
       if (desc_count_status != ESP_GATT_OK) {
         ESP_LOGW(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d", this->connection_index_,
                  this->address_str().c_str(), char_result.char_handle, desc_count_status);
-      } else if (total_desc_count > 0) {
+        return;
+      }
+
+      if (total_desc_count > 0) {
         // Reserve space and process descriptors
         characteristic_resp.descriptors.reserve(total_desc_count);
         uint16_t desc_offset = 0;
@@ -153,7 +156,7 @@ void BluetoothConnection::send_service_for_discovery_() {
           } else if (desc_status != ESP_GATT_OK) {
             ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
                      this->address_str().c_str(), desc_status);
-            break;
+            return;
           }
 
           characteristic_resp.descriptors.emplace_back();
