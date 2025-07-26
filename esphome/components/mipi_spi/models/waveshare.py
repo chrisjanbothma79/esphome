@@ -146,6 +146,7 @@ CO5300.extend(
     "WAVESHARE-ESP32-S3-TOUCH-AMOLED-1.75",
     width=466,
     height=466,
+    pixel_mode="16bit",
     offset_height=0,
     offset_width=6,
     cs_pin=12,

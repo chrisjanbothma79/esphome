@@ -98,7 +98,6 @@ CO5300 = DriverChip(
     initsequence=(
         (PAGESEL, 0x00),
         (SPIMODESEL, 0x80),
-        (PIXFMT, 0x55),
         (WRCTRLD, 0x20),
         (WCE, 0x00),
     ),
