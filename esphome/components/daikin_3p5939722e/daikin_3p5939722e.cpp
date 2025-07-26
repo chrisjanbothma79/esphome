@@ -59,9 +59,8 @@ void Daikin3p5939722eClimate::transmit_state() {
    * frame[16]    = Eco preset
    * frame[18]    = Checksum
    */
-  uint8_t state_frame[DAIKIN_STATE_FRAME_SIZE] = {0x11, 0xDA, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                                  0x00, 0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0xC5,
-                                                  0x00, 0x08, 0x00};
+  uint8_t state_frame[DAIKIN_STATE_FRAME_SIZE] = {0x11, 0xDA, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                                  0x00, 0x00, 0x60, 0x00, 0x00, 0xC5, 0x00, 0x08, 0x00};
 
   state_frame[5] = this->operating_mode_();
   state_frame[6] = this->temperature_();
@@ -197,7 +196,7 @@ uint8_t Daikin3p5939722eClimate::map_esphome_to_daikin_preset_() const {
     return DAIKIN_PRESET_ECO_SLEEP;
   } else {
     // Simple value mapping implementation
-    for (int i=0; i<sizeof(CLIMATE_PRESETS); i++) {
+    for (int i = 0; i < sizeof(CLIMATE_PRESETS); i++) {
       if (this->preset == CLIMATE_PRESETS[i]) {
         return DAIKIN_PRESETS[i];
       }
@@ -212,7 +211,7 @@ void Daikin3p5939722eClimate::map_daikin_to_esphome_preset_(const uint8_t merged
     this->preset.reset();
   } else {
     // Simple value mapping implementation
-    for (int i=0; i<sizeof(DAIKIN_PRESETS); i++) {
+    for (int i = 0; i < sizeof(DAIKIN_PRESETS); i++) {
       if (DAIKIN_PRESETS[i] == merged_preset) {
         this->preset = CLIMATE_PRESETS[i];
         this->custom_preset.reset();

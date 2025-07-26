@@ -68,16 +68,11 @@ const uint8_t DAIKIN_PRESET_SLEEP = 0x04;
 const uint8_t DAIKIN_PRESET_BOOST_SLEEP = 0x05;
 const uint8_t DAIKIN_PRESET_ECO = 0x40;
 const uint8_t DAIKIN_PRESET_ECO_SLEEP = 0x44;
-const uint8_t DAIKIN_PRESETS[5] = {DAIKIN_PRESET_NONE,
-                                   DAIKIN_PRESET_BOOST,
-                                   DAIKIN_PRESET_SLEEP,
-                                   DAIKIN_PRESET_BOOST_SLEEP,
-                                   DAIKIN_PRESET_ECO};
-const esphome::climate::ClimatePreset CLIMATE_PRESETS[5] = {climate::CLIMATE_PRESET_NONE,
-                                                            climate::CLIMATE_PRESET_BOOST,
+const uint8_t DAIKIN_PRESETS[5] = {DAIKIN_PRESET_NONE, DAIKIN_PRESET_BOOST, DAIKIN_PRESET_SLEEP,
+                                   DAIKIN_PRESET_BOOST_SLEEP, DAIKIN_PRESET_ECO};
+const esphome::climate::ClimatePreset CLIMATE_PRESETS[5] = {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_BOOST,
                                                             climate::CLIMATE_PRESET_SLEEP,
-                                                            climate::CLIMATE_PRESET_BOOST,
-                                                            climate::CLIMATE_PRESET_ECO};
+                                                            climate::CLIMATE_PRESET_BOOST, climate::CLIMATE_PRESET_ECO};
 
 // Frame header for the IR receiver
 const uint8_t DAIKIN_FRAME_HEADER[4] = {0x11, 0xDA, 0x27, 0x00};
@@ -106,7 +101,6 @@ class Daikin3p5939722eClimate : public climate_ir::ClimateIR {
   void map_daikin_to_esphome_preset_(const uint8_t merged_preset);
   bool on_receive(remote_base::RemoteReceiveData data) override;
   bool parse_state_frame_(const uint8_t frame[]);
-
 };
 
 }  // namespace daikin_3p5939722e
