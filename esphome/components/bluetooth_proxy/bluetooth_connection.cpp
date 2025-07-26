@@ -141,9 +141,8 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     // Get the number of descriptors directly with one call
     uint16_t total_desc_count = 0;
-    esp_gatt_status_t desc_count_status =
-        esp_ble_gattc_get_attr_count(this->gattc_if_, this->conn_id_, ESP_GATT_DB_DESCRIPTOR, char_result.char_handle,
-                                     service_result.end_handle, 0, &total_desc_count);
+    esp_gatt_status_t desc_count_status = esp_ble_gattc_get_attr_count(
+        this->gattc_if_, this->conn_id_, ESP_GATT_DB_DESCRIPTOR, 0, 0, char_result.char_handle, &total_desc_count);
 
     if (desc_count_status != ESP_GATT_OK) {
       ESP_LOGW(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d", this->connection_index_,
