@@ -1,4 +1,4 @@
-from esphome.components.mipi_rgb.models.st7701s import st7701s
+from .st7701s import st7701s
 
 st7701s.extend(
     "GUITION-4848S040",
