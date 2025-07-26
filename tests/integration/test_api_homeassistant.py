@@ -207,9 +207,6 @@ async def test_api_homeassistant(
 
         # Wait for all tests to complete with appropriate timeouts
         try:
-            # Give the tests time to execute
-            await asyncio.sleep(0.5)
-
             # Templated service test - the main bug fix
             computed_value = await asyncio.wait_for(lambda_computed_future, timeout=5.0)
             # Verify the computed value is reasonable (75 * 255 / 100 = 191.25 -> 191)
