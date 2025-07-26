@@ -900,17 +900,17 @@ class ProtoService {
   }
 
   bool check_authenticated_() {
+#ifdef USE_API_PASSWORD
     if (!this->check_connection_setup_()) {
       return false;
     }
-#ifdef USE_API_PASSWORD
     if (!this->is_authenticated()) {
       this->on_unauthenticated_access();
       return false;
     }
     return true;
 #else
-    return true;
+    return this->check_connection_setup_();
 #endif
   }
 };
