@@ -80,15 +80,10 @@ void BluetoothConnection::send_service_for_discovery_() {
                                                                &service_result, &service_count, this->send_service_);
   this->send_service_++;
 
-  if (service_status != ESP_GATT_OK) {
-    ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service error at offset=%d, status=%d", this->connection_index_,
-             this->address_str().c_str(), this->send_service_ - 1, service_status);
-    return;
-  }
-
-  if (service_count == 0) {
-    ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service missing, service_count=%d", this->connection_index_,
-             this->address_str().c_str(), service_count);
+  if (service_status != ESP_GATT_OK || service_count == 0) {
+    ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service %s, status=%d, service_count=%d, offset=%d",
+             this->connection_index_, this->address_str().c_str(), service_status != ESP_GATT_OK ? "error" : "missing",
+             service_status, service_count, this->send_service_ - 1);
     return;
   }
 
@@ -107,7 +102,12 @@ void BluetoothConnection::send_service_for_discovery_() {
   if (char_count_status != ESP_GATT_OK) {
     ESP_LOGW(TAG, "[%d] [%s] Error getting characteristic count, status=%d", this->connection_index_,
              this->address_str().c_str(), char_count_status);
-  } else if (total_char_count > 0) {
+    // Send the message (we already checked api_conn is not null at the beginning)
+    api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
+    return;
+  }
+
+  if (total_char_count > 0) {
     // Reserve space and process characteristics
     service_resp.characteristics.reserve(total_char_count);
     uint16_t char_offset = 0;
@@ -117,14 +117,11 @@ void BluetoothConnection::send_service_for_discovery_() {
       esp_gatt_status_t char_status =
           esp_ble_gattc_get_all_char(this->gattc_if_, this->conn_id_, service_result.start_handle,
                                      service_result.end_handle, &char_result, &char_count, char_offset);
-      if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND) {
+      if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND || char_count == 0) {
         break;
       } else if (char_status != ESP_GATT_OK) {
         ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
                  this->address_str().c_str(), char_status);
-        break;
-      }
-      if (char_count == 0) {
         break;
       }
 
@@ -153,14 +150,11 @@ void BluetoothConnection::send_service_for_discovery_() {
           uint16_t desc_count = 1;
           esp_gatt_status_t desc_status = esp_ble_gattc_get_all_descr(
               this->gattc_if_, this->conn_id_, char_result.char_handle, &desc_result, &desc_count, desc_offset);
-          if (desc_status == ESP_GATT_INVALID_OFFSET || desc_status == ESP_GATT_NOT_FOUND) {
+          if (desc_status == ESP_GATT_INVALID_OFFSET || desc_status == ESP_GATT_NOT_FOUND || desc_count == 0) {
             break;
           } else if (desc_status != ESP_GATT_OK) {
             ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
                      this->address_str().c_str(), desc_status);
-            break;
-          }
-          if (desc_count == 0) {
             break;
           }
 
