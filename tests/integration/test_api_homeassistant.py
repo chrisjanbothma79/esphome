@@ -274,7 +274,7 @@ async def test_api_homeassistant(
         client.subscribe_service_calls(on_service_call)
 
         # List entities and services
-        entities, services = await client.list_entities_services()
+        _, services = await client.list_entities_services()
 
         # Find the trigger service
         trigger_service = next(
