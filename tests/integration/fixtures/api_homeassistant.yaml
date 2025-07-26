@@ -10,29 +10,18 @@ api:
       then:
         - logger.log: "=== Starting Home Assistant API Tests ==="
         - button.press: test_basic_service
-        - delay: 100ms
         - button.press: test_templated_service
-        - delay: 100ms
         - button.press: test_empty_string_service
-        - delay: 100ms
         - button.press: test_multiple_fields_service
-        - delay: 100ms
         - button.press: test_complex_lambda_service
-        - delay: 100ms
         - button.press: test_all_empty_service
-        - delay: 100ms
         - button.press: test_rapid_service_calls
-        - delay: 100ms
         - button.press: test_read_ha_states
-        - delay: 100ms
         - number.set:
             id: ha_number
             value: 42.5
-        - delay: 100ms
         - switch.turn_on: ha_switch
-        - delay: 100ms
         - switch.turn_off: ha_switch
-        - delay: 100ms
         - logger.log: "=== All tests completed ==="
 
 logger:
