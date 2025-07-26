@@ -529,7 +529,7 @@ def relative_py_search_text(fname, content):
     return f"esphome.components.{integration}"
 
 
-def _convert_path_to_relative(abspath, current):
+def convert_path_to_relative(abspath, current):
     """Convert an absolute path to a relative import path."""
     if abspath == current:
         return "."
@@ -555,7 +555,7 @@ def lint_relative_py_import(fname, line, col, content):
     import_line = content.splitlines()[line]
     abspath = import_line[col:].split(" ")[0]
     current = fname.removesuffix(".py").replace(os.path.sep, ".")
-    replacement = _convert_path_to_relative(abspath, current)
+    replacement = convert_path_to_relative(abspath, current)
     newline = import_line.replace(abspath, replacement)
     return (
         "Component contains absolute import - Components must always use "
