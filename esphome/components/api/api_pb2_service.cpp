@@ -35,7 +35,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case DisconnectRequest::MESSAGE_TYPE: {
       DisconnectRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_disconnect_request: %s", msg.dump().c_str());
 #endif
@@ -44,7 +44,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case DisconnectResponse::MESSAGE_TYPE: {
       DisconnectResponse msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_disconnect_response: %s", msg.dump().c_str());
 #endif
@@ -53,7 +53,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case PingRequest::MESSAGE_TYPE: {
       PingRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_ping_request: %s", msg.dump().c_str());
 #endif
@@ -62,7 +62,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case PingResponse::MESSAGE_TYPE: {
       PingResponse msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_ping_response: %s", msg.dump().c_str());
 #endif
@@ -71,7 +71,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case DeviceInfoRequest::MESSAGE_TYPE: {
       DeviceInfoRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_device_info_request: %s", msg.dump().c_str());
 #endif
@@ -80,7 +80,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case ListEntitiesRequest::MESSAGE_TYPE: {
       ListEntitiesRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_list_entities_request: %s", msg.dump().c_str());
 #endif
@@ -89,7 +89,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case SubscribeStatesRequest::MESSAGE_TYPE: {
       SubscribeStatesRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_subscribe_states_request: %s", msg.dump().c_str());
 #endif
@@ -151,7 +151,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
 #endif
     case SubscribeHomeassistantServicesRequest::MESSAGE_TYPE: {
       SubscribeHomeassistantServicesRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_subscribe_homeassistant_services_request: %s", msg.dump().c_str());
 #endif
@@ -160,7 +160,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case GetTimeRequest::MESSAGE_TYPE: {
       GetTimeRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_get_time_request: %s", msg.dump().c_str());
 #endif
@@ -178,7 +178,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
     }
     case SubscribeHomeAssistantStatesRequest::MESSAGE_TYPE: {
       SubscribeHomeAssistantStatesRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_subscribe_home_assistant_states_request: %s", msg.dump().c_str());
 #endif
@@ -384,7 +384,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
 #ifdef USE_BLUETOOTH_PROXY
     case SubscribeBluetoothConnectionsFreeRequest::MESSAGE_TYPE: {
       SubscribeBluetoothConnectionsFreeRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_subscribe_bluetooth_connections_free_request: %s", msg.dump().c_str());
 #endif
@@ -395,7 +395,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
 #ifdef USE_BLUETOOTH_PROXY
     case UnsubscribeBluetoothLEAdvertisementsRequest::MESSAGE_TYPE: {
       UnsubscribeBluetoothLEAdvertisementsRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_unsubscribe_bluetooth_le_advertisements_request: %s", msg.dump().c_str());
 #endif
@@ -549,7 +549,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
 #ifdef USE_VOICE_ASSISTANT
     case VoiceAssistantConfigurationRequest::MESSAGE_TYPE: {
       VoiceAssistantConfigurationRequest msg;
-      msg.decode(msg_data, msg_size);
+      // Empty message: no decode needed
 #ifdef HAS_PROTO_MESSAGE_DUMP
       ESP_LOGVV(TAG, "on_voice_assistant_configuration_request: %s", msg.dump().c_str());
 #endif
