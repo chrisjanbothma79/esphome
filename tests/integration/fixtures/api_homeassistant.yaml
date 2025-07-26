@@ -152,13 +152,12 @@ button:
     name: "Test Basic Service"
     id: test_basic_service
     on_press:
-      - logger.log: "Sending HomeAssistant service call: light.turn_on"
+      - logger.log: "Sending HomeAssistant service call: light.turn_off"
       - homeassistant.action:
-          action: light.turn_on
+          action: light.turn_off
           data:
             entity_id: light.test_light
-            brightness: "255"
-      - logger.log: "Service data: entity_id=light.test_light brightness=255"
+      - logger.log: "Service data: entity_id=light.test_light"
 
   # Test 2: Service call with templated/lambda values (main bug fix test)
   - platform: template

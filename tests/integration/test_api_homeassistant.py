@@ -86,15 +86,18 @@ async def test_api_homeassistant(
         ha_service_calls.append(service_call)
 
         # Check for specific service calls
-        if service_call.service == "light.turn_on":
-            # Check if this is the templated service call (has data_template)
-            if service_call.data_template and not templated_service_call_future.done():
-                templated_service_call_future.set_result(service_call)
-            elif (
-                not service_call.data_template and not basic_service_call_future.done()
-            ):
-                # This is the basic service call
-                basic_service_call_future.set_result(service_call)
+        if (
+            service_call.service == "light.turn_off"
+            and not basic_service_call_future.done()
+        ):
+            # This is the basic service call
+            basic_service_call_future.set_result(service_call)
+        elif (
+            service_call.service == "light.turn_on"
+            and not templated_service_call_future.done()
+        ):
+            # This is the templated service call (the main bug fix test)
+            templated_service_call_future.set_result(service_call)
         elif (
             service_call.service == "notify.test"
             and not empty_string_service_call_future.done()
@@ -237,18 +240,12 @@ async def test_api_homeassistant(
             # Now verify the protobuf messages
             # 1. Basic service call
             basic_call = await asyncio.wait_for(basic_service_call_future, timeout=2.0)
-            assert basic_call.service == "light.turn_on"
+            assert basic_call.service == "light.turn_off"
             assert "entity_id" in basic_call.data, (
                 f"entity_id not found in data: {basic_call.data}"
             )
             assert basic_call.data["entity_id"] == "light.test_light", (
                 f"Wrong entity_id: {basic_call.data['entity_id']}"
-            )
-            assert "brightness" in basic_call.data, (
-                f"brightness not found in data: {basic_call.data}"
-            )
-            assert basic_call.data["brightness"] == "255", (
-                f"Wrong brightness: {basic_call.data['brightness']}"
             )
 
             # 2. Templated service call - verify the temporary string issue is fixed
