@@ -953,14 +953,16 @@ def _write_idf_component_yml():
 
 # Called by writer.py
 def copy_files():
-    if CORE.using_arduino:
-        if "partitions.csv" not in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES]:
-            write_file_if_changed(
-                CORE.relative_build_path("partitions.csv"),
-                get_arduino_partition_csv(
-                    CORE.platformio_options.get("board_upload.flash_size")
-                ),
-            )
+    if (
+        CORE.using_arduino
+        and "partitions.csv" not in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES]
+    ):
+        write_file_if_changed(
+            CORE.relative_build_path("partitions.csv"),
+            get_arduino_partition_csv(
+                CORE.platformio_options.get("board_upload.flash_size")
+            ),
+        )
     if CORE.using_esp_idf:
         _write_sdkconfig()
         _write_idf_component_yml()
@@ -980,7 +982,7 @@ def copy_files():
             __version__,
         )
 
-    for _, file in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES].items():
+    for file in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES].values():
         if file[KEY_PATH].startswith("http"):
             import requests
 
