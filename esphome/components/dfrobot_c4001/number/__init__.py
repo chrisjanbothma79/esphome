@@ -41,20 +41,21 @@ OffLatencyNumber = dfrobot_c4001_ns.class_("OffLatencyNumber", number.Number)
 InhibitTimeNumber = dfrobot_c4001_ns.class_("InhibitTimeNumber", number.Number)
 ThresholdFactorNumber = dfrobot_c4001_ns.class_("ThresholdFactorNumber", number.Number)
 
+GROUP_RANGE = "Range Group: 'min_range' and 'max_range'"
 GROUP_SENSITIVITY = "Sensitivity Group: 'hold_sensitivity' and 'trigger_sensitivity'"
 GROUP_LATENCY = "Latency Group: 'on_latency' and 'off_latency'"
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.Optional(CONF_MAX_RANGE): number.number_schema(
+            cv.Inclusive(CONF_MAX_RANGE, GROUP_RANGE): number.number_schema(
                 MaxRangeNumber,
                 unit_of_measurement=UNIT_METER,
                 device_class=DEVICE_CLASS_DISTANCE,
                 entity_category=ENTITY_CATEGORY_CONFIG,
                 icon=ICON_ARROW_EXPAND_VERTICAL,
             ),
-            cv.Optional(CONF_MIN_RANGE): number.number_schema(
+            cv.Inclusive(CONF_MIN_RANGE, GROUP_RANGE): number.number_schema(
                 MinRangeNumber,
                 unit_of_measurement=UNIT_METER,
                 device_class=DEVICE_CLASS_DISTANCE,
@@ -150,21 +151,11 @@ def _final_validate(config):
             raise cv.Invalid(
                 f"When 'mode' is set to {mode}, {CONF_INHIBIT_TIME} number is not allowed."
             )
-    if CONF_TRIGGER_RANGE in config:
-        if (CONF_MIN_RANGE not in config) or (CONF_MAX_RANGE not in config):
-            raise cv.Invalid(
-                "When 'trigger_range' is defined, 'min_range' and 'max_range' must also be defined."
-            )
-    if CONF_MIN_RANGE in config:
-        if CONF_MAX_RANGE not in config:
-            raise cv.Invalid(
-                "When 'min_range' is defined, 'max_range' must also be defined."
-            )
-    if CONF_MAX_RANGE in config:
-        if CONF_MIN_RANGE not in config:
-            raise cv.Invalid(
-                "When 'max_range' is defined, 'min_range' must also be defined."
-            )
+    if CONF_TRIGGER_RANGE in config and CONF_MIN_RANGE not in config:
+        raise cv.Invalid(
+            "some but not all values in the same group of inclusion 'Trigger Range Group: "
+            "'min_range', 'max_range' and 'trigger_range''."
+        )
 
     return config
 
