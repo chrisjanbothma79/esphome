@@ -93,53 +93,80 @@ void BluetoothConnection::send_service_for_discovery_() {
   fill_128bit_uuid_array(service_resp.uuid, service_result.uuid);
   service_resp.handle = service_result.start_handle;
 
+  // Process characteristics for this service
+  if (!this->process_characteristics_for_service_(service_result.start_handle, service_result.end_handle,
+                                                  service_resp)) {
+    return;  // Error processing characteristics
+  }
+
+  // Send the message (we already checked api_conn is not null at the beginning)
+  api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
+}
+
+bool BluetoothConnection::process_characteristics_for_service_(uint16_t service_start_handle,
+                                                               uint16_t service_end_handle,
+                                                               api::BluetoothGATTService &service_resp) {
   // Get the number of characteristics directly with one call
   uint16_t total_char_count = 0;
   esp_gatt_status_t char_count_status =
-      esp_ble_gattc_get_attr_count(this->gattc_if_, this->conn_id_, ESP_GATT_DB_CHARACTERISTIC,
-                                   service_result.start_handle, service_result.end_handle, 0, &total_char_count);
+      esp_ble_gattc_get_attr_count(this->gattc_if_, this->conn_id_, ESP_GATT_DB_CHARACTERISTIC, service_start_handle,
+                                   service_end_handle, 0, &total_char_count);
 
   if (char_count_status != ESP_GATT_OK) {
     ESP_LOGW(TAG, "[%d] [%s] Error getting characteristic count, status=%d", this->connection_index_,
              this->address_str().c_str(), char_count_status);
-    return;
+    return false;
   }
 
-  if (total_char_count > 0) {
-    // Reserve space and process characteristics
-    service_resp.characteristics.reserve(total_char_count);
-    uint16_t char_offset = 0;
-    esp_gattc_char_elem_t char_result;
-    while (true) {  // characteristics
-      uint16_t char_count = 1;
-      esp_gatt_status_t char_status =
-          esp_ble_gattc_get_all_char(this->gattc_if_, this->conn_id_, service_result.start_handle,
-                                     service_result.end_handle, &char_result, &char_count, char_offset);
-      if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND || char_count == 0) {
-        break;
-      } else if (char_status != ESP_GATT_OK) {
-        ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
-                 this->address_str().c_str(), char_status);
-        return;
-      }
+  if (total_char_count == 0) {
+    return true;  // No characteristics, which is valid
+  }
 
+  // Reserve space and process characteristics
+  service_resp.characteristics.reserve(total_char_count);
+
+  // Use a reasonable fixed-size buffer on the stack
+  constexpr uint8_t MAX_CHARACTERISTICS_PER_BATCH = 8;
+  esp_gattc_char_elem_t char_results[MAX_CHARACTERISTICS_PER_BATCH];
+  uint16_t char_offset = 0;
+
+  while (char_offset < total_char_count) {
+    uint16_t char_count = std::min(static_cast<uint16_t>(MAX_CHARACTERISTICS_PER_BATCH),
+                                   static_cast<uint16_t>(total_char_count - char_offset));
+
+    esp_gatt_status_t char_status =
+        esp_ble_gattc_get_all_char(this->gattc_if_, this->conn_id_, service_start_handle, service_end_handle,
+                                   char_results, &char_count, char_offset);
+
+    if (char_status != ESP_GATT_OK) {
+      ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
+               this->address_str().c_str(), char_status);
+      return false;
+    }
+
+    if (char_count == 0) {
+      break;  // No more characteristics
+    }
+
+    // Process this batch of characteristics
+    for (uint8_t i = 0; i < char_count; i++) {
       service_resp.characteristics.emplace_back();
       auto &characteristic_resp = service_resp.characteristics.back();
-      fill_128bit_uuid_array(characteristic_resp.uuid, char_result.uuid);
-      characteristic_resp.handle = char_result.char_handle;
-      characteristic_resp.properties = char_result.properties;
-      char_offset++;
+      fill_128bit_uuid_array(characteristic_resp.uuid, char_results[i].uuid);
+      characteristic_resp.handle = char_results[i].char_handle;
+      characteristic_resp.properties = char_results[i].properties;
 
       // Process descriptors for this characteristic
-      if (!this->process_descriptors_for_characteristic_(char_result.char_handle, service_result.end_handle,
+      if (!this->process_descriptors_for_characteristic_(char_results[i].char_handle, service_end_handle,
                                                          characteristic_resp)) {
-        return;  // Error processing descriptors
+        return false;  // Error processing descriptors
       }
     }
-  }  // end else if (total_char_count > 0)
 
-  // Send the message (we already checked api_conn is not null at the beginning)
-  api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
+    char_offset += char_count;
+  }
+
+  return true;
 }
 
 bool BluetoothConnection::process_descriptors_for_characteristic_(
