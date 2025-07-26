@@ -69,10 +69,8 @@ To bit_cast(const From &src) {
 }
 #endif
 
-[[deprecated("Use std::lerp instead. Note! Different order of arguments")]] inline float lerp(float completion,
-                                                                                              float start, float end) {
-  return start + (end - start) * completion;
-}
+inline float lerp(float completion, float start,
+                  float end) = delete;  // Please use std::lerp. Notice that it has different order on arguments!
 
 // std::byteswap from C++23
 template<typename T> constexpr T byteswap(T n) {
