@@ -845,11 +845,11 @@ void NoiseEncryptionSetKeyResponse::calculate_size(uint32_t &total_size) const {
 #endif
 void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->key_ref_);
-  buffer.encode_string(2, this->value_ref_);
+  buffer.encode_string(2, this->value);
 }
 void HomeassistantServiceMap::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->key_ref_.size());
-  ProtoSize::add_string_field(total_size, 1, this->value_ref_.size());
+  ProtoSize::add_string_field(total_size, 1, this->value);
 }
 void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->service_ref_);
