@@ -39,7 +39,7 @@ void ClimateIR::setup() {
     });
     this->current_temperature = this->sensor_->state;
   }
-  if (this->humidity_sensor_) {
+  if (this->humidity_sensor_ != nullptr) {
     this->humidity_sensor_->add_on_state_callback([this](float state) {
       this->current_humidity = state;
       // current humidity changed, publish state
