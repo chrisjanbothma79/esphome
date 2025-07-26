@@ -1022,6 +1022,7 @@ uint16_t APIConnection::try_send_media_player_info(EntityBase *entity, APIConnec
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
   ListEntitiesMediaPlayerResponse msg;
   auto traits = media_player->get_traits();
+  msg.supports_pause = traits.get_supports_pause();
   msg.feature_flags = traits.get_feature_flags();
   for (auto &supported_format : traits.get_supported_formats()) {
     msg.supported_formats.emplace_back();
