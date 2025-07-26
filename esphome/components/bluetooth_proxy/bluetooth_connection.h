@@ -3,6 +3,7 @@
 #ifdef USE_ESP32
 
 #include "esphome/components/esp32_ble_client/ble_client_base.h"
+#include "esphome/components/api/api_pb2.h"
 
 namespace esphome::bluetooth_proxy {
 
@@ -28,6 +29,8 @@ class BluetoothConnection : public esp32_ble_client::BLEClientBase {
   friend class BluetoothProxy;
 
   void send_service_for_discovery_();
+  bool process_descriptors_for_characteristic_(uint16_t char_handle, uint16_t service_end_handle,
+                                               api::BluetoothGATTCharacteristic &characteristic_resp);
   void reset_connection_(esp_err_t reason);
 
   // Memory optimized layout for 32-bit systems
