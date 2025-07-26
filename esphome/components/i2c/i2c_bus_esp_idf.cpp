@@ -159,7 +159,7 @@ void IDFI2CBus::dump_config() {
         if (s.second) {
           ESP_LOGCONFIG(TAG, "Found device at address 0x%02X", s.first);
         } else {
-          ESP_LOGCONFIG(TAG, "Unknown error at address 0x%02X", s.first);
+          ESP_LOGE(TAG, "Unknown error at address 0x%02X", s.first);
         }
       }
     }
