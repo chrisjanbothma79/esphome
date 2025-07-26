@@ -135,6 +135,7 @@ class CustomAPIDevice {
     global_api_server->subscribe_home_assistant_state(entity_id, optional<std::string>(attribute), f);
   }
 
+#ifdef USE_API_HOMEASSISTANT_SERVICES
   /** Call a Home Assistant service from ESPHome.
    *
    * Usage:
@@ -219,6 +220,7 @@ class CustomAPIDevice {
     }
     global_api_server->send_homeassistant_service_call(resp);
   }
+#endif
 };
 
 }  // namespace esphome::api
