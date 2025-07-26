@@ -105,75 +105,83 @@ void BluetoothConnection::send_service_for_discovery_() {
     return;
   }
 
-  if (total_char_count > 0) {
-    // Reserve space and process characteristics
-    service_resp.characteristics.reserve(total_char_count);
-    uint16_t char_offset = 0;
-    esp_gattc_char_elem_t char_result;
-    while (true) {  // characteristics
-      uint16_t char_count = 1;
-      esp_gatt_status_t char_status =
-          esp_ble_gattc_get_all_char(this->gattc_if_, this->conn_id_, service_result.start_handle,
-                                     service_result.end_handle, &char_result, &char_count, char_offset);
-      if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND) {
-        break;
-      } else if (char_status != ESP_GATT_OK) {
-        ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
-                 this->address_str().c_str(), char_status);
-        return;
-      } else if (char_count == 0) {
-        break;
-      }
+  if (total_char_count == 0) {
+    // No characteristics, just send the service response
+    api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
+    return
+  }
 
-      service_resp.characteristics.emplace_back();
-      auto &characteristic_resp = service_resp.characteristics.back();
-      fill_128bit_uuid_array(characteristic_resp.uuid, char_result.uuid);
-      characteristic_resp.handle = char_result.char_handle;
-      characteristic_resp.properties = char_result.properties;
-      char_offset++;
-
-      // Get the number of descriptors directly with one call
-      uint16_t total_desc_count = 0;
-      esp_gatt_status_t desc_count_status =
-          esp_ble_gattc_get_attr_count(this->gattc_if_, this->conn_id_, ESP_GATT_DB_DESCRIPTOR, char_result.char_handle,
-                                       service_result.end_handle, 0, &total_desc_count);
-
-      if (desc_count_status != ESP_GATT_OK) {
-        ESP_LOGW(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d", this->connection_index_,
-                 this->address_str().c_str(), char_result.char_handle, desc_count_status);
-        return;
-      }
-      if (total_desc_count == 0) {
-        // No descriptors, continue to next characteristic
-        continue;
-      }
-
-      // Reserve space and process descriptors
-      characteristic_resp.descriptors.reserve(total_desc_count);
-      uint16_t desc_offset = 0;
-      esp_gattc_descr_elem_t desc_result;
-      while (true) {  // descriptors
-        uint16_t desc_count = 1;
-        esp_gatt_status_t desc_status = esp_ble_gattc_get_all_descr(
-            this->gattc_if_, this->conn_id_, char_result.char_handle, &desc_result, &desc_count, desc_offset);
-        if (desc_status == ESP_GATT_INVALID_OFFSET || desc_status == ESP_GATT_NOT_FOUND) {
-          break;
-        } else if (desc_status != ESP_GATT_OK) {
-          ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
-                   this->address_str().c_str(), desc_status);
-          return;
-        } else if (desc_count == 0) {
-          break;  // No more descriptors
-        }
-
-        characteristic_resp.descriptors.emplace_back();
-        auto &descriptor_resp = characteristic_resp.descriptors.back();
-        fill_128bit_uuid_array(descriptor_resp.uuid, desc_result.uuid);
-        descriptor_resp.handle = desc_result.handle;
-        desc_offset++;
-      }
+  // Reserve space and process characteristics
+  service_resp.characteristics.reserve(total_char_count);
+  uint16_t char_offset = 0;
+  esp_gattc_char_elem_t char_result;
+  while (true) {  // characteristics
+    uint16_t char_count = 1;
+    esp_gatt_status_t char_status =
+        esp_ble_gattc_get_all_char(this->gattc_if_, this->conn_id_, service_result.start_handle,
+                                   service_result.end_handle, &char_result, &char_count, char_offset);
+    if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND) {
+      break;
     }
-  }  // end else if (total_char_count > 0)
+    if (char_status != ESP_GATT_OK) {
+      ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
+               this->address_str().c_str(), char_status);
+      return;
+    }
+    if (char_count == 0) {
+      break;
+    }
+
+    service_resp.characteristics.emplace_back();
+    auto &characteristic_resp = service_resp.characteristics.back();
+    fill_128bit_uuid_array(characteristic_resp.uuid, char_result.uuid);
+    characteristic_resp.handle = char_result.char_handle;
+    characteristic_resp.properties = char_result.properties;
+    char_offset++;
+
+    // Get the number of descriptors directly with one call
+    uint16_t total_desc_count = 0;
+    esp_gatt_status_t desc_count_status =
+        esp_ble_gattc_get_attr_count(this->gattc_if_, this->conn_id_, ESP_GATT_DB_DESCRIPTOR, char_result.char_handle,
+                                     service_result.end_handle, 0, &total_desc_count);
+
+    if (desc_count_status != ESP_GATT_OK) {
+      ESP_LOGW(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d", this->connection_index_,
+               this->address_str().c_str(), char_result.char_handle, desc_count_status);
+      return;
+    }
+    if (total_desc_count == 0) {
+      // No descriptors, continue to next characteristic
+      continue;
+    }
+
+    // Reserve space and process descriptors
+    characteristic_resp.descriptors.reserve(total_desc_count);
+    uint16_t desc_offset = 0;
+    esp_gattc_descr_elem_t desc_result;
+    while (true) {  // descriptors
+      uint16_t desc_count = 1;
+      esp_gatt_status_t desc_status = esp_ble_gattc_get_all_descr(
+          this->gattc_if_, this->conn_id_, char_result.char_handle, &desc_result, &desc_count, desc_offset);
+      if (desc_status == ESP_GATT_INVALID_OFFSET || desc_status == ESP_GATT_NOT_FOUND) {
+        break;
+      }
+      if (desc_status != ESP_GATT_OK) {
+        ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
+                 this->address_str().c_str(), desc_status);
+        return;
+      }
+      if (desc_count == 0) {
+        break;  // No more descriptors
+      }
+
+      characteristic_resp.descriptors.emplace_back();
+      auto &descriptor_resp = characteristic_resp.descriptors.back();
+      fill_128bit_uuid_array(descriptor_resp.uuid, desc_result.uuid);
+      descriptor_resp.handle = desc_result.handle;
+      desc_offset++;
+    }
+  }
 
   // Send the message (we already checked api_conn is not null at the beginning)
   api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
