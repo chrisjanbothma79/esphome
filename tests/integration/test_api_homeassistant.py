@@ -230,9 +230,6 @@ async def test_api_homeassistant(
             # Wait for completion
             await asyncio.wait_for(tests_complete_future, timeout=5.0)
 
-            # Give a bit of time for all service calls to be received
-            await asyncio.sleep(0.5)
-
             # Now verify the protobuf messages
             # 1. Basic service call
             basic_call = await asyncio.wait_for(basic_service_call_future, timeout=2.0)
