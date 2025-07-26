@@ -122,11 +122,13 @@ void BluetoothConnection::send_service_for_discovery_() {
                                    service_result.end_handle, &char_result, &char_count, char_offset);
     if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND) {
       break;
-    } else if (char_status != ESP_GATT_OK) {
+    }
+    if (char_status != ESP_GATT_OK) {
       ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
                this->address_str().c_str(), char_status);
       return;
-    } else if (char_count == 0) {
+    }
+    if (char_count == 0) {
       break;
     }
 
@@ -163,11 +165,13 @@ void BluetoothConnection::send_service_for_discovery_() {
           this->gattc_if_, this->conn_id_, char_result.char_handle, &desc_result, &desc_count, desc_offset);
       if (desc_status == ESP_GATT_INVALID_OFFSET || desc_status == ESP_GATT_NOT_FOUND) {
         break;
-      } else if (desc_status != ESP_GATT_OK) {
+      }
+      if (desc_status != ESP_GATT_OK) {
         ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
                  this->address_str().c_str(), desc_status);
         return;
-      } else if (desc_count == 0) {
+      }
+      if (desc_count == 0) {
         break;  // No more descriptors
       }
 
