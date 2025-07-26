@@ -84,8 +84,6 @@ async def test_api_homeassistant(
     def on_service_call(service_call: HomeassistantServiceCall) -> None:
         """Capture HomeAssistant service calls."""
         ha_service_calls.append(service_call)
-        # Debug log
-        log_lines.append(f"[DEBUG] Received service call: {service_call.service}")
 
         # Check for specific service calls
         if service_call.service == "light.turn_on":
@@ -136,10 +134,6 @@ async def test_api_homeassistant(
     def check_output(line: str) -> None:
         """Check log output for expected messages."""
         log_lines.append(line)
-
-        # Debug: print lines that might be relevant
-        if "HA " in line or "HomeAssistant" in line:
-            print(f"[DEBUG] {line}")
 
         # Check for patterns that capture values
         if not lambda_computed_future.done():
