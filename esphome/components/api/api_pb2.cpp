@@ -849,7 +849,7 @@ void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
 }
 void HomeassistantServiceMap::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->key_ref_.size());
-  ProtoSize::add_string_field(total_size, 1, this->value);
+  ProtoSize::add_string_field(total_size, 1, this->value.size());
 }
 void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->service_ref_);

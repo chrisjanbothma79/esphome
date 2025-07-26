@@ -654,6 +654,10 @@ class StringType(TypeInfo):
 
         # For SOURCE_CLIENT only messages or no_zero_copy, use the string field directly
         if not self._needs_encode or no_zero_copy:
+            # For no_zero_copy, we need to use .size() on the string
+            if no_zero_copy and name != "it":
+                field_id_size = self.calculate_field_id_size()
+                return f"ProtoSize::add_string_field(total_size, {field_id_size}, this->{self.field_name}.size());"
             return self._get_simple_size_calculation(name, force, "add_string_field")
 
         # Check if this is being called from a repeated field context
