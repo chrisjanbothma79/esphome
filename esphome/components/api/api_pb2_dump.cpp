@@ -1068,6 +1068,7 @@ void HomeassistantServiceResponse::dump_to(std::string &out) const {
   dump_field(out, "is_event", this->is_event);
 }
 #endif
+#ifdef USE_API_HOMEASSISTANT_STATES
 void SubscribeHomeAssistantStatesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeAssistantStatesRequest {}");
 }
@@ -1083,6 +1084,7 @@ void HomeAssistantStateResponse::dump_to(std::string &out) const {
   dump_field(out, "state", this->state);
   dump_field(out, "attribute", this->attribute);
 }
+#endif
 void GetTimeRequest::dump_to(std::string &out) const { out.append("GetTimeRequest {}"); }
 void GetTimeResponse::dump_to(std::string &out) const { dump_field(out, "epoch_seconds", this->epoch_seconds); }
 #ifdef USE_API_SERVICES
