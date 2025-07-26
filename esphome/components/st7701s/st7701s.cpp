@@ -133,6 +133,7 @@ void ST7701S::write_data_(uint8_t value) {
  */
 
 void ST7701S::write_sequence_(uint8_t cmd, size_t len, const uint8_t *bytes) {
+  ESP_LOGD(TAG, "Write cmd %X, data %s", cmd, format_hex_pretty(bytes, len).c_str());
   this->write_command_(cmd);
   while (len-- != 0)
     this->write_data_(*bytes++);

@@ -308,7 +308,7 @@ void MipiRgbSpi::write_init_sequence_() {
         delay(10);
     }
   }
-  this->spi_teardown();  // SPI not needed after this
+  // this->spi_teardown();  // SPI not needed after this
   this->init_sequence_.clear();
   delay(10);
 }

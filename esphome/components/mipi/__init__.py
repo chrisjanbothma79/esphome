@@ -236,7 +236,9 @@ class DriverChip:
     ):
         name = name.upper()
         self.name = name
-        self.initsequence = initsequence or defaults.get("init_sequence")
+        self.initsequence = list(initsequence or ())
+        if CONF_INIT_SEQUENCE in defaults:
+            self.initsequence.extend(defaults.pop(CONF_INIT_SEQUENCE))
         self.defaults = defaults
         DriverChip.models[name] = self
 
@@ -322,7 +324,7 @@ class DriverChip:
             )
             offset_height = native_height - height - offset_height
         # Swap default dimensions if swap_xy is set
-        if transform[CONF_SWAP_XY] is True:
+        if transform.get(CONF_SWAP_XY) is True:
             width, height = height, width
             offset_height, offset_width = offset_width, offset_height
         return width, height, offset_width, offset_height
@@ -353,6 +355,22 @@ class DriverChip:
             transform[CONF_TRANSFORM] = True
         return transform
 
+    def add_madctl(self, sequence: list, config: dict):
+        # Add the MADCTL command to the sequence based on the configuration.
+        use_flip = config.get(CONF_USE_AXIS_FLIPS)
+        madctl = 0
+        transform = self.get_transform(config)
+        if transform[CONF_MIRROR_X]:
+            madctl |= MADCTL_XFLIP if use_flip else MADCTL_MX
+        if transform[CONF_MIRROR_Y]:
+            madctl |= MADCTL_YFLIP if use_flip else MADCTL_MY
+        if transform.get(CONF_SWAP_XY) is True:  # Exclude Undefined
+            madctl |= MADCTL_MV
+        if config[CONF_COLOR_ORDER] == MODE_BGR:
+            madctl |= MADCTL_BGR
+        sequence.append((MADCTL, madctl))
+        return madctl
+
     def get_sequence(self, config) -> tuple[tuple[int, ...], int]:
         """
         Create the init sequence for the display.
@@ -376,6 +394,8 @@ class DriverChip:
         sequence.append((PIXFMT, pixel_mode))
 
         # Does the chip use the flipping bits for mirroring rather than the reverse order bits?
+        if self.rotation_as_transform(config):
+            LOGGER.info("Using hardware transform to implement rotation")
         madctl = self.add_madctl(sequence, config)
         if config[CONF_INVERT_COLORS]:
             sequence.append((INVON,))
@@ -395,27 +415,6 @@ class DriverChip:
             ),
             (),
         ), madctl
-
-    def add_madctl(self, sequence: list, config: dict):
-        """
-        Add the MADCTL command to the sequence based on the configuration.
-        can be replaced by custom code.
-        """
-        use_flip = config.get(CONF_USE_AXIS_FLIPS)
-        madctl = 0
-        transform = self.get_transform(config)
-        if self.rotation_as_transform(config):
-            LOGGER.info("Using hardware transform to implement rotation")
-        if transform.get(CONF_MIRROR_X):
-            madctl |= MADCTL_XFLIP if use_flip else MADCTL_MX
-        if transform.get(CONF_MIRROR_Y):
-            madctl |= MADCTL_YFLIP if use_flip else MADCTL_MY
-        if transform.get(CONF_SWAP_XY) is True:  # Exclude Undefined
-            madctl |= MADCTL_MV
-        if config[CONF_COLOR_ORDER] == MODE_BGR:
-            madctl |= MADCTL_BGR
-        sequence.append((MADCTL, madctl))
-        return madctl
 
 
 def requires_buffer(config) -> bool:
