@@ -70,69 +70,28 @@ async def test_api_homeassistant(
     # Track HomeAssistant service calls
     ha_service_calls: list[HomeassistantServiceCall] = []
 
-    # Service call futures
-    basic_service_call_future = loop.create_future()
-    templated_service_call_future = loop.create_future()
-    empty_string_service_call_future = loop.create_future()
-    multiple_fields_service_call_future = loop.create_future()
-    complex_lambda_service_call_future = loop.create_future()
-    all_empty_service_call_future = loop.create_future()
-    ha_number_service_call_future = loop.create_future()
-    ha_switch_on_service_call_future = loop.create_future()
-    ha_switch_off_service_call_future = loop.create_future()
+    # Service call futures organized by service name
+    service_call_futures = {
+        "light.turn_off": loop.create_future(),  # basic_service_call
+        "light.turn_on": loop.create_future(),  # templated_service_call
+        "notify.test": loop.create_future(),  # empty_string_service_call
+        "climate.set_temperature": loop.create_future(),  # multiple_fields_service_call
+        "script.test_script": loop.create_future(),  # complex_lambda_service_call
+        "test.empty": loop.create_future(),  # all_empty_service_call
+        "input_number.set_value": loop.create_future(),  # ha_number_service_call
+        "switch.turn_on": loop.create_future(),  # ha_switch_on_service_call
+        "switch.turn_off": loop.create_future(),  # ha_switch_off_service_call
+    }
 
     def on_service_call(service_call: HomeassistantServiceCall) -> None:
         """Capture HomeAssistant service calls."""
         ha_service_calls.append(service_call)
 
-        # Check for specific service calls
-        if (
-            service_call.service == "light.turn_off"
-            and not basic_service_call_future.done()
-        ):
-            # This is the basic service call
-            basic_service_call_future.set_result(service_call)
-        elif (
-            service_call.service == "light.turn_on"
-            and not templated_service_call_future.done()
-        ):
-            # This is the templated service call (the main bug fix test)
-            templated_service_call_future.set_result(service_call)
-        elif (
-            service_call.service == "notify.test"
-            and not empty_string_service_call_future.done()
-        ):
-            empty_string_service_call_future.set_result(service_call)
-        elif (
-            service_call.service == "climate.set_temperature"
-            and not multiple_fields_service_call_future.done()
-        ):
-            multiple_fields_service_call_future.set_result(service_call)
-        elif (
-            service_call.service == "script.test_script"
-            and not complex_lambda_service_call_future.done()
-        ):
-            complex_lambda_service_call_future.set_result(service_call)
-        elif (
-            service_call.service == "test.empty"
-            and not all_empty_service_call_future.done()
-        ):
-            all_empty_service_call_future.set_result(service_call)
-        elif (
-            service_call.service == "input_number.set_value"
-            and not ha_number_service_call_future.done()
-        ):
-            ha_number_service_call_future.set_result(service_call)
-        elif (
-            service_call.service == "switch.turn_on"
-            and not ha_switch_on_service_call_future.done()
-        ):
-            ha_switch_on_service_call_future.set_result(service_call)
-        elif (
-            service_call.service == "switch.turn_off"
-            and not ha_switch_off_service_call_future.done()
-        ):
-            ha_switch_off_service_call_future.set_result(service_call)
+        # Check if this service call is one we're waiting for
+        if service_call.service in service_call_futures:
+            future = service_call_futures[service_call.service]
+            if not future.done():
+                future.set_result(service_call)
 
     def check_output(line: str) -> None:
         """Check log output for expected messages."""
@@ -239,7 +198,9 @@ async def test_api_homeassistant(
 
             # Now verify the protobuf messages
             # 1. Basic service call
-            basic_call = await asyncio.wait_for(basic_service_call_future, timeout=2.0)
+            basic_call = await asyncio.wait_for(
+                service_call_futures["light.turn_off"], timeout=2.0
+            )
             assert basic_call.service == "light.turn_off"
             assert "entity_id" in basic_call.data, (
                 f"entity_id not found in data: {basic_call.data}"
@@ -250,7 +211,7 @@ async def test_api_homeassistant(
 
             # 2. Templated service call - verify the temporary string issue is fixed
             templated_call = await asyncio.wait_for(
-                templated_service_call_future, timeout=2.0
+                service_call_futures["light.turn_on"], timeout=2.0
             )
             assert templated_call.service == "light.turn_on"
             # Check the computed brightness value
@@ -265,7 +226,7 @@ async def test_api_homeassistant(
 
             # 3. Empty string service call
             empty_call = await asyncio.wait_for(
-                empty_string_service_call_future, timeout=2.0
+                service_call_futures["notify.test"], timeout=2.0
             )
             assert empty_call.service == "notify.test"
             # Verify empty strings are properly handled
@@ -280,7 +241,7 @@ async def test_api_homeassistant(
 
             # 4. Multiple fields service call
             multi_call = await asyncio.wait_for(
-                multiple_fields_service_call_future, timeout=2.0
+                service_call_futures["climate.set_temperature"], timeout=2.0
             )
             assert multi_call.service == "climate.set_temperature"
             assert multi_call.data["temperature"] == "22"
@@ -290,7 +251,7 @@ async def test_api_homeassistant(
 
             # 5. Complex lambda service call
             complex_call = await asyncio.wait_for(
-                complex_lambda_service_call_future, timeout=2.0
+                service_call_futures["script.test_script"], timeout=2.0
             )
             assert complex_call.service == "script.test_script"
             assert complex_call.data["entity_id"] == "light.living_room"
@@ -301,7 +262,7 @@ async def test_api_homeassistant(
 
             # 6. All empty service call
             all_empty_call = await asyncio.wait_for(
-                all_empty_service_call_future, timeout=2.0
+                service_call_futures["test.empty"], timeout=2.0
             )
             assert all_empty_call.service == "test.empty"
             # All fields should be empty strings
@@ -311,7 +272,7 @@ async def test_api_homeassistant(
 
             # 7. HA Number service call
             number_call = await asyncio.wait_for(
-                ha_number_service_call_future, timeout=2.0
+                service_call_futures["input_number.set_value"], timeout=2.0
             )
             assert number_call.service == "input_number.set_value"
             assert number_call.data["entity_id"] == "input_number.test_number"
@@ -320,13 +281,13 @@ async def test_api_homeassistant(
 
             # 8. HA Switch service calls
             switch_on_call = await asyncio.wait_for(
-                ha_switch_on_service_call_future, timeout=2.0
+                service_call_futures["switch.turn_on"], timeout=2.0
             )
             assert switch_on_call.service == "switch.turn_on"
             assert switch_on_call.data["entity_id"] == "switch.test_switch"
 
             switch_off_call = await asyncio.wait_for(
-                ha_switch_off_service_call_future, timeout=2.0
+                service_call_futures["switch.turn_off"], timeout=2.0
             )
             assert switch_off_call.service == "switch.turn_off"
             assert switch_off_call.data["entity_id"] == "switch.test_switch"
