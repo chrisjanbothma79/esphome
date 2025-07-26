@@ -96,7 +96,6 @@ CO5300 = DriverChip(
     color_order=MODE_RGB,
     bus_mode=TYPE_QUAD,
     initsequence=(
-        (SLPOUT,),
         (PAGESEL, 0x00),
         (SPIMODESEL, 0x80),
         (PIXFMT, 0x55),
