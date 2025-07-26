@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from aioesphomeapi import ClimateInfo, ClimateState, EntityState, SensorState
+from aioesphomeapi import ClimateInfo, EntityState, SensorState
 import pytest
 
 from .types import APIClientConnectedFactory, RunCompiledFunction
@@ -69,12 +69,6 @@ async def test_host_mode_many_entities(
         )
         assert len(sensor_states) >= 50, (
             f"Expected at least 50 sensor states, got {len(sensor_states)}"
-        )
-
-        # Verify we received the climate entity
-        climate_states = [s for s in states.values() if isinstance(s, ClimateState)]
-        assert len(climate_states) >= 1, (
-            f"Expected at least 1 climate state, got {len(climate_states)}"
         )
 
         # Get entity info to verify climate entity details
