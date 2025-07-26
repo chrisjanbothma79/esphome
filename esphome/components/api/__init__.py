@@ -55,6 +55,7 @@ CONF_BATCH_DELAY = "batch_delay"
 CONF_CUSTOM_SERVICES = "custom_services"
 CONF_HOMEASSISTANT_STATES = "homeassistant_states"
 CONF_HOMEASSISTANT_SERVICES = "homeassistant_services"
+CONF_HOMEASSISTANT_STATES = "homeassistant_states"
 
 
 def validate_encryption_key(value):
@@ -122,6 +123,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_CUSTOM_SERVICES, default=False): cv.boolean,
             cv.Optional(CONF_HOMEASSISTANT_STATES, default=False): cv.boolean,
             cv.Optional(CONF_HOMEASSISTANT_SERVICES, default=False): cv.boolean,
+            cv.Optional(CONF_HOMEASSISTANT_STATES, default=False): cv.boolean,
             cv.Optional(CONF_ON_CLIENT_CONNECTED): automation.validate_automation(
                 single=True
             ),
@@ -156,6 +158,9 @@ async def to_code(config):
 
     if config[CONF_HOMEASSISTANT_SERVICES]:
         cg.add_define("USE_API_HOMEASSISTANT_SERVICES")
+
+    if config[CONF_HOMEASSISTANT_STATES]:
+        cg.add_define("USE_API_HOMEASSISTANT_STATES")
 
     if actions := config.get(CONF_ACTIONS, []):
         for conf in actions:
