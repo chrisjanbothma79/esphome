@@ -534,18 +534,9 @@ def _check_advanced(config):
 
 
 def final_validate(config):
-    fconf = fv.full_config.get()
-    advanced = config.get(CONF_FRAMEWORK, {}).get(CONF_ADVANCED, {})
-    if advanced.get(CONF_EXECUTE_FROM_PSRAM, False) and "psram" not in fconf:
-        raise cv.Invalid(
-            f"{CONF_EXECUTE_FROM_PSRAM} requires PSRAM to be enabled",
-            path=[CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
-        )
-    if config[CONF_VARIANT] != VARIANT_ESP32 and CONF_IGNORE_EFUSE_MAC_CRC in advanced:
-        raise cv.Invalid(
-            f"{CONF_IGNORE_EFUSE_MAC_CRC} is not supported on {config[CONF_VARIANT]}"
-        )
-    if not (pio_options := fconf[CONF_ESPHOME].get(CONF_PLATFORMIO_OPTIONS)):
+    if not (
+        pio_options := fv.full_config.get()[CONF_ESPHOME].get(CONF_PLATFORMIO_OPTIONS)
+    ):
         # Not specified or empty
         return config
 
@@ -559,6 +550,15 @@ def final_validate(config):
     if pio_flash_size_key in pio_options:
         raise cv.Invalid(
             f"Please specify {CONF_FLASH_SIZE} within esp32 configuration only"
+        )
+
+    if (
+        config[CONF_VARIANT] != VARIANT_ESP32
+        and CONF_ADVANCED in (conf_fw := config[CONF_FRAMEWORK])
+        and CONF_IGNORE_EFUSE_MAC_CRC in conf_fw[CONF_ADVANCED]
+    ):
+        raise cv.Invalid(
+            f"{CONF_IGNORE_EFUSE_MAC_CRC} is not supported on {config[CONF_VARIANT]}"
         )
 
     return config
