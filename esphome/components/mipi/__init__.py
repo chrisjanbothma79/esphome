@@ -236,9 +236,10 @@ class DriverChip:
     ):
         name = name.upper()
         self.name = name
-        self.initsequence = list(initsequence or ())
+        self.initsequence = initsequence
+        initsequence = list(initsequence or ())
         if CONF_INIT_SEQUENCE in defaults:
-            self.initsequence.extend(defaults.pop(CONF_INIT_SEQUENCE))
+            self.initsequence = initsequence.extend(defaults.pop(CONF_INIT_SEQUENCE))
         self.defaults = defaults
         DriverChip.models[name] = self
 
