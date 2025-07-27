@@ -291,7 +291,7 @@ void ESPNowComponent::loop() {
                    format_mac_address_pretty(info.des_addr).c_str(),
                    format_hex_pretty(packet->packet_.receive.data, packet->packet_.receive.size).c_str());
 #endif
-          if (memcmp(info->des_addr, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0) {
+          if (memcmp(info.des_addr, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0) {
             for (auto *handler : this->broadcasted_handlers_) {
               if (handler->on_broadcasted(info, packet->packet_.receive.data, packet->packet_.receive.size))
                 break;  // If a handler returns true, stop processing further handlers

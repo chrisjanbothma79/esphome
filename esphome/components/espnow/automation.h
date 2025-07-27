@@ -178,12 +178,12 @@ template<typename... Ts> class SetChannelAction : public Action<Ts...>, public P
 class ESPNowHandlerTrigger : public Trigger<const ESPNowRecvInfo &, const uint8_t *, uint8_t>,
                              public ESPNowReceivedPacketHandler {
  public:
-  explicit OnReceiveTrigger(ESPNowComponent *parent, std::array<uint8_t, ESP_NOW_ETH_ALEN> address)
+  explicit ESPNowHandlerTrigger(ESPNowComponent *parent, std::array<uint8_t, ESP_NOW_ETH_ALEN> address)
       : parent_(parent), has_address_(true) {
     memcpy(this->address_, address.data(), ESP_NOW_ETH_ALEN);
   }
 
-  explicit OnReceiveTrigger(ESPNowComponent *parent) : parent_(parent), has_address_(false) {}
+  explicit ESPNowHandlerTrigger(ESPNowComponent *parent) : parent_(parent), has_address_(false) {}
 
   bool handle_trigger(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) override {
     bool match = !this->has_address_ || (memcmp(this->address_, info.src_addr, ESP_NOW_ETH_ALEN) == 0);
@@ -205,13 +205,13 @@ class OnReceiveTrigger : public ESPNowHandlerTrigger, public ESPNowReceivedPacke
     return this->handle_trigger(info, data, size);
   }
 };
-class OnUnknownPeerTrigger : public ESPNowHandlerTrigger, public ESPNowReceivedPacketHandler {
-  bool on_received(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) override {
+class OnUnknownPeerTrigger : public ESPNowHandlerTrigger, public ESPNowUnknownPeerHandler {
+  bool on_unknown_peer(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) override {
     return this->handle_trigger(info, data, size);
   }
 };
-class OnBroadcastedTrigger : public ESPNowHandlerTrigger, public ESPNowReceivedPacketHandler {
-  bool on_unknown_peer(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) override {
+class OnBroadcastedTrigger : public ESPNowHandlerTrigger, public ESPNowBroadcastedHandler {
+  bool on_broadcasted(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) override {
     return this->handle_trigger(info, data, size);
   }
 };
