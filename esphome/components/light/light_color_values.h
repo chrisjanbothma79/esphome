@@ -84,9 +84,11 @@ class LightColorValues {
    * @return The linearly interpolated LightColorValues.
    */
   static LightColorValues lerp(const LightColorValues &start, const LightColorValues &end, float completion) {
-    // Directly interpolate the raw values to avoid getter/setter overhead
-    // Linear interpolation between two clamped values produces a clamped result,
-    // so we can skip the setters which include redundant clamping logic
+    // Directly interpolate the raw values to avoid getter/setter overhead.
+    // This is safe because:
+    // - All LightColorValues have their values clamped when set via the setters
+    // - std::lerp guarantees output is in the same range as inputs
+    // - Therefore the output doesn't need clamping, so we can skip the setters
     LightColorValues v;
     v.color_mode_ = end.color_mode_;
     v.state_ = std::lerp(start.state_, end.state_, completion);
