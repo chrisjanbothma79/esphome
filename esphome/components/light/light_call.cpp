@@ -468,8 +468,7 @@ std::set<ColorMode> LightCall::get_suitable_color_modes_() {
     case KEY(true, false, false, true):  // rgb + white
       return {ColorMode::RGB_WHITE, ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
     case KEY(false, true, false, true):  // rgb + ct
-      return {ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
-    case KEY(true, true, false, true):  // rgb + white + ct
+    case KEY(true, true, false, true):   // rgb + white + ct
       return {ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
     case KEY(false, false, true, true):  // rgb + cwww
       return {ColorMode::RGB_COLD_WARM_WHITE};
