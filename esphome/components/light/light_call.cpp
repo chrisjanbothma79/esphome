@@ -403,21 +403,27 @@ void LightCall::transform_parameters_() {
   // - RGBWW lights with color_interlock=true, which also sets "brightness" and
   //   "color_temperature" (without color_interlock, CW/WW are set directly)
   // - Legacy Home Assistant (pre-colormode), which sets "white" and "color_temperature"
+
+  // Cache min/max mireds to avoid repeated calls
+  const float min_mireds = traits.get_min_mireds();
+  const float max_mireds = traits.get_max_mireds();
+
   if (((this->has_white() && this->white_ > 0.0f) || this->has_color_temperature()) &&  //
       (this->color_mode_ & ColorCapability::COLD_WARM_WHITE) &&                         //
       !(this->color_mode_ & ColorCapability::WHITE) &&                                  //
       !(this->color_mode_ & ColorCapability::COLOR_TEMPERATURE) &&                      //
-      traits.get_min_mireds() > 0.0f && traits.get_max_mireds() > 0.0f) {
+      min_mireds > 0.0f && max_mireds > 0.0f) {
     ESP_LOGD(TAG, "'%s': setting cold/warm white channels using white/color temperature values",
              this->parent_->get_name().c_str());
     if (this->has_color_temperature()) {
-      const float color_temp = clamp(this->color_temperature_, traits.get_min_mireds(), traits.get_max_mireds());
-      const float ww_fraction =
-          (color_temp - traits.get_min_mireds()) / (traits.get_max_mireds() - traits.get_min_mireds());
+      const float color_temp = clamp(this->color_temperature_, min_mireds, max_mireds);
+      const float range = max_mireds - min_mireds;
+      const float ww_fraction = (color_temp - min_mireds) / range;
       const float cw_fraction = 1.0f - ww_fraction;
       const float max_cw_ww = std::max(ww_fraction, cw_fraction);
-      this->cold_white_ = gamma_uncorrect(cw_fraction / max_cw_ww, this->parent_->get_gamma_correct());
-      this->warm_white_ = gamma_uncorrect(ww_fraction / max_cw_ww, this->parent_->get_gamma_correct());
+      const float gamma = this->parent_->get_gamma_correct();
+      this->cold_white_ = gamma_uncorrect(cw_fraction / max_cw_ww, gamma);
+      this->warm_white_ = gamma_uncorrect(ww_fraction / max_cw_ww, gamma);
       this->set_flag_(FLAG_HAS_COLD_WHITE, true);
       this->set_flag_(FLAG_HAS_WARM_WHITE, true);
     }
