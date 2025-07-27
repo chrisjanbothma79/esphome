@@ -39,6 +39,8 @@ static const LogString *espnow_error_to_str(esp_err_t error) {
       return LOG_STR("Trying to send a payload size to large");
     case ESP_ERR_ESPNOW_PEER_NOT_SET:
       return LOG_STR("Peer address not set");
+    case ESP_ERR_ESPNOW_PEER_NOT_PAIRED:
+      return LOG_STR("Peer address not paired");
     case ESP_ERR_ESPNOW_NOT_INIT:
       return LOG_STR("Not init");
     case ESP_ERR_ESPNOW_ARG:
@@ -127,7 +129,7 @@ void ESPNowComponent::dump_config() {
     return;
   }
   ESP_LOGCONFIG(TAG,
-                "  Mac address: %s\n"
+                "  Own address: %s\n"
                 "  Version: v%" PRIu32 "\n"
                 "  Wi-Fi channel: %d",
                 format_mac_address_pretty(this->own_address_).c_str(), version, this->wifi_channel_);
@@ -340,9 +342,12 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payl
     if (size > ESP_NOW_MAX_DATA_LEN) {
       return ESP_ERR_ESPNOW_PAYLOAD_SIZE;
     }
-    if ((!esp_now_is_peer_exist(peer_address) &&
-         (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_))) {
-      this->add_peer(peer_address);
+    if (!esp_now_is_peer_exist(peer_address)) {
+      if (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_) {
+        this->add_peer(peer_address);
+      } else {
+        return ESP_ERR_ESPNOW_PEER_NOT_PAIRED11;
+      }
     }
     // Allocate a packet from the pool
     ESPNowSendPacket *packet = this->send_packet_pool_.allocate();
