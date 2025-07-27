@@ -913,7 +913,7 @@ class EnumType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_simple_size_calculation(
-            name, force, "add_enum", f"static_cast<uint32_t>({name})"
+            name, force, "add_uint32", f"static_cast<uint32_t>({name})"
         )
 
     def get_estimated_size(self) -> int:

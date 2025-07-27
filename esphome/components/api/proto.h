@@ -613,32 +613,6 @@ class ProtoSize {
   // to reduce overhead on embedded systems
 
   /**
-   * @brief Calculates and adds the size of an enum field to the total message size
-   *
-   * Enum fields are encoded as uint32 varints.
-   */
-  inline void add_enum(uint32_t field_id_size, uint32_t value) {
-    // Skip calculation if value is zero
-    if (value == 0) {
-      return;  // No need to update total_size_
-    }
-
-    // Enums are encoded as uint32
-    total_size_ += field_id_size + varint(value);
-  }
-
-  /**
-   * @brief Calculates and adds the size of an enum field to the total message size (repeated field version)
-   *
-   * Enum fields are encoded as uint32 varints.
-   */
-  inline void add_enum_repeated(uint32_t field_id_size, uint32_t value) {
-    // Always calculate size for repeated fields
-    // Enums are encoded as uint32
-    total_size_ += field_id_size + varint(value);
-  }
-
-  /**
    * @brief Calculates and adds the size of a sint32 field to the total message size
    *
    * Sint32 fields use ZigZag encoding, which is more efficient for negative values.
