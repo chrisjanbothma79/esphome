@@ -35,6 +35,14 @@ class Framework(StrEnum):
     ZEPHYR = "zephyr"
 
 
+class ThreadModel(StrEnum):
+    """Threading model identifiers for ESPHome scheduler."""
+
+    SINGLE = "ESPHOME_THREAD_SINGLE"
+    MULTI_NO_ATOMICS = "ESPHOME_THREAD_MULTI_NO_ATOMICS"
+    MULTI_ATOMICS = "ESPHOME_THREAD_MULTI_ATOMICS"
+
+
 class PlatformFramework(Enum):
     """Combined platform-framework identifiers with tuple values."""
 
