@@ -537,12 +537,9 @@ class ProtoSize {
    * @brief Calculates and adds the size of a uint32 field to the total message size
    */
   inline void add_uint32(uint32_t field_id_size, uint32_t value) {
-    // Skip calculation if value is zero
-    if (value == 0) {
-      return;  // No need to update total_size_
+    if (value != 0) {
+      add_uint32_repeated(field_id_size, value);
     }
-    // Delegate to repeated version
-    add_uint32_repeated(field_id_size, value);
   }
 
   /**
@@ -617,12 +614,9 @@ class ProtoSize {
    * Sint32 fields use ZigZag encoding, which is more efficient for negative values.
    */
   inline void add_sint32(uint32_t field_id_size, int32_t value) {
-    // Skip calculation if value is zero
-    if (value == 0) {
-      return;  // No need to update total_size_
+    if (value != 0) {
+      add_sint32_repeated(field_id_size, value);
     }
-    // Delegate to repeated version
-    add_sint32_repeated(field_id_size, value);
   }
 
   /**
@@ -641,12 +635,9 @@ class ProtoSize {
    * @brief Calculates and adds the size of an int64 field to the total message size
    */
   inline void add_int64(uint32_t field_id_size, int64_t value) {
-    // Skip calculation if value is zero
-    if (value == 0) {
-      return;  // No need to update total_size_
+    if (value != 0) {
+      add_int64_repeated(field_id_size, value);
     }
-    // Delegate to repeated version
-    add_int64_repeated(field_id_size, value);
   }
 
   /**
@@ -661,12 +652,9 @@ class ProtoSize {
    * @brief Calculates and adds the size of a uint64 field to the total message size
    */
   inline void add_uint64(uint32_t field_id_size, uint64_t value) {
-    // Skip calculation if value is zero
-    if (value == 0) {
-      return;  // No need to update total_size_
+    if (value != 0) {
+      add_uint64_repeated(field_id_size, value);
     }
-    // Delegate to repeated version
-    add_uint64_repeated(field_id_size, value);
   }
 
   /**
@@ -684,12 +672,9 @@ class ProtoSize {
    * @brief Calculates and adds the size of a length-delimited field (string/bytes) to the total message size
    */
   inline void add_length(uint32_t field_id_size, size_t len) {
-    // Skip calculation if length is zero
-    if (len == 0) {
-      return;  // No need to update total_size_
+    if (len != 0) {
+      add_length_repeated(field_id_size, len);
     }
-    // Delegate to repeated version
-    add_length_repeated(field_id_size, len);
   }
 
   /**
