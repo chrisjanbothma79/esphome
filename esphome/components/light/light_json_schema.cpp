@@ -11,17 +11,6 @@ namespace light {
 // Helper to convert float 0-1 to uint8_t 0-255
 static inline uint8_t to_uint8_scaled(float value) { return uint8_t(value * 255); }
 
-// Helper to parse color component from JSON
-static float parse_color_component(JsonObject &color, const char *key, LightCall &call,
-                                   LightCall &(LightCall::*setter)(float) ) {
-  if (color[key].is<uint8_t>()) {
-    float val = float(color[key]) / 255.0f;
-    (call.*setter)(val);
-    return val;
-  }
-  return 0.0f;
-}
-
 // Lookup table for color mode strings
 static const char *get_color_mode_json_str(ColorMode mode) {
   switch (mode) {
@@ -115,16 +104,22 @@ void LightJSONSchema::parse_color_json(LightState &state, LightCall &call, JsonO
     JsonObject color = root["color"];
     // HA also encodes brightness information in the r, g, b values, so extract that and set it as color brightness.
     float max_rgb = 0.0f;
-
-    float r = parse_color_component(color, "r", call, &LightCall::set_red);
-    float g = parse_color_component(color, "g", call, &LightCall::set_green);
-    float b = parse_color_component(color, "b", call, &LightCall::set_blue);
-
-    max_rgb = fmaxf(max_rgb, r);
-    max_rgb = fmaxf(max_rgb, g);
-    max_rgb = fmaxf(max_rgb, b);
-
-    if (max_rgb > 0.0f) {
+    if (color["r"].is<uint8_t>()) {
+      float r = float(color["r"]) / 255.0f;
+      max_rgb = fmaxf(max_rgb, r);
+      call.set_red(r);
+    }
+    if (color["g"].is<uint8_t>()) {
+      float g = float(color["g"]) / 255.0f;
+      max_rgb = fmaxf(max_rgb, g);
+      call.set_green(g);
+    }
+    if (color["b"].is<uint8_t>()) {
+      float b = float(color["b"]) / 255.0f;
+      max_rgb = fmaxf(max_rgb, b);
+      call.set_blue(b);
+    }
+    if (color["r"].is<uint8_t>() || color["g"].is<uint8_t>() || color["b"].is<uint8_t>()) {
       call.set_color_brightness(max_rgb);
     }
 
