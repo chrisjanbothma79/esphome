@@ -137,7 +137,6 @@ class CustomAPIDevice {
   }
 #endif
 
-#ifdef USE_API_HOMEASSISTANT_SERVICES
   /** Call a Home Assistant service from ESPHome.
    *
    * Usage:
@@ -222,7 +221,6 @@ class CustomAPIDevice {
     }
     global_api_server->send_homeassistant_service_call(resp);
   }
-#endif
 };
 
 }  // namespace esphome::api
