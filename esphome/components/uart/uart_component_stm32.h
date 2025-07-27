@@ -11,7 +11,7 @@ namespace uart {
 
 class STM32UARTComponent : public UARTComponent, public Component {
  public:
-  STM32UARTComponent() : uart_handle_{nullptr} {}
+  STM32UARTComponent() {}
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::BUS + 501.f; }
