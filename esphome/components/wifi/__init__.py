@@ -46,6 +46,7 @@ from esphome.const import (
 from esphome.core import CORE, HexInt, coroutine_with_priority
 import esphome.final_validate as fv
 
+from ...config_validation import only_with_esp_idf
 from . import wpa2_eap
 
 AUTO_LOAD = ["network"]
@@ -336,7 +337,7 @@ CONFIG_SCHEMA = cv.All(
                 single=True
             ),
             cv.Optional(CONF_USE_PSRAM): cv.All(
-                cv.requires_component("psram"), cv.boolean
+                only_with_esp_idf, cv.requires_component("psram"), cv.boolean
             ),
         }
     ),
