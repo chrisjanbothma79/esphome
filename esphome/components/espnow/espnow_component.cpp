@@ -346,7 +346,7 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payl
       if (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_) {
         this->add_peer(peer_address);
       } else {
-        return ESP_ERR_ESPNOW_PEER_NOT_PAIRED11;
+        return ESP_ERR_ESPNOW_PEER_NOT_PAIRED;
       }
     }
     // Allocate a packet from the pool
