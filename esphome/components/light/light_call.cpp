@@ -184,7 +184,6 @@ LightColorValues LightCall::validate_() {
   auto traits = this->parent_->get_traits();
 
   // Cache frequently used flags
-  const bool has_color_mode_flag = this->has_color_mode();
   const bool has_state_flag = this->has_state();
   const bool has_brightness_flag = this->has_brightness();
   const bool has_color_brightness_flag = this->has_color_brightness();
@@ -197,13 +196,13 @@ LightColorValues LightCall::validate_() {
   const bool has_warm_white_flag = this->has_warm_white();
 
   // Color mode check
-  if (has_color_mode_flag && !traits.supports_color_mode(this->color_mode_)) {
+  if (this->has_color_mode() && !traits.supports_color_mode(this->color_mode_)) {
     ESP_LOGW(TAG, "'%s' does not support color mode %s", name, LOG_STR_ARG(color_mode_to_human(this->color_mode_)));
     this->set_flag_(FLAG_HAS_COLOR_MODE, false);
   }
 
   // Ensure there is always a color mode set
-  if (!has_color_mode_flag) {
+  if (!this->has_color_mode()) {
     this->color_mode_ = this->compute_color_mode_();
     this->set_flag_(FLAG_HAS_COLOR_MODE, true);
   }
@@ -305,7 +304,7 @@ LightColorValues LightCall::validate_() {
 
   // Create color values for the light with this call applied.
   auto v = this->parent_->remote_values;
-  if (has_color_mode_flag)
+  if (this->has_color_mode())
     v.set_color_mode(this->color_mode_);
   if (has_state_flag)
     v.set_state(this->state_);
