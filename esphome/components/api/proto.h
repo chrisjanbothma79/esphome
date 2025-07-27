@@ -541,9 +541,8 @@ class ProtoSize {
     if (value == 0) {
       return;  // No need to update total_size_
     }
-
-    // Calculate and directly add to total_size
-    total_size_ += field_id_size + varint(value);
+    // Delegate to repeated version
+    add_uint32_repeated(field_id_size, value);
   }
 
   /**
@@ -622,10 +621,8 @@ class ProtoSize {
     if (value == 0) {
       return;  // No need to update total_size_
     }
-
-    // ZigZag encoding for sint32: (n << 1) ^ (n >> 31)
-    uint32_t zigzag = (static_cast<uint32_t>(value) << 1) ^ (static_cast<uint32_t>(value >> 31));
-    total_size_ += field_id_size + varint(zigzag);
+    // Delegate to repeated version
+    add_sint32_repeated(field_id_size, value);
   }
 
   /**
@@ -648,9 +645,8 @@ class ProtoSize {
     if (value == 0) {
       return;  // No need to update total_size_
     }
-
-    // Calculate and directly add to total_size
-    total_size_ += field_id_size + varint(value);
+    // Delegate to repeated version
+    add_int64_repeated(field_id_size, value);
   }
 
   /**
@@ -669,9 +665,8 @@ class ProtoSize {
     if (value == 0) {
       return;  // No need to update total_size_
     }
-
-    // Calculate and directly add to total_size
-    total_size_ += field_id_size + varint(value);
+    // Delegate to repeated version
+    add_uint64_repeated(field_id_size, value);
   }
 
   /**
@@ -693,9 +688,8 @@ class ProtoSize {
     if (len == 0) {
       return;  // No need to update total_size_
     }
-
-    // Field ID + length varint + data bytes
-    total_size_ += field_id_size + varint(static_cast<uint32_t>(len)) + static_cast<uint32_t>(len);
+    // Delegate to repeated version
+    add_length_repeated(field_id_size, len);
   }
 
   /**
