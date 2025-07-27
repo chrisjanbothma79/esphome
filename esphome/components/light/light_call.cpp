@@ -173,14 +173,27 @@ LightColorValues LightCall::validate_() {
   auto *name = this->parent_->get_name().c_str();
   auto traits = this->parent_->get_traits();
 
+  // Cache frequently used flags
+  const bool has_color_mode = this->has_color_mode();
+  const bool has_state = this->has_state();
+  const bool has_brightness = this->has_brightness();
+  const bool has_color_brightness = this->has_color_brightness();
+  const bool has_red = this->has_red();
+  const bool has_green = this->has_green();
+  const bool has_blue = this->has_blue();
+  const bool has_white = this->has_white();
+  const bool has_color_temperature = this->has_color_temperature();
+  const bool has_cold_white = this->has_cold_white();
+  const bool has_warm_white = this->has_warm_white();
+
   // Color mode check
-  if (this->has_color_mode() && !traits.supports_color_mode(this->color_mode_)) {
+  if (has_color_mode && !traits.supports_color_mode(this->color_mode_)) {
     ESP_LOGW(TAG, "'%s' does not support color mode %s", name, LOG_STR_ARG(color_mode_to_human(this->color_mode_)));
     this->set_flag_(FLAG_HAS_COLOR_MODE, false);
   }
 
   // Ensure there is always a color mode set
-  if (!this->has_color_mode()) {
+  if (!has_color_mode) {
     this->color_mode_ = this->compute_color_mode_();
     this->set_flag_(FLAG_HAS_COLOR_MODE, true);
   }
@@ -190,7 +203,7 @@ LightColorValues LightCall::validate_() {
   this->transform_parameters_();
 
   // Brightness exists check
-  if (this->has_brightness() && this->brightness_ > 0.0f && !(color_mode & ColorCapability::BRIGHTNESS)) {
+  if (has_brightness && this->brightness_ > 0.0f && !(color_mode & ColorCapability::BRIGHTNESS)) {
     log_feature_not_supported(name, "brightness");
     this->set_flag_(FLAG_HAS_BRIGHTNESS, false);
   }
@@ -202,14 +215,13 @@ LightColorValues LightCall::validate_() {
   }
 
   // Color brightness exists check
-  if (this->has_color_brightness() && this->color_brightness_ > 0.0f && !(color_mode & ColorCapability::RGB)) {
+  if (has_color_brightness && this->color_brightness_ > 0.0f && !(color_mode & ColorCapability::RGB)) {
     log_color_mode_not_supported(name, "RGB brightness");
     this->set_flag_(FLAG_HAS_COLOR_BRIGHTNESS, false);
   }
 
   // RGB exists check
-  if ((this->has_red() && this->red_ > 0.0f) || (this->has_green() && this->green_ > 0.0f) ||
-      (this->has_blue() && this->blue_ > 0.0f)) {
+  if ((has_red && this->red_ > 0.0f) || (has_green && this->green_ > 0.0f) || (has_blue && this->blue_ > 0.0f)) {
     if (!(color_mode & ColorCapability::RGB)) {
       log_color_mode_not_supported(name, "RGB color");
       this->set_flag_(FLAG_HAS_RED, false);
@@ -219,21 +231,21 @@ LightColorValues LightCall::validate_() {
   }
 
   // White value exists check
-  if (this->has_white() && this->white_ > 0.0f &&
+  if (has_white && this->white_ > 0.0f &&
       !(color_mode & ColorCapability::WHITE || color_mode & ColorCapability::COLD_WARM_WHITE)) {
     log_color_mode_not_supported(name, "white value");
     this->set_flag_(FLAG_HAS_WHITE, false);
   }
 
   // Color temperature exists check
-  if (this->has_color_temperature() &&
+  if (has_color_temperature &&
       !(color_mode & ColorCapability::COLOR_TEMPERATURE || color_mode & ColorCapability::COLD_WARM_WHITE)) {
     log_color_mode_not_supported(name, "color temperature");
     this->set_flag_(FLAG_HAS_COLOR_TEMPERATURE, false);
   }
 
   // Cold/warm white value exists check
-  if ((this->has_cold_white() && this->cold_white_ > 0.0f) || (this->has_warm_white() && this->warm_white_ > 0.0f)) {
+  if ((has_cold_white && this->cold_white_ > 0.0f) || (has_warm_white && this->warm_white_ > 0.0f)) {
     if (!(color_mode & ColorCapability::COLD_WARM_WHITE)) {
       log_color_mode_not_supported(name, "cold/warm white value");
       this->set_flag_(FLAG_HAS_COLD_WHITE, false);
@@ -263,18 +275,18 @@ LightColorValues LightCall::validate_() {
   VALIDATE_RANGE_(color_temperature, "Color temperature", traits.get_min_mireds(), traits.get_max_mireds())
 
   // Flag whether an explicit turn off was requested, in which case we'll also stop the effect.
-  bool explicit_turn_off_request = this->has_state() && !this->state_;
+  bool explicit_turn_off_request = has_state && !this->state_;
 
   // Turn off when brightness is set to zero, and reset brightness (so that it has nonzero brightness when turned on).
-  if (this->has_brightness() && this->brightness_ == 0.0f) {
+  if (has_brightness && this->brightness_ == 0.0f) {
     this->state_ = false;
     this->set_flag_(FLAG_HAS_STATE, true);
     this->brightness_ = 1.0f;
   }
 
   // Set color brightness to 100% if currently zero and a color is set.
-  if (this->has_red() || this->has_green() || this->has_blue()) {
-    if (!this->has_color_brightness() && this->parent_->remote_values.get_color_brightness() == 0.0f) {
+  if (has_red || has_green || has_blue) {
+    if (!has_color_brightness && this->parent_->remote_values.get_color_brightness() == 0.0f) {
       this->color_brightness_ = 1.0f;
       this->set_flag_(FLAG_HAS_COLOR_BRIGHTNESS, true);
     }
@@ -282,27 +294,27 @@ LightColorValues LightCall::validate_() {
 
   // Create color values for the light with this call applied.
   auto v = this->parent_->remote_values;
-  if (this->has_color_mode())
+  if (has_color_mode)
     v.set_color_mode(this->color_mode_);
-  if (this->has_state())
+  if (has_state)
     v.set_state(this->state_);
-  if (this->has_brightness())
+  if (has_brightness)
     v.set_brightness(this->brightness_);
-  if (this->has_color_brightness())
+  if (has_color_brightness)
     v.set_color_brightness(this->color_brightness_);
-  if (this->has_red())
+  if (has_red)
     v.set_red(this->red_);
-  if (this->has_green())
+  if (has_green)
     v.set_green(this->green_);
-  if (this->has_blue())
+  if (has_blue)
     v.set_blue(this->blue_);
-  if (this->has_white())
+  if (has_white)
     v.set_white(this->white_);
-  if (this->has_color_temperature())
+  if (has_color_temperature)
     v.set_color_temperature(this->color_temperature_);
-  if (this->has_cold_white())
+  if (has_cold_white)
     v.set_cold_white(this->cold_white_);
-  if (this->has_warm_white())
+  if (has_warm_white)
     v.set_warm_white(this->warm_white_);
 
   v.normalize_color();
@@ -358,7 +370,7 @@ LightColorValues LightCall::validate_() {
   // If not a flash and turning the light off, then disable the light
   // Do not use light color values directly, so that effects can set 0% brightness
   // Reason: When user turns off the light in frontend, the effect should also stop
-  bool target_state = this->has_state() ? this->state_ : v.is_on();
+  bool target_state = has_state ? this->state_ : v.is_on();
   if (!this->has_flash_() && !target_state) {
     if (this->has_effect_()) {
       log_invalid_parameter(name, "cannot start effect when turning off");
