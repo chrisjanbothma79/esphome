@@ -279,7 +279,7 @@ class TypeInfo(ABC):
             value_expr: Optional value expression (defaults to name)
         """
         field_id_size = self.calculate_field_id_size()
-        method = f"{base_method}_repeated" if force else base_method
+        method = f"{base_method}_force" if force else base_method
         value = value_expr if value_expr else name
         return f"size.{method}({field_id_size}, {value});"
 
@@ -629,9 +629,9 @@ class StringType(TypeInfo):
         # Check if this is being called from a repeated field context
         # In that case, 'name' will be 'it' and we need to use the repeated version
         if name == "it":
-            # For repeated fields, we need to use add_length_repeated which includes field ID
+            # For repeated fields, we need to use add_length_force which includes field ID
             field_id_size = self.calculate_field_id_size()
-            return f"size.add_length_repeated({field_id_size}, it.size());"
+            return f"size.add_length_force({field_id_size}, it.size());"
 
         # For messages that need encoding, use the StringRef size
         field_id_size = self.calculate_field_id_size()
@@ -846,7 +846,7 @@ class FixedArrayBytesType(TypeInfo):
 
         if force:
             # For repeated fields, always calculate size (no zero check)
-            return f"size.add_length_repeated({field_id_size}, {length_field});"
+            return f"size.add_length_force({field_id_size}, {length_field});"
         else:
             # For non-repeated fields, add_length already checks for zero
             return f"size.add_length({field_id_size}, {length_field});"
@@ -1236,7 +1236,7 @@ class RepeatedTypeInfo(TypeInfo):
         if isinstance(self._ti, MessageType):
             # For repeated messages, use the dedicated helper that handles iteration internally
             field_id_size = self._ti.calculate_field_id_size()
-            o = f"size.add_repeated_message({field_id_size}, {name});"
+            o = f"size.add_force_message({field_id_size}, {name});"
             return o
 
         # For other repeated types, use the underlying type's size calculation with force=True

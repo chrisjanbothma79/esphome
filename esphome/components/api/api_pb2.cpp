@@ -167,10 +167,10 @@ void DeviceInfoResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(2, this->api_encryption_supported);
 #endif
 #ifdef USE_DEVICES
-  size.add_repeated_message(2, this->devices);
+  size.add_force_message(2, this->devices);
 #endif
 #ifdef USE_AREAS
-  size.add_repeated_message(2, this->areas);
+  size.add_force_message(2, this->areas);
 #endif
 #ifdef USE_AREAS
   size.add_message_object(2, this->area);
@@ -353,7 +353,7 @@ void ListEntitiesFanResponse::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
   if (!this->supported_preset_modes.empty()) {
     for (const auto &it : this->supported_preset_modes) {
-      size.add_length_repeated(1, it.size());
+      size.add_length_force(1, it.size());
     }
   }
 #ifdef USE_DEVICES
@@ -470,14 +470,14 @@ void ListEntitiesLightResponse::calculate_size(ProtoSize &size) const {
   size.add_length(1, this->name_ref_.size());
   if (!this->supported_color_modes.empty()) {
     for (const auto &it : this->supported_color_modes) {
-      size.add_uint32_repeated(1, static_cast<uint32_t>(it));
+      size.add_uint32_force(1, static_cast<uint32_t>(it));
     }
   }
   size.add_float(1, this->min_mireds);
   size.add_float(1, this->max_mireds);
   if (!this->effects.empty()) {
     for (const auto &it : this->effects) {
-      size.add_length_repeated(1, it.size());
+      size.add_length_force(1, it.size());
     }
   }
   size.add_bool(1, this->disabled_by_default);
@@ -862,9 +862,9 @@ void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void HomeassistantServiceResponse::calculate_size(ProtoSize &size) const {
   size.add_length(1, this->service_ref_.size());
-  size.add_repeated_message(1, this->data);
-  size.add_repeated_message(1, this->data_template);
-  size.add_repeated_message(1, this->variables);
+  size.add_force_message(1, this->data);
+  size.add_force_message(1, this->data_template);
+  size.add_force_message(1, this->variables);
   size.add_bool(1, this->is_event);
 }
 #ifdef USE_API_HOMEASSISTANT_STATES
@@ -926,7 +926,7 @@ void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
 void ListEntitiesServicesResponse::calculate_size(ProtoSize &size) const {
   size.add_length(1, this->name_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_repeated_message(1, this->args);
+  size.add_force_message(1, this->args);
 }
 bool ExecuteServiceArgument::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -1106,7 +1106,7 @@ void ListEntitiesClimateResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(1, this->supports_two_point_target_temperature);
   if (!this->supported_modes.empty()) {
     for (const auto &it : this->supported_modes) {
-      size.add_uint32_repeated(1, static_cast<uint32_t>(it));
+      size.add_uint32_force(1, static_cast<uint32_t>(it));
     }
   }
   size.add_float(1, this->visual_min_temperature);
@@ -1115,27 +1115,27 @@ void ListEntitiesClimateResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(1, this->supports_action);
   if (!this->supported_fan_modes.empty()) {
     for (const auto &it : this->supported_fan_modes) {
-      size.add_uint32_repeated(1, static_cast<uint32_t>(it));
+      size.add_uint32_force(1, static_cast<uint32_t>(it));
     }
   }
   if (!this->supported_swing_modes.empty()) {
     for (const auto &it : this->supported_swing_modes) {
-      size.add_uint32_repeated(1, static_cast<uint32_t>(it));
+      size.add_uint32_force(1, static_cast<uint32_t>(it));
     }
   }
   if (!this->supported_custom_fan_modes.empty()) {
     for (const auto &it : this->supported_custom_fan_modes) {
-      size.add_length_repeated(1, it.size());
+      size.add_length_force(1, it.size());
     }
   }
   if (!this->supported_presets.empty()) {
     for (const auto &it : this->supported_presets) {
-      size.add_uint32_repeated(2, static_cast<uint32_t>(it));
+      size.add_uint32_force(2, static_cast<uint32_t>(it));
     }
   }
   if (!this->supported_custom_presets.empty()) {
     for (const auto &it : this->supported_custom_presets) {
-      size.add_length_repeated(2, it.size());
+      size.add_length_force(2, it.size());
     }
   }
   size.add_bool(2, this->disabled_by_default);
@@ -1387,7 +1387,7 @@ void ListEntitiesSelectResponse::calculate_size(ProtoSize &size) const {
 #endif
   if (!this->options.empty()) {
     for (const auto &it : this->options) {
-      size.add_length_repeated(1, it.size());
+      size.add_length_force(1, it.size());
     }
   }
   size.add_bool(1, this->disabled_by_default);
@@ -1474,7 +1474,7 @@ void ListEntitiesSirenResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(1, this->disabled_by_default);
   if (!this->tones.empty()) {
     for (const auto &it : this->tones) {
-      size.add_length_repeated(1, it.size());
+      size.add_length_force(1, it.size());
     }
   }
   size.add_bool(1, this->supports_duration);
@@ -1734,7 +1734,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
   size.add_bool(1, this->supports_pause);
-  size.add_repeated_message(1, this->supported_formats);
+  size.add_force_message(1, this->supported_formats);
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -1840,7 +1840,7 @@ void BluetoothLERawAdvertisementsResponse::encode(ProtoWriteBuffer buffer) const
   }
 }
 void BluetoothLERawAdvertisementsResponse::calculate_size(ProtoSize &size) const {
-  size.add_repeated_message(1, this->advertisements);
+  size.add_force_message(1, this->advertisements);
 }
 bool BluetoothDeviceRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -1889,8 +1889,8 @@ void BluetoothGATTDescriptor::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTDescriptor::calculate_size(ProtoSize &size) const {
-  size.add_uint64_repeated(1, this->uuid[0]);
-  size.add_uint64_repeated(1, this->uuid[1]);
+  size.add_uint64_force(1, this->uuid[0]);
+  size.add_uint64_force(1, this->uuid[1]);
   size.add_uint32(1, this->handle);
 }
 void BluetoothGATTCharacteristic::encode(ProtoWriteBuffer buffer) const {
@@ -1903,11 +1903,11 @@ void BluetoothGATTCharacteristic::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void BluetoothGATTCharacteristic::calculate_size(ProtoSize &size) const {
-  size.add_uint64_repeated(1, this->uuid[0]);
-  size.add_uint64_repeated(1, this->uuid[1]);
+  size.add_uint64_force(1, this->uuid[0]);
+  size.add_uint64_force(1, this->uuid[1]);
   size.add_uint32(1, this->handle);
   size.add_uint32(1, this->properties);
-  size.add_repeated_message(1, this->descriptors);
+  size.add_force_message(1, this->descriptors);
 }
 void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->uuid[0], true);
@@ -1918,10 +1918,10 @@ void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void BluetoothGATTService::calculate_size(ProtoSize &size) const {
-  size.add_uint64_repeated(1, this->uuid[0]);
-  size.add_uint64_repeated(1, this->uuid[1]);
+  size.add_uint64_force(1, this->uuid[0]);
+  size.add_uint64_force(1, this->uuid[1]);
   size.add_uint32(1, this->handle);
-  size.add_repeated_message(1, this->characteristics);
+  size.add_force_message(1, this->characteristics);
 }
 void BluetoothGATTGetServicesResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
@@ -1929,7 +1929,7 @@ void BluetoothGATTGetServicesResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTGetServicesResponse::calculate_size(ProtoSize &size) const {
   size.add_uint64(1, this->address);
-  size.add_message_object_repeated(1, this->services[0]);
+  size.add_message_object_force(1, this->services[0]);
 }
 void BluetoothGATTGetServicesDoneResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
@@ -2058,7 +2058,7 @@ void BluetoothConnectionsFreeResponse::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, this->limit);
   if (!this->allocated.empty()) {
     for (const auto &it : this->allocated) {
-      size.add_uint64_repeated(1, it);
+      size.add_uint64_force(1, it);
     }
   }
 }
@@ -2322,7 +2322,7 @@ void VoiceAssistantWakeWord::calculate_size(ProtoSize &size) const {
   size.add_length(1, this->wake_word_ref_.size());
   if (!this->trained_languages.empty()) {
     for (const auto &it : this->trained_languages) {
-      size.add_length_repeated(1, it.size());
+      size.add_length_force(1, it.size());
     }
   }
 }
@@ -2336,10 +2336,10 @@ void VoiceAssistantConfigurationResponse::encode(ProtoWriteBuffer buffer) const 
   buffer.encode_uint32(3, this->max_active_wake_words);
 }
 void VoiceAssistantConfigurationResponse::calculate_size(ProtoSize &size) const {
-  size.add_repeated_message(1, this->available_wake_words);
+  size.add_force_message(1, this->available_wake_words);
   if (!this->active_wake_words.empty()) {
     for (const auto &it : this->active_wake_words) {
-      size.add_length_repeated(1, it.size());
+      size.add_length_force(1, it.size());
     }
   }
   size.add_uint32(1, this->max_active_wake_words);
@@ -2710,7 +2710,7 @@ void ListEntitiesEventResponse::calculate_size(ProtoSize &size) const {
   size.add_length(1, this->device_class_ref_.size());
   if (!this->event_types.empty()) {
     for (const auto &it : this->event_types) {
-      size.add_length_repeated(1, it.size());
+      size.add_length_force(1, it.size());
     }
   }
 #ifdef USE_DEVICES
