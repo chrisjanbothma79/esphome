@@ -54,14 +54,22 @@ struct ESPNowPeer {
 
 /// Handler interface for receiving ESPNow packets
 /// Components should inherit from this class to handle incoming ESPNow data
-class ESPNowReceivedPacketHandler {
+class ESPNowUnknownPeerHandler {
  public:
   /// Called when an ESPNow packet is received
   /// @param info Information about the received packet (sender MAC, etc.)
   /// @param data Pointer to the received data payload
   /// @param size Size of the received data in bytes
   /// @return true if the packet was handled, false otherwise
-  virtual bool espnow_received_handler(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
+  virtual bool on_unknown_peer(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
+};
+class ESPNowReceivedPacketHandler {
+ public:
+  virtual bool on_received(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
+};
+class ESPNowBroadcastedHandler {
+ public:
+  virtual bool on_broadcasted(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
 };
 
 class ESPNowComponent : public Component {
@@ -123,7 +131,10 @@ class ESPNowComponent : public Component {
 
   void enable_();
   void send_();
+
+  std::vector<ESPNowUnknownPeerHandler *> unknown_peer_handlers_;
   std::vector<ESPNowReceivedPacketHandler *> received_handlers_;
+  std::vector<ESPNowBroadcastedHandler *> broadcasted_handlers_;
 
   std::vector<ESPNowPeer> peers_{};
 

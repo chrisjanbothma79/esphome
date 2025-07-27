@@ -31,9 +31,7 @@ SendAction = espnow_ns.class_("SendAction", automation.Action)
 SetChannelAction = espnow_ns.class_("SetChannelAction", automation.Action)
 AddPeerAction = espnow_ns.class_("AddPeerAction", automation.Action)
 DeletePeerAction = espnow_ns.class_("DeletePeerAction", automation.Action)
-
-OnReceiveTrigger = espnow_ns.class_(
-    "OnReceiveTrigger",
+ESPNowHandlerTrigger = espnow_ns.class_(
     automation.Trigger.template(
         ESPNowRecvInfoConstRef,
         cg.uint8.operator("const").operator("ptr"),
@@ -41,10 +39,16 @@ OnReceiveTrigger = espnow_ns.class_(
     ),
 )
 
+OnUnknownPeerTrigger = espnow_ns.class_("OnUnknownPeerTrigger", ESPNowHandlerTrigger)
+OnReceiveTrigger = espnow_ns.class_("OnReceiveTrigger", ESPNowHandlerTrigger)
+OnBroadcastedTrigger = espnow_ns.class_("OnBroadcastedTrigger", ESPNowHandlerTrigger)
+
 
 CONF_AUTO_ADD_PEER = "auto_add_peer"
 CONF_PEERS = "peers"
 CONF_ON_SENT = "on_sent"
+CONF_ON_UNKNOWN_PEER = "on_unknown_peer"
+CONF_ON_BROADCAST = "on_broadcast"
 CONF_CONTINUE_ON_ERROR = "continue_on_error"
 CONF_WAIT_FOR_SENT = "wait_for_sent"
 
@@ -58,9 +62,21 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ENABLE_ON_BOOT, default=True): cv.boolean,
             cv.Optional(CONF_AUTO_ADD_PEER, default=False): cv.boolean,
             cv.Optional(CONF_PEERS): cv.ensure_list(cv.mac_address),
+            cv.Optional(CONF_ON_UNKNOWN_PEER): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(OnUnknownPeerTrigger),
+                },
+                single=True,
+            ),
             cv.Optional(CONF_ON_RECEIVE): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(OnReceiveTrigger),
+                    cv.Optional(CONF_ADDRESS): cv.mac_address,
+                }
+            ),
+            cv.Optional(CONF_ON_BROADCAST): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(OnBroadcastedTrigger),
                     cv.Optional(CONF_ADDRESS): cv.mac_address,
                 }
             ),
@@ -68,6 +84,22 @@ CONFIG_SCHEMA = cv.All(
     ).extend(cv.COMPONENT_SCHEMA),
     cv.only_on_esp32,
 )
+
+
+async def trigger_to_code(var, config):
+    if address := config.get(CONF_ADDRESS):
+        address = address.parts
+    trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], var, address)
+    await automation.build_automation(
+        trigger,
+        [
+            (ESPNowRecvInfoConstRef, "info"),
+            (cg.uint8.operator("const").operator("ptr"), "data"),
+            (cg.uint8, "size"),
+        ],
+        config,
+    )
+    return trigger
 
 
 async def to_code(config):
@@ -86,20 +118,17 @@ async def to_code(config):
     for peer in config.get(CONF_PEERS, []):
         cg.add(var.add_peer(peer.parts))
 
+    if on_receive := config.get(CONF_ON_UNKNOWN_PEER):
+        trigger = await trigger_to_code(var, on_receive)
+        cg.add(var.register_unknown_peer_handler(trigger))
+
     for on_receive in config.get(CONF_ON_RECEIVE, []):
-        if address := on_receive.get(CONF_ADDRESS):
-            address = address.parts
-        trigger = cg.new_Pvariable(on_receive[CONF_TRIGGER_ID], var, address)
-        await automation.build_automation(
-            trigger,
-            [
-                (ESPNowRecvInfoConstRef, "info"),
-                (cg.uint8.operator("const").operator("ptr"), "data"),
-                (cg.uint8, "size"),
-            ],
-            on_receive,
-        )
+        trigger = await trigger_to_code(var, on_receive)
         cg.add(var.register_received_handler(trigger))
+
+    for on_receive in config.get(CONF_ON_BROADCAST, []):
+        trigger = await trigger_to_code(var, on_receive)
+        cg.add(var.register_broadcasted_handler(trigger))
 
 
 # ========================================== A C T I O N S ================================================

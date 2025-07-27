@@ -275,18 +275,33 @@ void ESPNowComponent::loop() {
     switch (packet->type_) {
       case ESPNowPacket::RECEIVED: {
         const ESPNowRecvInfo info = packet->get_receive_info();
-        if (this->auto_add_peer_ && !esp_now_is_peer_exist(info.src_addr)) {
-          this->add_peer(info.src_addr);
+        if (!esp_now_is_peer_exist(info.src_addr)) {
+          if (this->auto_add_peer_) {
+            this->add_peer(info.src_addr);
+          } else {
+            for (auto *handler : this->unknown_peer_handlers_) {
+              if (handler->on_unknown_peer(info, packet->packet_.receive.data, packet->packet_.receive.size))
+                break;  // If a handler returns true, stop processing further handlers
+            }
+          }
         }
+        if (esp_now_is_peer_exist(info.src_addr)) {
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
-        ESP_LOGV(TAG, "<<< [%s -> %s] %s", format_mac_address_pretty(info.src_addr).c_str(),
-                 format_mac_address_pretty(info.des_addr).c_str(),
-                 format_hex_pretty(packet->packet_.receive.data, packet->packet_.receive.size).c_str());
+          ESP_LOGV(TAG, "<<< [%s -> %s] %s", format_mac_address_pretty(info.src_addr).c_str(),
+                   format_mac_address_pretty(info.des_addr).c_str(),
+                   format_hex_pretty(packet->packet_.receive.data, packet->packet_.receive.size).c_str());
 #endif
-        for (auto *received_handler : this->received_handlers_) {
-          if (received_handler->espnow_received_handler(info, packet->packet_.receive.data,
-                                                        packet->packet_.receive.size))
-            break;  // If a handler returns true, stop processing further handlers
+          if (memcmp(info->des_addr, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0) {
+            for (auto *handler : this->broadcasted_handlers_) {
+              if (handler->on_broadcasted(info, packet->packet_.receive.data, packet->packet_.receive.size))
+                break;  // If a handler returns true, stop processing further handlers
+            }
+          } else {
+            for (auto *handler : this->received_handlers_) {
+              if (handler->on_received(info, packet->packet_.receive.data, packet->packet_.receive.size))
+                break;  // If a handler returns true, stop processing further handlers
+            }
+          }
         }
         break;
       }
