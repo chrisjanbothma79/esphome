@@ -539,8 +539,7 @@ class BoolType(TypeInfo):
     wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
-        o = f"out.append(YESNO({name}));"
-        return o
+        return f"out.append(YESNO({name}));"
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_simple_size_calculation(name, force, "add_bool_field")
@@ -680,8 +679,7 @@ class MessageType(TypeInfo):
         return f"case {self.number}: value.decode_to_message(this->{self.field_name}); break;"
 
     def dump(self, name: str) -> str:
-        o = f"{name}.dump_to(out);"
-        return o
+        return f"{name}.dump_to(out);"
 
     @property
     def dump_content(self) -> str:
@@ -829,8 +827,7 @@ class FixedArrayBytesType(TypeInfo):
         return f"buffer.encode_bytes({self.number}, this->{self.field_name}, this->{self.field_name}_len);"
 
     def dump(self, name: str) -> str:
-        o = f"out.append(format_hex_pretty({name}, {name}_len));"
-        return o
+        return f"out.append(format_hex_pretty({name}, {name}_len));"
 
     @property
     def dump_content(self) -> str:
@@ -847,13 +844,12 @@ class FixedArrayBytesType(TypeInfo):
         if force:
             # For repeated fields, always calculate size
             return f"total_size += {field_id_size} + ProtoSize::varint(static_cast<uint32_t>({length_field})) + {length_field};"
-        else:
-            # For non-repeated fields, skip if length is 0 (matching encode_string behavior)
-            return (
-                f"if ({length_field} != 0) {{\n"
-                f"  total_size += {field_id_size} + ProtoSize::varint(static_cast<uint32_t>({length_field})) + {length_field};\n"
-                f"}}"
-            )
+        # For non-repeated fields, skip if length is 0 (matching encode_string behavior)
+        return (
+            f"if ({length_field} != 0) {{\n"
+            f"  total_size += {field_id_size} + ProtoSize::varint(static_cast<uint32_t>({length_field})) + {length_field};\n"
+            f"}}"
+        )
 
     def get_estimated_size(self) -> int:
         # Estimate based on typical BLE advertisement size
@@ -908,8 +904,7 @@ class EnumType(TypeInfo):
         return f"buffer.{self.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}));"
 
     def dump(self, name: str) -> str:
-        o = f"out.append(proto_enum_to_string<{self.cpp_type}>({name}));"
-        return o
+        return f"out.append(proto_enum_to_string<{self.cpp_type}>({name}));"
 
     def dump_field_value(self, value: str) -> str:
         # Enums need explicit cast for the template
@@ -1078,13 +1073,12 @@ class FixedArrayRepeatedType(TypeInfo):
         def encode_element(element: str) -> str:
             if isinstance(self._ti, EnumType):
                 return f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>({element}), true);"
-            else:
-                return f"buffer.{self._ti.encode_func}({self.number}, {element}, true);"
+            return f"buffer.{self._ti.encode_func}({self.number}, {element}, true);"
 
         # Unroll small arrays for efficiency
         if self.array_size == 1:
             return encode_element(f"this->{self.field_name}[0]")
-        elif self.array_size == 2:
+        if self.array_size == 2:
             return (
                 encode_element(f"this->{self.field_name}[0]")
                 + "\n  "
@@ -1240,8 +1234,9 @@ class RepeatedTypeInfo(TypeInfo):
         if isinstance(self._ti, MessageType):
             # For repeated messages, use the dedicated helper that handles iteration internally
             field_id_size = self._ti.calculate_field_id_size()
-            o = f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
-            return o
+            return (
+                f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
+            )
 
         # For other repeated types, use the underlying type's size calculation with force=True
         o = f"if (!{name}.empty()) {{\n"
