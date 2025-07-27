@@ -9,10 +9,27 @@ namespace light {
 
 static const char *const TAG = "light";
 
-// Helper function to reduce code size for validation warnings
+// Helper functions to reduce code size for logging
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_WARN
 static void log_validation_warning(const char *name, const char *param_name, float val, float min, float max) {
   ESP_LOGW(TAG, "'%s': %s value %.2f is out of range [%.1f - %.1f]", name, param_name, val, min, max);
 }
+
+static void log_feature_not_supported(const char *name, const char *feature) {
+  ESP_LOGW(TAG, "'%s': %s not supported", name, feature);
+}
+
+static void log_color_mode_not_supported(const char *name, const char *feature) {
+  ESP_LOGW(TAG, "'%s': color mode does not support setting %s", name, feature);
+}
+
+static void log_invalid_parameter(const char *name, const char *message) { ESP_LOGW(TAG, "'%s': %s", name, message); }
+#else
+#define log_validation_warning(name, param_name, val, min, max)
+#define log_feature_not_supported(name, feature)
+#define log_color_mode_not_supported(name, feature)
+#define log_invalid_parameter(name, message)
+#endif
 
 // Macro to reduce repetitive setter code
 #define IMPLEMENT_LIGHT_CALL_SETTER(name, type, flag) \
@@ -174,19 +191,19 @@ LightColorValues LightCall::validate_() {
 
   // Brightness exists check
   if (this->has_brightness() && this->brightness_ > 0.0f && !(color_mode & ColorCapability::BRIGHTNESS)) {
-    ESP_LOGW(TAG, "'%s': setting brightness not supported", name);
+    log_feature_not_supported(name, "brightness");
     this->set_flag_(FLAG_HAS_BRIGHTNESS, false);
   }
 
   // Transition length possible check
   if (this->has_transition_() && this->transition_length_ != 0 && !(color_mode & ColorCapability::BRIGHTNESS)) {
-    ESP_LOGW(TAG, "'%s': transitions not supported", name);
+    log_feature_not_supported(name, "transitions");
     this->set_flag_(FLAG_HAS_TRANSITION, false);
   }
 
   // Color brightness exists check
   if (this->has_color_brightness() && this->color_brightness_ > 0.0f && !(color_mode & ColorCapability::RGB)) {
-    ESP_LOGW(TAG, "'%s': color mode does not support setting RGB brightness", name);
+    log_color_mode_not_supported(name, "RGB brightness");
     this->set_flag_(FLAG_HAS_COLOR_BRIGHTNESS, false);
   }
 
@@ -194,7 +211,7 @@ LightColorValues LightCall::validate_() {
   if ((this->has_red() && this->red_ > 0.0f) || (this->has_green() && this->green_ > 0.0f) ||
       (this->has_blue() && this->blue_ > 0.0f)) {
     if (!(color_mode & ColorCapability::RGB)) {
-      ESP_LOGW(TAG, "'%s': color mode does not support setting RGB color", name);
+      log_color_mode_not_supported(name, "RGB color");
       this->set_flag_(FLAG_HAS_RED, false);
       this->set_flag_(FLAG_HAS_GREEN, false);
       this->set_flag_(FLAG_HAS_BLUE, false);
@@ -204,21 +221,21 @@ LightColorValues LightCall::validate_() {
   // White value exists check
   if (this->has_white() && this->white_ > 0.0f &&
       !(color_mode & ColorCapability::WHITE || color_mode & ColorCapability::COLD_WARM_WHITE)) {
-    ESP_LOGW(TAG, "'%s': color mode does not support setting white value", name);
+    log_color_mode_not_supported(name, "white value");
     this->set_flag_(FLAG_HAS_WHITE, false);
   }
 
   // Color temperature exists check
   if (this->has_color_temperature() &&
       !(color_mode & ColorCapability::COLOR_TEMPERATURE || color_mode & ColorCapability::COLD_WARM_WHITE)) {
-    ESP_LOGW(TAG, "'%s': color mode does not support setting color temperature", name);
+    log_color_mode_not_supported(name, "color temperature");
     this->set_flag_(FLAG_HAS_COLOR_TEMPERATURE, false);
   }
 
   // Cold/warm white value exists check
   if ((this->has_cold_white() && this->cold_white_ > 0.0f) || (this->has_warm_white() && this->warm_white_ > 0.0f)) {
     if (!(color_mode & ColorCapability::COLD_WARM_WHITE)) {
-      ESP_LOGW(TAG, "'%s': color mode does not support setting cold/warm white value", name);
+      log_color_mode_not_supported(name, "cold/warm white value");
       this->set_flag_(FLAG_HAS_COLD_WHITE, false);
       this->set_flag_(FLAG_HAS_WARM_WHITE, false);
     }
@@ -292,7 +309,7 @@ LightColorValues LightCall::validate_() {
 
   // Flash length check
   if (this->has_flash_() && this->flash_length_ == 0) {
-    ESP_LOGW(TAG, "'%s': flash length must be greater than zero", name);
+    log_invalid_parameter(name, "flash length must be greater than zero");
     this->set_flag_(FLAG_HAS_FLASH, false);
   }
 
@@ -311,13 +328,13 @@ LightColorValues LightCall::validate_() {
   }
 
   if (this->has_effect_() && (this->has_transition_() || this->has_flash_())) {
-    ESP_LOGW(TAG, "'%s': effect cannot be used with transition/flash", name);
+    log_invalid_parameter(name, "effect cannot be used with transition/flash");
     this->set_flag_(FLAG_HAS_TRANSITION, false);
     this->set_flag_(FLAG_HAS_FLASH, false);
   }
 
   if (this->has_flash_() && this->has_transition_()) {
-    ESP_LOGW(TAG, "'%s': flash cannot be used with transition", name);
+    log_invalid_parameter(name, "flash cannot be used with transition");
     this->set_flag_(FLAG_HAS_TRANSITION, false);
   }
 
@@ -334,7 +351,7 @@ LightColorValues LightCall::validate_() {
   }
 
   if (this->has_transition_() && !supports_transition) {
-    ESP_LOGW(TAG, "'%s': transitions not supported", name);
+    log_feature_not_supported(name, "transitions");
     this->set_flag_(FLAG_HAS_TRANSITION, false);
   }
 
@@ -344,7 +361,7 @@ LightColorValues LightCall::validate_() {
   bool target_state = this->has_state() ? this->state_ : v.is_on();
   if (!this->has_flash_() && !target_state) {
     if (this->has_effect_()) {
-      ESP_LOGW(TAG, "'%s': cannot start effect when turning off", name);
+      log_invalid_parameter(name, "cannot start effect when turning off");
       this->set_flag_(FLAG_HAS_EFFECT, false);
     } else if (this->parent_->active_effect_index_ != 0 && explicit_turn_off_request) {
       // Auto turn off effect
