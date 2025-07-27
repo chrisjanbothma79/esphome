@@ -128,8 +128,10 @@ async def setup_display_core_(var, config):
             trigger, [(DisplayPagePtr, "from"), (DisplayPagePtr, "to")], conf
         )
     if config.get(CONF_SHOW_TEST_CARD):
-        cg.add(var.show_test_card())
-
+      cg.add(var.show_test_card())
+      if (u_i := config.get("update_interval")) is "never":
+        _LOGGER = logging.getLogger(__name__)
+        _LOGGER.warning("You put `show_test_card: true` and `update_interval: never` in your config. This will not show the test card. If you want to see the test card, set `update_interval:` to something other than `never`.")
 
 async def register_display(var, config):
     await cg.register_component(var, config)
