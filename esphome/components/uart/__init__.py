@@ -255,7 +255,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_BAUD_RATE): cv.int_range(min=1),
             cv.Optional(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
             cv.Optional(CONF_RX_PIN): validate_rx_pin,
-            cv.Optional(CONF_PORT): cv.All(validate_port, cv.only_on([PLATFORM_HOST])),
+            cv.Optional(CONF_PORT): cv.All(validate_port, cv.only_on(PLATFORM_HOST)),
             cv.Optional(CONF_INSTANCE): cv.All(
                 validate_instance, cv.only_on([PLATFORM_STM32])
             ),
