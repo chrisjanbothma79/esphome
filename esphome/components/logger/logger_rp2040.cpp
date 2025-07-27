@@ -27,7 +27,13 @@ void Logger::pre_setup() {
   ESP_LOGI(TAG, "Log initialized");
 }
 
-void HOT Logger::write_msg_(const char *msg) { this->hw_serial_->println(msg); }
+void HOT Logger::write_msg_(const char *msg, size_t len) {
+  // Arduino's println() writes the message followed by "\r\n" (CRLF).
+  // Previously, println() would call write(msg) which uses strlen() internally.
+  // By using write(buffer, size) directly, we avoid the strlen() call.
+  this->hw_serial_->write(reinterpret_cast<const uint8_t *>(msg), len);
+  this->hw_serial_->write(reinterpret_cast<const uint8_t *>("\r\n"), 2);
+}
 
 const char *const UART_SELECTIONS[] = {"UART0", "UART1", "USB_CDC"};
 

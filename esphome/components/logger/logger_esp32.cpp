@@ -166,7 +166,7 @@ void Logger::pre_setup() {
 }
 
 #ifdef USE_ESP_IDF
-void HOT Logger::write_msg_(const char *msg) {
+void HOT Logger::write_msg_(const char *msg, size_t len) {
   if (
 #if defined(USE_LOGGER_USB_CDC) && !defined(USE_LOGGER_USB_SERIAL_JTAG)
       this->uart_ == UART_SELECTION_USB_CDC
@@ -178,16 +178,26 @@ void HOT Logger::write_msg_(const char *msg) {
       /* DISABLES CODE */ (false)  // NOLINT
 #endif
   ) {
+    // For USB CDC/Serial JTAG, we use puts() which adds '\n' automatically.
+    // This is safe because the buffer is always null-terminated by format_log_to_buffer_with_terminator_.
+    // The VFS layer handles newline conversion (adding '\r' if configured) in its write function.
+    // While puts() likely calculates strlen internally, the VFS write function already processes
+    // character-by-character for newline conversion, so using puts() is efficient here.
     puts(msg);
   } else {
-    // Use tx_buffer_at_ if msg points to tx_buffer_, otherwise fall back to strlen
-    size_t len = (msg == this->tx_buffer_) ? this->tx_buffer_at_ : strlen(msg);
     uart_write_bytes(this->uart_num_, msg, len);
+    // ESP-IDF uses only '\n' for historical reasons, while Arduino platforms use '\r\n'
     uart_write_bytes(this->uart_num_, "\n", 1);
   }
 }
 #else
-void HOT Logger::write_msg_(const char *msg) { this->hw_serial_->println(msg); }
+void HOT Logger::write_msg_(const char *msg, size_t len) {
+  // Arduino's println() writes the message followed by "\r\n" (CRLF).
+  // Previously, println() would call write(msg) which uses strlen() internally.
+  // By using write(buffer, size) directly, we avoid the strlen() call.
+  this->hw_serial_->write(reinterpret_cast<const uint8_t *>(msg), len);
+  this->hw_serial_->write(reinterpret_cast<const uint8_t *>("\r\n"), 2);
+}
 #endif
 
 const char *const UART_SELECTIONS[] = {

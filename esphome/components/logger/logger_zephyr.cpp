@@ -63,16 +63,15 @@ void Logger::pre_setup() {
   ESP_LOGI(TAG, "Log initialized");
 }
 
-void HOT Logger::write_msg_(const char *msg) {
+void HOT Logger::write_msg_(const char *msg, size_t len) {
 #ifdef CONFIG_PRINTK
   printk("%s\n", msg);
 #endif
   if (nullptr == this->uart_dev_) {
     return;
   }
-  while (*msg) {
-    uart_poll_out(this->uart_dev_, *msg);
-    ++msg;
+  for (size_t i = 0; i < len; i++) {
+    uart_poll_out(this->uart_dev_, msg[i]);
   }
   uart_poll_out(this->uart_dev_, '\n');
 }

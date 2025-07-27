@@ -161,7 +161,7 @@ class Logger : public Component {
 
  protected:
   void process_messages_();
-  void write_msg_(const char *msg);
+  void write_msg_(const char *msg, size_t len);
 
   // Format a log message with printf-style arguments and write it to a buffer with header, footer, and null terminator
   // It's the caller's responsibility to initialize buffer_at (typically to 0)
@@ -194,7 +194,7 @@ class Logger : public Component {
                                                 this->tx_buffer_size_);
 
     if (this->baud_rate_ > 0) {
-      this->write_msg_(this->tx_buffer_);  // If logging is enabled, write to console
+      this->write_msg_(this->tx_buffer_, this->tx_buffer_at_);  // If logging is enabled, write to console
     }
     this->log_callback_.call(level, tag, this->tx_buffer_, this->tx_buffer_at_);
   }
