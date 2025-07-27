@@ -9,10 +9,27 @@ namespace light {
 
 static const char *const TAG = "light";
 
-// Helper function to reduce code size for validation warnings
+// Helper functions to reduce code size for logging
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_WARN
 static void log_validation_warning(const char *name, const char *param_name, float val, float min, float max) {
   ESP_LOGW(TAG, "'%s': %s value %.2f is out of range [%.1f - %.1f]", name, param_name, val, min, max);
 }
+
+static void log_feature_not_supported(const char *name, const char *feature) {
+  ESP_LOGW(TAG, "'%s': %s not supported", name, feature);
+}
+
+static void log_color_mode_not_supported(const char *name, const char *feature) {
+  ESP_LOGW(TAG, "'%s': color mode does not support setting %s", name, feature);
+}
+
+static void log_invalid_parameter(const char *name, const char *message) { ESP_LOGW(TAG, "'%s': %s", name, message); }
+#else
+#define log_validation_warning(name, param_name, val, min, max)
+#define log_feature_not_supported(name, feature)
+#define log_color_mode_not_supported(name, feature)
+#define log_invalid_parameter(name, message)
+#endif
 
 // Macro to reduce repetitive setter code
 #define IMPLEMENT_LIGHT_CALL_SETTER(name, type, flag) \
@@ -49,11 +66,17 @@ static const LogString *color_mode_to_human(ColorMode color_mode) {
   return LOG_STR("");
 }
 
+// Helper to log percentage values
+static inline void log_percent(const char *name, const char *param, float value) {
+  ESP_LOGD(TAG, "  %s: %.0f%%", param, value * 100.0f);
+}
+
 void LightCall::perform() {
   const char *name = this->parent_->get_name().c_str();
   LightColorValues v = this->validate_();
+  const bool publish = this->get_publish_();
 
-  if (this->get_publish_()) {
+  if (publish) {
     ESP_LOGD(TAG, "'%s' Setting:", name);
 
     // Only print color mode when it's being changed
@@ -71,11 +94,11 @@ void LightCall::perform() {
     }
 
     if (this->has_brightness()) {
-      ESP_LOGD(TAG, "  Brightness: %.0f%%", v.get_brightness() * 100.0f);
+      log_percent(name, "Brightness", v.get_brightness());
     }
 
     if (this->has_color_brightness()) {
-      ESP_LOGD(TAG, "  Color brightness: %.0f%%", v.get_color_brightness() * 100.0f);
+      log_percent(name, "Color brightness", v.get_color_brightness());
     }
     if (this->has_red() || this->has_green() || this->has_blue()) {
       ESP_LOGD(TAG, "  Red: %.0f%%, Green: %.0f%%, Blue: %.0f%%", v.get_red() * 100.0f, v.get_green() * 100.0f,
@@ -83,7 +106,7 @@ void LightCall::perform() {
     }
 
     if (this->has_white()) {
-      ESP_LOGD(TAG, "  White: %.0f%%", v.get_white() * 100.0f);
+      log_percent(name, "White", v.get_white());
     }
     if (this->has_color_temperature()) {
       ESP_LOGD(TAG, "  Color temperature: %.1f mireds", v.get_color_temperature());
@@ -97,26 +120,26 @@ void LightCall::perform() {
 
   if (this->has_flash_()) {
     // FLASH
-    if (this->get_publish_()) {
+    if (publish) {
       ESP_LOGD(TAG, "  Flash length: %.1fs", this->flash_length_ / 1e3f);
     }
 
-    this->parent_->start_flash_(v, this->flash_length_, this->get_publish_());
+    this->parent_->start_flash_(v, this->flash_length_, publish);
   } else if (this->has_transition_()) {
     // TRANSITION
-    if (this->get_publish_()) {
+    if (publish) {
       ESP_LOGD(TAG, "  Transition length: %.1fs", this->transition_length_ / 1e3f);
     }
 
     // Special case: Transition and effect can be set when turning off
     if (this->has_effect_()) {
-      if (this->get_publish_()) {
+      if (publish) {
         ESP_LOGD(TAG, "  Effect: 'None'");
       }
       this->parent_->stop_effect_();
     }
 
-    this->parent_->start_transition_(v, this->transition_length_, this->get_publish_());
+    this->parent_->start_transition_(v, this->transition_length_, publish);
 
   } else if (this->has_effect_()) {
     // EFFECT
@@ -127,7 +150,7 @@ void LightCall::perform() {
       effect_s = this->parent_->effects_[this->effect_ - 1]->get_name().c_str();
     }
 
-    if (this->get_publish_()) {
+    if (publish) {
       ESP_LOGD(TAG, "  Effect: '%s'", effect_s);
     }
 
@@ -138,13 +161,13 @@ void LightCall::perform() {
     this->parent_->set_immediately_(v, true);
   } else {
     // INSTANT CHANGE
-    this->parent_->set_immediately_(v, this->get_publish_());
+    this->parent_->set_immediately_(v, publish);
   }
 
   if (!this->has_transition_()) {
     this->parent_->target_state_reached_callback_.call();
   }
-  if (this->get_publish_()) {
+  if (publish) {
     this->parent_->publish_state();
   }
   if (this->get_save_()) {
@@ -156,14 +179,27 @@ LightColorValues LightCall::validate_() {
   auto *name = this->parent_->get_name().c_str();
   auto traits = this->parent_->get_traits();
 
+  // Cache frequently used flags
+  const bool has_color_mode = this->has_color_mode();
+  const bool has_state = this->has_state();
+  const bool has_brightness = this->has_brightness();
+  const bool has_color_brightness = this->has_color_brightness();
+  const bool has_red = this->has_red();
+  const bool has_green = this->has_green();
+  const bool has_blue = this->has_blue();
+  const bool has_white = this->has_white();
+  const bool has_color_temperature = this->has_color_temperature();
+  const bool has_cold_white = this->has_cold_white();
+  const bool has_warm_white = this->has_warm_white();
+
   // Color mode check
-  if (this->has_color_mode() && !traits.supports_color_mode(this->color_mode_)) {
+  if (has_color_mode && !traits.supports_color_mode(this->color_mode_)) {
     ESP_LOGW(TAG, "'%s' does not support color mode %s", name, LOG_STR_ARG(color_mode_to_human(this->color_mode_)));
     this->set_flag_(FLAG_HAS_COLOR_MODE, false);
   }
 
   // Ensure there is always a color mode set
-  if (!this->has_color_mode()) {
+  if (!has_color_mode) {
     this->color_mode_ = this->compute_color_mode_();
     this->set_flag_(FLAG_HAS_COLOR_MODE, true);
   }
@@ -173,28 +209,27 @@ LightColorValues LightCall::validate_() {
   this->transform_parameters_();
 
   // Brightness exists check
-  if (this->has_brightness() && this->brightness_ > 0.0f && !(color_mode & ColorCapability::BRIGHTNESS)) {
-    ESP_LOGW(TAG, "'%s': setting brightness not supported", name);
+  if (has_brightness && this->brightness_ > 0.0f && !(color_mode & ColorCapability::BRIGHTNESS)) {
+    log_feature_not_supported(name, "brightness");
     this->set_flag_(FLAG_HAS_BRIGHTNESS, false);
   }
 
   // Transition length possible check
   if (this->has_transition_() && this->transition_length_ != 0 && !(color_mode & ColorCapability::BRIGHTNESS)) {
-    ESP_LOGW(TAG, "'%s': transitions not supported", name);
+    log_feature_not_supported(name, "transitions");
     this->set_flag_(FLAG_HAS_TRANSITION, false);
   }
 
   // Color brightness exists check
-  if (this->has_color_brightness() && this->color_brightness_ > 0.0f && !(color_mode & ColorCapability::RGB)) {
-    ESP_LOGW(TAG, "'%s': color mode does not support setting RGB brightness", name);
+  if (has_color_brightness && this->color_brightness_ > 0.0f && !(color_mode & ColorCapability::RGB)) {
+    log_color_mode_not_supported(name, "RGB brightness");
     this->set_flag_(FLAG_HAS_COLOR_BRIGHTNESS, false);
   }
 
   // RGB exists check
-  if ((this->has_red() && this->red_ > 0.0f) || (this->has_green() && this->green_ > 0.0f) ||
-      (this->has_blue() && this->blue_ > 0.0f)) {
+  if ((has_red && this->red_ > 0.0f) || (has_green && this->green_ > 0.0f) || (has_blue && this->blue_ > 0.0f)) {
     if (!(color_mode & ColorCapability::RGB)) {
-      ESP_LOGW(TAG, "'%s': color mode does not support setting RGB color", name);
+      log_color_mode_not_supported(name, "RGB color");
       this->set_flag_(FLAG_HAS_RED, false);
       this->set_flag_(FLAG_HAS_GREEN, false);
       this->set_flag_(FLAG_HAS_BLUE, false);
@@ -202,23 +237,23 @@ LightColorValues LightCall::validate_() {
   }
 
   // White value exists check
-  if (this->has_white() && this->white_ > 0.0f &&
+  if (has_white && this->white_ > 0.0f &&
       !(color_mode & ColorCapability::WHITE || color_mode & ColorCapability::COLD_WARM_WHITE)) {
-    ESP_LOGW(TAG, "'%s': color mode does not support setting white value", name);
+    log_color_mode_not_supported(name, "white value");
     this->set_flag_(FLAG_HAS_WHITE, false);
   }
 
   // Color temperature exists check
-  if (this->has_color_temperature() &&
+  if (has_color_temperature &&
       !(color_mode & ColorCapability::COLOR_TEMPERATURE || color_mode & ColorCapability::COLD_WARM_WHITE)) {
-    ESP_LOGW(TAG, "'%s': color mode does not support setting color temperature", name);
+    log_color_mode_not_supported(name, "color temperature");
     this->set_flag_(FLAG_HAS_COLOR_TEMPERATURE, false);
   }
 
   // Cold/warm white value exists check
-  if ((this->has_cold_white() && this->cold_white_ > 0.0f) || (this->has_warm_white() && this->warm_white_ > 0.0f)) {
+  if ((has_cold_white && this->cold_white_ > 0.0f) || (has_warm_white && this->warm_white_ > 0.0f)) {
     if (!(color_mode & ColorCapability::COLD_WARM_WHITE)) {
-      ESP_LOGW(TAG, "'%s': color mode does not support setting cold/warm white value", name);
+      log_color_mode_not_supported(name, "cold/warm white value");
       this->set_flag_(FLAG_HAS_COLD_WHITE, false);
       this->set_flag_(FLAG_HAS_WARM_WHITE, false);
     }
@@ -246,18 +281,18 @@ LightColorValues LightCall::validate_() {
   VALIDATE_RANGE_(color_temperature, "Color temperature", traits.get_min_mireds(), traits.get_max_mireds())
 
   // Flag whether an explicit turn off was requested, in which case we'll also stop the effect.
-  bool explicit_turn_off_request = this->has_state() && !this->state_;
+  bool explicit_turn_off_request = has_state && !this->state_;
 
   // Turn off when brightness is set to zero, and reset brightness (so that it has nonzero brightness when turned on).
-  if (this->has_brightness() && this->brightness_ == 0.0f) {
+  if (has_brightness && this->brightness_ == 0.0f) {
     this->state_ = false;
     this->set_flag_(FLAG_HAS_STATE, true);
     this->brightness_ = 1.0f;
   }
 
   // Set color brightness to 100% if currently zero and a color is set.
-  if (this->has_red() || this->has_green() || this->has_blue()) {
-    if (!this->has_color_brightness() && this->parent_->remote_values.get_color_brightness() == 0.0f) {
+  if (has_red || has_green || has_blue) {
+    if (!has_color_brightness && this->parent_->remote_values.get_color_brightness() == 0.0f) {
       this->color_brightness_ = 1.0f;
       this->set_flag_(FLAG_HAS_COLOR_BRIGHTNESS, true);
     }
@@ -265,34 +300,34 @@ LightColorValues LightCall::validate_() {
 
   // Create color values for the light with this call applied.
   auto v = this->parent_->remote_values;
-  if (this->has_color_mode())
+  if (has_color_mode)
     v.set_color_mode(this->color_mode_);
-  if (this->has_state())
+  if (has_state)
     v.set_state(this->state_);
-  if (this->has_brightness())
+  if (has_brightness)
     v.set_brightness(this->brightness_);
-  if (this->has_color_brightness())
+  if (has_color_brightness)
     v.set_color_brightness(this->color_brightness_);
-  if (this->has_red())
+  if (has_red)
     v.set_red(this->red_);
-  if (this->has_green())
+  if (has_green)
     v.set_green(this->green_);
-  if (this->has_blue())
+  if (has_blue)
     v.set_blue(this->blue_);
-  if (this->has_white())
+  if (has_white)
     v.set_white(this->white_);
-  if (this->has_color_temperature())
+  if (has_color_temperature)
     v.set_color_temperature(this->color_temperature_);
-  if (this->has_cold_white())
+  if (has_cold_white)
     v.set_cold_white(this->cold_white_);
-  if (this->has_warm_white())
+  if (has_warm_white)
     v.set_warm_white(this->warm_white_);
 
   v.normalize_color();
 
   // Flash length check
   if (this->has_flash_() && this->flash_length_ == 0) {
-    ESP_LOGW(TAG, "'%s': flash length must be greater than zero", name);
+    log_invalid_parameter(name, "flash length must be greater than zero");
     this->set_flag_(FLAG_HAS_FLASH, false);
   }
 
@@ -311,13 +346,13 @@ LightColorValues LightCall::validate_() {
   }
 
   if (this->has_effect_() && (this->has_transition_() || this->has_flash_())) {
-    ESP_LOGW(TAG, "'%s': effect cannot be used with transition/flash", name);
+    log_invalid_parameter(name, "effect cannot be used with transition/flash");
     this->set_flag_(FLAG_HAS_TRANSITION, false);
     this->set_flag_(FLAG_HAS_FLASH, false);
   }
 
   if (this->has_flash_() && this->has_transition_()) {
-    ESP_LOGW(TAG, "'%s': flash cannot be used with transition", name);
+    log_invalid_parameter(name, "flash cannot be used with transition");
     this->set_flag_(FLAG_HAS_TRANSITION, false);
   }
 
@@ -334,17 +369,17 @@ LightColorValues LightCall::validate_() {
   }
 
   if (this->has_transition_() && !supports_transition) {
-    ESP_LOGW(TAG, "'%s': transitions not supported", name);
+    log_feature_not_supported(name, "transitions");
     this->set_flag_(FLAG_HAS_TRANSITION, false);
   }
 
   // If not a flash and turning the light off, then disable the light
   // Do not use light color values directly, so that effects can set 0% brightness
   // Reason: When user turns off the light in frontend, the effect should also stop
-  bool target_state = this->has_state() ? this->state_ : v.is_on();
+  bool target_state = has_state ? this->state_ : v.is_on();
   if (!this->has_flash_() && !target_state) {
     if (this->has_effect_()) {
-      ESP_LOGW(TAG, "'%s': cannot start effect when turning off", name);
+      log_invalid_parameter(name, "cannot start effect when turning off");
       this->set_flag_(FLAG_HAS_EFFECT, false);
     } else if (this->parent_->active_effect_index_ != 0 && explicit_turn_off_request) {
       // Auto turn off effect
@@ -368,21 +403,27 @@ void LightCall::transform_parameters_() {
   // - RGBWW lights with color_interlock=true, which also sets "brightness" and
   //   "color_temperature" (without color_interlock, CW/WW are set directly)
   // - Legacy Home Assistant (pre-colormode), which sets "white" and "color_temperature"
+
+  // Cache min/max mireds to avoid repeated calls
+  const float min_mireds = traits.get_min_mireds();
+  const float max_mireds = traits.get_max_mireds();
+
   if (((this->has_white() && this->white_ > 0.0f) || this->has_color_temperature()) &&  //
       (this->color_mode_ & ColorCapability::COLD_WARM_WHITE) &&                         //
       !(this->color_mode_ & ColorCapability::WHITE) &&                                  //
       !(this->color_mode_ & ColorCapability::COLOR_TEMPERATURE) &&                      //
-      traits.get_min_mireds() > 0.0f && traits.get_max_mireds() > 0.0f) {
+      min_mireds > 0.0f && max_mireds > 0.0f) {
     ESP_LOGD(TAG, "'%s': setting cold/warm white channels using white/color temperature values",
              this->parent_->get_name().c_str());
     if (this->has_color_temperature()) {
-      const float color_temp = clamp(this->color_temperature_, traits.get_min_mireds(), traits.get_max_mireds());
-      const float ww_fraction =
-          (color_temp - traits.get_min_mireds()) / (traits.get_max_mireds() - traits.get_min_mireds());
+      const float color_temp = clamp(this->color_temperature_, min_mireds, max_mireds);
+      const float range = max_mireds - min_mireds;
+      const float ww_fraction = (color_temp - min_mireds) / range;
       const float cw_fraction = 1.0f - ww_fraction;
       const float max_cw_ww = std::max(ww_fraction, cw_fraction);
-      this->cold_white_ = gamma_uncorrect(cw_fraction / max_cw_ww, this->parent_->get_gamma_correct());
-      this->warm_white_ = gamma_uncorrect(ww_fraction / max_cw_ww, this->parent_->get_gamma_correct());
+      const float gamma = this->parent_->get_gamma_correct();
+      this->cold_white_ = gamma_uncorrect(cw_fraction / max_cw_ww, gamma);
+      this->warm_white_ = gamma_uncorrect(ww_fraction / max_cw_ww, gamma);
       this->set_flag_(FLAG_HAS_COLD_WHITE, true);
       this->set_flag_(FLAG_HAS_WARM_WHITE, true);
     }
