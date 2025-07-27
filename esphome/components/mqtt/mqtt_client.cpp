@@ -38,8 +38,6 @@ MQTTClientComponent::MQTTClientComponent() {
 
 // Connection
 void MQTTClientComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-
   if (App.is_name_add_mac_suffix_enabled()) {
     // Use App name without added MAC suffix as prefix to check against
     auto check_prefix = App.get_name().substr(0, App.get_name().size() - 7);
