@@ -97,3 +97,36 @@ st7701s.extend(
         "blue": [6, 7, 15, 16, 8]
     }
 )
+
+st7701s.extend(
+    "SEEED-INDICATOR-D1",
+    width=480,
+    height=480,
+    mirror_x=True,
+    mirror_y=True,
+    invert_colors=True,
+    pixel_mode="18bit",
+    spi_mode="MODE3",
+    data_rate="2MHz",
+    #hsync_pulse_width=8,
+    #hsync_front_porch=8,
+    #hsync_back_porch=50,
+    #vsync_pulse_width=2,
+    #vsync_front_porch=4,
+    #vsync_back_porch=4,
+    cs_pin={ "pca9554": None, "number": 4},
+    reset_pin={ "pca9554": None, "number": 5 },
+    de_pin=18,
+    hsync_pin=16,
+    vsync_pin=17,
+    pclk_pin=21,
+    data_pins={
+        "red": [4, 3, 2, 1, 0],
+        "green": [10, 9, 8, 7, 6, 5],
+        "blue": [15, 14, 13, 12, 11]
+    },
+    init_sequence=(
+        (0xC1, 0x4, 0x04),
+        (0xC3, 0x80, 0x02, 0x08)
+    ),
+)
