@@ -20,5 +20,5 @@ st7701s.extend(
         "blue": [4, 5, 6, 7, 15],
     },
     # Additional configuration for Guition 4848S040, 16 bit bus config
-    init_sequence=((0xCD, 0x00),),
+    add_init_sequence=((0xCD, 0x00),),
 )

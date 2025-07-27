@@ -237,10 +237,6 @@ class DriverChip:
         name = name.upper()
         self.name = name
         self.initsequence = initsequence
-        initsequence = list(initsequence or ())
-        if CONF_INIT_SEQUENCE in defaults:
-            initsequence.extend(defaults.pop(CONF_INIT_SEQUENCE))
-            self.initsequence = tuple(initsequence)
         self.defaults = defaults
         DriverChip.models[name] = self
 
@@ -254,6 +250,17 @@ class DriverChip:
         return models
 
     def extend(self, name, **kwargs) -> "DriverChip":
+        """
+        Extend the current model with additional parameters or a modified init sequence.
+        Parameters supplied here will override the defaults of the current model.
+        if the initsequence is not provided, the current model's initsequence will be used.
+        If add_init_sequence is provided, it will be appended to the current initsequence.
+        :param name:
+        :param kwargs:
+        :return:
+        """
+        initsequence = list(kwargs.pop("initsequence", self.initsequence))
+        initsequence.extend(kwargs.pop("add_init_sequence", ()))
         defaults = self.defaults.copy()
         if (
             CONF_WIDTH in defaults
@@ -268,7 +275,7 @@ class DriverChip:
         ):
             defaults[CONF_NATIVE_HEIGHT] = defaults[CONF_HEIGHT]
         defaults.update(kwargs)
-        return self.__class__(name, initsequence=self.initsequence, **defaults)
+        return self.__class__(name, initsequence=tuple(initsequence), **defaults)
 
     def get_default(self, key, fallback: Any = False) -> Any:
         return self.defaults.get(key, fallback)

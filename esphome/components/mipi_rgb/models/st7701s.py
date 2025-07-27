@@ -108,25 +108,21 @@ st7701s.extend(
     pixel_mode="18bit",
     spi_mode="MODE3",
     data_rate="2MHz",
-    #hsync_pulse_width=8,
-    #hsync_front_porch=8,
-    #hsync_back_porch=50,
-    #vsync_pulse_width=2,
-    #vsync_front_porch=4,
-    #vsync_back_porch=4,
-    cs_pin={ "pca9554": None, "number": 4},
-    reset_pin={ "pca9554": None, "number": 5 },
+    hsync_front_porch=10,
+    hsync_pulse_width=8,
+    hsync_back_porch=50,
+    vsync_front_porch=10,
+    vsync_pulse_width=8,
+    vsync_back_porch=20,
+    cs_pin={"pca9554": None, "number": 4},
     de_pin=18,
     hsync_pin=16,
     vsync_pin=17,
     pclk_pin=21,
+    pclk_inverted=False,
     data_pins={
         "red": [4, 3, 2, 1, 0],
         "green": [10, 9, 8, 7, 6, 5],
         "blue": [15, 14, 13, 12, 11]
     },
-    init_sequence=(
-        (0xC1, 0x4, 0x04),
-        (0xC3, 0x80, 0x02, 0x08)
-    ),
 )
