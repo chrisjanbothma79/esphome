@@ -167,10 +167,10 @@ void DeviceInfoResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(2, this->api_encryption_supported);
 #endif
 #ifdef USE_DEVICES
-  size.add_force_message(2, this->devices);
+  size.add_repeated_message(2, this->devices);
 #endif
 #ifdef USE_AREAS
-  size.add_force_message(2, this->areas);
+  size.add_repeated_message(2, this->areas);
 #endif
 #ifdef USE_AREAS
   size.add_message_object(2, this->area);
@@ -862,9 +862,9 @@ void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void HomeassistantServiceResponse::calculate_size(ProtoSize &size) const {
   size.add_length(1, this->service_ref_.size());
-  size.add_force_message(1, this->data);
-  size.add_force_message(1, this->data_template);
-  size.add_force_message(1, this->variables);
+  size.add_repeated_message(1, this->data);
+  size.add_repeated_message(1, this->data_template);
+  size.add_repeated_message(1, this->variables);
   size.add_bool(1, this->is_event);
 }
 #ifdef USE_API_HOMEASSISTANT_STATES
@@ -926,7 +926,7 @@ void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
 void ListEntitiesServicesResponse::calculate_size(ProtoSize &size) const {
   size.add_length(1, this->name_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_force_message(1, this->args);
+  size.add_repeated_message(1, this->args);
 }
 bool ExecuteServiceArgument::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -1734,7 +1734,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
   size.add_bool(1, this->supports_pause);
-  size.add_force_message(1, this->supported_formats);
+  size.add_repeated_message(1, this->supported_formats);
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -1840,7 +1840,7 @@ void BluetoothLERawAdvertisementsResponse::encode(ProtoWriteBuffer buffer) const
   }
 }
 void BluetoothLERawAdvertisementsResponse::calculate_size(ProtoSize &size) const {
-  size.add_force_message(1, this->advertisements);
+  size.add_repeated_message(1, this->advertisements);
 }
 bool BluetoothDeviceRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -1907,7 +1907,7 @@ void BluetoothGATTCharacteristic::calculate_size(ProtoSize &size) const {
   size.add_uint64_force(1, this->uuid[1]);
   size.add_uint32(1, this->handle);
   size.add_uint32(1, this->properties);
-  size.add_force_message(1, this->descriptors);
+  size.add_repeated_message(1, this->descriptors);
 }
 void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->uuid[0], true);
@@ -1921,7 +1921,7 @@ void BluetoothGATTService::calculate_size(ProtoSize &size) const {
   size.add_uint64_force(1, this->uuid[0]);
   size.add_uint64_force(1, this->uuid[1]);
   size.add_uint32(1, this->handle);
-  size.add_force_message(1, this->characteristics);
+  size.add_repeated_message(1, this->characteristics);
 }
 void BluetoothGATTGetServicesResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
@@ -2336,7 +2336,7 @@ void VoiceAssistantConfigurationResponse::encode(ProtoWriteBuffer buffer) const 
   buffer.encode_uint32(3, this->max_active_wake_words);
 }
 void VoiceAssistantConfigurationResponse::calculate_size(ProtoSize &size) const {
-  size.add_force_message(1, this->available_wake_words);
+  size.add_repeated_message(1, this->available_wake_words);
   if (!this->active_wake_words.empty()) {
     for (const auto &it : this->active_wake_words) {
       size.add_length_force(1, it.size());
