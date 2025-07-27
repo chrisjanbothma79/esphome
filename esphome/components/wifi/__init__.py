@@ -6,6 +6,7 @@ from esphome.components.esp32 import add_idf_sdkconfig_option, const, get_esp32_
 from esphome.components.network import IPAddress
 from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
+from esphome.config_validation import only_with_esp_idf
 from esphome.const import (
     CONF_AP,
     CONF_BSSID,
@@ -46,7 +47,6 @@ from esphome.const import (
 from esphome.core import CORE, HexInt, coroutine_with_priority
 import esphome.final_validate as fv
 
-from ...config_validation import only_with_esp_idf
 from . import wpa2_eap
 
 AUTO_LOAD = ["network"]
