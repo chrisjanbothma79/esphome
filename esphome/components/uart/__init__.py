@@ -219,7 +219,7 @@ def validate_instance(value):
     if CORE.is_stm32:
         from esphome.components.stm32.const import KEY_STM32, KEY_UART_INSTANCES
 
-        return cv.one_of(cv.CORE.data[KEY_STM32][KEY_UART_INSTANCES])(value)
+        return cv.one_of(*cv.CORE.data[KEY_STM32][KEY_UART_INSTANCES])(value)
     return value
 
 
