@@ -504,18 +504,8 @@ class ProtoSize {
    * @brief Calculates and adds the size of an int32 field to the total message size
    */
   inline void add_int32(uint32_t field_id_size, int32_t value) {
-    // Skip calculation if value is zero
-    if (value == 0) {
-      return;  // No need to update total_size_
-    }
-
-    // Calculate and directly add to total_size
-    if (value < 0) {
-      // Negative values are encoded as 10-byte varints in protobuf
-      total_size_ += field_id_size + 10;
-    } else {
-      // For non-negative values, use the standard varint size
-      total_size_ += field_id_size + varint(static_cast<uint32_t>(value));
+    if (value != 0) {
+      add_int32_force(field_id_size, value);
     }
   }
 
@@ -554,13 +544,10 @@ class ProtoSize {
    * @brief Calculates and adds the size of a boolean field to the total message size
    */
   inline void add_bool(uint32_t field_id_size, bool value) {
-    // Skip calculation if value is false
-    if (!value) {
-      return;  // No need to update total_size_
+    if (value) {
+      // Boolean fields always use 1 byte when true
+      total_size_ += field_id_size + 1;
     }
-
-    // Boolean fields always use 1 byte when true
-    total_size_ += field_id_size + 1;
   }
 
   /**
@@ -706,14 +693,10 @@ class ProtoSize {
    * @param nested_size The pre-calculated size of the nested message
    */
   inline void add_message_field(uint32_t field_id_size, uint32_t nested_size) {
-    // Skip calculation if nested message is empty
-    if (nested_size == 0) {
-      return;  // No need to update total_size_
+    if (nested_size != 0) {
+      // Field ID + length varint + nested message content
+      total_size_ += field_id_size + varint(nested_size) + nested_size;
     }
-
-    // Calculate and directly add to total_size
-    // Field ID + length varint + nested message content
-    total_size_ += field_id_size + varint(nested_size) + nested_size;
   }
 
   /**
