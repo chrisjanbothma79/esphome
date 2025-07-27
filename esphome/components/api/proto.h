@@ -513,14 +513,9 @@ class ProtoSize {
    * @brief Calculates and adds the size of an int32 field to the total message size (force version)
    */
   inline void add_int32_force(uint32_t field_id_size, int32_t value) {
-    // Always calculate size when force is true
-    if (value < 0) {
-      // Negative values are encoded as 10-byte varints in protobuf
-      total_size_ += field_id_size + 10;
-    } else {
-      // For non-negative values, use the standard varint size
-      total_size_ += field_id_size + varint(static_cast<uint32_t>(value));
-    }
+    // Always calculate size when forced
+    // Negative values are encoded as 10-byte varints in protobuf
+    total_size_ += field_id_size + (value < 0 ? 10 : varint(static_cast<uint32_t>(value)));
   }
 
   /**
