@@ -120,6 +120,12 @@ class ESPNowComponent : public Component {
                  const send_callback_t &callback = nullptr);
 
   void register_received_handler(ESPNowReceivedPacketHandler *handler) { this->received_handlers_.push_back(handler); }
+  void register_unknown_peer_handler(ESPNowUnknownPeerHandler *handler) {
+    this->unknown_peer_handlers_.push_back(handler);
+  }
+  void register_broadcasted_handler(ESPNowBroadcastedHandler *handler) {
+    this->broadcasted_handlers_.push_back(handler);
+  }
 
  protected:
   friend void on_data_received(const esp_now_recv_info_t *info, const uint8_t *data, int size);
