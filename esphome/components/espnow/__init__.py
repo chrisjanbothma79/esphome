@@ -129,7 +129,7 @@ def _validate_raw_data(value):
     )
 
 
-async def _register_peer(var, config, args):
+async def register_peer(var, config, args):
     peer = config[CONF_ADDRESS]
     if cg.is_template(peer):
         template_ = await cg.templatable(
@@ -196,7 +196,7 @@ async def send_action(
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
 
-    await _register_peer(var, config, args)
+    await register_peer(var, config, args)
 
     data = config.get(CONF_DATA, [])
     if isinstance(data, bytes):
@@ -246,7 +246,7 @@ async def peer_action(
 ):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
-    await _register_peer(var, config, args)
+    await register_peer(var, config, args)
 
     return var
 
