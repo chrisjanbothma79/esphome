@@ -24,7 +24,8 @@ void LightState::setup() {
   }
 
   // When supported color temperature range is known, initialize color temperature setting within bounds.
-  float min_mireds = this->get_traits().get_min_mireds();
+  auto traits = this->get_traits();
+  float min_mireds = traits.get_min_mireds();
   if (min_mireds > 0) {
     this->remote_values.set_color_temperature(min_mireds);
     this->current_values.set_color_temperature(min_mireds);
@@ -43,11 +44,8 @@ void LightState::setup() {
       this->rtc_ = global_preferences->make_preference<LightStateRTCState>(this->get_object_id_hash());
       // Attempt to load from preferences, else fall back to default values
       if (!this->rtc_.load(&recovered)) {
-        recovered.state = false;
-        if (this->restore_mode_ == LIGHT_RESTORE_DEFAULT_ON ||
-            this->restore_mode_ == LIGHT_RESTORE_INVERTED_DEFAULT_ON) {
-          recovered.state = true;
-        }
+        recovered.state = (this->restore_mode_ == LIGHT_RESTORE_DEFAULT_ON ||
+                           this->restore_mode_ == LIGHT_RESTORE_INVERTED_DEFAULT_ON);
       } else if (this->restore_mode_ == LIGHT_RESTORE_INVERTED_DEFAULT_OFF ||
                  this->restore_mode_ == LIGHT_RESTORE_INVERTED_DEFAULT_ON) {
         // Inverted restore state
