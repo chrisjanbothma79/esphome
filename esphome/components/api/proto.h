@@ -334,6 +334,9 @@ class ProtoWriteBuffer {
   std::vector<uint8_t> *buffer_;
 };
 
+// Forward declaration
+class ProtoSize;
+
 class ProtoMessage {
  public:
   virtual ~ProtoMessage() = default;

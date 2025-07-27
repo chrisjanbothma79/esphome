@@ -1687,7 +1687,7 @@ def build_message_type(
         else:
             o += "\n"
             o += indent("\n".join(encode)) + "\n"
-        o += "}\n"
+            o += "}\n"
         cpp += o
         prot = "void encode(ProtoWriteBuffer buffer) const override;"
         public_content.append(prot)
@@ -1703,7 +1703,7 @@ def build_message_type(
             # For multiple fields
             o += "\n"
             o += indent("\n".join(size_calc)) + "\n"
-        o += "}\n"
+            o += "}\n"
         cpp += o
         prot = "void calculate_size(ProtoSize &size) const override;"
         public_content.append(prot)

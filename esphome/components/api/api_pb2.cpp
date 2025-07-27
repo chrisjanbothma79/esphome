@@ -53,9 +53,7 @@ bool ConnectRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value
   return true;
 }
 void ConnectResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->invalid_password); }
-}
 void ConnectResponse::calculate_size(ProtoSize &size) const { size.add_bool_field(1, this->invalid_password); }
-}
 #ifdef USE_AREAS
 void AreaInfo::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(1, this->area_id);
@@ -839,9 +837,7 @@ bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthD
   return true;
 }
 void NoiseEncryptionSetKeyResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
-}
 void NoiseEncryptionSetKeyResponse::calculate_size(ProtoSize &size) const { size.add_bool_field(1, this->success); }
-}
 #endif
 void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->key_ref_);
@@ -910,9 +906,7 @@ bool GetTimeResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
   return true;
 }
 void GetTimeResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_fixed32(1, this->epoch_seconds); }
-}
 void GetTimeResponse::calculate_size(ProtoSize &size) const { size.add_fixed32_field(1, this->epoch_seconds); }
-}
 #ifdef USE_API_SERVICES
 void ListEntitiesServicesArgument::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->name_ref_);
@@ -2317,9 +2311,7 @@ bool VoiceAssistantAnnounceRequest::decode_length(uint32_t field_id, ProtoLength
   return true;
 }
 void VoiceAssistantAnnounceFinished::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
-}
 void VoiceAssistantAnnounceFinished::calculate_size(ProtoSize &size) const { size.add_bool_field(1, this->success); }
-}
 void VoiceAssistantWakeWord::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->id_ref_);
   buffer.encode_string(2, this->wake_word_ref_);
