@@ -446,51 +446,35 @@ std::set<ColorMode> LightCall::get_suitable_color_modes_() {
   bool has_rgb = (this->has_color_brightness() && this->color_brightness_ > 0.0f) ||
                  (this->has_red() || this->has_green() || this->has_blue());
 
-  // Static sets that are only constructed once
-  static const std::set<ColorMode> MODES_WHITE_ONLY = {ColorMode::WHITE, ColorMode::RGB_WHITE,
-                                                       ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::COLD_WARM_WHITE,
-                                                       ColorMode::RGB_COLD_WARM_WHITE};
-  static const std::set<ColorMode> MODES_CT_ONLY = {ColorMode::COLOR_TEMPERATURE, ColorMode::RGB_COLOR_TEMPERATURE,
-                                                    ColorMode::COLD_WARM_WHITE, ColorMode::RGB_COLD_WARM_WHITE};
-  static const std::set<ColorMode> MODES_WHITE_CT = {ColorMode::COLD_WARM_WHITE, ColorMode::RGB_COLOR_TEMPERATURE,
-                                                     ColorMode::RGB_COLD_WARM_WHITE};
-  static const std::set<ColorMode> MODES_CWWW_ONLY = {ColorMode::COLD_WARM_WHITE, ColorMode::RGB_COLD_WARM_WHITE};
-  static const std::set<ColorMode> MODES_NONE = {
-      ColorMode::RGB_WHITE, ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE, ColorMode::RGB,
-      ColorMode::WHITE,     ColorMode::COLOR_TEMPERATURE,     ColorMode::COLD_WARM_WHITE};
-  static const std::set<ColorMode> MODES_RGB_WHITE = {ColorMode::RGB_WHITE, ColorMode::RGB_COLOR_TEMPERATURE,
-                                                      ColorMode::RGB_COLD_WARM_WHITE};
-  static const std::set<ColorMode> MODES_RGB_CT = {ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
-  static const std::set<ColorMode> MODES_RGB_CWWW = {ColorMode::RGB_COLD_WARM_WHITE};
-  static const std::set<ColorMode> MODES_RGB_ONLY = {ColorMode::RGB, ColorMode::RGB_WHITE,
-                                                     ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
-
 // Build key from flags: [rgb][cwww][ct][white]
 #define KEY(white, ct, cwww, rgb) ((white) << 0 | (ct) << 1 | (cwww) << 2 | (rgb) << 3)
 
   uint8_t key = KEY(has_white, has_ct, has_cwww, has_rgb);
 
   switch (key) {
-    case KEY(true, false, false, false):
-      return MODES_WHITE_ONLY;
-    case KEY(false, true, false, false):
-      return MODES_CT_ONLY;
-    case KEY(true, true, false, false):
-      return MODES_WHITE_CT;
-    case KEY(false, false, true, false):
-      return MODES_CWWW_ONLY;
-    case KEY(false, false, false, false):
-      return MODES_NONE;
-    case KEY(true, false, false, true):
-      return MODES_RGB_WHITE;
-    case KEY(false, true, false, true):
-      return MODES_RGB_CT;
-    case KEY(true, true, false, true):
-      return MODES_RGB_CT;
-    case KEY(false, false, true, true):
-      return MODES_RGB_CWWW;
-    case KEY(false, false, false, true):
-      return MODES_RGB_ONLY;
+    case KEY(true, false, false, false):  // white only
+      return {ColorMode::WHITE, ColorMode::RGB_WHITE, ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::COLD_WARM_WHITE,
+              ColorMode::RGB_COLD_WARM_WHITE};
+    case KEY(false, true, false, false):  // ct only
+      return {ColorMode::COLOR_TEMPERATURE, ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::COLD_WARM_WHITE,
+              ColorMode::RGB_COLD_WARM_WHITE};
+    case KEY(true, true, false, false):  // white + ct
+      return {ColorMode::COLD_WARM_WHITE, ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
+    case KEY(false, false, true, false):  // cwww only
+      return {ColorMode::COLD_WARM_WHITE, ColorMode::RGB_COLD_WARM_WHITE};
+    case KEY(false, false, false, false):  // none
+      return {ColorMode::RGB_WHITE, ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE, ColorMode::RGB,
+              ColorMode::WHITE,     ColorMode::COLOR_TEMPERATURE,     ColorMode::COLD_WARM_WHITE};
+    case KEY(true, false, false, true):  // rgb + white
+      return {ColorMode::RGB_WHITE, ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
+    case KEY(false, true, false, true):  // rgb + ct
+      return {ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
+    case KEY(true, true, false, true):  // rgb + white + ct
+      return {ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
+    case KEY(false, false, true, true):  // rgb + cwww
+      return {ColorMode::RGB_COLD_WARM_WHITE};
+    case KEY(false, false, false, true):  // rgb only
+      return {ColorMode::RGB, ColorMode::RGB_WHITE, ColorMode::RGB_COLOR_TEMPERATURE, ColorMode::RGB_COLD_WARM_WHITE};
     default:
       return {};  // conflicting flags
   }
