@@ -689,8 +689,7 @@ class ProtoSize {
    */
   inline void add_message_field(uint32_t field_id_size, uint32_t nested_size) {
     if (nested_size != 0) {
-      // Field ID + length varint + nested message content
-      total_size_ += field_id_size + varint(nested_size) + nested_size;
+      add_message_field_force(field_id_size, nested_size);
     }
   }
 
