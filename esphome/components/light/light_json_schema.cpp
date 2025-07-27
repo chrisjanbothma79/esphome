@@ -8,11 +8,8 @@ namespace light {
 
 // See https://www.home-assistant.io/integrations/light.mqtt/#json-schema for documentation on the schema
 
-// Helper to convert float 0-1 to uint8_t 0-255
-static inline uint8_t to_uint8_scaled(float value) { return uint8_t(value * 255); }
-
 // Lookup table for color mode strings
-static const char *get_color_mode_json_str(ColorMode mode) {
+static constexpr const char *get_color_mode_json_str(ColorMode mode) {
   switch (mode) {
     case ColorMode::ON_OFF:
       return "onoff";
@@ -54,17 +51,17 @@ void LightJSONSchema::dump_json(LightState &state, JsonObject root) {
   if (color_mode & ColorCapability::ON_OFF)
     root["state"] = (values.get_state() != 0.0f) ? "ON" : "OFF";
   if (color_mode & ColorCapability::BRIGHTNESS)
-    root["brightness"] = to_uint8_scaled(values.get_brightness());
+    root["brightness"] = to_uint8_scale(values.get_brightness());
 
   JsonObject color = root["color"].to<JsonObject>();
   if (color_mode & ColorCapability::RGB) {
     float color_brightness = values.get_color_brightness();
-    color["r"] = to_uint8_scaled(color_brightness * values.get_red());
-    color["g"] = to_uint8_scaled(color_brightness * values.get_green());
-    color["b"] = to_uint8_scaled(color_brightness * values.get_blue());
+    color["r"] = to_uint8_scale(color_brightness * values.get_red());
+    color["g"] = to_uint8_scale(color_brightness * values.get_green());
+    color["b"] = to_uint8_scale(color_brightness * values.get_blue());
   }
   if (color_mode & ColorCapability::WHITE) {
-    uint8_t white_val = to_uint8_scaled(values.get_white());
+    uint8_t white_val = to_uint8_scale(values.get_white());
     color["w"] = white_val;
     root["white_value"] = white_val;  // legacy API
   }
@@ -73,8 +70,8 @@ void LightJSONSchema::dump_json(LightState &state, JsonObject root) {
     root["color_temp"] = uint32_t(values.get_color_temperature());
   }
   if (color_mode & ColorCapability::COLD_WARM_WHITE) {
-    color["c"] = to_uint8_scaled(values.get_cold_white());
-    color["w"] = to_uint8_scaled(values.get_warm_white());
+    color["c"] = to_uint8_scale(values.get_cold_white());
+    color["w"] = to_uint8_scale(values.get_warm_white());
   }
 }
 
