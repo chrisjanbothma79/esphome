@@ -275,7 +275,7 @@ class TypeInfo(ABC):
         Args:
             name: Field name
             force: Whether this is for a repeated field
-            base_method: Base method name (e.g., "add_int32_field")
+            base_method: Base method name (e.g., "add_int32")
             value_expr: Optional value expression (defaults to name)
         """
         field_id_size = self.calculate_field_id_size()
@@ -389,7 +389,7 @@ class DoubleType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        return f"size.add_double_field({field_id_size}, {name});"
+        return f"size.add_double({field_id_size}, {name});"
 
     def get_fixed_size_bytes(self) -> int:
         return 8
@@ -413,7 +413,7 @@ class FloatType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        return f"size.add_float_field({field_id_size}, {name});"
+        return f"size.add_float({field_id_size}, {name});"
 
     def get_fixed_size_bytes(self) -> int:
         return 4
@@ -436,7 +436,7 @@ class Int64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_simple_size_calculation(name, force, "add_int64_field")
+        return self._get_simple_size_calculation(name, force, "add_int64")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -456,7 +456,7 @@ class UInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_simple_size_calculation(name, force, "add_uint64_field")
+        return self._get_simple_size_calculation(name, force, "add_uint64")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -476,7 +476,7 @@ class Int32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_simple_size_calculation(name, force, "add_int32_field")
+        return self._get_simple_size_calculation(name, force, "add_int32")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -497,7 +497,7 @@ class Fixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        return f"size.add_fixed64_field({field_id_size}, {name});"
+        return f"size.add_fixed64({field_id_size}, {name});"
 
     def get_fixed_size_bytes(self) -> int:
         return 8
@@ -521,7 +521,7 @@ class Fixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        return f"size.add_fixed32_field({field_id_size}, {name});"
+        return f"size.add_fixed32({field_id_size}, {name});"
 
     def get_fixed_size_bytes(self) -> int:
         return 4
@@ -543,7 +543,7 @@ class BoolType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_simple_size_calculation(name, force, "add_bool_field")
+        return self._get_simple_size_calculation(name, force, "add_bool")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 1  # field ID + 1 byte
@@ -624,18 +624,18 @@ class StringType(TypeInfo):
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # For SOURCE_CLIENT only messages, use the string field directly
         if not self._needs_encode:
-            return self._get_simple_size_calculation(name, force, "add_string_field")
+            return self._get_simple_size_calculation(name, force, "add_string")
 
         # Check if this is being called from a repeated field context
         # In that case, 'name' will be 'it' and we need to use the repeated version
         if name == "it":
-            # For repeated fields, we need to use add_string_field_repeated which includes field ID
+            # For repeated fields, we need to use add_string_repeated which includes field ID
             field_id_size = self.calculate_field_id_size()
-            return f"size.add_string_field_repeated({field_id_size}, it);"
+            return f"size.add_string_repeated({field_id_size}, it);"
 
         # For messages that need encoding, use the StringRef size
         field_id_size = self.calculate_field_id_size()
-        return f"size.add_string_field({field_id_size}, this->{self.field_name}_ref_.size());"
+        return f"size.add_string({field_id_size}, this->{self.field_name}_ref_.size());"
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical string
@@ -770,7 +770,7 @@ class BytesType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return f"size.add_bytes_field({self.calculate_field_id_size()}, this->{self.field_name}_len_);"
+        return f"size.add_bytes({self.calculate_field_id_size()}, this->{self.field_name}_len_);"
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical bytes
@@ -846,10 +846,10 @@ class FixedArrayBytesType(TypeInfo):
 
         if force:
             # For repeated fields, always calculate size (no zero check)
-            return f"size.add_bytes_field_repeated({field_id_size}, {length_field});"
+            return f"size.add_bytes_repeated({field_id_size}, {length_field});"
         else:
-            # For non-repeated fields, add_bytes_field already checks for zero
-            return f"size.add_bytes_field({field_id_size}, {length_field});"
+            # For non-repeated fields, add_bytes already checks for zero
+            return f"size.add_bytes({field_id_size}, {length_field});"
 
     def get_estimated_size(self) -> int:
         # Estimate based on typical BLE advertisement size
@@ -876,7 +876,7 @@ class UInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_simple_size_calculation(name, force, "add_uint32_field")
+        return self._get_simple_size_calculation(name, force, "add_uint32")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -913,7 +913,7 @@ class EnumType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_simple_size_calculation(
-            name, force, "add_enum_field", f"static_cast<uint32_t>({name})"
+            name, force, "add_enum", f"static_cast<uint32_t>({name})"
         )
 
     def get_estimated_size(self) -> int:
@@ -935,7 +935,7 @@ class SFixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        return f"size.add_sfixed32_field({field_id_size}, {name});"
+        return f"size.add_sfixed32({field_id_size}, {name});"
 
     def get_fixed_size_bytes(self) -> int:
         return 4
@@ -959,7 +959,7 @@ class SFixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        return f"size.add_sfixed64_field({field_id_size}, {name});"
+        return f"size.add_sfixed64({field_id_size}, {name});"
 
     def get_fixed_size_bytes(self) -> int:
         return 8
@@ -982,7 +982,7 @@ class SInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_simple_size_calculation(name, force, "add_sint32_field")
+        return self._get_simple_size_calculation(name, force, "add_sint32")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -1002,7 +1002,7 @@ class SInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_simple_size_calculation(name, force, "add_sint64_field")
+        return self._get_simple_size_calculation(name, force, "add_sint64")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint

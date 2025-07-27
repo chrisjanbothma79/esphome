@@ -503,7 +503,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of an int32 field to the total message size
    */
-  inline void add_int32_field(uint32_t field_id_size, int32_t value) {
+  inline void add_int32(uint32_t field_id_size, int32_t value) {
     // Skip calculation if value is zero
     if (value == 0) {
       return;  // No need to update total_size_
@@ -522,7 +522,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of an int32 field to the total message size (repeated field version)
    */
-  inline void add_int32_field_repeated(uint32_t field_id_size, int32_t value) {
+  inline void add_int32_repeated(uint32_t field_id_size, int32_t value) {
     // Always calculate size for repeated fields
     if (value < 0) {
       // Negative values are encoded as 10-byte varints in protobuf
@@ -536,7 +536,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a uint32 field to the total message size
    */
-  inline void add_uint32_field(uint32_t field_id_size, uint32_t value) {
+  inline void add_uint32(uint32_t field_id_size, uint32_t value) {
     // Skip calculation if value is zero
     if (value == 0) {
       return;  // No need to update total_size_
@@ -549,7 +549,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a uint32 field to the total message size (repeated field version)
    */
-  inline void add_uint32_field_repeated(uint32_t field_id_size, uint32_t value) {
+  inline void add_uint32_repeated(uint32_t field_id_size, uint32_t value) {
     // Always calculate size for repeated fields
     total_size_ += field_id_size + varint(value);
   }
@@ -557,7 +557,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a boolean field to the total message size
    */
-  inline void add_bool_field(uint32_t field_id_size, bool value) {
+  inline void add_bool(uint32_t field_id_size, bool value) {
     // Skip calculation if value is false
     if (!value) {
       return;  // No need to update total_size_
@@ -570,7 +570,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a boolean field to the total message size (repeated field version)
    */
-  inline void add_bool_field_repeated(uint32_t field_id_size, bool value) {
+  inline void add_bool_repeated(uint32_t field_id_size, bool value) {
     // Always calculate size for repeated fields
     // Boolean fields always use 1 byte
     total_size_ += field_id_size + 1;
@@ -579,7 +579,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a float field to the total message size
    */
-  inline void add_float_field(uint32_t field_id_size, float value) {
+  inline void add_float(uint32_t field_id_size, float value) {
     if (value != 0.0f) {
       total_size_ += field_id_size + 4;
     }
@@ -591,7 +591,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a fixed32 field to the total message size
    */
-  inline void add_fixed32_field(uint32_t field_id_size, uint32_t value) {
+  inline void add_fixed32(uint32_t field_id_size, uint32_t value) {
     if (value != 0) {
       total_size_ += field_id_size + 4;
     }
@@ -603,7 +603,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a sfixed32 field to the total message size
    */
-  inline void add_sfixed32_field(uint32_t field_id_size, int32_t value) {
+  inline void add_sfixed32(uint32_t field_id_size, int32_t value) {
     if (value != 0) {
       total_size_ += field_id_size + 4;
     }
@@ -617,7 +617,7 @@ class ProtoSize {
    *
    * Enum fields are encoded as uint32 varints.
    */
-  inline void add_enum_field(uint32_t field_id_size, uint32_t value) {
+  inline void add_enum(uint32_t field_id_size, uint32_t value) {
     // Skip calculation if value is zero
     if (value == 0) {
       return;  // No need to update total_size_
@@ -632,7 +632,7 @@ class ProtoSize {
    *
    * Enum fields are encoded as uint32 varints.
    */
-  inline void add_enum_field_repeated(uint32_t field_id_size, uint32_t value) {
+  inline void add_enum_repeated(uint32_t field_id_size, uint32_t value) {
     // Always calculate size for repeated fields
     // Enums are encoded as uint32
     total_size_ += field_id_size + varint(value);
@@ -643,7 +643,7 @@ class ProtoSize {
    *
    * Sint32 fields use ZigZag encoding, which is more efficient for negative values.
    */
-  inline void add_sint32_field(uint32_t field_id_size, int32_t value) {
+  inline void add_sint32(uint32_t field_id_size, int32_t value) {
     // Skip calculation if value is zero
     if (value == 0) {
       return;  // No need to update total_size_
@@ -659,7 +659,7 @@ class ProtoSize {
    *
    * Sint32 fields use ZigZag encoding, which is more efficient for negative values.
    */
-  inline void add_sint32_field_repeated(uint32_t field_id_size, int32_t value) {
+  inline void add_sint32_repeated(uint32_t field_id_size, int32_t value) {
     // Always calculate size for repeated fields
     // ZigZag encoding for sint32: (n << 1) ^ (n >> 31)
     uint32_t zigzag = (static_cast<uint32_t>(value) << 1) ^ (static_cast<uint32_t>(value >> 31));
@@ -669,7 +669,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of an int64 field to the total message size
    */
-  inline void add_int64_field(uint32_t field_id_size, int64_t value) {
+  inline void add_int64(uint32_t field_id_size, int64_t value) {
     // Skip calculation if value is zero
     if (value == 0) {
       return;  // No need to update total_size_
@@ -682,7 +682,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of an int64 field to the total message size (repeated field version)
    */
-  inline void add_int64_field_repeated(uint32_t field_id_size, int64_t value) {
+  inline void add_int64_repeated(uint32_t field_id_size, int64_t value) {
     // Always calculate size for repeated fields
     total_size_ += field_id_size + varint(value);
   }
@@ -690,7 +690,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a uint64 field to the total message size
    */
-  inline void add_uint64_field(uint32_t field_id_size, uint64_t value) {
+  inline void add_uint64(uint32_t field_id_size, uint64_t value) {
     // Skip calculation if value is zero
     if (value == 0) {
       return;  // No need to update total_size_
@@ -703,7 +703,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a uint64 field to the total message size (repeated field version)
    */
-  inline void add_uint64_field_repeated(uint32_t field_id_size, uint64_t value) {
+  inline void add_uint64_repeated(uint32_t field_id_size, uint64_t value) {
     // Always calculate size for repeated fields
     total_size_ += field_id_size + varint(value);
   }
@@ -714,7 +714,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a string field using length
    */
-  inline void add_string_field(uint32_t field_id_size, size_t len) {
+  inline void add_string(uint32_t field_id_size, size_t len) {
     // Skip calculation if string is empty
     if (len == 0) {
       return;  // No need to update total_size_
@@ -727,7 +727,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a string/bytes field to the total message size (repeated field version)
    */
-  inline void add_string_field_repeated(uint32_t field_id_size, const std::string &str) {
+  inline void add_string_repeated(uint32_t field_id_size, const std::string &str) {
     // Always calculate size for repeated fields
     const uint32_t str_size = static_cast<uint32_t>(str.size());
     total_size_ += field_id_size + varint(str_size) + str_size;
@@ -736,7 +736,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a bytes field to the total message size
    */
-  inline void add_bytes_field(uint32_t field_id_size, size_t len) {
+  inline void add_bytes(uint32_t field_id_size, size_t len) {
     // Skip calculation if bytes is empty
     if (len == 0) {
       return;  // No need to update total_size_
@@ -749,7 +749,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of a bytes field to the total message size (repeated field version)
    */
-  inline void add_bytes_field_repeated(uint32_t field_id_size, size_t len) {
+  inline void add_bytes_repeated(uint32_t field_id_size, size_t len) {
     // Always calculate size for repeated fields
     // Field ID + length varint + data bytes
     total_size_ += field_id_size + varint(static_cast<uint32_t>(len)) + static_cast<uint32_t>(len);
