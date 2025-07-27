@@ -9,7 +9,7 @@ namespace light {
 // See https://www.home-assistant.io/integrations/light.mqtt/#json-schema for documentation on the schema
 
 // Lookup table for color mode strings
-static const char *get_color_mode_json_str(ColorMode mode) {
+static constexpr const char *get_color_mode_json_str(ColorMode mode) {
   switch (mode) {
     case ColorMode::ON_OFF:
       return "onoff";
