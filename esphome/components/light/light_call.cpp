@@ -66,11 +66,17 @@ static const LogString *color_mode_to_human(ColorMode color_mode) {
   return LOG_STR("");
 }
 
+// Helper to log percentage values
+static inline void log_percent(const char *name, const char *param, float value) {
+  ESP_LOGD(TAG, "  %s: %.0f%%", param, value * 100.0f);
+}
+
 void LightCall::perform() {
   const char *name = this->parent_->get_name().c_str();
   LightColorValues v = this->validate_();
+  const bool publish = this->get_publish_();
 
-  if (this->get_publish_()) {
+  if (publish) {
     ESP_LOGD(TAG, "'%s' Setting:", name);
 
     // Only print color mode when it's being changed
@@ -88,11 +94,11 @@ void LightCall::perform() {
     }
 
     if (this->has_brightness()) {
-      ESP_LOGD(TAG, "  Brightness: %.0f%%", v.get_brightness() * 100.0f);
+      log_percent(name, "Brightness", v.get_brightness());
     }
 
     if (this->has_color_brightness()) {
-      ESP_LOGD(TAG, "  Color brightness: %.0f%%", v.get_color_brightness() * 100.0f);
+      log_percent(name, "Color brightness", v.get_color_brightness());
     }
     if (this->has_red() || this->has_green() || this->has_blue()) {
       ESP_LOGD(TAG, "  Red: %.0f%%, Green: %.0f%%, Blue: %.0f%%", v.get_red() * 100.0f, v.get_green() * 100.0f,
@@ -100,7 +106,7 @@ void LightCall::perform() {
     }
 
     if (this->has_white()) {
-      ESP_LOGD(TAG, "  White: %.0f%%", v.get_white() * 100.0f);
+      log_percent(name, "White", v.get_white());
     }
     if (this->has_color_temperature()) {
       ESP_LOGD(TAG, "  Color temperature: %.1f mireds", v.get_color_temperature());
@@ -114,26 +120,26 @@ void LightCall::perform() {
 
   if (this->has_flash_()) {
     // FLASH
-    if (this->get_publish_()) {
+    if (publish) {
       ESP_LOGD(TAG, "  Flash length: %.1fs", this->flash_length_ / 1e3f);
     }
 
-    this->parent_->start_flash_(v, this->flash_length_, this->get_publish_());
+    this->parent_->start_flash_(v, this->flash_length_, publish);
   } else if (this->has_transition_()) {
     // TRANSITION
-    if (this->get_publish_()) {
+    if (publish) {
       ESP_LOGD(TAG, "  Transition length: %.1fs", this->transition_length_ / 1e3f);
     }
 
     // Special case: Transition and effect can be set when turning off
     if (this->has_effect_()) {
-      if (this->get_publish_()) {
+      if (publish) {
         ESP_LOGD(TAG, "  Effect: 'None'");
       }
       this->parent_->stop_effect_();
     }
 
-    this->parent_->start_transition_(v, this->transition_length_, this->get_publish_());
+    this->parent_->start_transition_(v, this->transition_length_, publish);
 
   } else if (this->has_effect_()) {
     // EFFECT
@@ -144,7 +150,7 @@ void LightCall::perform() {
       effect_s = this->parent_->effects_[this->effect_ - 1]->get_name().c_str();
     }
 
-    if (this->get_publish_()) {
+    if (publish) {
       ESP_LOGD(TAG, "  Effect: '%s'", effect_s);
     }
 
@@ -155,13 +161,13 @@ void LightCall::perform() {
     this->parent_->set_immediately_(v, true);
   } else {
     // INSTANT CHANGE
-    this->parent_->set_immediately_(v, this->get_publish_());
+    this->parent_->set_immediately_(v, publish);
   }
 
   if (!this->has_transition_()) {
     this->parent_->target_state_reached_callback_.call();
   }
-  if (this->get_publish_()) {
+  if (publish) {
     this->parent_->publish_state();
   }
   if (this->get_save_()) {
