@@ -86,17 +86,18 @@ void LightState::setup() {
 }
 void LightState::dump_config() {
   ESP_LOGCONFIG(TAG, "Light '%s'", this->get_name().c_str());
-  if (this->get_traits().supports_color_capability(ColorCapability::BRIGHTNESS)) {
+  auto traits = this->get_traits();
+  if (traits.supports_color_capability(ColorCapability::BRIGHTNESS)) {
     ESP_LOGCONFIG(TAG,
                   "  Default Transition Length: %.1fs\n"
                   "  Gamma Correct: %.2f",
                   this->default_transition_length_ / 1e3f, this->gamma_correct_);
   }
-  if (this->get_traits().supports_color_capability(ColorCapability::COLOR_TEMPERATURE)) {
+  if (traits.supports_color_capability(ColorCapability::COLOR_TEMPERATURE)) {
     ESP_LOGCONFIG(TAG,
                   "  Min Mireds: %.1f\n"
                   "  Max Mireds: %.1f",
-                  this->get_traits().get_min_mireds(), this->get_traits().get_max_mireds());
+                  traits.get_min_mireds(), traits.get_max_mireds());
   }
 }
 void LightState::loop() {
