@@ -68,7 +68,7 @@ static const LogString *color_mode_to_human(ColorMode color_mode) {
 
 // Helper to log percentage values
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
-static inline void log_percent(const char *name, const char *param, float value) {
+static void log_percent(const char *name, const char *param, float value) {
   ESP_LOGD(TAG, "  %s: %.0f%%", param, value * 100.0f);
 }
 #else
