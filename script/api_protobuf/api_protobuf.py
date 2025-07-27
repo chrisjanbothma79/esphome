@@ -624,18 +624,18 @@ class StringType(TypeInfo):
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # For SOURCE_CLIENT only messages, use the string field directly
         if not self._needs_encode:
-            return self._get_simple_size_calculation(name, force, "add_string")
+            return self._get_simple_size_calculation(name, force, "add_length")
 
         # Check if this is being called from a repeated field context
         # In that case, 'name' will be 'it' and we need to use the repeated version
         if name == "it":
-            # For repeated fields, we need to use add_string_repeated which includes field ID
+            # For repeated fields, we need to use add_length_repeated which includes field ID
             field_id_size = self.calculate_field_id_size()
-            return f"size.add_string_repeated({field_id_size}, it);"
+            return f"size.add_length_repeated({field_id_size}, it.size());"
 
         # For messages that need encoding, use the StringRef size
         field_id_size = self.calculate_field_id_size()
-        return f"size.add_string({field_id_size}, this->{self.field_name}_ref_.size());"
+        return f"size.add_length({field_id_size}, this->{self.field_name}_ref_.size());"
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical string
@@ -770,7 +770,7 @@ class BytesType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return f"size.add_bytes({self.calculate_field_id_size()}, this->{self.field_name}_len_);"
+        return f"size.add_length({self.calculate_field_id_size()}, this->{self.field_name}_len_);"
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical bytes
@@ -846,10 +846,10 @@ class FixedArrayBytesType(TypeInfo):
 
         if force:
             # For repeated fields, always calculate size (no zero check)
-            return f"size.add_bytes_repeated({field_id_size}, {length_field});"
+            return f"size.add_length_repeated({field_id_size}, {length_field});"
         else:
-            # For non-repeated fields, add_bytes already checks for zero
-            return f"size.add_bytes({field_id_size}, {length_field});"
+            # For non-repeated fields, add_length already checks for zero
+            return f"size.add_length({field_id_size}, {length_field});"
 
     def get_estimated_size(self) -> int:
         # Estimate based on typical BLE advertisement size

@@ -39,8 +39,8 @@ void HelloResponse::encode(ProtoWriteBuffer buffer) const {
 void HelloResponse::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, this->api_version_major);
   size.add_uint32(1, this->api_version_minor);
-  size.add_string(1, this->server_info_ref_.size());
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->server_info_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 }
 bool ConnectRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
@@ -61,7 +61,7 @@ void AreaInfo::encode(ProtoWriteBuffer buffer) const {
 }
 void AreaInfo::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, this->area_id);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 }
 #endif
 #ifdef USE_DEVICES
@@ -72,7 +72,7 @@ void DeviceInfo::encode(ProtoWriteBuffer buffer) const {
 }
 void DeviceInfo::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, this->device_id);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
   size.add_uint32(1, this->area_id);
 }
 #endif
@@ -132,19 +132,19 @@ void DeviceInfoResponse::calculate_size(ProtoSize &size) const {
 #ifdef USE_API_PASSWORD
   size.add_bool(1, this->uses_password);
 #endif
-  size.add_string(1, this->name_ref_.size());
-  size.add_string(1, this->mac_address_ref_.size());
-  size.add_string(1, this->esphome_version_ref_.size());
-  size.add_string(1, this->compilation_time_ref_.size());
-  size.add_string(1, this->model_ref_.size());
+  size.add_length(1, this->name_ref_.size());
+  size.add_length(1, this->mac_address_ref_.size());
+  size.add_length(1, this->esphome_version_ref_.size());
+  size.add_length(1, this->compilation_time_ref_.size());
+  size.add_length(1, this->model_ref_.size());
 #ifdef USE_DEEP_SLEEP
   size.add_bool(1, this->has_deep_sleep);
 #endif
 #ifdef ESPHOME_PROJECT_NAME
-  size.add_string(1, this->project_name_ref_.size());
+  size.add_length(1, this->project_name_ref_.size());
 #endif
 #ifdef ESPHOME_PROJECT_NAME
-  size.add_string(1, this->project_version_ref_.size());
+  size.add_length(1, this->project_version_ref_.size());
 #endif
 #ifdef USE_WEBSERVER
   size.add_uint32(1, this->webserver_port);
@@ -152,16 +152,16 @@ void DeviceInfoResponse::calculate_size(ProtoSize &size) const {
 #ifdef USE_BLUETOOTH_PROXY
   size.add_uint32(1, this->bluetooth_proxy_feature_flags);
 #endif
-  size.add_string(1, this->manufacturer_ref_.size());
-  size.add_string(1, this->friendly_name_ref_.size());
+  size.add_length(1, this->manufacturer_ref_.size());
+  size.add_length(1, this->friendly_name_ref_.size());
 #ifdef USE_VOICE_ASSISTANT
   size.add_uint32(2, this->voice_assistant_feature_flags);
 #endif
 #ifdef USE_AREAS
-  size.add_string(2, this->suggested_area_ref_.size());
+  size.add_length(2, this->suggested_area_ref_.size());
 #endif
 #ifdef USE_BLUETOOTH_PROXY
-  size.add_string(2, this->bluetooth_mac_address_ref_.size());
+  size.add_length(2, this->bluetooth_mac_address_ref_.size());
 #endif
 #ifdef USE_API_NOISE
   size.add_bool(2, this->api_encryption_supported);
@@ -193,14 +193,14 @@ void ListEntitiesBinarySensorResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesBinarySensorResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->name_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
   size.add_bool(1, this->is_status_binary_sensor);
   size.add_bool(1, this->disabled_by_default);
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
 #ifdef USE_DEVICES
@@ -244,16 +244,16 @@ void ListEntitiesCoverResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesCoverResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
   size.add_bool(1, this->assumed_state);
   size.add_bool(1, this->supports_position);
   size.add_bool(1, this->supports_tilt);
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
   size.add_bool(1, this->disabled_by_default);
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
   size.add_bool(1, this->supports_stop);
@@ -339,21 +339,21 @@ void ListEntitiesFanResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesFanResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
   size.add_bool(1, this->supports_oscillation);
   size.add_bool(1, this->supports_speed);
   size.add_bool(1, this->supports_direction);
   size.add_int32(1, this->supported_speed_count);
   size.add_bool(1, this->disabled_by_default);
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
   if (!this->supported_preset_modes.empty()) {
     for (const auto &it : this->supported_preset_modes) {
-      size.add_string_repeated(1, it);
+      size.add_length_repeated(1, it.size());
     }
   }
 #ifdef USE_DEVICES
@@ -377,7 +377,7 @@ void FanStateResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(1, this->oscillating);
   size.add_uint32(1, static_cast<uint32_t>(this->direction));
   size.add_int32(1, this->speed_level);
-  size.add_string(1, this->preset_mode_ref_.size());
+  size.add_length(1, this->preset_mode_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -465,9 +465,9 @@ void ListEntitiesLightResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesLightResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
   if (!this->supported_color_modes.empty()) {
     for (const auto &it : this->supported_color_modes) {
       size.add_uint32_repeated(1, static_cast<uint32_t>(it));
@@ -477,12 +477,12 @@ void ListEntitiesLightResponse::calculate_size(ProtoSize &size) const {
   size.add_float(1, this->max_mireds);
   if (!this->effects.empty()) {
     for (const auto &it : this->effects) {
-      size.add_string_repeated(1, it);
+      size.add_length_repeated(1, it.size());
     }
   }
   size.add_bool(1, this->disabled_by_default);
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
 #ifdef USE_DEVICES
@@ -520,7 +520,7 @@ void LightStateResponse::calculate_size(ProtoSize &size) const {
   size.add_float(1, this->color_temperature);
   size.add_float(1, this->cold_white);
   size.add_float(1, this->warm_white);
-  size.add_string(1, this->effect_ref_.size());
+  size.add_length(1, this->effect_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -653,16 +653,16 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesSensorResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
-  size.add_string(1, this->unit_of_measurement_ref_.size());
+  size.add_length(1, this->unit_of_measurement_ref_.size());
   size.add_int32(1, this->accuracy_decimals);
   size.add_bool(1, this->force_update);
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
   size.add_uint32(1, static_cast<uint32_t>(this->state_class));
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
@@ -704,16 +704,16 @@ void ListEntitiesSwitchResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesSwitchResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->assumed_state);
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -774,15 +774,15 @@ void ListEntitiesTextSensorResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesTextSensorResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -797,7 +797,7 @@ void TextSensorStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void TextSensorStateResponse::calculate_size(ProtoSize &size) const {
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->state_ref_.size());
+  size.add_length(1, this->state_ref_.size());
   size.add_bool(1, this->missing_state);
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
@@ -823,7 +823,7 @@ void SubscribeLogsResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void SubscribeLogsResponse::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, static_cast<uint32_t>(this->level));
-  size.add_bytes(1, this->message_len_);
+  size.add_length(1, this->message_len_);
 }
 #ifdef USE_API_NOISE
 bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
@@ -844,8 +844,8 @@ void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(2, this->value_ref_);
 }
 void HomeassistantServiceMap::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->key_ref_.size());
-  size.add_string(1, this->value_ref_.size());
+  size.add_length(1, this->key_ref_.size());
+  size.add_length(1, this->value_ref_.size());
 }
 void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->service_ref_);
@@ -861,7 +861,7 @@ void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(5, this->is_event);
 }
 void HomeassistantServiceResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->service_ref_.size());
+  size.add_length(1, this->service_ref_.size());
   size.add_repeated_message(1, this->data);
   size.add_repeated_message(1, this->data_template);
   size.add_repeated_message(1, this->variables);
@@ -874,8 +874,8 @@ void SubscribeHomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const 
   buffer.encode_bool(3, this->once);
 }
 void SubscribeHomeAssistantStateResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->entity_id_ref_.size());
-  size.add_string(1, this->attribute_ref_.size());
+  size.add_length(1, this->entity_id_ref_.size());
+  size.add_length(1, this->attribute_ref_.size());
   size.add_bool(1, this->once);
 }
 bool HomeAssistantStateResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
@@ -913,7 +913,7 @@ void ListEntitiesServicesArgument::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, static_cast<uint32_t>(this->type));
 }
 void ListEntitiesServicesArgument::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
   size.add_uint32(1, static_cast<uint32_t>(this->type));
 }
 void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
@@ -924,7 +924,7 @@ void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void ListEntitiesServicesResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
   size.add_fixed32(1, this->key);
   size.add_repeated_message(1, this->args);
 }
@@ -1013,12 +1013,12 @@ void ListEntitiesCameraResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesCameraResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
   size.add_bool(1, this->disabled_by_default);
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
 #ifdef USE_DEVICES
@@ -1035,7 +1035,7 @@ void CameraImageResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void CameraImageResponse::calculate_size(ProtoSize &size) const {
   size.add_fixed32(1, this->key);
-  size.add_bytes(1, this->data_len_);
+  size.add_length(1, this->data_len_);
   size.add_bool(1, this->done);
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
@@ -1099,9 +1099,9 @@ void ListEntitiesClimateResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesClimateResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
   size.add_bool(1, this->supports_current_temperature);
   size.add_bool(1, this->supports_two_point_target_temperature);
   if (!this->supported_modes.empty()) {
@@ -1125,7 +1125,7 @@ void ListEntitiesClimateResponse::calculate_size(ProtoSize &size) const {
   }
   if (!this->supported_custom_fan_modes.empty()) {
     for (const auto &it : this->supported_custom_fan_modes) {
-      size.add_string_repeated(1, it);
+      size.add_length_repeated(1, it.size());
     }
   }
   if (!this->supported_presets.empty()) {
@@ -1135,12 +1135,12 @@ void ListEntitiesClimateResponse::calculate_size(ProtoSize &size) const {
   }
   if (!this->supported_custom_presets.empty()) {
     for (const auto &it : this->supported_custom_presets) {
-      size.add_string_repeated(2, it);
+      size.add_length_repeated(2, it.size());
     }
   }
   size.add_bool(2, this->disabled_by_default);
 #ifdef USE_ENTITY_ICON
-  size.add_string(2, this->icon_ref_.size());
+  size.add_length(2, this->icon_ref_.size());
 #endif
   size.add_uint32(2, static_cast<uint32_t>(this->entity_category));
   size.add_float(2, this->visual_current_temperature_step);
@@ -1181,9 +1181,9 @@ void ClimateStateResponse::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, static_cast<uint32_t>(this->action));
   size.add_uint32(1, static_cast<uint32_t>(this->fan_mode));
   size.add_uint32(1, static_cast<uint32_t>(this->swing_mode));
-  size.add_string(1, this->custom_fan_mode_ref_.size());
+  size.add_length(1, this->custom_fan_mode_ref_.size());
   size.add_uint32(1, static_cast<uint32_t>(this->preset));
-  size.add_string(1, this->custom_preset_ref_.size());
+  size.add_length(1, this->custom_preset_ref_.size());
   size.add_float(1, this->current_humidity);
   size.add_float(1, this->target_humidity);
 #ifdef USE_DEVICES
@@ -1301,20 +1301,20 @@ void ListEntitiesNumberResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesNumberResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_float(1, this->min_value);
   size.add_float(1, this->max_value);
   size.add_float(1, this->step);
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
-  size.add_string(1, this->unit_of_measurement_ref_.size());
+  size.add_length(1, this->unit_of_measurement_ref_.size());
   size.add_uint32(1, static_cast<uint32_t>(this->mode));
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -1379,15 +1379,15 @@ void ListEntitiesSelectResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesSelectResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   if (!this->options.empty()) {
     for (const auto &it : this->options) {
-      size.add_string_repeated(1, it);
+      size.add_length_repeated(1, it.size());
     }
   }
   size.add_bool(1, this->disabled_by_default);
@@ -1406,7 +1406,7 @@ void SelectStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void SelectStateResponse::calculate_size(ProtoSize &size) const {
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->state_ref_.size());
+  size.add_length(1, this->state_ref_.size());
   size.add_bool(1, this->missing_state);
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
@@ -1465,16 +1465,16 @@ void ListEntitiesSirenResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesSirenResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   if (!this->tones.empty()) {
     for (const auto &it : this->tones) {
-      size.add_string_repeated(1, it);
+      size.add_length_repeated(1, it.size());
     }
   }
   size.add_bool(1, this->supports_duration);
@@ -1571,18 +1571,18 @@ void ListEntitiesLockResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesLockResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
   size.add_bool(1, this->assumed_state);
   size.add_bool(1, this->supports_open);
   size.add_bool(1, this->requires_code);
-  size.add_string(1, this->code_format_ref_.size());
+  size.add_length(1, this->code_format_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -1656,15 +1656,15 @@ void ListEntitiesButtonResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesButtonResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -1701,7 +1701,7 @@ void MediaPlayerSupportedFormat::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(5, this->sample_bytes);
 }
 void MediaPlayerSupportedFormat::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->format_ref_.size());
+  size.add_length(1, this->format_ref_.size());
   size.add_uint32(1, this->sample_rate);
   size.add_uint32(1, this->num_channels);
   size.add_uint32(1, static_cast<uint32_t>(this->purpose));
@@ -1725,11 +1725,11 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesMediaPlayerResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
@@ -1832,7 +1832,7 @@ void BluetoothLERawAdvertisement::calculate_size(ProtoSize &size) const {
   size.add_uint64(1, this->address);
   size.add_sint32(1, this->rssi);
   size.add_uint32(1, this->address_type);
-  size.add_bytes(1, this->data_len);
+  size.add_length(1, this->data_len);
 }
 void BluetoothLERawAdvertisementsResponse::encode(ProtoWriteBuffer buffer) const {
   for (auto &it : this->advertisements) {
@@ -1956,7 +1956,7 @@ void BluetoothGATTReadResponse::encode(ProtoWriteBuffer buffer) const {
 void BluetoothGATTReadResponse::calculate_size(ProtoSize &size) const {
   size.add_uint64(1, this->address);
   size.add_uint32(1, this->handle);
-  size.add_bytes(1, this->data_len_);
+  size.add_length(1, this->data_len_);
 }
 bool BluetoothGATTWriteRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -2044,7 +2044,7 @@ void BluetoothGATTNotifyDataResponse::encode(ProtoWriteBuffer buffer) const {
 void BluetoothGATTNotifyDataResponse::calculate_size(ProtoSize &size) const {
   size.add_uint64(1, this->address);
   size.add_uint32(1, this->handle);
-  size.add_bytes(1, this->data_len_);
+  size.add_length(1, this->data_len_);
 }
 void BluetoothConnectionsFreeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(1, this->free);
@@ -2170,10 +2170,10 @@ void VoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantRequest::calculate_size(ProtoSize &size) const {
   size.add_bool(1, this->start);
-  size.add_string(1, this->conversation_id_ref_.size());
+  size.add_length(1, this->conversation_id_ref_.size());
   size.add_uint32(1, this->flags);
   size.add_message_object(1, this->audio_settings);
-  size.add_string(1, this->wake_word_phrase_ref_.size());
+  size.add_length(1, this->wake_word_phrase_ref_.size());
 }
 bool VoiceAssistantResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -2247,7 +2247,7 @@ void VoiceAssistantAudio::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->end);
 }
 void VoiceAssistantAudio::calculate_size(ProtoSize &size) const {
-  size.add_bytes(1, this->data_len_);
+  size.add_length(1, this->data_len_);
   size.add_bool(1, this->end);
 }
 bool VoiceAssistantTimerEventResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
@@ -2318,11 +2318,11 @@ void VoiceAssistantWakeWord::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void VoiceAssistantWakeWord::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->id_ref_.size());
-  size.add_string(1, this->wake_word_ref_.size());
+  size.add_length(1, this->id_ref_.size());
+  size.add_length(1, this->wake_word_ref_.size());
   if (!this->trained_languages.empty()) {
     for (const auto &it : this->trained_languages) {
-      size.add_string_repeated(1, it);
+      size.add_length_repeated(1, it.size());
     }
   }
 }
@@ -2339,7 +2339,7 @@ void VoiceAssistantConfigurationResponse::calculate_size(ProtoSize &size) const 
   size.add_repeated_message(1, this->available_wake_words);
   if (!this->active_wake_words.empty()) {
     for (const auto &it : this->active_wake_words) {
-      size.add_string_repeated(1, it);
+      size.add_length_repeated(1, it.size());
     }
   }
   size.add_uint32(1, this->max_active_wake_words);
@@ -2373,11 +2373,11 @@ void ListEntitiesAlarmControlPanelResponse::encode(ProtoWriteBuffer buffer) cons
 #endif
 }
 void ListEntitiesAlarmControlPanelResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
@@ -2457,17 +2457,17 @@ void ListEntitiesTextResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesTextResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
   size.add_uint32(1, this->min_length);
   size.add_uint32(1, this->max_length);
-  size.add_string(1, this->pattern_ref_.size());
+  size.add_length(1, this->pattern_ref_.size());
   size.add_uint32(1, static_cast<uint32_t>(this->mode));
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
@@ -2483,7 +2483,7 @@ void TextStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void TextStateResponse::calculate_size(ProtoSize &size) const {
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->state_ref_.size());
+  size.add_length(1, this->state_ref_.size());
   size.add_bool(1, this->missing_state);
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
@@ -2537,11 +2537,11 @@ void ListEntitiesDateResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesDateResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
@@ -2616,11 +2616,11 @@ void ListEntitiesTimeResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesTimeResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
@@ -2699,18 +2699,18 @@ void ListEntitiesEventResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesEventResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
   if (!this->event_types.empty()) {
     for (const auto &it : this->event_types) {
-      size.add_string_repeated(1, it);
+      size.add_length_repeated(1, it.size());
     }
   }
 #ifdef USE_DEVICES
@@ -2726,7 +2726,7 @@ void EventResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void EventResponse::calculate_size(ProtoSize &size) const {
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->event_type_ref_.size());
+  size.add_length(1, this->event_type_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -2751,15 +2751,15 @@ void ListEntitiesValveResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesValveResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
   size.add_bool(1, this->assumed_state);
   size.add_bool(1, this->supports_position);
   size.add_bool(1, this->supports_stop);
@@ -2830,11 +2830,11 @@ void ListEntitiesDateTimeResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesDateTimeResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
@@ -2900,15 +2900,15 @@ void ListEntitiesUpdateResponse::encode(ProtoWriteBuffer buffer) const {
 #endif
 }
 void ListEntitiesUpdateResponse::calculate_size(ProtoSize &size) const {
-  size.add_string(1, this->object_id_ref_.size());
+  size.add_length(1, this->object_id_ref_.size());
   size.add_fixed32(1, this->key);
-  size.add_string(1, this->name_ref_.size());
+  size.add_length(1, this->name_ref_.size());
 #ifdef USE_ENTITY_ICON
-  size.add_string(1, this->icon_ref_.size());
+  size.add_length(1, this->icon_ref_.size());
 #endif
   size.add_bool(1, this->disabled_by_default);
   size.add_uint32(1, static_cast<uint32_t>(this->entity_category));
-  size.add_string(1, this->device_class_ref_.size());
+  size.add_length(1, this->device_class_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif
@@ -2934,11 +2934,11 @@ void UpdateStateResponse::calculate_size(ProtoSize &size) const {
   size.add_bool(1, this->in_progress);
   size.add_bool(1, this->has_progress);
   size.add_float(1, this->progress);
-  size.add_string(1, this->current_version_ref_.size());
-  size.add_string(1, this->latest_version_ref_.size());
-  size.add_string(1, this->title_ref_.size());
-  size.add_string(1, this->release_summary_ref_.size());
-  size.add_string(1, this->release_url_ref_.size());
+  size.add_length(1, this->current_version_ref_.size());
+  size.add_length(1, this->latest_version_ref_.size());
+  size.add_length(1, this->title_ref_.size());
+  size.add_length(1, this->release_summary_ref_.size());
+  size.add_length(1, this->release_url_ref_.size());
 #ifdef USE_DEVICES
   size.add_uint32(1, this->device_id);
 #endif

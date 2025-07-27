@@ -686,32 +686,10 @@ class ProtoSize {
   // sint64 type is not supported by ESPHome API to reduce overhead on embedded systems
 
   /**
-   * @brief Calculates and adds the size of a string field using length
+   * @brief Calculates and adds the size of a length-delimited field (string/bytes) to the total message size
    */
-  inline void add_string(uint32_t field_id_size, size_t len) {
-    // Skip calculation if string is empty
-    if (len == 0) {
-      return;  // No need to update total_size_
-    }
-
-    // Field ID + length varint + string bytes
-    total_size_ += field_id_size + varint(static_cast<uint32_t>(len)) + static_cast<uint32_t>(len);
-  }
-
-  /**
-   * @brief Calculates and adds the size of a string/bytes field to the total message size (repeated field version)
-   */
-  inline void add_string_repeated(uint32_t field_id_size, const std::string &str) {
-    // Always calculate size for repeated fields
-    const uint32_t str_size = static_cast<uint32_t>(str.size());
-    total_size_ += field_id_size + varint(str_size) + str_size;
-  }
-
-  /**
-   * @brief Calculates and adds the size of a bytes field to the total message size
-   */
-  inline void add_bytes(uint32_t field_id_size, size_t len) {
-    // Skip calculation if bytes is empty
+  inline void add_length(uint32_t field_id_size, size_t len) {
+    // Skip calculation if length is zero
     if (len == 0) {
       return;  // No need to update total_size_
     }
@@ -721,9 +699,10 @@ class ProtoSize {
   }
 
   /**
-   * @brief Calculates and adds the size of a bytes field to the total message size (repeated field version)
+   * @brief Calculates and adds the size of a length-delimited field (string/bytes) to the total message size (repeated
+   * field version)
    */
-  inline void add_bytes_repeated(uint32_t field_id_size, size_t len) {
+  inline void add_length_repeated(uint32_t field_id_size, size_t len) {
     // Always calculate size for repeated fields
     // Field ID + length varint + data bytes
     total_size_ += field_id_size + varint(static_cast<uint32_t>(len)) + static_cast<uint32_t>(len);
