@@ -13,7 +13,13 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 
 from .boards import detect_board_series
-from .const import CONF_BOARD_SERIES, KEY_BOARD, KEY_STM32, KEY_UART_INSTANCES
+from .const import (
+    CONF_BOARD_SERIES,
+    KEY_BOARD,
+    KEY_GPIO_CLOCK_ENABLED,
+    KEY_STM32,
+    KEY_UART_INSTANCES,
+)
 from .gpio import stm32_pin_to_code  # noqa
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,6 +43,7 @@ def set_core_data(config):
         "UART5",
         "LPUART1",
     ]
+    CORE.data[KEY_STM32][KEY_GPIO_CLOCK_ENABLED] = set()
     return config
 
 
