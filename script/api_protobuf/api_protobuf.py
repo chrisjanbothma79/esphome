@@ -1236,7 +1236,7 @@ class RepeatedTypeInfo(TypeInfo):
         if isinstance(self._ti, MessageType):
             # For repeated messages, use the dedicated helper that handles iteration internally
             field_id_size = self._ti.calculate_field_id_size()
-            o = f"size.add_force_message({field_id_size}, {name});"
+            o = f"size.add_repeated_message({field_id_size}, {name});"
             return o
 
         # For other repeated types, use the underlying type's size calculation with force=True

@@ -771,13 +771,13 @@ class ProtoSize {
    * @param messages Vector of message objects
    */
   template<typename MessageType>
-  inline void add_force_message(uint32_t field_id_size, const std::vector<MessageType> &messages) {
+  inline void add_repeated_message(uint32_t field_id_size, const std::vector<MessageType> &messages) {
     // Skip if the vector is empty
     if (messages.empty()) {
       return;
     }
 
-    // Use the force version for all messages
+    // Use the force version for all messages in the repeated field
     for (const auto &message : messages) {
       add_message_object_force(field_id_size, message);
     }
