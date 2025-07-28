@@ -22,10 +22,6 @@
 #include "esphome/components/select/select_traits.h"
 #endif
 
-#ifdef USE_MEDIA_PLAYER
-#include "esphome/components/media_player/media_player_traits.h"
-#endif
-
 // Standard library includes that might be needed
 #include <set>
 #include <vector>
