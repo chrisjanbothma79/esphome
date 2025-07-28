@@ -141,6 +141,7 @@ async def setup_display_core_(var, config):
     if config.get(CONF_SHOW_TEST_CARD):
         cg.add(var.show_test_card())
 
+
 async def register_display(var, config):
     await cg.register_component(var, config)
     await setup_display_core_(var, config)
