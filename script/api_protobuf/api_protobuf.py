@@ -2132,8 +2132,6 @@ def main() -> None:
 
 #include "proto.h"
 #include "api_pb2_includes.h"
-
-#include <set>
 """
 
     content += """
