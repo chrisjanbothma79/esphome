@@ -839,13 +839,14 @@ bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthD
 void NoiseEncryptionSetKeyResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
 void NoiseEncryptionSetKeyResponse::calculate_size(ProtoSize &size) const { size.add_bool(1, this->success); }
 #endif
+#ifdef USE_API_HOMEASSISTANT_SERVICES
 void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->key_ref_);
-  buffer.encode_string(2, this->value_ref_);
+  buffer.encode_string(2, this->value);
 }
 void HomeassistantServiceMap::calculate_size(ProtoSize &size) const {
   size.add_length(1, this->key_ref_.size());
-  size.add_length(1, this->value_ref_.size());
+  size.add_length(1, this->value.size());
 }
 void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->service_ref_);
@@ -867,6 +868,7 @@ void HomeassistantServiceResponse::calculate_size(ProtoSize &size) const {
   size.add_repeated_message(1, this->variables);
   size.add_bool(1, this->is_event);
 }
+#endif
 #ifdef USE_API_HOMEASSISTANT_STATES
 void SubscribeHomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->entity_id_ref_);
