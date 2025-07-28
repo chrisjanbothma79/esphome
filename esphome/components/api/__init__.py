@@ -53,7 +53,6 @@ SERVICE_ARG_NATIVE_TYPES = {
 CONF_ENCRYPTION = "encryption"
 CONF_BATCH_DELAY = "batch_delay"
 CONF_CUSTOM_SERVICES = "custom_services"
-CONF_HOMEASSISTANT_STATES = "homeassistant_states"
 CONF_HOMEASSISTANT_SERVICES = "homeassistant_services"
 CONF_HOMEASSISTANT_STATES = "homeassistant_states"
 
@@ -121,6 +120,7 @@ CONFIG_SCHEMA = cv.All(
                 cv.Range(max=cv.TimePeriod(milliseconds=65535)),
             ),
             cv.Optional(CONF_CUSTOM_SERVICES, default=False): cv.boolean,
+            cv.Optional(CONF_HOMEASSISTANT_SERVICES, default=False): cv.boolean,
             cv.Optional(CONF_HOMEASSISTANT_STATES, default=False): cv.boolean,
             cv.Optional(CONF_HOMEASSISTANT_SERVICES, default=False): cv.boolean,
             cv.Optional(CONF_HOMEASSISTANT_STATES, default=False): cv.boolean,
@@ -151,10 +151,6 @@ async def to_code(config):
     # Set USE_API_SERVICES if any services are enabled
     if config.get(CONF_ACTIONS) or config[CONF_CUSTOM_SERVICES]:
         cg.add_define("USE_API_SERVICES")
-
-    # Set USE_API_HOMEASSISTANT_STATES if enabled
-    if config[CONF_HOMEASSISTANT_STATES]:
-        cg.add_define("USE_API_HOMEASSISTANT_STATES")
 
     if config[CONF_HOMEASSISTANT_SERVICES]:
         cg.add_define("USE_API_HOMEASSISTANT_SERVICES")
