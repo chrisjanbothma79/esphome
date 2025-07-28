@@ -1044,15 +1044,16 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to epoch seconds
-    ESPTime date_time{};
-    date_time.year = obj->year;
-    date_time.month = obj->month;
-    date_time.day_of_month = obj->day;
-    date_time.hour = 0;
-    date_time.minute = 0;
-    date_time.second = 0;
-    date_time.recalc_timestamp_utc();
-    stream->print(date_time.timestamp);
+    ESPTime date_{};
+    // date_time.year = obj->year;
+    // date_time.month = obj->month;
+    // date_time.day_of_month = obj->day;
+    // date_time.hour = 0;
+    // date_time.minute = 0;
+    // date_time.second = 0;
+    date_ = obj->state_as_esptime();
+    // date_.recalc_timestamp_utc();
+    stream->print(date_.timestamp);
     stream->print(F("\n"));
   } else {
     // Invalid state
@@ -1096,8 +1097,8 @@ void PrometheusHandler::time_row_(AsyncResponseStream *stream, datetime::TimeEnt
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to seconds since midnight
-    uint32_t seconds_since_midnight = obj->hour * 3600 + obj->minute * 60 + obj->second;
-    stream->print(seconds_since_midnight);
+    uint32_t seconds_since_midnight_ = obj->hour * 3600 + obj->minute * 60 + obj->second;
+    stream->print(seconds_since_midnight_);
     stream->print(F("\n"));
   } else {
     // Invalid state
@@ -1141,15 +1142,16 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to epoch seconds
-    ESPTime date_time{};
-    date_time.year = obj->year;
-    date_time.month = obj->month;
-    date_time.day_of_month = obj->day;
-    date_time.hour = obj->hour;
-    date_time.minute = obj->minute;
-    date_time.second = obj->second;
-    date_time.recalc_timestamp_utc();
-    stream->print(date_time.timestamp);
+    ESPTime date_time_{};
+    // date_time.year = obj->year;
+    // date_time.month = obj->month;
+    // date_time.day_of_month = obj->day;
+    // date_time.hour = obj->hour;
+    // date_time.minute = obj->minute;
+    // date_time.second = obj->second;
+    date_time_ = obj->state_as_esptime();
+    // date_time_.recalc_timestamp_utc();
+    stream->print(date_time_.timestamp);
     stream->print(F("\n"));
   } else {
     // Invalid state
