@@ -68,7 +68,7 @@ void TFLuna::setup() {
     return;
   }
   auto version = str_sprintf("%d.%d.%d", major, minor, revision);
-  ESP_LOGI(TAG, "TFLuna Firmware: %s", version.c_str());
+  ESP_LOGI(TAG, "Firmware: %s", version.c_str());
 
 #ifdef USE_TEXT_SENSOR
   if (this->version_text_sensor_ != nullptr) {
