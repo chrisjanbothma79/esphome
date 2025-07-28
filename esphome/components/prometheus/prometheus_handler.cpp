@@ -1044,15 +1044,15 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to epoch seconds
-    struct tm timeinfo = {};
-    timeinfo.tm_year = obj->year - 1900;
-    timeinfo.tm_mon = obj->month - 1;
-    timeinfo.tm_mday = obj->day;
-    timeinfo.tm_hour = 0;
-    timeinfo.tm_min = 0;
-    timeinfo.tm_sec = 0;
-    time_t timestamp = mktime(&timeinfo);
-    stream->print(static_cast<int64_t>(timestamp));
+    struct tm timeinfo_ = {};
+    timeinfo_.tm_year = obj->year - 1900;
+    timeinfo_.tm_mon = obj->month - 1;
+    timeinfo_.tm_mday = obj->day;
+    timeinfo_.tm_hour = 0;
+    timeinfo_.tm_min = 0;
+    timeinfo_.tm_sec = 0;
+    time_t timestamp_ = mktime(&timeinfo_);
+    stream->print(static_cast<int64_t>(timestamp_));
     stream->print(F("\n"));
   } else {
     // Invalid state
@@ -1141,15 +1141,15 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to epoch seconds
-    struct tm timeinfo = {};
-    timeinfo.tm_year = obj->year - 1900;
-    timeinfo.tm_mon = obj->month - 1;
-    timeinfo.tm_mday = obj->day;
-    timeinfo.tm_hour = obj->hour;
-    timeinfo.tm_min = obj->minute;
-    timeinfo.tm_sec = obj->second;
-    time_t timestamp = mktime(&timeinfo);
-    stream->print(static_cast<int64_t>(timestamp));
+    struct tm timeinfo_ = {};
+    timeinfo_.tm_year = obj->year - 1900;
+    timeinfo_.tm_mon = obj->month - 1;
+    timeinfo_.tm_mday = obj->day;
+    timeinfo_.tm_hour = obj->hour;
+    timeinfo_.tm_min = obj->minute;
+    timeinfo_.tm_sec = obj->second;
+    time_t timestamp_ = mktime(&timeinfo_);
+    stream->print(static_cast<int64_t>(timestamp_));
     stream->print(F("\n"));
   } else {
     // Invalid state
