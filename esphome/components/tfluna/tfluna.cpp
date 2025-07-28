@@ -108,7 +108,7 @@ void TFLuna::update() {
   uint16_t timestamp = timestamp_low + timestamp_high * 256;
   static uint16_t previous_timestamp = 0;
   if (timestamp == previous_timestamp) {
-    this->status_set_warning("Timestamp has not changed; the device must have hung. Restarting...");
+    this->status_set_warning("Hung device, restarting...");
     this->restart();
     return;
   }
