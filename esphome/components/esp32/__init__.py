@@ -31,7 +31,7 @@ from esphome.const import (
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
     PLATFORM_ESP32,
-    CoreModel,
+    ThreadModel,
     __version__,
 )
 from esphome.core import CORE, HexInt, TimePeriod
@@ -714,7 +714,7 @@ async def to_code(config):
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
     cg.add_define("ESPHOME_VARIANT", VARIANT_FRIENDLY[config[CONF_VARIANT]])
-    cg.add_define(CoreModel.MULTI_ATOMICS)
+    cg.add_define(ThreadModel.MULTI_ATOMICS)
 
     cg.add_platformio_option("lib_ldf_mode", "off")
     cg.add_platformio_option("lib_compat_mode", "strict")
@@ -953,14 +953,16 @@ def _write_idf_component_yml():
 
 # Called by writer.py
 def copy_files():
-    if CORE.using_arduino:
-        if "partitions.csv" not in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES]:
-            write_file_if_changed(
-                CORE.relative_build_path("partitions.csv"),
-                get_arduino_partition_csv(
-                    CORE.platformio_options.get("board_upload.flash_size")
-                ),
-            )
+    if (
+        CORE.using_arduino
+        and "partitions.csv" not in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES]
+    ):
+        write_file_if_changed(
+            CORE.relative_build_path("partitions.csv"),
+            get_arduino_partition_csv(
+                CORE.platformio_options.get("board_upload.flash_size")
+            ),
+        )
     if CORE.using_esp_idf:
         _write_sdkconfig()
         _write_idf_component_yml()
@@ -980,7 +982,7 @@ def copy_files():
             __version__,
         )
 
-    for _, file in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES].items():
+    for file in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES].values():
         if file[KEY_PATH].startswith("http"):
             import requests
 

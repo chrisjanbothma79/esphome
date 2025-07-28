@@ -6,8 +6,7 @@
 #ifdef USE_API_SERVICES
 #include "user_services.h"
 #endif
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 #ifdef USE_API_SERVICES
 template<typename T, typename... Ts> class CustomAPIDeviceService : public UserServiceBase<Ts...> {
@@ -84,6 +83,7 @@ class CustomAPIDevice {
   }
 #endif
 
+#ifdef USE_API_HOMEASSISTANT_STATES
   /** Subscribe to the state (or attribute state) of an entity from Home Assistant.
    *
    * Usage:
@@ -135,6 +135,7 @@ class CustomAPIDevice {
     auto f = std::bind(callback, (T *) this, entity_id, std::placeholders::_1);
     global_api_server->subscribe_home_assistant_state(entity_id, optional<std::string>(attribute), f);
   }
+#endif
 
   /** Call a Home Assistant service from ESPHome.
    *
@@ -222,6 +223,5 @@ class CustomAPIDevice {
   }
 };
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
 #endif
