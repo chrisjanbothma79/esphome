@@ -1,6 +1,7 @@
 #ifdef USE_ESP32_VARIANT_ESP32S3
 #include "mipi_rgb.h"
 #include "esphome/core/log.h"
+#include "esphome/core/hal.h"
 #include "esp_lcd_panel_rgb.h"
 
 namespace esphome {
@@ -33,12 +34,94 @@ void MipiRgb::setup_enables_() {
   }
 }
 
+#ifdef USE_SPI
 void MipiRgbSpi::setup() {
   this->setup_enables_();
   this->spi_setup();
   this->write_init_sequence_();
   this->common_setup_();
 }
+void MipiRgbSpi::write_command_(uint8_t value) {
+  this->enable();
+  if (this->dc_pin_ == nullptr) {
+    this->write(value, 9);
+  } else {
+    this->dc_pin_->digital_write(false);
+    this->write_byte(value);
+    this->dc_pin_->digital_write(true);
+  }
+  this->disable();
+}
+
+void MipiRgbSpi::write_data_(uint8_t value) {
+  this->enable();
+  if (this->dc_pin_ == nullptr) {
+    this->write(value | 0x100, 9);
+  } else {
+    this->dc_pin_->digital_write(true);
+    this->write_byte(value);
+  }
+  this->disable();
+}
+
+/**
+ * this relies upon the init sequence being well-formed, which is guaranteed by the Python init code.
+ */
+
+void MipiRgbSpi::write_init_sequence_() {
+  size_t index = 0;
+  auto &vec = this->init_sequence_;
+  while (index != vec.size()) {
+    if (vec.size() - index < 2) {
+      this->mark_failed("Malformed init sequence");
+      return;
+    }
+    uint8_t cmd = vec[index++];
+    uint8_t x = vec[index++];
+    if (x == DELAY_FLAG) {
+      ESP_LOGD(TAG, "Delay %dms", cmd);
+      delay(cmd);
+    } else {
+      uint8_t num_args = x & 0x7F;
+      if (vec.size() - index < num_args) {
+        this->mark_failed("Malformed init sequence");
+        return;
+      }
+      if (cmd == SLEEP_OUT) {
+        delay(120);  // NOLINT
+      }
+      const auto *ptr = vec.data() + index;
+      ESP_LOGD(TAG, "Write command %02X, length %d, byte(s) %s", cmd, num_args,
+               format_hex_pretty(ptr, num_args, '.', false).c_str());
+      index += num_args;
+      this->write_command_(cmd);
+      while (num_args-- != 0)
+        this->write_data_(*ptr++);
+      if (cmd == SLEEP_OUT)
+        delay(10);
+    }
+  }
+  // this->spi_teardown();  // SPI not needed after this
+  this->init_sequence_.clear();
+  delay(10);
+}
+
+void MipiRgbSpi::dump_config() {
+  MipiRgb::dump_config();
+  LOG_PIN("  CS Pin: ", this->cs_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
+  ESP_LOGCONFIG(TAG,
+                "  SPI Data rate: %uMHz"
+                "\n  Mirror X: %s"
+                "\n  Mirror Y: %s"
+                "\n  Swap X/Y: %s"
+                "\n  Color Order: %s",
+                (unsigned) (this->data_rate_ / 1000000), YESNO(this->madctl_ & (MADCTL_XFLIP | MADCTL_MX)),
+                YESNO(this->madctl_ & (MADCTL_YFLIP | MADCTL_MY | MADCTL_ML)), YESNO(this->madctl_ & MADCTL_MV),
+                this->madctl_ & MADCTL_BGR ? "BGR" : "RGB");
+}
+
+#endif  // USE_SPI
 
 void MipiRgb::setup() {
   this->setup_enables_();
@@ -248,71 +331,6 @@ int MipiRgb::get_height() {
   }
 }
 
-void MipiRgbSpi::write_command_(uint8_t value) {
-  this->enable();
-  if (this->dc_pin_ == nullptr) {
-    this->write(value, 9);
-  } else {
-    this->dc_pin_->digital_write(false);
-    this->write_byte(value);
-    this->dc_pin_->digital_write(true);
-  }
-  this->disable();
-}
-
-void MipiRgbSpi::write_data_(uint8_t value) {
-  this->enable();
-  if (this->dc_pin_ == nullptr) {
-    this->write(value | 0x100, 9);
-  } else {
-    this->dc_pin_->digital_write(true);
-    this->write_byte(value);
-  }
-  this->disable();
-}
-
-/**
- * this relies upon the init sequence being well-formed, which is guaranteed by the Python init code.
- */
-
-void MipiRgbSpi::write_init_sequence_() {
-  size_t index = 0;
-  auto &vec = this->init_sequence_;
-  while (index != vec.size()) {
-    if (vec.size() - index < 2) {
-      this->mark_failed("Malformed init sequence");
-      return;
-    }
-    uint8_t cmd = vec[index++];
-    uint8_t x = vec[index++];
-    if (x == DELAY_FLAG) {
-      ESP_LOGD(TAG, "Delay %dms", cmd);
-      delay(cmd);
-    } else {
-      uint8_t num_args = x & 0x7F;
-      if (vec.size() - index < num_args) {
-        this->mark_failed("Malformed init sequence");
-        return;
-      }
-      if (cmd == SLEEP_OUT) {
-        delay(120);  // NOLINT
-      }
-      const auto *ptr = vec.data() + index;
-      ESP_LOGD(TAG, "Write command %02X, length %d, byte(s) %s", cmd, num_args,
-               format_hex_pretty(ptr, num_args, '.', false).c_str());
-      index += num_args;
-      this->write_command_(cmd);
-      while (num_args-- != 0)
-        this->write_data_(*ptr++);
-      if (cmd == SLEEP_OUT)
-        delay(10);
-    }
-  }
-  // this->spi_teardown();  // SPI not needed after this
-  this->init_sequence_.clear();
-  delay(10);
-}
-
 static std::string get_pin_name(GPIOPin *pin) {
   if (pin == nullptr)
     return "None";
@@ -363,21 +381,6 @@ void MipiRgb::dump_config() {
     this->dump_pins_(0, 3, "Green", 3);
     this->dump_pins_(3, 8, "Blue", 0);
   }
-}
-
-void MipiRgbSpi::dump_config() {
-  MipiRgb::dump_config();
-  LOG_PIN("  CS Pin: ", this->cs_);
-  LOG_PIN("  DC Pin: ", this->dc_pin_);
-  ESP_LOGCONFIG(TAG,
-                "  SPI Data rate: %uMHz"
-                "\n  Mirror X: %s"
-                "\n  Mirror Y: %s"
-                "\n  Swap X/Y: %s"
-                "\n  Color Order: %s",
-                (unsigned) (this->data_rate_ / 1000000), YESNO(this->madctl_ & (MADCTL_XFLIP | MADCTL_MX)),
-                YESNO(this->madctl_ & (MADCTL_YFLIP | MADCTL_MY | MADCTL_ML)), YESNO(this->madctl_ & MADCTL_MV),
-                this->madctl_ & MADCTL_BGR ? "BGR" : "RGB");
 }
 
 }  // namespace mipi_rgb

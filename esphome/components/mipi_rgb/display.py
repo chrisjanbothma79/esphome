@@ -250,6 +250,10 @@ async def to_code(config):
     width, height, _offset_width, _offset_height = model.get_dimensions(config)
     var = cg.new_Pvariable(config[CONF_ID], width, height)
     cg.add(var.set_model(model.name))
+    if enable_pin := config.get(CONF_ENABLE_PIN):
+        enable = [await cg.gpio_pin_expression(pin) for pin in enable_pin]
+        cg.add(var.set_enable_pins(enable))
+
     if CONF_SPI_ID in config:
         await spi.register_spi_device(var, config)
         sequence, madctl = model.get_sequence(config)

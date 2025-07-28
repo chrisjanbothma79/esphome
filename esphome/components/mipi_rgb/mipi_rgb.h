@@ -1,10 +1,12 @@
 #pragma once
 
 #ifdef USE_ESP32_VARIANT_ESP32S3
-#include "esphome/core/component.h"
-#include "esphome/components/spi/spi.h"
+#include "esphome/core/gpio.h"
 #include "esphome/components/display/display.h"
 #include "esp_lcd_panel_ops.h"
+#ifdef USE_SPI
+#include "esphome/components/spi/spi.h"
+#endif
 
 namespace esphome {
 namespace mipi_rgb {
@@ -97,6 +99,8 @@ class MipiRgb : public display::Display {
 
   esp_lcd_panel_handle_t handle_{};
 };
+
+#ifdef USE_SPI
 class MipiRgbSpi : public MipiRgb,
                    public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                          spi::DATA_RATE_1MHZ> {
@@ -116,6 +120,7 @@ class MipiRgbSpi : public MipiRgb,
   GPIOPin *dc_pin_{nullptr};
   std::vector<uint8_t> init_sequence_;
 };
+#endif
 
 }  // namespace mipi_rgb
 }  // namespace esphome
