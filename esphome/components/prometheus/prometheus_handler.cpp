@@ -1044,7 +1044,10 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to epoch seconds
-    ESPTime date_time = obj->state_as_esptime();
+    ESPTime date_time{};
+    date_time.year = obj->year;
+    date_time.month = obj->month;
+    date_time.day_of_month = obj->day;
     date_time.hour = 0;
     date_time.minute = 0;
     date_time.second = 0;
@@ -1138,7 +1141,13 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to epoch seconds
-    ESPTime date_time = obj->state_as_esptime();
+    ESPTime date_time{};
+    date_time.year = obj->year;
+    date_time.month = obj->month;
+    date_time.day_of_month = obj->day;
+    date_time.hour = obj->hour;
+    date_time.minute = obj->minute;
+    date_time.second = obj->second;
     date_time.recalc_timestamp_utc();
     stream->print(date_time.timestamp);
     stream->print(F("\n"));
