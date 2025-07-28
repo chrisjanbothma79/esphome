@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_ROTATION,
     CONF_TO,
     CONF_TRIGGER_ID,
+    CONF_NEVER
 )
 from esphome.core import coroutine_with_priority
 
@@ -67,6 +68,13 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
     }
 ).extend(cv.polling_component_schema("1s"))
 
+def _validate_test_card(value):
+  if 'show_test_card' in value and value['show_test_card'] == True:
+    if 'update_interval' in value and value['update_interval'] == 0xFFFFFFFF:
+        raise cv.Invalid("You put `show_test_card: true` and `update_interval: never` in your config. This will not show the test card. If you want to see the test card, set `update_interval:` to something other than `never`.")
+  return value
+
+ 
 FULL_DISPLAY_SCHEMA = BASIC_DISPLAY_SCHEMA.extend(
     {
         cv.Optional(CONF_ROTATION): validate_rotation,
@@ -94,6 +102,9 @@ FULL_DISPLAY_SCHEMA = BASIC_DISPLAY_SCHEMA.extend(
         cv.Optional(CONF_SHOW_TEST_CARD): cv.boolean,
     }
 )
+FULL_DISPLAY_SCHEMA.add_extra(_validate_test_card)
+
+ 
 
 
 async def setup_display_core_(var, config):
@@ -127,14 +138,6 @@ async def setup_display_core_(var, config):
         await automation.build_automation(
             trigger, [(DisplayPagePtr, "from"), (DisplayPagePtr, "to")], conf
         )
-    if config.get(CONF_SHOW_TEST_CARD):
-        cg.add(var.show_test_card())
-        if (u_i := config.get("update_interval")) == "never":
-            _LOGGER = logging.getLogger(__name__)
-            _LOGGER.warning(
-                "You put `show_test_card: true` and `update_interval: never` in your config. This will not show the test card. If you want to see the test card, set `update_interval:` to something other than `never`."
-            )
-
 
 async def register_display(var, config):
     await cg.register_component(var, config)
