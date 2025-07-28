@@ -1,5 +1,5 @@
 """
-Test ESP32 configuration
+Test schema.extend functionality in esphome.config_validation.
 """
 
 from typing import Any
