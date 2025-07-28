@@ -7,7 +7,6 @@ from esphome.const import (
     CONF_FROM,
     CONF_ID,
     CONF_LAMBDA,
-    CONF_NEVER,
     CONF_PAGE_ID,
     CONF_PAGES,
     CONF_ROTATION,
