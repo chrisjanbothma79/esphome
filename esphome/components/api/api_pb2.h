@@ -8,8 +8,6 @@
 #include "proto.h"
 #include "api_pb2_includes.h"
 
-#include <set>
-
 namespace esphome::api {
 
 namespace enums {
