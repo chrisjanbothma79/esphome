@@ -1,10 +1,12 @@
 from esphome import automation
 from esphome.automation import Condition
 import esphome.codegen as cg
+from esphome.components.const import CONF_USE_PSRAM
 from esphome.components.esp32 import add_idf_sdkconfig_option, const, get_esp32_variant
 from esphome.components.network import IPAddress
 from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
+from esphome.config_validation import only_with_esp_idf
 from esphome.const import (
     CONF_AP,
     CONF_BSSID,
@@ -334,6 +336,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ON_DISCONNECT): automation.validate_automation(
                 single=True
             ),
+            cv.Optional(CONF_USE_PSRAM): cv.All(
+                only_with_esp_idf, cv.requires_component("psram"), cv.boolean
+            ),
         }
     ),
     _validate,
@@ -454,6 +459,8 @@ async def to_code(config):
         if config[CONF_ENABLE_RRM]:
             cg.add(var.set_rrm(config[CONF_ENABLE_RRM]))
 
+    if config.get(CONF_USE_PSRAM):
+        add_idf_sdkconfig_option("CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP", True)
     cg.add_define("USE_WIFI")
 
     # must register before OTA safe mode check
