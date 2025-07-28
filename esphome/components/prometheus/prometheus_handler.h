@@ -172,6 +172,30 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
                   std::string &friendly_name);
 #endif
 
+#ifdef USE_DATETIME_DATE
+  /// Return the type for prometheus
+  void date_type_(AsyncResponseStream *stream);
+  /// Return the date state as prometheus data point
+  void date_row_(AsyncResponseStream *stream, datetime::DateEntity *obj, std::string &area, std::string &node,
+                 std::string &friendly_name);
+#endif
+
+#ifdef USE_DATETIME_TIME
+  /// Return the type for prometheus
+  void time_type_(AsyncResponseStream *stream);
+  /// Return the time state as prometheus data point
+  void time_row_(AsyncResponseStream *stream, datetime::TimeEntity *obj, std::string &area, std::string &node,
+                 std::string &friendly_name);
+#endif
+
+#ifdef USE_DATETIME_DATETIME
+  /// Return the type for prometheus
+  void datetime_type_(AsyncResponseStream *stream);
+  /// Return the datetime state as prometheus data point
+  void datetime_row_(AsyncResponseStream *stream, datetime::DateTimeEntity *obj, std::string &area, std::string &node,
+                     std::string &friendly_name);
+#endif
+
 #ifdef USE_CLIMATE
   /// Return the type for prometheus
   void climate_type_(AsyncResponseStream *stream);

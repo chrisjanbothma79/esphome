@@ -134,6 +134,71 @@ climate:
   - platform: climate_ir_lg
     name: LG Climate
 
+datetime:
+  - platform: template
+    name: "Test Date"
+    id: test_date
+    type: date
+    initial_value: "2024-01-15"
+    set_action:
+      - logger.log: "Date set to %04d-%02d-%02d"
+        args:
+          - x.year
+          - x.month
+          - x.day_of_month
+    on_value:
+      - logger.log: "Date value: %04d-%02d-%02d"
+        args:
+          - x.year
+          - x.month
+          - x.day_of_month
+
+  - platform: template
+    name: "Test Time"
+    id: test_time
+    type: time
+    initial_value: "14:30:45"
+    set_action:
+      - logger.log: "Time set to %02d:%02d:%02d"
+        args:
+          - x.hour
+          - x.minute
+          - x.second
+    on_value:
+      - logger.log: "Time value: %02d:%02d:%02d"
+        args:
+          - x.hour
+          - x.minute
+          - x.second
+
+  - platform: template
+    name: "Test DateTime"
+    id: test_datetime
+    type: datetime
+    initial_value: "2024-01-15 14:30:45"
+    set_action:
+      - logger.log: "DateTime set to %04d-%02d-%02d %02d:%02d:%02d"
+        args:
+          - x.year
+          - x.month
+          - x.day_of_month
+          - x.hour
+          - x.minute
+          - x.second
+    on_value:
+      - logger.log: "DateTime value: %04d-%02d-%02d %02d:%02d:%02d"
+        args:
+          - x.year
+          - x.month
+          - x.day_of_month
+          - x.hour
+          - x.minute
+          - x.second
+
+time:
+  - platform: sntp
+    id: my_time
+
 prometheus:
   include_internal: true
   relabel:
@@ -143,3 +208,12 @@ prometheus:
     template_text_sensor1:
       id: hello_text
       name: Text Substitution
+    test_date:
+      id: prometheus_date
+      name: Prometheus Date
+    test_time:
+      id: prometheus_time
+      name: Prometheus Time
+    test_datetime:
+      id: prometheus_datetime
+      name: Prometheus DateTime
