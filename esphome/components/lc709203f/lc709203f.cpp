@@ -49,8 +49,6 @@ void Lc709203f::setup() {
   //  initialization code checks the return code from those functions. If they don't return
   //  NO_ERROR (0x00), that part of the initialization aborts and will be retried on the next
   //  call to update().
-  ESP_LOGCONFIG(TAG, "Running setup");
-
   // Set power mode to on. Note that, unlike some other similar devices, in sleep mode the IC
   //  does not record power usage. If there is significant power consumption during sleep mode,
   //  the pack RSOC will likely no longer be correct. Because of that, I do not implement
@@ -151,8 +149,10 @@ void Lc709203f::dump_config() {
   LOG_I2C_DEVICE(this);
 
   LOG_UPDATE_INTERVAL(this);
-  ESP_LOGCONFIG(TAG, "  Pack Size: %d mAH", this->pack_size_);
-  ESP_LOGCONFIG(TAG, "  Pack APA: 0x%02X", this->apa_);
+  ESP_LOGCONFIG(TAG,
+                "  Pack Size: %d mAH\n"
+                "  Pack APA: 0x%02X",
+                this->pack_size_, this->apa_);
 
   // This is only true if the pack_voltage_ is either 0x0000 or 0x0001. The config validator
   //  should have already verified this.

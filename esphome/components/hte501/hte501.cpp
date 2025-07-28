@@ -1,4 +1,5 @@
 #include "hte501.h"
+#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -7,7 +8,6 @@ namespace hte501 {
 static const char *const TAG = "hte501";
 
 void HTE501Component::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   uint8_t address[] = {0x70, 0x29};
   this->write(address, 2, false);
   uint8_t identification[9];
