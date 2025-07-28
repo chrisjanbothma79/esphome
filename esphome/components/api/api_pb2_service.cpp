@@ -149,6 +149,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       break;
     }
 #endif
+#ifdef USE_API_HOMEASSISTANT_SERVICES
     case SubscribeHomeassistantServicesRequest::MESSAGE_TYPE: {
       SubscribeHomeassistantServicesRequest msg;
       msg.decode(msg_data, msg_size);
@@ -158,6 +159,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       this->on_subscribe_homeassistant_services_request(msg);
       break;
     }
+#endif
     case GetTimeRequest::MESSAGE_TYPE: {
       GetTimeRequest msg;
       msg.decode(msg_data, msg_size);
@@ -176,6 +178,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       this->on_get_time_response(msg);
       break;
     }
+#ifdef USE_API_HOMEASSISTANT_STATES
     case SubscribeHomeAssistantStatesRequest::MESSAGE_TYPE: {
       SubscribeHomeAssistantStatesRequest msg;
       msg.decode(msg_data, msg_size);
@@ -185,6 +188,8 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       this->on_subscribe_home_assistant_states_request(msg);
       break;
     }
+#endif
+#ifdef USE_API_HOMEASSISTANT_STATES
     case HomeAssistantStateResponse::MESSAGE_TYPE: {
       HomeAssistantStateResponse msg;
       msg.decode(msg_data, msg_size);
@@ -194,6 +199,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       this->on_home_assistant_state_response(msg);
       break;
     }
+#endif
 #ifdef USE_API_SERVICES
     case ExecuteServiceRequest::MESSAGE_TYPE: {
       ExecuteServiceRequest msg;
@@ -635,17 +641,21 @@ void APIServerConnection::on_subscribe_logs_request(const SubscribeLogsRequest &
     this->subscribe_logs(msg);
   }
 }
+#ifdef USE_API_HOMEASSISTANT_SERVICES
 void APIServerConnection::on_subscribe_homeassistant_services_request(
     const SubscribeHomeassistantServicesRequest &msg) {
   if (this->check_authenticated_()) {
     this->subscribe_homeassistant_services(msg);
   }
 }
+#endif
+#ifdef USE_API_HOMEASSISTANT_STATES
 void APIServerConnection::on_subscribe_home_assistant_states_request(const SubscribeHomeAssistantStatesRequest &msg) {
   if (this->check_authenticated_()) {
     this->subscribe_home_assistant_states(msg);
   }
 }
+#endif
 void APIServerConnection::on_get_time_request(const GetTimeRequest &msg) {
   if (this->check_connection_setup_() && !this->send_get_time_response(msg)) {
     this->on_fatal_error();

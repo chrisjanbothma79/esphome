@@ -242,6 +242,7 @@ void APIConnection::loop() {
   }
 #endif
 
+#ifdef USE_API_HOMEASSISTANT_STATES
   if (state_subs_at_ >= 0) {
     const auto &subs = this->parent_->get_state_subs();
     if (state_subs_at_ < static_cast<int>(subs.size())) {
@@ -259,6 +260,7 @@ void APIConnection::loop() {
       state_subs_at_ = -1;
     }
   }
+#endif
 }
 
 bool APIConnection::send_disconnect_response(const DisconnectRequest &msg) {
@@ -1512,6 +1514,7 @@ bool APIConnection::send_device_info_response(const DeviceInfoRequest &msg) {
   return this->send_message(resp, DeviceInfoResponse::MESSAGE_TYPE);
 }
 
+#ifdef USE_API_HOMEASSISTANT_STATES
 void APIConnection::on_home_assistant_state_response(const HomeAssistantStateResponse &msg) {
   for (auto &it : this->parent_->get_state_subs()) {
     if (it.entity_id == msg.entity_id && it.attribute.value() == msg.attribute) {
@@ -1519,6 +1522,7 @@ void APIConnection::on_home_assistant_state_response(const HomeAssistantStateRes
     }
   }
 }
+#endif
 #ifdef USE_API_SERVICES
 void APIConnection::execute_service(const ExecuteServiceRequest &msg) {
   bool found = false;
@@ -1534,25 +1538,26 @@ void APIConnection::execute_service(const ExecuteServiceRequest &msg) {
 #endif
 #ifdef USE_API_NOISE
 bool APIConnection::send_noise_encryption_set_key_response(const NoiseEncryptionSetKeyRequest &msg) {
-  psk_t psk{};
   NoiseEncryptionSetKeyResponse resp;
+  resp.success = false;
+
+  psk_t psk{};
   if (base64_decode(msg.key, psk.data(), msg.key.size()) != psk.size()) {
     ESP_LOGW(TAG, "Invalid encryption key length");
-    resp.success = false;
-    return this->send_message(resp, NoiseEncryptionSetKeyResponse::MESSAGE_TYPE);
-  }
-  if (!this->parent_->save_noise_psk(psk, true)) {
+  } else if (!this->parent_->save_noise_psk(psk, true)) {
     ESP_LOGW(TAG, "Failed to save encryption key");
-    resp.success = false;
-    return this->send_message(resp, NoiseEncryptionSetKeyResponse::MESSAGE_TYPE);
+  } else {
+    resp.success = true;
   }
-  resp.success = true;
+
   return this->send_message(resp, NoiseEncryptionSetKeyResponse::MESSAGE_TYPE);
 }
 #endif
+#ifdef USE_API_HOMEASSISTANT_STATES
 void APIConnection::subscribe_home_assistant_states(const SubscribeHomeAssistantStatesRequest &msg) {
   state_subs_at_ = 0;
 }
+#endif
 bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
   if (this->flags_.remove)
     return false;
