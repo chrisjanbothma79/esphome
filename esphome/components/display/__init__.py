@@ -134,7 +134,8 @@ async def setup_display_core_(var, config):
         await automation.build_automation(
             trigger, [(DisplayPagePtr, "from"), (DisplayPagePtr, "to")], conf
         )
-
+    if config.get(CONF_SHOW_TEST_CARD):
+        cg.add(var.show_test_card())
 
 async def register_display(var, config):
     await cg.register_component(var, config)
