@@ -1035,15 +1035,6 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} 0\n"));
-    // Data itself - convert to epoch seconds
-    ESPTime date_time;
-    date_time.year = obj->year;
-    date_time.month = obj->month;
-    date_time.day_of_month = obj->day;
-    date_time.hour = 0;
-    date_time.minute = 0;
-    date_time.second = 0;
-    date_time.recalc_timestamp_utc();
     stream->print(F("esphome_date_value{id=\""));
     stream->print(relabel_id_(obj).c_str());
     add_area_label_(stream, area);
@@ -1052,7 +1043,16 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
-    stream->print(date_time.timestamp);
+    // Data itself - convert to epoch seconds
+    ESPTime date_{};
+    date_.year = obj->year;
+    date_.month = obj->month;
+    date_.day_of_month = obj->day;
+    date_.hour = 0;
+    date_.minute = 0;
+    date_.second = 0;
+    date_.recalc_timestamp_local();
+    stream->print(date_.timestamp);
     stream->print(F("\n"));
   } else {
     // Invalid state
@@ -1087,8 +1087,6 @@ void PrometheusHandler::time_row_(AsyncResponseStream *stream, datetime::TimeEnt
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} 0\n"));
-    // Data itself - convert to seconds since midnight
-    uint32_t seconds_since_midnight = obj->hour * 3600 + obj->minute * 60 + obj->second;
     stream->print(F("esphome_time_value{id=\""));
     stream->print(relabel_id_(obj).c_str());
     add_area_label_(stream, area);
@@ -1097,7 +1095,9 @@ void PrometheusHandler::time_row_(AsyncResponseStream *stream, datetime::TimeEnt
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
-    stream->print(seconds_since_midnight);
+    // Data itself - convert to seconds since midnight
+    uint32_t seconds_since_midnight_ = obj->hour * 3600 + obj->minute * 60 + obj->second;
+    stream->print(seconds_since_midnight_);
     stream->print(F("\n"));
   } else {
     // Invalid state
@@ -1132,15 +1132,6 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} 0\n"));
-    // Data itself - convert to epoch seconds
-    ESPTime date_time;
-    date_time.year = obj->year;
-    date_time.month = obj->month;
-    date_time.day_of_month = obj->day;
-    date_time.hour = obj->hour;
-    date_time.minute = obj->minute;
-    date_time.second = obj->second;
-    date_time.recalc_timestamp_utc();
     stream->print(F("esphome_datetime_value{id=\""));
     stream->print(relabel_id_(obj).c_str());
     add_area_label_(stream, area);
@@ -1149,7 +1140,16 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
-    stream->print(date_time.timestamp);
+    // Data itself - convert to epoch seconds
+    ESPTime date_time_{};
+    date_time_.year = obj->year;
+    date_time_.month = obj->month;
+    date_time_.day_of_month = obj->day;
+    date_time_.hour = obj->hour;
+    date_time_.minute = obj->minute;
+    date_time_.second = obj->second;
+    date_time_.recalc_timestamp_local();
+    stream->print(date_time_.timestamp);
     stream->print(F("\n"));
   } else {
     // Invalid state
