@@ -1,7 +1,7 @@
 from esphome.components.mipi import DriverChip
 from esphome.config_validation import UNDEFINED
 
-DriverChip(
+wave_4_3 = DriverChip(
     "ESP32-S3-TOUCH-LCD-4.3",
     swap_xy=UNDEFINED,
     initsequence=(),
@@ -26,4 +26,14 @@ DriverChip(
         "green": [39, 0, 45, 48, 47, 21],
         "blue": [14, 38, 18, 17, 10],
     },
+)
+wave_4_3.extend(
+    "ESP32-S3-TOUCH-LCD-7-800X480",
+    enable_pin=[{"ch422g": None, "number": 2}, {"ch422g": None, "number": 6}],
+    hsync_back_porch=8,
+    hsync_front_porch=8,
+    hsync_pulse_width=4,
+    vsync_back_porch=16,
+    vsync_front_porch=16,
+    vsync_pulse_width=4,
 )
