@@ -11,8 +11,7 @@ from esphome.const import (
     CONF_PAGES,
     CONF_ROTATION,
     CONF_TO,
-    CONF_TRIGGER_ID,
-    CONF_NEVER
+    CONF_TRIGGER_ID
 )
 from esphome.core import coroutine_with_priority
 
@@ -69,7 +68,7 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
 ).extend(cv.polling_component_schema("1s"))
 
 def _validate_test_card(value):
-  if 'show_test_card' in value and value['show_test_card'] == True:
+  if 'show_test_card' in value and bool(value['show_test_card']):
     if 'update_interval' in value and value['update_interval'] == 0xFFFFFFFF:
         raise cv.Invalid("You put `show_test_card: true` and `update_interval: never` in your config. This will not show the test card. If you want to see the test card, set `update_interval:` to something other than `never`.")
   return value
