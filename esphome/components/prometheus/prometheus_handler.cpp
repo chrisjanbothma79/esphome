@@ -1053,8 +1053,6 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     timeinfo.tm_sec = 0;
     timeinfo.tm_isdst = 0;
     time_t timestamp = mktime(&timeinfo);
-    // Adjust for timezone offset to get UTC
-    timestamp -= ESPTime::timezone_offset();
     stream->print(static_cast<int64_t>(timestamp));
     stream->print(F("\n"));
   } else {
@@ -1153,8 +1151,6 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     timeinfo.tm_sec = obj->second;
     timeinfo.tm_isdst = 0;
     time_t timestamp = mktime(&timeinfo);
-    // Adjust for timezone offset to get UTC
-    timestamp -= ESPTime::timezone_offset();
     stream->print(static_cast<int64_t>(timestamp));
     stream->print(F("\n"));
   } else {
