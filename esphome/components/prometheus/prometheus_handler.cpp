@@ -1051,8 +1051,8 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     date_.hour = 0;
     date_.minute = 0;
     date_.second = 0;
-    date_.recalc_timestamp_local();
-    stream->print(date_.timestamp);
+    date_.recalc_timestamp_utc();
+    stream->print(static_cast<int64_t>(date_.timestamp));
     stream->print(F("\n"));
   } else {
     // Invalid state
@@ -1097,7 +1097,7 @@ void PrometheusHandler::time_row_(AsyncResponseStream *stream, datetime::TimeEnt
     stream->print(F("\"} "));
     // Data itself - convert to seconds since midnight
     uint32_t seconds_since_midnight_ = obj->hour * 3600 + obj->minute * 60 + obj->second;
-    stream->print(seconds_since_midnight_);
+    stream->print(static_cast<int64_t>(seconds_since_midnight_));
     stream->print(F("\n"));
   } else {
     // Invalid state
@@ -1148,8 +1148,8 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     date_time_.hour = obj->hour;
     date_time_.minute = obj->minute;
     date_time_.second = obj->second;
-    date_time_.recalc_timestamp_local();
-    stream->print(date_time_.timestamp);
+    date_time_.recalc_timestamp_utc();
+    stream->print(static_cast<int64_t>(date_time_.timestamp));
     stream->print(F("\n"));
   } else {
     // Invalid state
