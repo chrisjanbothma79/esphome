@@ -7,6 +7,7 @@ from esphome.const import (
     CONF_FROM,
     CONF_ID,
     CONF_LAMBDA,
+    CONF_NEVER,
     CONF_PAGE_ID,
     CONF_PAGES,
     CONF_ROTATION,
@@ -73,7 +74,6 @@ def _validate_test_card(value):
         raise cv.Invalid("You put `show_test_card: true` and `update_interval: never` in your config. This will not show the test card. If you want to see the test card, set `update_interval:` to something other than `never`.")
   return value
 
- 
 FULL_DISPLAY_SCHEMA = BASIC_DISPLAY_SCHEMA.extend(
     {
         cv.Optional(CONF_ROTATION): validate_rotation,
@@ -102,8 +102,6 @@ FULL_DISPLAY_SCHEMA = BASIC_DISPLAY_SCHEMA.extend(
     }
 )
 FULL_DISPLAY_SCHEMA.add_extra(_validate_test_card)
-
- 
 
 
 async def setup_display_core_(var, config):
@@ -137,6 +135,7 @@ async def setup_display_core_(var, config):
         await automation.build_automation(
             trigger, [(DisplayPagePtr, "from"), (DisplayPagePtr, "to")], conf
         )
+
 
 async def register_display(var, config):
     await cg.register_component(var, config)
