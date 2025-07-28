@@ -48,7 +48,6 @@ void TFLuna::dump_config() {
 }
 
 void TFLuna::setup() {
-  ESP_LOGI(TAG, "Setting up TFLuna...");
   uint8_t major;
   if (!this->read_byte(VERSION_MAJOR_REGISTER, &major)) {
     ESP_LOGE(TAG, "Failed to get major firmware version");
@@ -114,7 +113,6 @@ void TFLuna::update() {
   }
   previous_timestamp = timestamp;
   if (this->timestamp_sensor_ != nullptr) {
-    ESP_LOGD(TAG, "Got timestamp=%d", timestamp);
     this->timestamp_sensor_->publish_state(timestamp);
   }
 
@@ -132,7 +130,6 @@ void TFLuna::update() {
     }
     uint16_t distance = distance_low + distance_high * 256;
 
-    ESP_LOGD(TAG, "Got distance=%d cm", distance);
     this->distance_sensor_->publish_state(distance);
   }
 
@@ -149,7 +146,6 @@ void TFLuna::update() {
     }
     float temperature = (temperature_low + temperature_high * 256) / (float) 100;
 
-    ESP_LOGD(TAG, "Got temperature=%f degrees celsius", temperature);
     this->temperature_sensor_->publish_state(temperature);
   }
 
@@ -166,7 +162,6 @@ void TFLuna::update() {
     }
     uint16_t signal_strength = signal_strength_low + signal_strength_high * 256;
 
-    ESP_LOGD(TAG, "Got signal strength=%d", signal_strength);
     this->signal_strength_sensor_->publish_state(signal_strength);
   }
 #endif
