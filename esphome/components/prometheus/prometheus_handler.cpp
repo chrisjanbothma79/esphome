@@ -1044,16 +1044,13 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to epoch seconds
-    struct tm timeinfo = {};
-    timeinfo.tm_year = obj->year - 1900;
-    timeinfo.tm_mon = obj->month - 1;
-    timeinfo.tm_mday = obj->day;
-    timeinfo.tm_hour = 0;
-    timeinfo.tm_min = 0;
-    timeinfo.tm_sec = 0;
-    timeinfo.tm_isdst = 0;  // Force UTC (no DST)
-    time_t timestamp = mktime(&timeinfo);
-    stream->print(static_cast<int64_t>(timestamp));
+    ESPTime date_time = obj->state_as_esptime();
+    date_time.hour = 0;
+    date_time.minute = 0;
+    date_time.second = 0;
+    // Override the local timestamp calculation with UTC
+    date_time.recalc_timestamp_utc();
+    stream->print(static_cast<int64_t>(date_time.timestamp));
     stream->print(F("\n"));
   } else {
     // Invalid state
@@ -1142,16 +1139,10 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Data itself - convert to epoch seconds
-    struct tm timeinfo = {};
-    timeinfo.tm_year = obj->year - 1900;
-    timeinfo.tm_mon = obj->month - 1;
-    timeinfo.tm_mday = obj->day;
-    timeinfo.tm_hour = obj->hour;
-    timeinfo.tm_min = obj->minute;
-    timeinfo.tm_sec = obj->second;
-    timeinfo.tm_isdst = 0;  // Force UTC (no DST)
-    time_t timestamp = mktime(&timeinfo);
-    stream->print(static_cast<int64_t>(timestamp));
+    ESPTime date_time = obj->state_as_esptime();
+    // Override the local timestamp calculation with UTC
+    date_time.recalc_timestamp_utc();
+    stream->print(static_cast<int64_t>(date_time.timestamp));
     stream->print(F("\n"));
   } else {
     // Invalid state
