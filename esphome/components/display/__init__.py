@@ -69,10 +69,15 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
 
 
 def _validate_test_card(value):
-    if "show_test_card" in value and bool(value["show_test_card"]) and "update_interval" in value and value["update_interval"] == 0xFFFFFFFF:
-            raise cv.Invalid(
-                "You put `show_test_card: true` and `update_interval: never` in your config. This will not show the test card. If you want to see the test card, set `update_interval:` to something other than `never`."
-            )
+    if (
+        "show_test_card" in value
+        and bool(value["show_test_card"])
+        and "update_interval" in value
+        and value["update_interval"] == 0xFFFFFFFF
+    ):
+        raise cv.Invalid(
+            "You put `show_test_card: true` and `update_interval: never` in your config. This will not show the test card. If you want to see the test card, set `update_interval:` to something other than `never`."
+        )
     return value
 
 
