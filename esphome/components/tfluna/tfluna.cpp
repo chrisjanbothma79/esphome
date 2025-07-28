@@ -112,11 +112,11 @@ void TFLuna::update() {
     return;
   }
   previous_timestamp = timestamp;
+
+#ifdef USE_SENSOR
   if (this->timestamp_sensor_ != nullptr) {
     this->timestamp_sensor_->publish_state(timestamp);
   }
-
-#ifdef USE_SENSOR
   if (this->distance_sensor_ != nullptr) {
     uint8_t distance_low;
     if (!this->read_byte(DISTANCE_LOW_REGISTER, &distance_low)) {
