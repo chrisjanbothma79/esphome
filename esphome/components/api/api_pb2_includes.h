@@ -1,5 +1,7 @@
 #pragma once
 
+#include "esphome/core/defines.h"
+
 // This file provides includes needed by the generated protobuf code
 // when using pointer optimizations for component-specific types
 
@@ -28,3 +30,9 @@
 #include <set>
 #include <vector>
 #include <string>
+
+namespace esphome::api {
+
+// This file only provides includes, no actual code
+
+}  // namespace esphome::api
