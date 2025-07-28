@@ -76,8 +76,22 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     return;
   }
 
+  // Get fresh timestamp BEFORE taking lock - millis_64_ may need to acquire lock itself
+  const uint64_t now = this->millis_64_(millis());
+
+  // Take lock early to protect scheduler_item_pool_ access
+  LockGuard guard{this->lock_};
+
   // Create and populate the scheduler item
-  auto item = make_unique<SchedulerItem>();
+  std::unique_ptr<SchedulerItem> item;
+  if (!this->scheduler_item_pool_.empty()) {
+    // Reuse from pool
+    item = std::move(this->scheduler_item_pool_.back());
+    this->scheduler_item_pool_.pop_back();
+  } else {
+    // Allocate new if pool is empty
+    item = make_unique<SchedulerItem>();
+  }
   item->component = component;
   item->set_name(name_cstr, !is_static_string);
   item->type = type;
@@ -90,15 +104,11 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   // Single-core platforms don't need thread-safe defer handling
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
-    LockGuard guard{this->lock_};
     this->cancel_item_locked_(component, name_cstr, type);
     this->defer_queue_.push_back(std::move(item));
     return;
   }
 #endif /* not ESPHOME_THREAD_SINGLE */
-
-  // Get fresh timestamp for new timer/interval - ensures accurate scheduling
-  const auto now = this->millis_64_(millis());  // Fresh millis() call
 
   // Type-specific setup
   if (type == SchedulerItem::INTERVAL) {
@@ -130,8 +140,6 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
              name_cstr ? name_cstr : "(null)", type_str, delay, static_cast<uint32_t>(item->next_execution_ - now));
   }
 #endif /* ESPHOME_DEBUG_SCHEDULER */
-
-  LockGuard guard{this->lock_};
 
   // For retries, check if there's a cancelled timeout first
   if (is_retry && name_cstr != nullptr && type == SchedulerItem::TIMEOUT &&
@@ -322,11 +330,11 @@ void HOT Scheduler::call(uint32_t now) {
 #ifdef ESPHOME_THREAD_MULTI_ATOMICS
     const auto last_dbg = this->last_millis_.load(std::memory_order_relaxed);
     const auto major_dbg = this->millis_major_.load(std::memory_order_relaxed);
-    ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%" PRIu16 ", %" PRIu32 ")", this->items_.size(), now_64,
-             major_dbg, last_dbg);
+    ESP_LOGD(TAG, "Items: count=%zu, pool=%zu, now=%" PRIu64 " (%" PRIu16 ", %" PRIu32 ")", this->items_.size(),
+             this->scheduler_item_pool_.size(), now_64, major_dbg, last_dbg);
 #else  /* not ESPHOME_THREAD_MULTI_ATOMICS */
-    ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%" PRIu16 ", %" PRIu32 ")", this->items_.size(), now_64,
-             this->millis_major_, this->last_millis_);
+    ESP_LOGD(TAG, "Items: count=%zu, pool=%zu, now=%" PRIu64 " (%" PRIu16 ", %" PRIu32 ")", this->items_.size(),
+             this->scheduler_item_pool_.size(), now_64, this->millis_major_, this->last_millis_);
 #endif /* else ESPHOME_THREAD_MULTI_ATOMICS */
     // Cleanup before debug output
     this->cleanup_();
@@ -358,6 +366,7 @@ void HOT Scheduler::call(uint32_t now) {
 
   // If we have too many items to remove
   if (this->to_remove_ > MAX_LOGICALLY_DELETED_ITEMS) {
+    // ESP_LOGD(TAG, "Starting cleanup of %u removed items", this->to_remove_);
     // We hold the lock for the entire cleanup operation because:
     // 1. We're rebuilding the entire items_ list, so we need exclusive access throughout
     // 2. Other threads must see either the old state or the new state, not intermediate states
@@ -367,10 +376,13 @@ void HOT Scheduler::call(uint32_t now) {
 
     std::vector<std::unique_ptr<SchedulerItem>> valid_items;
 
-    // Move all non-removed items to valid_items
+    // Move all non-removed items to valid_items, recycle removed ones
     for (auto &item : this->items_) {
       if (!item->remove) {
         valid_items.push_back(std::move(item));
+      } else {
+        // Recycle removed items
+        this->recycle_item_(std::move(item));
       }
     }
 
@@ -378,6 +390,7 @@ void HOT Scheduler::call(uint32_t now) {
     this->items_ = std::move(valid_items);
     // Rebuild the heap structure since items are no longer in heap order
     std::make_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
+    // ESP_LOGD(TAG, "Cleanup complete - pool size now: %zu", this->scheduler_item_pool_.size());
     this->to_remove_ = 0;
   }
 
@@ -431,6 +444,9 @@ void HOT Scheduler::call(uint32_t now) {
         // Add new item directly to to_add_
         // since we have the lock held
         this->to_add_.push_back(std::move(item));
+      } else {
+        // Timeout completed - recycle it
+        this->recycle_item_(std::move(item));
       }
     }
   }
@@ -480,6 +496,10 @@ size_t HOT Scheduler::cleanup_() {
 }
 void HOT Scheduler::pop_raw_() {
   std::pop_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
+
+  // Instead of destroying, recycle the item
+  this->recycle_item_(std::move(this->items_.back()));
+
   this->items_.pop_back();
 }
 
@@ -514,18 +534,14 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
 
   // Check all containers for matching items
 #ifndef ESPHOME_THREAD_SINGLE
-  // Only check defer queue for timeouts (intervals never go there)
+  // Cancel and immediately recycle items in defer queue
   if (type == SchedulerItem::TIMEOUT) {
-    for (auto &item : this->defer_queue_) {
-      if (this->matches_item_(item, component, name_cstr, type, match_retry)) {
-        item->remove = true;
-        total_cancelled++;
-      }
-    }
+    total_cancelled +=
+        this->cancel_and_recycle_from_container_(this->defer_queue_, component, name_cstr, type, match_retry);
   }
 #endif /* not ESPHOME_THREAD_SINGLE */
 
-  // Cancel items in the main heap
+  // Cancel items in the main heap (can't recycle immediately due to heap structure)
   for (auto &item : this->items_) {
     if (this->matches_item_(item, component, name_cstr, type, match_retry)) {
       item->remove = true;
@@ -534,14 +550,8 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
     }
   }
 
-  // Cancel items in to_add_
-  for (auto &item : this->to_add_) {
-    if (this->matches_item_(item, component, name_cstr, type, match_retry)) {
-      item->remove = true;
-      total_cancelled++;
-      // Don't track removals for to_add_ items
-    }
-  }
+  // Cancel and immediately recycle items in to_add_ since they're not in heap yet
+  total_cancelled += this->cancel_and_recycle_from_container_(this->to_add_, component, name_cstr, type, match_retry);
 
   return total_cancelled > 0;
 }
@@ -707,6 +717,24 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 bool HOT Scheduler::SchedulerItem::cmp(const std::unique_ptr<SchedulerItem> &a,
                                        const std::unique_ptr<SchedulerItem> &b) {
   return a->next_execution_ > b->next_execution_;
+}
+
+void Scheduler::recycle_item_(std::unique_ptr<SchedulerItem> item) {
+  if (!item)
+    return;
+
+  static constexpr size_t MAX_POOL_SIZE = 16;
+  if (this->scheduler_item_pool_.size() < MAX_POOL_SIZE) {
+    // Clear callback to release captured resources
+    item->callback = nullptr;
+    // Clear dynamic name if any
+    item->clear_dynamic_name();
+    this->scheduler_item_pool_.push_back(std::move(item));
+    // ESP_LOGD(TAG, "Recycled SchedulerItem to pool (pool size now: %zu)", this->scheduler_item_pool_.size());
+  } else {
+    // ESP_LOGD(TAG, "Discarding SchedulerItem (pool full at %zu items)", this->scheduler_item_pool_.size());
+    // unique_ptr will delete the item when it goes out of scope
+  }
 }
 
 }  // namespace esphome

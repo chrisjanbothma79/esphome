@@ -5,6 +5,7 @@
 #include <memory>
 #include <cstring>
 #include <deque>
+#include <array>
 #ifdef ESPHOME_THREAD_MULTI_ATOMICS
 #include <atomic>
 #endif
@@ -117,11 +118,7 @@ class Scheduler {
     }
 
     // Destructor to clean up dynamic names
-    ~SchedulerItem() {
-      if (name_is_dynamic) {
-        delete[] name_.dynamic_name;
-      }
-    }
+    ~SchedulerItem() { clear_dynamic_name(); }
 
     // Delete copy operations to prevent accidental copies
     SchedulerItem(const SchedulerItem &) = delete;
@@ -134,13 +131,19 @@ class Scheduler {
     // Helper to get the name regardless of storage type
     const char *get_name() const { return name_is_dynamic ? name_.dynamic_name : name_.static_name; }
 
+    // Helper to clear dynamic name if allocated
+    void clear_dynamic_name() {
+      if (name_is_dynamic && name_.dynamic_name) {
+        delete[] name_.dynamic_name;
+        name_.dynamic_name = nullptr;
+        name_is_dynamic = false;
+      }
+    }
+
     // Helper to set name with proper ownership
     void set_name(const char *name, bool make_copy = false) {
       // Clean up old dynamic name if any
-      if (name_is_dynamic && name_.dynamic_name) {
-        delete[] name_.dynamic_name;
-        name_is_dynamic = false;
-      }
+      clear_dynamic_name();
 
       if (!name) {
         // nullptr case - no name provided
@@ -219,6 +222,9 @@ class Scheduler {
     return item->remove || (item->component != nullptr && item->component->is_failed());
   }
 
+  // Helper to recycle a SchedulerItem
+  void recycle_item_(std::unique_ptr<SchedulerItem> item);
+
   // Template helper to check if any item in a container matches our criteria
   template<typename Container>
   bool has_cancelled_timeout_in_container_(const Container &container, Component *component, const char *name_cstr,
@@ -232,6 +238,24 @@ class Scheduler {
     return false;
   }
 
+  // Template helper to cancel and recycle items from a container
+  template<typename Container>
+  size_t cancel_and_recycle_from_container_(Container &container, Component *component, const char *name_cstr,
+                                            SchedulerItem::Type type, bool match_retry) {
+    size_t cancelled = 0;
+    for (auto it = container.begin(); it != container.end();) {
+      if (this->matches_item_(*it, component, name_cstr, type, match_retry)) {
+        // Recycle the cancelled item immediately
+        this->recycle_item_(std::move(*it));
+        it = container.erase(it);
+        cancelled++;
+      } else {
+        ++it;
+      }
+    }
+    return cancelled;
+  }
+
   Mutex lock_;
   std::vector<std::unique_ptr<SchedulerItem>> items_;
   std::vector<std::unique_ptr<SchedulerItem>> to_add_;
@@ -240,6 +264,9 @@ class Scheduler {
   std::deque<std::unique_ptr<SchedulerItem>> defer_queue_;  // FIFO queue for defer() calls
 #endif                                                      /* ESPHOME_THREAD_SINGLE */
   uint32_t to_remove_{0};
+
+  // Memory pool for recycling SchedulerItem objects
+  std::vector<std::unique_ptr<SchedulerItem>> scheduler_item_pool_;
 
 #ifdef ESPHOME_THREAD_MULTI_ATOMICS
   /*
