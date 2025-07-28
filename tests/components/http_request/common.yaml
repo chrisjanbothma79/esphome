@@ -1,5 +1,4 @@
-substitutions:
-  verify_ssl: "true"
+<<: !include http_request.yaml
 
 wifi:
   ssid: MySSID
@@ -92,3 +91,5 @@ update:
     name: OTA Update
     id: ota_update
     source: http://my.ha.net:8123/local/esphome/manifest.json
+    on_update_available:
+      - logger.log: "A new update is available"

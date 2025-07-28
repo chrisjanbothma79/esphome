@@ -34,14 +34,14 @@ runs:
         python -m venv venv
         source venv/bin/activate
         python --version
-        pip install -r requirements.txt -r requirements_optional.txt -r requirements_test.txt
+        pip install -r requirements.txt -r requirements_test.txt
         pip install -e .
     - name: Create Python virtual environment
       if: steps.cache-venv.outputs.cache-hit != 'true' && runner.os == 'Windows'
       shell: bash
       run: |
         python -m venv venv
-        ./venv/Scripts/activate
+        source ./venv/Scripts/activate
         python --version
-        pip install -r requirements.txt -r requirements_optional.txt -r requirements_test.txt
+        pip install -r requirements.txt -r requirements_test.txt
         pip install -e .
