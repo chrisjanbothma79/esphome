@@ -1051,6 +1051,7 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     timeinfo.tm_hour = 0;
     timeinfo.tm_min = 0;
     timeinfo.tm_sec = 0;
+    timeinfo.tm_isdst = -1;  // Let system determine DST
     time_t timestamp = mktime(&timeinfo);
     stream->print(static_cast<int64_t>(timestamp));
     stream->print(F("\n"));
@@ -1148,6 +1149,7 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     timeinfo.tm_hour = obj->hour;
     timeinfo.tm_min = obj->minute;
     timeinfo.tm_sec = obj->second;
+    timeinfo.tm_isdst = -1;  // Let system determine DST
     time_t timestamp = mktime(&timeinfo);
     stream->print(static_cast<int64_t>(timestamp));
     stream->print(F("\n"));
