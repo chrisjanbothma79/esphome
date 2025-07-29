@@ -3,9 +3,16 @@
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 #include "esphome/components/stepper/stepper.h"
+#include "uln2003_pump.h"
+
 
 namespace esphome {
 namespace uln2003 {
+
+enum class ULN2003Mode {
+  STEPPER,
+  PUMP
+};
 
 enum ULN2003StepMode {
   ULN2003_STEP_MODE_FULL_STEP,
