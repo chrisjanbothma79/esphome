@@ -6,7 +6,16 @@ namespace uln2003 {
 
 static const char *const TAG = "uln2003.stepper";
 
+void ULN2003Component::set_mode(ULN2003Mode mode) {
+  this->mode_ = mode;
+}
+
 void ULN2003::setup() {
+  if (this->mode_ == ULN2003Mode::PUMP) {
+  // Setup for pump mode
+  // Example: Setup only control pin (if you have one), otherwise do minimal setup
+  return;
+}
   this->pin_a_->setup();
   this->pin_b_->setup();
   this->pin_c_->setup();
@@ -14,6 +23,10 @@ void ULN2003::setup() {
   this->loop();
 }
 void ULN2003::loop() {
+  if (this->mode_ == ULN2003Mode::PUMP) {
+  // Pump mode logic or just return early if irrelevant here
+  return;
+}
   int dir = this->should_step_();
   if (dir == 0 && this->has_reached_target()) {
     this->high_freq_.stop();
@@ -58,6 +71,10 @@ void ULN2003::dump_config() {
   ESP_LOGCONFIG(TAG, "  Step Mode: %s", step_mode_s);
 }
 void ULN2003::write_step_(int32_t step) {
+  if (this->mode_ == ULN2003Mode::PUMP) {
+  // Pump mode logic or just return early if irrelevant here
+  return;
+}
   int32_t n = this->step_mode_ == ULN2003_STEP_MODE_HALF_STEP ? 8 : 4;
   auto i = static_cast<uint32_t>((step % n + n) % n);
   uint8_t res = 0;
