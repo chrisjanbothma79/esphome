@@ -52,23 +52,38 @@ struct ESPNowPeer {
   bool operator==(const uint8_t *other) const { return memcmp(this->address, other, ESP_NOW_ETH_ALEN) == 0; }
 };
 
-/// Handler interface for receiving ESPNow packets
+/// Handler interface for receiving ESPNow packets from unknown peers
 /// Components should inherit from this class to handle incoming ESPNow data
 class ESPNowUnknownPeerHandler {
  public:
-  /// Called when an ESPNow packet is received
+  /// Called when an ESPNow packet is received from an unknown peer
   /// @param info Information about the received packet (sender MAC, etc.)
   /// @param data Pointer to the received data payload
   /// @param size Size of the received data in bytes
   /// @return true if the packet was handled, false otherwise
   virtual bool on_unknown_peer(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
 };
+
+/// Handler interface for receiving ESPNow packets
+/// Components should inherit from this class to handle incoming ESPNow data
 class ESPNowReceivedPacketHandler {
  public:
+  /// Called when an ESPNow packet is received
+  /// @param info Information about the received packet (sender MAC, etc.)
+  /// @param data Pointer to the received data payload
+  /// @param size Size of the received data in bytes
+  /// @return true if the packet was handled, false otherwise
   virtual bool on_received(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
 };
+/// Handler interface for receiving broadcasted ESPNow packets
+/// Components should inherit from this class to handle incoming ESPNow data
 class ESPNowBroadcastedHandler {
  public:
+  /// Called when a broadcasted ESPNow packet is received
+  /// @param info Information about the received packet (sender MAC, etc.)
+  /// @param data Pointer to the received data payload
+  /// @param size Size of the received data in bytes
+  /// @return true if the packet was handled, false otherwise
   virtual bool on_broadcasted(const ESPNowRecvInfo &info, const uint8_t *data, uint8_t size) = 0;
 };
 
