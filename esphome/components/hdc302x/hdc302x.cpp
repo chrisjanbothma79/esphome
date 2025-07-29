@@ -1,10 +1,14 @@
 // ref: https://github.com/adafruit/Adafruit_HDC302x/blob/main/Adafruit_HDC302x.cpp
 //      https://github.com/esphome/esphome/blob/dev/esphome/components/pmwcs3/pmwcs3.cpp
 //
+  // UTILITIES
+  // From https://github.com/adafruit/Adafruit_HDC302x/blob/main/Adafruit_HDC302x.cpp
+  //
 
 #include "hdc302x.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
+#include <format>
 
 namespace esphome {
 namespace hdc302x {
@@ -38,60 +42,59 @@ typedef enum {
   TRIGGERMODE_LP2 = 0x2416, // Trigger-On Demand Mode, Low Power Mode 2
   TRIGGERMODE_LP3 = 0x24FF  // Trigger-On Demand Mode, Low Power Mode 3
 } hdcTriggerMode_t;
+
+#define WARN(...) { string err = std::format(__VA_ARGS__); ESP_LOGW(TAG, err.c_str()); last_error_sensor_.publish_state(err); }
   
 void HDC302XComponent::setup() {
   i2c::ErrorCode ec = writeCommand(HDC302x_Commands::SOFT_RESET);
   if (ec != i2c::NO_ERROR) {
-    status_set_warning("Reset command failed");
-    ESP_LOGW(TAG, "Reset command failed (i2c::ErrorCode %d)", ec);
+    WARN("setup: Reset command failed (i2c::ErrorCode {})", ec);
     return;
   }
   clearStatusRegister();
 
   uint16_t manufacturerID = 0;
-  ec = writeCommandReadData(HDC302x_Commands::READ_MANUFACTURER_ID, manufacturerID);
+  ec = writeCommandReadData(HDC302x_Commands::READ_MANUFACTURER_ID, &manufacturerID);
   if (ec != i2c::NO_ERROR) {
-    status_set_warning("Read manufacturerID failed");
-    ESP_LOGW(TAG, "Read manufacturerID failed (i2c::ErrorCode %d)", ec);
+    WARN("setup: Read manufacturerID failed (i2c::ErrorCode {})", ec);
   } else if (manufacturerID != 0x3000) {
-    status_set_warning("Got wrong manufacturer id");
-    ESP_LOGW(TAG, "Wrong manufacturer ID (got %x expected %x)", manufacturerID, 0x3000);
+    WARN("setup: Wrong manufacturer ID (got 0x{:X} expected 0x{:X})", manufacturerID, 0x3000);
   }
 
-  setAutoMode(EXIT_AUTO_MODE);
+  //setAutoMode(EXIT_AUTO_MODE);
+}
+void HDC302XComponent::update() {
+  float temp, rh;
+  i2c::ErrorCode ec = readTemperatureHumidityOnDemand(&temp, &rh);
+  if (ec != i2c::NO_ERROR) {
+    WARN("update: Read temp/humidity failed (i2c::ErrorCode {})", ec);
+    return;
+  }
+  temperature_sensor_->publish_state(temp);
+  humidity_sensor_->publish_state(rh);
 }
 
-bool Adafruit_HDC302x::readTemperatureHumidityOnDemand(double &temp, double &RH) {
+i2c::ErrorCode HDC302XComponent::readTemperatureHumidityOnDemand(float *temp, float *RH) {
   hdcTriggerMode_t mode = TRIGGERMODE_LP0; // LP0 is lowest noise
   return sendCommandReadTRH(static_cast<uint16_t>(mode), temp, RH);
 }
   
-  // UTILITIES
-  // From https://github.com/adafruit/Adafruit_HDC302x/blob/main/Adafruit_HDC302x.cpp
-  //
   
 void HDC302XComponent::clearStatusRegister() {
   i2c::ErrorCode ec = writeCommand(HDC302x_Commands::CLEAR_STATUS_REGISTER);
   if (ec != i2c::NO_ERROR) {
-    status_set_warning("Clear status register command failed");
-    ESP_LOGW(TAG, "Clear status reg command failed (i2c::ErrorCode %d)", ec);
+    WARN("Clear status reg command failed (i2c::ErrorCode {})", ec);
   }
 }
-void HDC302XComponent::setAutoMode(hdcAutoMode_t mode) {
-  i2c::ErrorCode ec = writeCommand(mode);
-  if (ec != i2c::NO_ERROR) {
-    status_set_warning("Set auto mode failed");
-    ESP_LOGW(TAG, "Set auto mode failed (i2c::ErrorCode %d)", ec);
-  }
-}
- 
+  
 i2c::ErrorCode HDC302XComponent::writeCommand(uint16_t comm) {
   uint8_t buffer[2];
   buffer[0] = (uint8_t)(command >> 8);   // High byte
   buffer[1] = (uint8_t)(command & 0xFF); // Low byte
   return write(buffer, 2);
 }
-i2c::ErrorCode Adafruit_HDC302x::writeCommandReadData(uint16_t command, uint16_t &data) {
+  
+i2c::ErrorCode HDC302XComponent::writeCommandReadData(uint16_t command, uint16_t *data) {
   uint8_t cmd_buffer[2];
   uint8_t data_buffer[3]; // Two bytes for data, one for CRC
 
@@ -116,11 +119,11 @@ i2c::ErrorCode Adafruit_HDC302x::writeCommandReadData(uint16_t command, uint16_t
   }
 
   // CRC checks out, return the data
-  data = (uint16_t)(data_buffer[0] << 8 | data_buffer[1]);
+  *data = (uint16_t)(data_buffer[0] << 8 | data_buffer[1]);
   return i2c::NO_ERROR;
 }
 
-i2c::ErrorCode Adafruit_HDC302x::writeCommandData(uint16_t cmd, uint16_t data) {
+i2c::ErrorCode HDC302XComponent::writeCommandData(uint16_t cmd, uint16_t data) {
   uint8_t buffer[5];
   buffer[0] = (uint8_t)(cmd >> 8);          // High byte of the command
   buffer[1] = (uint8_t)(cmd & 0xFF);        // Low byte of the command
@@ -131,13 +134,11 @@ i2c::ErrorCode Adafruit_HDC302x::writeCommandData(uint16_t cmd, uint16_t data) {
   i2c::ErrorCode ec = write(buffer, 5);
   return ec;
 }
-
   
-i2c::ErrorCode Adafruit_HDC302x::sendCommandReadTRH(uint16_t command, double &temp, double &RH) {
+i2c::ErrorCode HDC302XComponent::sendCommandReadTRH(uint16_t command, double *temp, double *RH) {
   // Trigger the temperature and humidity measurement
   i2c::ErrorCode ec = writeCommand(command);
   if (ec != i2c::NO_ERROR) {
-    //ESP_LOGW(TAG, "Set auto mode failed (i2c::ErrorCode %d)", ec);
     return ec;
   }
 
@@ -165,20 +166,22 @@ i2c::ErrorCode Adafruit_HDC302x::sendCommandReadTRH(uint16_t command, double &te
   uint16_t rawHumidity = (buffer[3] << 8) | buffer[4];
 
   // Convert raw temperature data to degrees Celsius
+  temp = (rawTemperature * (175.0 / 65535.0)) - 45.0;
   temp = ((rawTemperature / 65535.0) * 175.0) - 45.0;
-
+  grrr;
+  
   // Convert raw humidity data to percentage
   RH = (rawHumidity / 65535.0) * 100.0;
 
   return i2c::NO_ERROR;
 }
 
-bool Adafruit_HDC302x::isHeaterOn() {
+bool HDC302XComponent::isHeaterOn() {
   uint16_t status = readStatus();
   return (status & (1UL << 13));
 }
 
-bool Adafruit_HDC302x::heaterEnable(HDC302x_HeaterPower power) {
+bool HDC302XComponent::heaterEnable(HDC302x_HeaterPower power) {
   if (power == HEATER_OFF) {
     return writeCommand(HDC302x_Commands::DISABLE_HEATER);
   } else {
@@ -189,13 +192,13 @@ bool Adafruit_HDC302x::heaterEnable(HDC302x_HeaterPower power) {
   }
 }
 
-uint16_t Adafruit_HDC302x::readStatus() {
+uint16_t HDC302XComponent::readStatus() {
   uint16_t status = 0;
   writeCommandReadData(HDC302x_Commands::READ_STATUS_REGISTER, status);
   return status;
 }
 
-uint16_t Adafruit_HDC302x::readManufacturerID() {
+uint16_t HDC302XComponent::readManufacturerID() {
   uint16_t manufacturerID = 0;
   if (!writeCommandReadData(HDC302x_Commands::READ_MANUFACTURER_ID,
                             manufacturerID)) {
@@ -214,7 +217,7 @@ uint16_t Adafruit_HDC302x::readManufacturerID() {
  * @param len Length of the data array.
  * @return uint8_t The calculated CRC-8 value.
  */
-uint8_t Adafruit_HDC302x::calculateCRC8(const uint8_t *data, int len) {
+uint8_t HDC302XComponent::calculateCRC8(const uint8_t *data, int len) {
   uint8_t crc = 0xFF; // Typical initial value
   for (int i = 0; i < len; i++) {
     crc ^= data[i];               // XOR byte into least sig. byte of crc
@@ -229,7 +232,6 @@ uint8_t Adafruit_HDC302x::calculateCRC8(const uint8_t *data, int len) {
   return crc; // Final XOR value can also be applied if specified by device
 }  
 
-void PMWCS3Component::update() { this->read_data_(); }
 
 float PMWCS3Component::get_setup_priority() const { return setup_priority::DATA; }
 
