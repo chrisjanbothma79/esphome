@@ -374,14 +374,15 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payl
     this->send_packet_queue_.increment_dropped_count();
     ESP_LOGE(TAG, "Failed to allocate send packet from pool");
     this->status_momentary_warning("send-packet-pool-full");
-    callback(ESP_ERR_ESPNOW_NO_MEM);  // Call the callback with no memory error
-    return ESP_ERR_ESPNOW_NO_MEM;
+    err = ESP_ERR_ESPNOW_NO_MEM;  // Call the callback with no memory error
+    callback(err);
+    return err;
   }
   // Load the packet data
   packet->load_data(peer_address, payload, size, callback);
   // Push the packet to the send queue
   this->send_packet_queue_.push(packet);
-  return ESP_OK;
+  return err;
 }
 
 void ESPNowComponent::send_() {
