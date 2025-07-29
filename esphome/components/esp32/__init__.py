@@ -79,7 +79,7 @@ CONF_COMPILER_OPTIMIZATION = "compiler_optimization"
 CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES = "enable_idf_experimental_features"
 CONF_ENABLE_LWIP_ASSERT = "enable_lwip_assert"
 CONF_RELEASE = "release"
-CONF_VARIANT = CONF_SOC # Define SOC as alias for variant
+CONF_VARIANT = CONF_SOC  # Define SOC as alias for variant
 
 ASSERTION_LEVELS = {
     "DISABLE": "CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_DISABLE",
