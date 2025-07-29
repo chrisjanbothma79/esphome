@@ -1,6 +1,4 @@
 #include "uln2003_pump.h"
-#include "esphome.h"
-#include "uln2003.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
