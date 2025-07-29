@@ -202,7 +202,7 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
 
     // Read current value using ISR-safe API
     // IMPORTANT: ESP-IDF v5.4 regression - touch_pad_read_filtered() is no longer ISR-safe
-    // In v5.3 and earlier it was ISR-safe, but v5.4 added mutex protection that causes:
+    // In ESP-IDF v5.3 and earlier it was ISR-safe, but ESP-IDF v5.4 added mutex protection that causes:
     // "assert failed: xQueueSemaphoreTake queue.c:1718"
     // We must use raw values even when filter is enabled as a workaround.
     // Users should adjust thresholds to compensate for the lack of IIR filtering.
