@@ -300,7 +300,7 @@ class APIConnection : public APIServerConnection {
 
 #ifdef USE_API_HOMEASSISTANT_STATES
   void process_state_subscriptions_();
-#endif  // USE_API_HOMEASSISTANT_STATES
+#endif
 
   // Non-template helper to encode any ProtoMessage
   static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint8_t message_type, APIConnection *conn,
