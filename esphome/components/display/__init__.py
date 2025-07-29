@@ -11,8 +11,8 @@ from esphome.const import (
     CONF_PAGES,
     CONF_ROTATION,
     CONF_TO,
-    CONF_UPDATE_INTERVAL,
     CONF_TRIGGER_ID,
+    CONF_UPDATE_INTERVAL,
 )
 from esphome.core import coroutine_with_priority
 
