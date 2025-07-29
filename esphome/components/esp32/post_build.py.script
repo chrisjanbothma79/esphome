@@ -51,9 +51,12 @@ def merge_factory_bin(source, target, env):
                     continue
                 file_path = pathlib.Path(str(fname))
                 if file_path.exists():
-                    sections.append((addr, str(file_path)))
+                    sections.append((addr, file_path))
                 else:
                     print(f"Info: {file_path.name} not found — skipping")
+        if sections:
+            # Append main firmware to sections
+            sections.append(("0x10000", firmware_path))
 
     # 3. Final fallback: guess standard image locations
     if not sections:
@@ -66,7 +69,7 @@ def merge_factory_bin(source, target, env):
         ]
         for addr, file_path in guesses:
             if file_path.exists():
-                sections.append((addr, str(file_path)))
+                sections.append((addr, file_path))
             else:
                 print(f"Info: {file_path.name} not found — skipping")
 
@@ -77,20 +80,19 @@ def merge_factory_bin(source, target, env):
 
     output_path = firmware_path.with_suffix(".factory.bin")
     cmd = [
+        f'"{env.subst("$PYTHONEXE")}"', "-m", "esptool",
         "--chip", chip,
         "merge_bin",
         "--flash_size", flash_size,
         "--output", str(output_path)
     ]
     for addr, file_path in sections:
-        cmd += [addr, file_path]
+        cmd += [addr, str(file_path)]
+
 
     print(f"Merging binaries into {output_path}")
     result = env.Execute(
-        env.VerboseAction(
-            f"{env.subst('$PYTHONEXE')} -m esptool " + " ".join(cmd),
-            "Merging binaries with esptool"
-        )
+        env.VerboseAction(" ".join(cmd), "Merging binaries with esptool")
     )
 
     if result == 0:
