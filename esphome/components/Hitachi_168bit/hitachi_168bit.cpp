@@ -28,7 +28,7 @@ const uint8_t hitachi_168bit_FAN_HIGH = 1;
 const uint8_t hitachi_168bit_FAN_MED = 2;
 const uint8_t hitachi_168bit_FAN_LOW = 3;
 
-const uint8_t hitachi_168bit_SWING_MASK = 128; //TBD ON HITACHI
+const uint8_t hitachi_168bit_SWING_MASK = 128;  // TBD ON HITACHI
 
 const uint8_t hitachi_168bit_POWER = 0x04;
 
@@ -39,7 +39,7 @@ void hitachi_168bitClimate::transmit_state() {
   remote_state[1] = 0x9A;
   remote_state[6] = 0x01;
   // MODEL DG11J191
-  remote_state[18] = 0x1C; //or 14?
+  remote_state[18] = 0x1C;  // or 14?
 
   auto powered_on = this->mode != climate::CLIMATE_MODE_OFF;
   if (powered_on != this->powered_on_assumed) {

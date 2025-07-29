@@ -42,13 +42,13 @@ void WhirlpoolClimate::transmit_state() {
   remote_state[18] = 0x38;
   remote_state[19] = 0x08;
   // MODEL DG11J191
-  //remote_state[18] = 0x70;
+  // remote_state[18] = 0x70;
 
   auto powered_on = this->mode != climate::CLIMATE_MODE_OFF;
   if (powered_on != this->powered_on_assumed) {
     // Set power toggle command
-    //remote_state[2] = 4;
-   // remote_state[15] = 1;
+    // remote_state[2] = 4;
+    // remote_state[15] = 1;
     this->powered_on_assumed = powered_on;
   }
   switch (this->mode) {
