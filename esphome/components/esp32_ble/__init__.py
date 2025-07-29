@@ -117,8 +117,21 @@ CONF_BLE_ID = "ble_id"
 CONF_IO_CAPABILITY = "io_capability"
 CONF_ADVERTISING_CYCLE_TIME = "advertising_cycle_time"
 CONF_DISABLE_BT_LOGS = "disable_bt_logs"
+CONF_PREFERRED_PHY = "preferred_phy"
 
 NO_BLUETOOTH_VARIANTS = [const.VARIANT_ESP32S2]
+
+# ESP32 variants that support BLE
+BLE_VARIANTS = {
+    const.VARIANT_ESP32,
+    const.VARIANT_ESP32C3,
+    const.VARIANT_ESP32S3,
+    const.VARIANT_ESP32C6,
+    const.VARIANT_ESP32H2,
+}
+
+# ESP32 variants that support 2M PHY
+BLE_2M_PHY_VARIANTS = BLE_VARIANTS - {const.VARIANT_ESP32}
 
 esp32_ble_ns = cg.esphome_ns.namespace("esp32_ble")
 ESP32BLE = esp32_ble_ns.class_("ESP32BLE", cg.Component)
@@ -140,6 +153,13 @@ IO_CAPABILITY = {
     "display_yes_no": IoCapability.IO_CAP_IO,
 }
 
+BLEPhy = esp32_ble_ns.enum("BLEPhy")
+BLE_PHY_OPTIONS = {
+    "1m": BLEPhy.BLE_PHY_1M,
+    "2m": BLEPhy.BLE_PHY_2M,
+    "auto": BLEPhy.BLE_PHY_AUTO,
+}
+
 esp_power_level_t = cg.global_ns.enum("esp_power_level_t")
 
 TX_POWER_LEVELS = {
@@ -152,6 +172,18 @@ TX_POWER_LEVELS = {
     6: esp_power_level_t.ESP_PWR_LVL_P6,
     9: esp_power_level_t.ESP_PWR_LVL_P9,
 }
+
+
+def validate_phy(value: str) -> str:
+    """Validate PHY selection based on ESP32 variant."""
+    variant = get_esp32_variant()
+    if value == "2m" and variant not in BLE_2M_PHY_VARIANTS:
+        raise cv.Invalid(
+            f"2M PHY is not supported on {variant}. "
+            f"Only supported on: {', '.join(sorted(BLE_2M_PHY_VARIANTS))}"
+        )
+    return value
+
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -166,6 +198,10 @@ CONFIG_SCHEMA = cv.Schema(
         ): cv.positive_time_period_milliseconds,
         cv.SplitDefault(CONF_DISABLE_BT_LOGS, esp32_idf=True): cv.All(
             cv.only_with_esp_idf, cv.boolean
+        ),
+        cv.Optional(CONF_PREFERRED_PHY, default="1m"): cv.All(
+            cv.enum(BLE_PHY_OPTIONS, lower=True),
+            validate_phy,
         ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -237,6 +273,7 @@ async def to_code(config):
     cg.add(var.set_enable_on_boot(config[CONF_ENABLE_ON_BOOT]))
     cg.add(var.set_io_capability(config[CONF_IO_CAPABILITY]))
     cg.add(var.set_advertising_cycle_time(config[CONF_ADVERTISING_CYCLE_TIME]))
+    cg.add(var.set_preferred_phy(config[CONF_PREFERRED_PHY]))
     if (name := config.get(CONF_NAME)) is not None:
         cg.add(var.set_name(name))
     await cg.register_component(var, config)

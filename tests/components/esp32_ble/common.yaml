@@ -1,2 +1,3 @@
 esp32_ble:
   io_capability: keyboard_only
+  # Default configuration - should use 1m PHY
