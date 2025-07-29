@@ -23,6 +23,8 @@ ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
 
 # Handler interfaces that other components can use to register callbacks
 ESPNowReceivedPacketHandler = espnow_ns.class_("ESPNowReceivedPacketHandler")
+ESPNowUnknownPeerHandler = espnow_ns.class_("ESPNowUnknownPeerHandler")
+ESPNowBroadcastedHandler = espnow_ns.class_("ESPNowBroadcastedHandler")
 
 ESPNowRecvInfo = espnow_ns.class_("ESPNowRecvInfo")
 ESPNowRecvInfoConstRef = ESPNowRecvInfo.operator("const").operator("ref")
@@ -32,17 +34,21 @@ SetChannelAction = espnow_ns.class_("SetChannelAction", automation.Action)
 AddPeerAction = espnow_ns.class_("AddPeerAction", automation.Action)
 DeletePeerAction = espnow_ns.class_("DeletePeerAction", automation.Action)
 
-ESPNowHandlerTrigger = espnow_ns.class_(
-    automation.Trigger.template(
-        ESPNowRecvInfoConstRef,
-        cg.uint8.operator("const").operator("ptr"),
-        cg.uint8,
-    ),
+ESPNowHandlerTrigger = automation.Trigger.template(
+    ESPNowRecvInfoConstRef,
+    cg.uint8.operator("const").operator("ptr"),
+    cg.uint8,
 )
 
-OnUnknownPeerTrigger = espnow_ns.class_("OnUnknownPeerTrigger", ESPNowHandlerTrigger)
-OnReceiveTrigger = espnow_ns.class_("OnReceiveTrigger", ESPNowHandlerTrigger)
-OnBroadcastedTrigger = espnow_ns.class_("OnBroadcastedTrigger", ESPNowHandlerTrigger)
+OnUnknownPeerTrigger = espnow_ns.class_(
+    "OnUnknownPeerTrigger", ESPNowHandlerTrigger, ESPNowUnknownPeerHandler
+)
+OnReceiveTrigger = espnow_ns.class_(
+    "OnReceiveTrigger", ESPNowHandlerTrigger, ESPNowReceivedPacketHandler
+)
+OnBroadcastedTrigger = espnow_ns.class_(
+    "OnBroadcastedTrigger", ESPNowHandlerTrigger, ESPNowBroadcastedHandler
+)
 
 
 CONF_AUTO_ADD_PEER = "auto_add_peer"
