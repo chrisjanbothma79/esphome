@@ -100,7 +100,7 @@ void TM1651Display::setup() {
 }
 
 void TM1651Display::dump_config() {
-  ESP_LOGCONFIG(TAG, "Mini Battery Display");
+  ESP_LOGCONFIG(TAG, "Battery Display");
   LOG_PIN("  CLK: ", clk_pin_);
   LOG_PIN("  DIO: ", dio_pin_);
 }
