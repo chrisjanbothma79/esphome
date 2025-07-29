@@ -14,6 +14,7 @@ class DsiBacklight : public light::LightOutput, public Component, public i2c::I2
   void write_state(light::LightState *state) override;
 
  protected:
+  void write_brightness_();
   uint8_t brightness_{0xD0};
   bool setup_completed_{false};
 };
