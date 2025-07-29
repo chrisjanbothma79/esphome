@@ -106,6 +106,13 @@ void RemoteReceiverComponent::loop() {
   for (uint32_t i = 0; prev != idle_at; i++) {
     int32_t delta = s.buffer[read_at] - s.buffer[prev];
     if (uint32_t(delta) >= this->idle_us_) {
+      if (this->temp_.empty()) {
+        prev = s.buffer_read_at = read_at;
+        read_at = (read_at + 1) % s.buffer_size;
+        multiplier *= -1;
+        continue;
+      }
+
       // already found a space longer than idle. There must have been more than one pulse
       break;
     }
