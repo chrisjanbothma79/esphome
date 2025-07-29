@@ -14,6 +14,13 @@ enum class ULN2003Mode {
   PUMP
 };
 
+class ULN2003Component : public Component {
+ public:
+  void setup() override;
+  void loop() override;
+
+  void set_mode(ULN2003Mode mode);
+
 enum ULN2003StepMode {
   ULN2003_STEP_MODE_FULL_STEP,
   ULN2003_STEP_MODE_HALF_STEP,
