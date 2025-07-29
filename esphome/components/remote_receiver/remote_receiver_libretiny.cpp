@@ -11,13 +11,14 @@ namespace remote_receiver {
 static const char *const TAG = "remote_receiver.libretiny";
 
 void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverComponentStore *arg) {
+  const uint32_t now = micros();
   const uint32_t next = (arg->buffer_write_at + 1) % arg->buffer_size;
   // If next is buffer_read, we have hit an overflow
   if (next == arg->buffer_read_at) {
     arg->overflow = true;
+    arg->buffer[arg->buffer_write_at] = now;
     return;
   }
-  arg->overflow = false;
 
   // If the lhs is 1 (rising edge) we should write to an uneven index and vice versa
   const bool level = arg->pin.digital_read();
@@ -25,11 +26,16 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
     return;
 
   const uint32_t last_change = arg->buffer[arg->buffer_write_at];
-  const uint32_t now = micros();
   const uint32_t time_since_change = now - last_change;
   if (time_since_change <= arg->filter_us)
     return;
   if (time_since_change >= arg->idle_us) {
+    if (arg->overflow) {
+      arg->buffer_write_at = arg->buffer_idle_at;
+      arg->overflow = false;
+      return;
+    }
+    arg->buffer_prev_idle_at = arg->buffer_idle_at;
     arg->buffer_idle_at = next;
   }
 
@@ -56,9 +62,9 @@ void RemoteReceiverComponent::setup() {
 
   // First index is a space.
   if (this->pin_->digital_read()) {
-    s.buffer_write_at = s.buffer_read_at = s.buffer_idle_at = 1;
+    s.buffer_write_at = s.buffer_read_at = s.buffer_idle_at = s.buffer_prev_idle_at = 1;
   } else {
-    s.buffer_write_at = s.buffer_read_at = s.buffer_idle_at = 0;
+    s.buffer_write_at = s.buffer_read_at = s.buffer_idle_at = s.buffer_prev_idle_at = 0;
   }
   this->pin_->attach_interrupt(RemoteReceiverComponentStore::gpio_intr, &this->store_, gpio::INTERRUPT_ANY_EDGE);
 }
@@ -125,6 +131,11 @@ void RemoteReceiverComponent::loop() {
     multiplier *= -1;
   }
   this->temp_.push_back(this->idle_us_ * multiplier);
+
+  if (s.overflow) {
+    ESP_LOGW(TAG, "Remote receiver buffer overflow! Some signals may have been lost.");
+    s.buffer_write_at = s.buffer_idle_at;
+  }
 
   this->call_listeners_dumpers_();
 }
