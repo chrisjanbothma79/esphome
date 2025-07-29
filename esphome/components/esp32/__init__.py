@@ -79,6 +79,7 @@ CONF_COMPILER_OPTIMIZATION = "compiler_optimization"
 CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES = "enable_idf_experimental_features"
 CONF_ENABLE_LWIP_ASSERT = "enable_lwip_assert"
 CONF_RELEASE = "release"
+CONF_VARIANT = CONF_SOC # Define SOC as alias for variant
 
 ASSERTION_LEVELS = {
     "DISABLE": "CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_DISABLE",
@@ -491,15 +492,16 @@ def _platform_is_platformio(value):
 
 def _detect_variant(value):
     board = value.get(CONF_BOARD)
-    soc = value.get(CONF_SOC)
+    # soc = value.get(CONF_SOC)
     variant = value.get(CONF_VARIANT)
-    if soc:
-        # If SOC is set, we expect user to have moved to a newer config scheme
-        # and we don't expect variant and board to be present.
-        # Presently soc serves as an alias for variant which needs to be changed in future.
-        value = value.copy()
-        value[CONF_BOARD] = STANDARD_BOARDS[soc]
-    elif variant and board is None:
+    # if soc:
+    #     # If SOC is set, we expect user to have moved to a newer config scheme
+    #     # and we don't expect variant and board to be present.
+    #     # Presently soc serves as an alias for variant which needs to be changed in future.
+    #     value = value.copy()
+    #     value[CONF_BOARD] = STANDARD_BOARDS[soc]
+    # elif
+    if variant and board is None:
         # If variant is set, we can derive the board from it
         # variant has already been validated against the known set
         value = value.copy()
