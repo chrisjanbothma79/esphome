@@ -55,6 +55,12 @@ enum IoCapability {
   IO_CAP_KBDISP = ESP_IO_CAP_KBDISP,
 };
 
+enum BLEPhy : uint8_t {
+  BLE_PHY_1M = 0x01,
+  BLE_PHY_2M = 0x02,
+  BLE_PHY_AUTO = 0x03,
+};
+
 enum BLEComponentState : uint8_t {
   /** Nothing has been initialized yet. */
   BLE_COMPONENT_STATE_OFF = 0,
@@ -98,6 +104,7 @@ class BLEStatusEventHandler {
 class ESP32BLE : public Component {
  public:
   void set_io_capability(IoCapability io_capability) { this->io_cap_ = (esp_ble_io_cap_t) io_capability; }
+  void set_preferred_phy(BLEPhy phy) { this->preferred_phy_ = phy; }
 
   void set_advertising_cycle_time(uint32_t advertising_cycle_time) {
     this->advertising_cycle_time_ = advertising_cycle_time;
@@ -170,6 +177,7 @@ class ESP32BLE : public Component {
   // 1-byte aligned members (grouped together to minimize padding)
   BLEComponentState state_{BLE_COMPONENT_STATE_OFF};  // 1 byte (uint8_t enum)
   bool enable_on_boot_{};                             // 1 byte
+  BLEPhy preferred_phy_{BLE_PHY_1M};                  // 1 byte (uint8_t enum)
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
