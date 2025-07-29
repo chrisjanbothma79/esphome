@@ -31,6 +31,7 @@ from esphome.const import (
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
     PLATFORM_ESP32,
+    ThreadModel,
     __version__,
 )
 from esphome.core import CORE, HexInt, TimePeriod
@@ -39,7 +40,7 @@ import esphome.final_validate as fv
 from esphome.helpers import copy_file_if_changed, mkdir_p, write_file_if_changed
 from esphome.types import ConfigType
 
-from .boards import BOARDS
+from .boards import BOARDS, STANDARD_BOARDS
 from .const import (  # noqa
     KEY_BOARD,
     KEY_COMPONENTS,
@@ -309,19 +310,19 @@ def _format_framework_espidf_version(
 
 # The default/recommended arduino framework version
 #  - https://github.com/espressif/arduino-esp32/releases
-RECOMMENDED_ARDUINO_FRAMEWORK_VERSION = cv.Version(3, 1, 3)
+RECOMMENDED_ARDUINO_FRAMEWORK_VERSION = cv.Version(3, 2, 1)
 # The platform-espressif32 version to use for arduino frameworks
 #  - https://github.com/pioarduino/platform-espressif32/releases
-ARDUINO_PLATFORM_VERSION = cv.Version(53, 3, 13)
+ARDUINO_PLATFORM_VERSION = cv.Version(54, 3, 21, "1")
 
 # The default/recommended esp-idf framework version
 #  - https://github.com/espressif/esp-idf/releases
 #  - https://api.registry.platformio.org/v3/packages/platformio/tool/framework-espidf
-RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION = cv.Version(5, 3, 2)
+RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION = cv.Version(5, 4, 2)
 # The platformio/espressif32 version to use for esp-idf frameworks
 #  - https://github.com/platformio/platform-espressif32/releases
 #  - https://api.registry.platformio.org/v3/packages/platformio/platform/espressif32
-ESP_IDF_PLATFORM_VERSION = cv.Version(53, 3, 13)
+ESP_IDF_PLATFORM_VERSION = cv.Version(54, 3, 21, "1")
 
 # List based on https://registry.platformio.org/tools/platformio/framework-espidf/versions
 SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
@@ -356,8 +357,8 @@ SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
 def _arduino_check_versions(value):
     value = value.copy()
     lookups = {
-        "dev": (cv.Version(3, 1, 3), "https://github.com/espressif/arduino-esp32.git"),
-        "latest": (cv.Version(3, 1, 3), None),
+        "dev": (cv.Version(3, 2, 1), "https://github.com/espressif/arduino-esp32.git"),
+        "latest": (cv.Version(3, 2, 1), None),
         "recommended": (RECOMMENDED_ARDUINO_FRAMEWORK_VERSION, None),
     }
 
@@ -395,8 +396,8 @@ def _arduino_check_versions(value):
 def _esp_idf_check_versions(value):
     value = value.copy()
     lookups = {
-        "dev": (cv.Version(5, 3, 2), "https://github.com/espressif/esp-idf.git"),
-        "latest": (cv.Version(5, 3, 2), None),
+        "dev": (cv.Version(5, 4, 2), "https://github.com/espressif/esp-idf.git"),
+        "latest": (cv.Version(5, 2, 2), None),
         "recommended": (RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION, None),
     }
 
@@ -467,10 +468,10 @@ def _parse_platform_version(value):
     try:
         ver = cv.Version.parse(cv.version_number(value))
         if ver.major >= 50:  # a pioarduino version
-            if "-" in value:
-                # maybe a release candidate?...definitely not our default, just use it as-is...
-                return f"https://github.com/pioarduino/platform-espressif32/releases/download/{value}/platform-espressif32.zip"
-            return f"https://github.com/pioarduino/platform-espressif32/releases/download/{ver.major}.{ver.minor:02d}.{ver.patch:02d}/platform-espressif32.zip"
+            release = f"{ver.major}.{ver.minor:02d}.{ver.patch:02d}"
+            if ver.extra:
+                release += f"-{ver.extra}"
+            return f"https://github.com/pioarduino/platform-espressif32/releases/download/{release}/platform-espressif32.zip"
         # if platform version is a valid version constraint, prefix the default package
         cv.platformio_version_constraint(value)
         return f"platformio/espressif32@{value}"
@@ -487,25 +488,32 @@ def _platform_is_platformio(value):
 
 
 def _detect_variant(value):
-    board = value[CONF_BOARD]
-    if board in BOARDS:
-        variant = BOARDS[board][KEY_VARIANT]
-        if CONF_VARIANT in value and variant != value[CONF_VARIANT]:
+    board = value.get(CONF_BOARD)
+    variant = value.get(CONF_VARIANT)
+    if variant and board is None:
+        # If variant is set, we can derive the board from it
+        # variant has already been validated against the known set
+        value = value.copy()
+        value[CONF_BOARD] = STANDARD_BOARDS[variant]
+    elif board in BOARDS:
+        variant = variant or BOARDS[board][KEY_VARIANT]
+        if variant != BOARDS[board][KEY_VARIANT]:
             raise cv.Invalid(
                 f"Option '{CONF_VARIANT}' does not match selected board.",
                 path=[CONF_VARIANT],
             )
         value = value.copy()
         value[CONF_VARIANT] = variant
+    elif not variant:
+        raise cv.Invalid(
+            "This board is unknown, if you are sure you want to compile with this board selection, "
+            f"override with option '{CONF_VARIANT}'",
+            path=[CONF_BOARD],
+        )
     else:
-        if CONF_VARIANT not in value:
-            raise cv.Invalid(
-                "This board is unknown, if you are sure you want to compile with this board selection, "
-                f"override with option '{CONF_VARIANT}'",
-                path=[CONF_BOARD],
-            )
         _LOGGER.warning(
-            "This board is unknown. Make sure the chosen chip component is correct.",
+            "This board is unknown; the specified variant '%s' will be used but this may not work as expected.",
+            variant,
         )
     return value
 
@@ -563,6 +571,8 @@ CONF_SDKCONFIG_OPTIONS = "sdkconfig_options"
 CONF_ENABLE_LWIP_DHCP_SERVER = "enable_lwip_dhcp_server"
 CONF_ENABLE_LWIP_MDNS_QUERIES = "enable_lwip_mdns_queries"
 CONF_ENABLE_LWIP_BRIDGE_INTERFACE = "enable_lwip_bridge_interface"
+CONF_ENABLE_LWIP_TCPIP_CORE_LOCKING = "enable_lwip_tcpip_core_locking"
+CONF_ENABLE_LWIP_CHECK_THREAD_SAFETY = "enable_lwip_check_thread_safety"
 
 
 def _validate_idf_component(config: ConfigType) -> ConfigType:
@@ -610,6 +620,12 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                     ): cv.boolean,
                     cv.Optional(
                         CONF_ENABLE_LWIP_BRIDGE_INTERFACE, default=False
+                    ): cv.boolean,
+                    cv.Optional(
+                        CONF_ENABLE_LWIP_TCPIP_CORE_LOCKING, default=True
+                    ): cv.boolean,
+                    cv.Optional(
+                        CONF_ENABLE_LWIP_CHECK_THREAD_SAFETY, default=True
                     ): cv.boolean,
                 }
             ),
@@ -676,7 +692,7 @@ CONF_PARTITIONS = "partitions"
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
-            cv.Required(CONF_BOARD): cv.string_strict,
+            cv.Optional(CONF_BOARD): cv.string_strict,
             cv.Optional(CONF_CPU_FREQUENCY): cv.one_of(
                 *FULL_CPU_FREQUENCIES, upper=True
             ),
@@ -691,6 +707,7 @@ CONFIG_SCHEMA = cv.All(
     _detect_variant,
     _set_default_framework,
     set_core_data,
+    cv.has_at_least_one_key(CONF_BOARD, CONF_VARIANT),
 )
 
 
@@ -705,6 +722,7 @@ async def to_code(config):
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
     cg.add_define("ESPHOME_VARIANT", VARIANT_FRIENDLY[config[CONF_VARIANT]])
+    cg.add_define(ThreadModel.MULTI_ATOMICS)
 
     cg.add_platformio_option("lib_ldf_mode", "off")
     cg.add_platformio_option("lib_compat_mode", "strict")
@@ -774,6 +792,18 @@ async def to_code(config):
             add_idf_sdkconfig_option("CONFIG_LWIP_DNS_SUPPORT_MDNS_QUERIES", False)
         if not advanced.get(CONF_ENABLE_LWIP_BRIDGE_INTERFACE, False):
             add_idf_sdkconfig_option("CONFIG_LWIP_BRIDGEIF_MAX_PORTS", 0)
+
+        # Apply LWIP core locking for better socket performance
+        # This is already enabled by default in Arduino framework, where it provides
+        # significant performance benefits. Our benchmarks show socket operations are
+        # 24-200% faster with core locking enabled:
+        # - select() on 4 sockets: ~190μs (Arduino/core locking) vs ~235μs (ESP-IDF default)
+        # - Up to 200% slower under load when all operations queue through tcpip_thread
+        # Enabling this makes ESP-IDF socket performance match Arduino framework.
+        if advanced.get(CONF_ENABLE_LWIP_TCPIP_CORE_LOCKING, True):
+            add_idf_sdkconfig_option("CONFIG_LWIP_TCPIP_CORE_LOCKING", True)
+        if advanced.get(CONF_ENABLE_LWIP_CHECK_THREAD_SAFETY, True):
+            add_idf_sdkconfig_option("CONFIG_LWIP_CHECK_THREAD_SAFETY", True)
 
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
         if CONF_PARTITIONS in config:
@@ -943,14 +973,16 @@ def _write_idf_component_yml():
 
 # Called by writer.py
 def copy_files():
-    if CORE.using_arduino:
-        if "partitions.csv" not in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES]:
-            write_file_if_changed(
-                CORE.relative_build_path("partitions.csv"),
-                get_arduino_partition_csv(
-                    CORE.platformio_options.get("board_upload.flash_size")
-                ),
-            )
+    if (
+        CORE.using_arduino
+        and "partitions.csv" not in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES]
+    ):
+        write_file_if_changed(
+            CORE.relative_build_path("partitions.csv"),
+            get_arduino_partition_csv(
+                CORE.platformio_options.get("board_upload.flash_size")
+            ),
+        )
     if CORE.using_esp_idf:
         _write_sdkconfig()
         _write_idf_component_yml()
@@ -970,7 +1002,7 @@ def copy_files():
             __version__,
         )
 
-    for _, file in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES].items():
+    for file in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES].values():
         if file[KEY_PATH].startswith("http"):
             import requests
 
