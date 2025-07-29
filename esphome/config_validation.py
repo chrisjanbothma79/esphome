@@ -288,23 +288,31 @@ class Version:
     major: int
     minor: int
     patch: int
+    extra_separator: str = ""
     extra: str = ""
 
     def __str__(self):
-        if self.extra:
-            return f"{self.major}.{self.minor}.{self.patch}-{self.extra}"
-        return f"{self.major}.{self.minor}.{self.patch}"
+        return (
+            f"{self.major}.{self.minor}.{self.patch}{self.extra_separator}{self.extra}"
+        )
 
     @classmethod
     def parse(cls, value: str) -> Version:
-        match = re.match(r"^(\d+).(\d+).(\d+)-?(\w*)$", value)
+        match = re.match(r"^(\d+).(\d+).(\d+)(-)?(\w*)$", value)
         if match is None:
             raise ValueError(f"Not a valid version number {value}")
         major = int(match[1])
         minor = int(match[2])
         patch = int(match[3])
-        extra = match[4] or ""
-        return Version(major=major, minor=minor, patch=patch, extra=extra)
+        extra_separator = match[4] or ""
+        extra = match[5] or ""
+        return Version(
+            major=major,
+            minor=minor,
+            patch=patch,
+            extra_separator=extra_separator,
+            extra=extra,
+        )
 
     @property
     def is_beta(self) -> bool:
