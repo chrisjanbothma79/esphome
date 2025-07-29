@@ -538,7 +538,7 @@ void WiFiComponent::check_scanning_finished() {
                        if (a.get_ssid() == b.get_ssid()) {
                          return a.get_rssi() > b.get_rssi();
                        }
-                       
+
                        // For different SSIDs, check priority first
                        if (a.get_priority() != b.get_priority())
                          return a.get_priority() > b.get_priority();
