@@ -285,6 +285,7 @@ void ESPNowComponent::loop() {
             }
           }
         }
+        // Intentionally left as if instead of else in case the peer is added above
         if (esp_now_is_peer_exist(info.src_addr)) {
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
           ESP_LOGV(TAG, "<<< [%s -> %s] %s", format_mac_address_pretty(info.src_addr).c_str(),
@@ -353,31 +354,31 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payl
     return ESP_ERR_ESPNOW_PEER_NOT_SET;
   } else if (memcmp(peer_address, this->own_address_, ESP_NOW_ETH_ALEN) == 0) {
     return ESP_ERR_ESPNOW_OWN_PEER_ADDRESS;
-  } else {
-    if (size > ESP_NOW_MAX_DATA_LEN) {
-      return ESP_ERR_ESPNOW_PAYLOAD_SIZE;
-    }
-    if (!esp_now_is_peer_exist(peer_address)) {
-      if (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_) {
-        this->add_peer(peer_address);
-      } else {
-        return ESP_ERR_ESPNOW_PEER_NOT_PAIRED;
+  } else if (size > ESP_NOW_MAX_DATA_LEN) {
+    return ESP_ERR_ESPNOW_PAYLOAD_SIZE;
+  } else if (!esp_now_is_peer_exist(peer_address)) {
+    if (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_) {
+      esp_err_t err = this->add_peer(peer_address);
+      if (err != ESP_OK) {
+        return err;
       }
+    } else {
+      return ESP_ERR_ESPNOW_PEER_NOT_PAIRED;
     }
-    // Allocate a packet from the pool
-    ESPNowSendPacket *packet = this->send_packet_pool_.allocate();
-    if (packet == nullptr) {
-      this->send_packet_queue_.increment_dropped_count();
-      ESP_LOGE(TAG, "Failed to allocate send packet from pool");
-      this->status_momentary_warning("send-packet-pool-full");
-      return ESP_ERR_ESPNOW_NO_MEM;
-    }
-    // Load the packet data
-    packet->load_data(peer_address, payload, size, callback);
-    // Push the packet to the send queue
-    this->send_packet_queue_.push(packet);
-    return ESP_OK;
   }
+  // Allocate a packet from the pool
+  ESPNowSendPacket *packet = this->send_packet_pool_.allocate();
+  if (packet == nullptr) {
+    this->send_packet_queue_.increment_dropped_count();
+    ESP_LOGE(TAG, "Failed to allocate send packet from pool");
+    this->status_momentary_warning("send-packet-pool-full");
+    return ESP_ERR_ESPNOW_NO_MEM;
+  }
+  // Load the packet data
+  packet->load_data(peer_address, payload, size, callback);
+  // Push the packet to the send queue
+  this->send_packet_queue_.push(packet);
+  return ESP_OK;
 }
 
 void ESPNowComponent::send_() {
