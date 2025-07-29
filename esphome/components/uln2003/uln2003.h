@@ -33,6 +33,7 @@ class ULN2003 : public stepper::Stepper, public Component {
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
   void set_sleep_when_done(bool sleep_when_done) { this->sleep_when_done_ = sleep_when_done; }
   void set_step_mode(ULN2003StepMode step_mode) { this->step_mode_ = step_mode; }
+  void set_mode(ULN2003Mode mode);
 
  protected:
   void write_step_(int32_t step);
@@ -45,6 +46,7 @@ class ULN2003 : public stepper::Stepper, public Component {
   ULN2003StepMode step_mode_{ULN2003_STEP_MODE_FULL_STEP};
   HighFrequencyLoopRequester high_freq_;
   int32_t current_uln_pos_{0};
+  ULN2003Mode mode_{ULN2003Mode::STEPPER};
 };
 
 }  // namespace uln2003
