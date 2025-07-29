@@ -5,6 +5,13 @@
 #include <set>
 
 namespace esphome {
+
+#ifdef USE_API
+namespace api {
+class APIConnection;
+}  // namespace api
+#endif
+
 namespace light {
 
 /// This class is used to represent the capabilities of a light.
@@ -13,7 +20,6 @@ class LightTraits {
   LightTraits() = default;
 
   const std::set<ColorMode> &get_supported_color_modes() const { return this->supported_color_modes_; }
-  const std::set<ColorMode> &get_supported_color_modes_ref() const { return this->supported_color_modes_; }
   void set_supported_color_modes(std::set<ColorMode> supported_color_modes) {
     this->supported_color_modes_ = std::move(supported_color_modes);
   }
@@ -53,6 +59,16 @@ class LightTraits {
   void set_max_mireds(float max_mireds) { this->max_mireds_ = max_mireds; }
 
  protected:
+#ifdef USE_API
+  // The API connection is a friend class to access internal methods
+  friend class api::APIConnection;
+  // This method returns a reference to the internal color modes set.
+  // It is used by the API to avoid copying data when encoding messages.
+  // Warning: Do not use this method outside of the API connection code.
+  // It returns a reference to internal data that can be invalidated.
+  const std::set<ColorMode> &get_supported_color_modes_for_api_() const { return this->supported_color_modes_; }
+#endif
+
   std::set<ColorMode> supported_color_modes_{};
   float min_mireds_{0};
   float max_mireds_{0};
