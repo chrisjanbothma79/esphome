@@ -388,7 +388,8 @@ class DoubleType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_fixed_size_calculation(name, "add_double")
+        field_id_size = self.calculate_field_id_size()
+        return f"size.add_double({field_id_size}, {name});"
 
     def get_fixed_size_bytes(self) -> int:
         return 8
