@@ -177,6 +177,7 @@ void WiFiComponent::loop() {
         return;
     }
 
+    bool reboot_timeout_enabled = true;
 #ifdef USE_WIFI_AP
     if (this->has_ap() && !this->ap_setup_) {
       if (this->ap_timeout_ != 0 && (now - this->last_connected_ > this->ap_timeout_)) {
@@ -188,6 +189,7 @@ void WiFiComponent::loop() {
 #endif
       }
     }
+    reboot_timeout_enabled = (this->get_ap_client_count() == 0);
 #endif  // USE_WIFI_AP
 
 #ifdef USE_IMPROV
@@ -200,7 +202,7 @@ void WiFiComponent::loop() {
 
 #endif
 
-    if (this->get_ap_client_count() == 0 && this->reboot_timeout_ != 0) {
+    if (reboot_timeout_enabled && this->reboot_timeout_ != 0) {
       if (now - this->last_connected_ > this->reboot_timeout_) {
         ESP_LOGE(TAG, "Can't connect; rebooting");
         App.reboot();
