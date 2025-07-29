@@ -79,8 +79,9 @@ def merge_factory_bin(source, target, env):
         return
 
     output_path = firmware_path.with_suffix(".factory.bin")
+    python_exe = f'"{env.subst("$PYTHONEXE")}"'
     cmd = [
-        f'"{env.subst("$PYTHONEXE")}"', "-m", "esptool",
+        python_exe, "-m", "esptool",
         "--chip", chip,
         "merge_bin",
         "--flash_size", flash_size,
