@@ -21,6 +21,7 @@ from esphome.const import (
     CONF_PLATFORMIO_OPTIONS,
     CONF_REF,
     CONF_REFRESH,
+    CONF_SOC,
     CONF_SOURCE,
     CONF_TYPE,
     CONF_VARIANT,
@@ -50,6 +51,7 @@ from .const import (  # noqa
     KEY_REF,
     KEY_REPO,
     KEY_SDKCONFIG_OPTIONS,
+    KEY_SOC,
     KEY_VARIANT,
     VARIANT_ESP32,
     VARIANT_ESP32C2,
@@ -489,8 +491,15 @@ def _platform_is_platformio(value):
 
 def _detect_variant(value):
     board = value.get(CONF_BOARD)
+    soc = value.get(CONF_SOC)
     variant = value.get(CONF_VARIANT)
-    if variant and board is None:
+    if soc:
+        # If SOC is set, we expect user to have moved to a newer config scheme
+        # and we don't expect variant and board to be present.
+        # Presently soc serves as an alias for variant which needs to be changed in future.
+        value = value.copy()
+        value[CONF_BOARD] = STANDARD_BOARDS[soc]
+    elif variant and board is None:
         # If variant is set, we can derive the board from it
         # variant has already been validated against the known set
         value = value.copy()
@@ -700,6 +709,7 @@ CONFIG_SCHEMA = cv.All(
                 *FLASH_SIZES, upper=True
             ),
             cv.Optional(CONF_PARTITIONS): cv.file_,
+            cv.Optional(CONF_SOC): cv.one_of(*VARIANTS, upper=True),
             cv.Optional(CONF_VARIANT): cv.one_of(*VARIANTS, upper=True),
             cv.Optional(CONF_FRAMEWORK): FRAMEWORK_SCHEMA,
         }
@@ -707,7 +717,7 @@ CONFIG_SCHEMA = cv.All(
     _detect_variant,
     _set_default_framework,
     set_core_data,
-    cv.has_at_least_one_key(CONF_BOARD, CONF_VARIANT),
+    cv.has_at_least_one_key(CONF_BOARD, CONF_VARIANT, CONF_SOC),
 )
 
 
