@@ -12,6 +12,7 @@ class DsiBacklight : public light::LightOutput, public Component, public i2c::I2
   void setup() override;
   light::LightTraits get_traits() override;
   void write_state(light::LightState *state) override;
+  float get_setup_priority() const override { return setup_priority::HARDWARE; }
 
  protected:
   void write_brightness_();
