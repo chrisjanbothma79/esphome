@@ -73,6 +73,17 @@ void HDC302XComponent::update() {
   temperature_sensor_->publish_state(temp);
   humidity_sensor_->publish_state(rh);
 }
+void PMWCS3Component::dump_config() {
+  ESP_LOGCONFIG(TAG, "HDC302X");
+  LOG_I2C_DEVICE(this);
+  if (this->is_failed()) {
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
+  }
+  LOG_UPDATE_INTERVAL(this);
+  LOG_SENSOR("  ", "temperature", this->temperature_sensor_);
+  LOG_SENSOR("  ", "humidity", this->humidity_sensor_);
+  LOG_SENSOR("  ", "last_error", this->last_error_sensor_);
+}
 
 i2c::ErrorCode HDC302XComponent::readTemperatureHumidityOnDemand(float *temp, float *RH) {
   hdcTriggerMode_t mode = TRIGGERMODE_LP0; // LP0 is lowest noise
@@ -176,35 +187,32 @@ i2c::ErrorCode HDC302XComponent::sendCommandReadTRH(uint16_t command, double *te
   return i2c::NO_ERROR;
 }
 
-bool HDC302XComponent::isHeaterOn() {
-  uint16_t status = readStatus();
-  return (status & (1UL << 13));
+i2c::ErrorCode HDC302XComponent::readStatus(uint16_t* status) {
+  i2c::ErrorCode ec = writeCommandReadData(HDC302x_Commands::READ_STATUS_REGISTER, status);
+  return ec;
 }
 
-bool HDC302XComponent::heaterEnable(HDC302x_HeaterPower power) {
+i2c::ErrorCode HDC302XComponent::isHeaterOn(bool* isOn) {
+  uint16_t status;
+  i2c::ErrorCode ec = readStatus(&status);
+  if (ec != i2c::NO_ERROR) {
+    return ec;
+  }
+  *isOn = (status & (1UL << 13));
+  return ec;
+}
+
+i2c::ErrorCode HDC302XComponent::heaterEnable(HDC302x_HeaterPower power) {
   if (power == HEATER_OFF) {
     return writeCommand(HDC302x_Commands::DISABLE_HEATER);
   } else {
-    if (!writeCommand(HDC302x_Commands::ENABLE_HEATER)) {
-      return false;
+    i2c::ErrorCode ec;
+    ec = writeCommand(HDC302x_Commands::ENABLE_HEATER);
+    if (ec != i2c::NO_ERROR) {
+      return ec;
     }
     return writeCommandData(HDC302x_Commands::SET_HEATER_POWER, power);
   }
-}
-
-uint16_t HDC302XComponent::readStatus() {
-  uint16_t status = 0;
-  writeCommandReadData(HDC302x_Commands::READ_STATUS_REGISTER, status);
-  return status;
-}
-
-uint16_t HDC302XComponent::readManufacturerID() {
-  uint16_t manufacturerID = 0;
-  if (!writeCommandReadData(HDC302x_Commands::READ_MANUFACTURER_ID,
-                            manufacturerID)) {
-    return 0; // Return 0 if there is an error
-  }
-  return manufacturerID;
 }
 
 /**
@@ -217,7 +225,7 @@ uint16_t HDC302XComponent::readManufacturerID() {
  * @param len Length of the data array.
  * @return uint8_t The calculated CRC-8 value.
  */
-uint8_t HDC302XComponent::calculateCRC8(const uint8_t *data, int len) {
+static uint8_t calculateCRC8(const uint8_t *data, int len) {
   uint8_t crc = 0xFF; // Typical initial value
   for (int i = 0; i < len; i++) {
     crc ^= data[i];               // XOR byte into least sig. byte of crc
@@ -231,23 +239,6 @@ uint8_t HDC302XComponent::calculateCRC8(const uint8_t *data, int len) {
   }
   return crc; // Final XOR value can also be applied if specified by device
 }  
-
-
-float PMWCS3Component::get_setup_priority() const { return setup_priority::DATA; }
-
-void PMWCS3Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "PMWCS3");
-  LOG_I2C_DEVICE(this);
-  if (this->is_failed()) {
-    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
-  }
-  LOG_UPDATE_INTERVAL(this);
-  LOG_SENSOR("  ", "e25", this->e25_sensor_);
-  LOG_SENSOR("  ", "ec", this->ec_sensor_);
-  LOG_SENSOR("  ", "temperature", this->temperature_sensor_);
-  LOG_SENSOR("  ", "vwc", this->vwc_sensor_);
-}
-
   
 }
 }

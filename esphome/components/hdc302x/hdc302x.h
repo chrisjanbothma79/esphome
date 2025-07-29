@@ -1,3 +1,8 @@
+// python3 -m venv venv
+// venv/bin/pip3 install -r requirements_test.txt -r requirements.txt
+// venv/bin/pytest tests/components/hdc302x
+
+
 #pragma once
 #include "esphome/components/i2c/i2c.h"
 #include "esphome/components/sensor/sensor.h"
@@ -13,7 +18,6 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   void setup() override;
   void update() override;
   void dump_config() override;
-  void loop() override;
  
   void set_temperature_sensor(sensor::Sensor *a_sensor) { temperature_sensor_ = a_sensor; }
   void set_humidity_sensor(sensor::Sensor *a_sensor) { humidity_sensor_ = a_sensor; }
@@ -31,6 +35,9 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
 
   // unused
   i2c::ErrorCode writeCommandData(uint16_t cmd, uint16_t data);
+  i2c::ErrorCode readStatus(uint16_t* status);
+  i2c::ErrorCode isHeaterOn(bool* isOn);
+  i2c::ErrorCode heaterEnable(HDC302x_HeaterPower power);
 
 
   
