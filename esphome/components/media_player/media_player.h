@@ -92,6 +92,7 @@ class MediaPlayerTraits {
     }
     return flags;
   }
+
  protected:
   bool supports_pause_{false};
   std::vector<MediaPlayerSupportedFormat> supported_formats_{};
