@@ -200,7 +200,7 @@ void WiFiComponent::loop() {
 
 #endif
 
-    if (!this->has_ap() && this->reboot_timeout_ != 0) {
+    if (this->get_ap_client_count() == 0 && this->reboot_timeout_ != 0) {
       if (now - this->last_connected_ > this->reboot_timeout_) {
         ESP_LOGE(TAG, "Can't connect; rebooting");
         App.reboot();
