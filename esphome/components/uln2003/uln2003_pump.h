@@ -1,12 +1,13 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/components/switch/switch.h"
 #include "esphome/core/gpio.h"
 
 namespace esphome {
 namespace uln2003 {
 
-class ULN2003Pump : public Component, {
+class ULN2003Pump : public switch_::Switch, public Component, {
  public:
   void set_control_pin(GPIOPin *pin) { this->control_pin_ = pin; }
 
