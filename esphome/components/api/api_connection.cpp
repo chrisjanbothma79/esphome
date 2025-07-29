@@ -413,7 +413,7 @@ uint16_t APIConnection::try_send_fan_info(EntityBase *entity, APIConnection *con
   msg.supports_speed = traits.supports_speed();
   msg.supports_direction = traits.supports_direction();
   msg.supported_speed_count = traits.supported_speed_count();
-  msg.supported_preset_modes = &traits.supported_preset_modes();
+  msg.supported_preset_modes = &traits.supported_preset_modes_ref();
   return fill_and_encode_entity_info(fan, msg, ListEntitiesFanResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::fan_command(const FanCommandRequest &msg) {
@@ -469,7 +469,7 @@ uint16_t APIConnection::try_send_light_info(EntityBase *entity, APIConnection *c
   auto *light = static_cast<light::LightState *>(entity);
   ListEntitiesLightResponse msg;
   auto traits = light->get_traits();
-  msg.supported_color_modes = &traits.get_supported_color_modes();
+  msg.supported_color_modes = &traits.get_supported_color_modes_ref();
   if (traits.supports_color_capability(light::ColorCapability::COLOR_TEMPERATURE) ||
       traits.supports_color_capability(light::ColorCapability::COLD_WARM_WHITE)) {
     msg.min_mireds = traits.get_min_mireds();
@@ -655,7 +655,7 @@ uint16_t APIConnection::try_send_climate_info(EntityBase *entity, APIConnection 
   msg.supports_current_humidity = traits.get_supports_current_humidity();
   msg.supports_two_point_target_temperature = traits.get_supports_two_point_target_temperature();
   msg.supports_target_humidity = traits.get_supports_target_humidity();
-  msg.supported_modes = &traits.get_supported_modes();
+  msg.supported_modes = &traits.get_supported_modes_ref();
   msg.visual_min_temperature = traits.get_visual_min_temperature();
   msg.visual_max_temperature = traits.get_visual_max_temperature();
   msg.visual_target_temperature_step = traits.get_visual_target_temperature_step();
@@ -663,11 +663,11 @@ uint16_t APIConnection::try_send_climate_info(EntityBase *entity, APIConnection 
   msg.visual_min_humidity = traits.get_visual_min_humidity();
   msg.visual_max_humidity = traits.get_visual_max_humidity();
   msg.supports_action = traits.get_supports_action();
-  msg.supported_fan_modes = &traits.get_supported_fan_modes();
-  msg.supported_custom_fan_modes = &traits.get_supported_custom_fan_modes();
-  msg.supported_presets = &traits.get_supported_presets();
-  msg.supported_custom_presets = &traits.get_supported_custom_presets();
-  msg.supported_swing_modes = &traits.get_supported_swing_modes();
+  msg.supported_fan_modes = &traits.get_supported_fan_modes_ref();
+  msg.supported_custom_fan_modes = &traits.get_supported_custom_fan_modes_ref();
+  msg.supported_presets = &traits.get_supported_presets_ref();
+  msg.supported_custom_presets = &traits.get_supported_custom_presets_ref();
+  msg.supported_swing_modes = &traits.get_supported_swing_modes_ref();
   return fill_and_encode_entity_info(climate, msg, ListEntitiesClimateResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
