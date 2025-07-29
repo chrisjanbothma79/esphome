@@ -31,6 +31,7 @@ SendAction = espnow_ns.class_("SendAction", automation.Action)
 SetChannelAction = espnow_ns.class_("SetChannelAction", automation.Action)
 AddPeerAction = espnow_ns.class_("AddPeerAction", automation.Action)
 DeletePeerAction = espnow_ns.class_("DeletePeerAction", automation.Action)
+
 ESPNowHandlerTrigger = espnow_ns.class_(
     automation.Trigger.template(
         ESPNowRecvInfoConstRef,
@@ -86,10 +87,10 @@ CONFIG_SCHEMA = cv.All(
 )
 
 
-async def trigger_to_code(var, config):
+async def _trigger_to_code(config):
     if address := config.get(CONF_ADDRESS):
         address = address.parts
-    trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], var, address)
+    trigger = cg.new_Pvariable(config[CONF_TRIGGER_ID], address)
     await automation.build_automation(
         trigger,
         [
@@ -119,15 +120,15 @@ async def to_code(config):
         cg.add(var.add_peer(peer.parts))
 
     if on_receive := config.get(CONF_ON_UNKNOWN_PEER):
-        trigger = await trigger_to_code(var, on_receive)
+        trigger = await _trigger_to_code(on_receive)
         cg.add(var.register_unknown_peer_handler(trigger))
 
     for on_receive in config.get(CONF_ON_RECEIVE, []):
-        trigger = await trigger_to_code(var, on_receive)
+        trigger = await _trigger_to_code(on_receive)
         cg.add(var.register_received_handler(trigger))
 
     for on_receive in config.get(CONF_ON_BROADCAST, []):
-        trigger = await trigger_to_code(var, on_receive)
+        trigger = await _trigger_to_code(on_receive)
         cg.add(var.register_broadcasted_handler(trigger))
 
 
