@@ -1,5 +1,6 @@
 #include "filter.h"
 #include <cmath>
+#include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "sensor.h"
@@ -341,7 +342,7 @@ optional<float> ThrottleWithPriorityFilter::new_value(float value) {
   bool is_prioritized_value = false;
   int8_t accuracy = this->parent_->get_accuracy_decimals();
   float accuracy_mult = powf(10.0f, accuracy);
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
   // First, determine if the new value is one of the prioritized values
   for (auto prioritized_value : this->prioritized_values_) {
     if (std::isnan(prioritized_value.value())) {
