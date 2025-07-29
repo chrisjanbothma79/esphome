@@ -1,15 +1,23 @@
+#pragma once
+
+#include "esphome/core/component.h"
+#include "esphome/components/switch/switch.h"
+#include "esphome/core/gpio.h"
+
+namespace esphome {
+namespace uln2003 {
+
 class ULN2003Pump : public Component, public switch_::Switch {
  public:
-  void setup() override {
-    pinMode(this->control_pin_, OUTPUT);
-    digitalWrite(this->control_pin_, LOW);
-  }
+  void set_control_pin(GPIOPin *pin) { this->control_pin_ = pin; }
 
-  void write_state(bool state) override {
-    digitalWrite(this->control_pin_, state ? HIGH : LOW);
-    publish_state(state);
-  }
+  void setup() override;
+  void dump_config() override;
+  void write_state(bool state) override;
 
  protected:
   GPIOPin *control_pin_;
 };
+
+}  // namespace uln2003
+}  // namespace esphome
