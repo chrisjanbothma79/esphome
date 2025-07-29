@@ -8,7 +8,8 @@ namespace uln2003 {
 static const char *const TAG = "uln2003.pump";
 
 ULN2003Mode parse_mode(std::string mode_str) {
-  if (mode_str == "pump") return ULN2003Mode::PUMP;
+  if (mode_str == "pump")
+    return ULN2003Mode::PUMP;
   return ULN2003Mode::STEPPER;
 }
 
