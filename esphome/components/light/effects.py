@@ -1,59 +1,59 @@
-from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
+from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome import automation
-
 from esphome.const import (
-    CONF_NAME,
-    CONF_LAMBDA,
-    CONF_UPDATE_INTERVAL,
-    CONF_TRANSITION_LENGTH,
-    CONF_COLORS,
-    CONF_STATE,
-    CONF_DURATION,
-    CONF_BRIGHTNESS,
-    CONF_COLOR_MODE,
-    CONF_COLOR_BRIGHTNESS,
-    CONF_RED,
-    CONF_GREEN,
-    CONF_BLUE,
-    CONF_WHITE,
-    CONF_COLOR_TEMPERATURE,
-    CONF_COLD_WHITE,
-    CONF_WARM_WHITE,
     CONF_ALPHA,
+    CONF_BLUE,
+    CONF_BRIGHTNESS,
+    CONF_COLD_WHITE,
+    CONF_COLOR_BRIGHTNESS,
+    CONF_COLOR_MODE,
+    CONF_COLOR_TEMPERATURE,
+    CONF_COLORS,
+    CONF_DURATION,
+    CONF_GREEN,
     CONF_INTENSITY,
-    CONF_SPEED,
-    CONF_WIDTH,
-    CONF_NUM_LEDS,
-    CONF_RANDOM,
-    CONF_SEQUENCE,
+    CONF_LAMBDA,
     CONF_MAX_BRIGHTNESS,
     CONF_MIN_BRIGHTNESS,
+    CONF_NAME,
+    CONF_NUM_LEDS,
+    CONF_RANDOM,
+    CONF_RED,
+    CONF_SEQUENCE,
+    CONF_SPEED,
+    CONF_STATE,
+    CONF_TRANSITION_LENGTH,
+    CONF_UPDATE_INTERVAL,
+    CONF_WARM_WHITE,
+    CONF_WHITE,
+    CONF_WIDTH,
 )
+from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
 from esphome.util import Registry
+
 from .types import (
-    ColorMode,
     COLOR_MODES,
+    AddressableColorWipeEffect,
+    AddressableColorWipeEffectColor,
+    AddressableFireworksEffect,
+    AddressableFlickerEffect,
+    AddressableLambdaLightEffect,
+    AddressableLightRef,
+    AddressableRainbowLightEffect,
+    AddressableRandomTwinkleEffect,
+    AddressableScanEffect,
+    AddressableTwinkleEffect,
+    AutomationLightEffect,
+    Color,
+    ColorMode,
+    FlickerLightEffect,
     LambdaLightEffect,
+    LightColorValues,
     PulseLightEffect,
     RandomLightEffect,
     StrobeLightEffect,
     StrobeLightEffectColor,
-    LightColorValues,
-    AddressableLightRef,
-    AddressableLambdaLightEffect,
-    FlickerLightEffect,
-    AddressableRainbowLightEffect,
-    AddressableColorWipeEffect,
-    AddressableColorWipeEffectColor,
-    AddressableScanEffect,
-    AddressableTwinkleEffect,
-    AddressableRandomTwinkleEffect,
-    AddressableFireworksEffect,
-    AddressableFlickerEffect,
-    AutomationLightEffect,
-    Color,
 )
 
 CONF_ADD_LED_INTERVAL = "add_led_interval"
@@ -291,31 +291,30 @@ async def random_effect_to_code(config, effect_id):
 )
 async def strobe_effect_to_code(config, effect_id):
     var = cg.new_Pvariable(effect_id, config[CONF_NAME])
-    colors = []
-    for color in config.get(CONF_COLORS, []):
-        colors.append(
-            cg.StructInitializer(
-                StrobeLightEffectColor,
-                (
-                    "color",
-                    LightColorValues(
-                        color.get(CONF_COLOR_MODE, ColorMode.UNKNOWN),
-                        color[CONF_STATE],
-                        color[CONF_BRIGHTNESS],
-                        color[CONF_COLOR_BRIGHTNESS],
-                        color[CONF_RED],
-                        color[CONF_GREEN],
-                        color[CONF_BLUE],
-                        color[CONF_WHITE],
-                        color.get(CONF_COLOR_TEMPERATURE, 0.0),
-                        color[CONF_COLD_WHITE],
-                        color[CONF_WARM_WHITE],
-                    ),
+    colors = [
+        cg.StructInitializer(
+            StrobeLightEffectColor,
+            (
+                "color",
+                LightColorValues(
+                    color.get(CONF_COLOR_MODE, ColorMode.UNKNOWN),
+                    color[CONF_STATE],
+                    color[CONF_BRIGHTNESS],
+                    color[CONF_COLOR_BRIGHTNESS],
+                    color[CONF_RED],
+                    color[CONF_GREEN],
+                    color[CONF_BLUE],
+                    color[CONF_WHITE],
+                    color.get(CONF_COLOR_TEMPERATURE, 0.0),
+                    color[CONF_COLD_WHITE],
+                    color[CONF_WARM_WHITE],
                 ),
-                ("duration", color[CONF_DURATION]),
-                ("transition_length", color[CONF_TRANSITION_LENGTH]),
-            )
+            ),
+            ("duration", color[CONF_DURATION]),
+            ("transition_length", color[CONF_TRANSITION_LENGTH]),
         )
+        for color in config.get(CONF_COLORS, [])
+    ]
     cg.add(var.set_colors(colors))
     return var
 
@@ -404,20 +403,19 @@ async def addressable_color_wipe_effect_to_code(config, effect_id):
     var = cg.new_Pvariable(effect_id, config[CONF_NAME])
     cg.add(var.set_add_led_interval(config[CONF_ADD_LED_INTERVAL]))
     cg.add(var.set_reverse(config[CONF_REVERSE]))
-    colors = []
-    for color in config.get(CONF_COLORS, []):
-        colors.append(
-            cg.StructInitializer(
-                AddressableColorWipeEffectColor,
-                ("r", int(round(color[CONF_RED] * 255))),
-                ("g", int(round(color[CONF_GREEN] * 255))),
-                ("b", int(round(color[CONF_BLUE] * 255))),
-                ("w", int(round(color[CONF_WHITE] * 255))),
-                ("random", color[CONF_RANDOM]),
-                ("num_leds", color[CONF_NUM_LEDS]),
-                ("gradient", color[CONF_GRADIENT]),
-            )
+    colors = [
+        cg.StructInitializer(
+            AddressableColorWipeEffectColor,
+            ("r", int(round(color[CONF_RED] * 255))),
+            ("g", int(round(color[CONF_GREEN] * 255))),
+            ("b", int(round(color[CONF_BLUE] * 255))),
+            ("w", int(round(color[CONF_WHITE] * 255))),
+            ("random", color[CONF_RANDOM]),
+            ("num_leds", color[CONF_NUM_LEDS]),
+            ("gradient", color[CONF_GRADIENT]),
         )
+        for color in config.get(CONF_COLORS, [])
+    ]
     cg.add(var.set_colors(colors))
     return var
 
@@ -526,7 +524,7 @@ def validate_effects(allowed_effects):
         errors = []
         names = set()
         for i, x in enumerate(value):
-            key = next(it for it in x.keys())
+            key = next(it for it in x)
             if key not in allowed_effects:
                 errors.append(
                     cv.Invalid(

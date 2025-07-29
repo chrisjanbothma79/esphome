@@ -1,10 +1,10 @@
 import sys
 
 from esphome import automation, codegen as cg
-from esphome.const import CONF_MAX_VALUE, CONF_MIN_VALUE, CONF_VALUE
+from esphome.const import CONF_MAX_VALUE, CONF_MIN_VALUE, CONF_TEXT, CONF_VALUE
 from esphome.cpp_generator import MockObj, MockObjClass
 
-from .defines import CONF_TEXT, lvgl_ns
+from .defines import lvgl_ns
 from .lvcode import lv_expr
 
 
@@ -18,7 +18,9 @@ class LvType(cg.MockObjClass):
         self.value_property = None
 
     def get_arg_type(self):
-        return self.args[0][0] if len(self.args) else None
+        if len(self.args) == 0:
+            return None
+        return [arg[0] for arg in self.args]
 
 
 class LvNumber(LvType):
@@ -38,8 +40,10 @@ void_ptr = cg.void.operator("ptr")
 lv_coord_t = cg.global_ns.namespace("lv_coord_t")
 lv_event_code_t = cg.global_ns.enum("lv_event_code_t")
 lv_indev_type_t = cg.global_ns.enum("lv_indev_type_t")
+lv_key_t = cg.global_ns.enum("lv_key_t")
 FontEngine = lvgl_ns.class_("FontEngine")
 IdleTrigger = lvgl_ns.class_("IdleTrigger", automation.Trigger.template())
+PauseTrigger = lvgl_ns.class_("PauseTrigger", automation.Trigger.template())
 ObjUpdateAction = lvgl_ns.class_("ObjUpdateAction", automation.Action)
 LvglCondition = lvgl_ns.class_("LvglCondition", automation.Condition)
 LvglAction = lvgl_ns.class_("LvglAction", automation.Action)
@@ -57,8 +61,9 @@ lv_group_t = cg.global_ns.struct("lv_group_t")
 LVTouchListener = lvgl_ns.class_("LVTouchListener")
 LVEncoderListener = lvgl_ns.class_("LVEncoderListener")
 lv_obj_t = LvType("lv_obj_t")
-lv_page_t = cg.global_ns.class_("LvPageType", LvCompound)
+lv_page_t = LvType("LvPageType", parents=(LvCompound,))
 lv_img_t = LvType("lv_img_t")
+lv_gradient_t = LvType("lv_grad_dsc_t")
 
 LV_EVENT = MockObj(base="LV_EVENT_", op="")
 LV_STATE = MockObj(base="LV_STATE_", op="")
@@ -90,11 +95,13 @@ class LvBoolean(LvType):
 
 class LvSelect(LvType):
     def __init__(self, *args, **kwargs):
+        parens = kwargs.pop("parents", ()) + (LvCompound,)
         super().__init__(
             *args,
-            largs=[(cg.int_, "x")],
-            lvalue=lambda w: w.get_property("selected"),
+            largs=[(cg.int_, "x"), (cg.std_string, "text")],
+            lvalue=lambda w: [w.var.get_selected_index(), w.var.get_selected_text()],
             has_on_value=True,
+            parents=parens,
             **kwargs,
         )
 
@@ -185,7 +192,7 @@ class WidgetType:
 
 class NumberType(WidgetType):
     def get_max(self, config: dict):
-        return int(config[CONF_MAX_VALUE] or 100)
+        return int(config.get(CONF_MAX_VALUE, 100))
 
     def get_min(self, config: dict):
-        return int(config[CONF_MIN_VALUE] or 0)
+        return int(config.get(CONF_MIN_VALUE, 0))
