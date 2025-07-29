@@ -31,7 +31,12 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
     return;
   if (time_since_change >= arg->idle_us) {
     if (arg->overflow) {
-      arg->buffer_write_at = arg->buffer_idle_at;
+      if (arg->buffer_idle_at % 2 == arg->buffer_write_at % 2) {
+        arg->buffer_write_at = arg->buffer_idle_at;
+      } else {
+        arg->buffer_write_at = (arg->buffer_idle_at + 1) % arg->buffer_size;
+      }
+      arg->buffer[arg->buffer_write_at] = now;
       arg->overflow = false;
       return;
     }
@@ -97,8 +102,8 @@ void RemoteReceiverComponent::loop() {
     return;
 
   const uint32_t now = micros();
-  ESP_LOGVV(TAG, "read_at=%u write_at=%u dist=%u now=%u end=%u", s.buffer_read_at, write_at, dist, now,
-            s.buffer[write_at]);
+  ESP_LOGVV(TAG, "read_at=%u idle_at=%u dist=%u now_us=%u end_us=%u", s.buffer_read_at, idle_at, dist, now,
+            s.buffer[idle_at]);
 
   // Skip first value, it's from the previous idle level
   s.buffer_read_at = (s.buffer_read_at + 1) % s.buffer_size;
@@ -133,8 +138,14 @@ void RemoteReceiverComponent::loop() {
   this->temp_.push_back(this->idle_us_ * multiplier);
 
   if (s.overflow) {
-    ESP_LOGW(TAG, "Remote receiver buffer overflow! Some signals may have been lost.");
-    s.buffer_write_at = s.buffer_idle_at;
+    ESP_LOGVV(TAG, "Remote receiver buffer overflow! write_at=%u idle_at=%u read_at=%u", s.buffer_write_at,
+              s.buffer_idle_at, s.buffer_read_at);
+    // Reset the buffer to the idle position since data is already corrupted
+    if (s.buffer_write_at % 2 == s.buffer_idle_at % 2) {
+      s.buffer_write_at = s.buffer_idle_at;
+    } else {
+      s.buffer_write_at = (s.buffer_idle_at + 1) % s.buffer_size;
+    }
   }
 
   this->call_listeners_dumpers_();
