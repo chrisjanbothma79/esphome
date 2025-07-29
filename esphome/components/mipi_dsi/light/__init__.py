@@ -7,11 +7,14 @@ from esphome.const import (
     CONF_DEFAULT_TRANSITION_LENGTH,
     CONF_GAMMA_CORRECT,
     CONF_INITIAL_STATE,
+    CONF_INVERTED,
     CONF_OUTPUT_ID,
     CONF_RESTORE_MODE,
 )
 
 from .. import mipi_dsi_ns
+
+CONF_PWM_REGISTER = "pwm_register"
 
 DsiBacklight = mipi_dsi_ns.class_(
     "DsiBacklight", light.LightOutput, cg.Component, i2c.I2CDevice
@@ -30,12 +33,16 @@ CONFIG_SCHEMA = light.BRIGHTNESS_ONLY_LIGHT_SCHEMA.extend(
         cv.Optional(
             CONF_INITIAL_STATE, default={CONF_BRIGHTNESS: 0.5}
         ): LIGHT_STATE_SCHEMA,
+        cv.Optional(CONF_PWM_REGISTER, default=0x86): cv.hex_uint8_t,
+        cv.Optional(CONF_INVERTED, default=False): cv.boolean,
     }
 ).extend(i2c.i2c_device_schema(0x45))
 
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_OUTPUT_ID])
+    cg.add(var.set_inverted(config[CONF_INVERTED]))
+    cg.add(var.set_pwm_register(config[CONF_PWM_REGISTER]))
     await cg.register_component(var, config)
     await light.register_light(var, config)
     await i2c.register_i2c_device(var, config)
