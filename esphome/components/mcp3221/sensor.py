@@ -27,7 +27,7 @@ CONFIG_SCHEMA = (
     sensor.sensor_schema(
         MCP3221Sensor,
         icon=ICON_SCALE,
-        accuracy_decimals=0,
+        accuracy_decimals=2,
         state_class=STATE_CLASS_MEASUREMENT,
         device_class=DEVICE_CLASS_VOLTAGE,
         unit_of_measurement=UNIT_VOLT,
