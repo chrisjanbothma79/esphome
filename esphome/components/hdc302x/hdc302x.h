@@ -2,7 +2,6 @@
 // venv/bin/pip3 install -r requirements_test.txt -r requirements.txt
 // venv/bin/pytest tests/components/hdc302x
 
-
 #pragma once
 #include "esphome/components/i2c/i2c.h"
 #include "esphome/components/sensor/sensor.h"
@@ -13,17 +12,24 @@
 namespace esphome {
 namespace hdc302x {
 
+typedef enum {
+  HEATER_OFF = 0x0000,
+  HEATER_QUARTER_POWER = 0x009F,
+  HEATER_HALF_POWER = 0x03FF,
+  HEATER_FULL_POWER = 0x3FFF
+} HDC302x_HeaterPower;
+
 class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;
   void update() override;
   void dump_config() override;
- 
+
   void set_temperature_sensor(sensor::Sensor *a_sensor) { temperature_sensor_ = a_sensor; }
   void set_humidity_sensor(sensor::Sensor *a_sensor) { humidity_sensor_ = a_sensor; }
-  void set_last_error_sensor(sensor::Sensor *a_sensor) { last_error_sensor_ = a_sensor; }
+  void set_last_error_sensor(text_sensor::TextSensor *a_sensor) { last_error_sensor_ = a_sensor; }
 
-  //void air_calibration();
+  // void air_calibration();
 
  protected:
   i2c::ErrorCode readTemperatureHumidityOnDemand(float *temp, float *RH);
@@ -31,16 +37,14 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   void clearStatusRegister();
   i2c::ErrorCode writeCommand(uint16_t comm);
   i2c::ErrorCode writeCommandReadData(uint16_t command, uint16_t *data);
-  i2c::ErrorCode sendCommandReadTRH(uint16_t command, double *temp, double *RH);
+  i2c::ErrorCode sendCommandReadTRH(uint16_t command, float *temp, float *RH);
 
   // unused
   i2c::ErrorCode writeCommandData(uint16_t cmd, uint16_t data);
-  i2c::ErrorCode readStatus(uint16_t* status);
-  i2c::ErrorCode isHeaterOn(bool* isOn);
+  i2c::ErrorCode readStatus(uint16_t *status);
+  i2c::ErrorCode isHeaterOn(bool *isOn);
   i2c::ErrorCode heaterEnable(HDC302x_HeaterPower power);
 
-
-  
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
   text_sensor::TextSensor *last_error_sensor_{nullptr};
@@ -53,7 +57,6 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   */
 };
 
- 
 /*
  template<typename... Ts> class PMWCS3AirCalibrationAction : public Action<Ts...> {
  public:
@@ -65,6 +68,6 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   HDC302XComponent *parent_;
 };
 */
- 
-} // namespace hdc302x
-} // namespace esphome
+
+}  // namespace hdc302x
+}  // namespace esphome

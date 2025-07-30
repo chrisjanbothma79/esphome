@@ -1,14 +1,42 @@
 // ref: https://github.com/adafruit/Adafruit_HDC302x/blob/main/Adafruit_HDC302x.cpp
 //      https://github.com/esphome/esphome/blob/dev/esphome/components/pmwcs3/pmwcs3.cpp
 //
-  // UTILITIES
-  // From https://github.com/adafruit/Adafruit_HDC302x/blob/main/Adafruit_HDC302x.cpp
-  //
+// UTILITIES
+// From https://github.com/adafruit/Adafruit_HDC302x/blob/main/Adafruit_HDC302x.cpp
+//
 
 #include "hdc302x.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include <format>
+#include <string>
+//#include <type_traits>
+
+// so std::format("{}", some_enum) works.  Needs to be outside esphome namespace so format() can find it
+#define emac(x) \
+  case esphome::i2c::x: \
+    v = #x; \
+    break;
+template<> struct std::formatter<esphome::i2c::ErrorCode> : std::formatter<string> {
+  auto format(const esphome::i2c::ErrorCode &value, auto &ctx) const {
+    string v;
+    switch (value) {
+      emac(ERROR_OK);
+      emac(ERROR_INVALID_ARGUMENT);
+      emac(ERROR_NOT_ACKNOWLEDGED);
+      emac(ERROR_TIMEOUT);
+      emac(ERROR_NOT_INITIALIZED);
+      emac(ERROR_TOO_LARGE);
+      emac(ERROR_UNKNOWN);
+      emac(ERROR_CRC);
+      default:
+        v = "unknown";
+    };
+    v = std::format("{}({})", v, static_cast<int>(value));
+    return std::formatter<string>::format(v, ctx);
+  }
+};
+#undef emac
 
 namespace esphome {
 namespace hdc302x {
@@ -18,36 +46,67 @@ static const char *const TAG = "hdc302x";
 enum HDC302x_Commands {
   SOFT_RESET = 0x30A2,
   READ_MANUFACTURER_ID = 0x3781,
-  READ_NIST_ID_SERIAL_BYTES_5_4 =
-      0x3683, // Command to read bytes 5 and 4 of the NIST ID
-  READ_NIST_ID_SERIAL_BYTES_3_2 =
-      0x3684, // Command to read bytes 3 and 2 of the NIST ID
-  READ_NIST_ID_SERIAL_BYTES_1_0 =
-      0x3685,                    // Command to read bytes 1 and 0 of the NIST ID
-  ACCESS_OFFSETS = 0xA004,       // Command to write/read offsets
-  SET_HEATER_POWER = 0x306E,     // Command to set heater power
-  ENABLE_HEATER = 0x306D,        // Command to enable heater
-  DISABLE_HEATER = 0x3066,       // Command to disable heater
-  READ_STATUS_REGISTER = 0xF32D, // Command to read the status register
-  CLEAR_STATUS_REGISTER = 0x3041, // Command to clear the status register
-  MEASUREMENT_READOUT_AUTO_MODE = 0xE000, // Measurement Readout Auto Mode
-  SET_LOW_ALERT = 0x6100,  // Configure ALERT Thresholds for Set Low Alert
-  SET_HIGH_ALERT = 0x611D, // Configure ALERT Thresholds for Set High Alert
-  CLR_LOW_ALERT = 0x610B,  // Configure ALERT Thresholds for Clear Low Alert
-  CLR_HIGH_ALERT = 0x6116  // Configure ALERT Thresholds for Clear High Alert
+  READ_NIST_ID_SERIAL_BYTES_5_4 = 0x3683,  // Command to read bytes 5 and 4 of the NIST ID
+  READ_NIST_ID_SERIAL_BYTES_3_2 = 0x3684,  // Command to read bytes 3 and 2 of the NIST ID
+  READ_NIST_ID_SERIAL_BYTES_1_0 = 0x3685,  // Command to read bytes 1 and 0 of the NIST ID
+  ACCESS_OFFSETS = 0xA004,                 // Command to write/read offsets
+  SET_HEATER_POWER = 0x306E,               // Command to set heater power
+  ENABLE_HEATER = 0x306D,                  // Command to enable heater
+  DISABLE_HEATER = 0x3066,                 // Command to disable heater
+  READ_STATUS_REGISTER = 0xF32D,           // Command to read the status register
+  CLEAR_STATUS_REGISTER = 0x3041,          // Command to clear the status register
+  MEASUREMENT_READOUT_AUTO_MODE = 0xE000,  // Measurement Readout Auto Mode
+  SET_LOW_ALERT = 0x6100,                  // Configure ALERT Thresholds for Set Low Alert
+  SET_HIGH_ALERT = 0x611D,                 // Configure ALERT Thresholds for Set High Alert
+  CLR_LOW_ALERT = 0x610B,                  // Configure ALERT Thresholds for Clear Low Alert
+  CLR_HIGH_ALERT = 0x6116                  // Configure ALERT Thresholds for Clear High Alert
 };
 typedef enum {
-  TRIGGERMODE_LP0 = 0x2400, // Trigger-On Demand Mode, Low Power Mode 0
-  TRIGGERMODE_LP1 = 0x240B, // Trigger-On Demand Mode, Low Power Mode 1
-  TRIGGERMODE_LP2 = 0x2416, // Trigger-On Demand Mode, Low Power Mode 2
-  TRIGGERMODE_LP3 = 0x24FF  // Trigger-On Demand Mode, Low Power Mode 3
+  TRIGGERMODE_LP0 = 0x2400,  // Trigger-On Demand Mode, Low Power Mode 0
+  TRIGGERMODE_LP1 = 0x240B,  // Trigger-On Demand Mode, Low Power Mode 1
+  TRIGGERMODE_LP2 = 0x2416,  // Trigger-On Demand Mode, Low Power Mode 2
+  TRIGGERMODE_LP3 = 0x24FF   // Trigger-On Demand Mode, Low Power Mode 3
 } hdcTriggerMode_t;
 
-#define WARN(...) { string err = std::format(__VA_ARGS__); ESP_LOGW(TAG, err.c_str()); last_error_sensor_.publish_state(err); }
-  
+#define WARN(...) \
+  { \
+    std::string err = std::format(__VA_ARGS__); \
+    ESP_LOGW(TAG, err.c_str()); \
+    if (last_error_sensor_) { \
+      last_error_sensor_->publish_state(err); \
+    } \
+  }
+
+/**
+ * @brief Calculates the CRC-8 for the given data.
+ *
+ * This function calculates the CRC-8 for the given data array using the
+ * polynomial 0x31.
+ *
+ * @param data Pointer to the data array.
+ * @param len Length of the data array.
+ * @return uint8_t The calculated CRC-8 value.
+ */
+static uint8_t calculateCRC8(const uint8_t *data, int len) {
+  uint8_t crc = 0xFF;  // Typical initial value
+  for (int i = 0; i < len; i++) {
+    crc ^= data[i];                // XOR byte into least sig. byte of crc
+    for (int j = 8; j > 0; j--) {  // Loop over each bit
+      if (crc & 0x80) {            // If the uppermost bit is 1...
+        crc = (crc << 1) ^ 0x31;   // Polynomial used by HDC302x
+      } else {
+        crc = (crc << 1);
+      }
+    }
+  }
+  return crc;  // Final XOR value can also be applied if specified by device
+}
+
 void HDC302XComponent::setup() {
   i2c::ErrorCode ec = writeCommand(HDC302x_Commands::SOFT_RESET);
   if (ec != i2c::NO_ERROR) {
+    std::string foo = std::format("foo {}", ec);
+
     WARN("setup: Reset command failed (i2c::ErrorCode {})", ec);
     return;
   }
@@ -61,19 +120,23 @@ void HDC302XComponent::setup() {
     WARN("setup: Wrong manufacturer ID (got 0x{:X} expected 0x{:X})", manufacturerID, 0x3000);
   }
 
-  //setAutoMode(EXIT_AUTO_MODE);
+  // setAutoMode(EXIT_AUTO_MODE);
 }
 void HDC302XComponent::update() {
+  ESP_LOGI(TAG, "Update starting");
   float temp, rh;
   i2c::ErrorCode ec = readTemperatureHumidityOnDemand(&temp, &rh);
   if (ec != i2c::NO_ERROR) {
     WARN("update: Read temp/humidity failed (i2c::ErrorCode {})", ec);
     return;
   }
-  temperature_sensor_->publish_state(temp);
-  humidity_sensor_->publish_state(rh);
+  if (temperature_sensor_)
+    temperature_sensor_->publish_state(temp);
+  if (humidity_sensor_)
+    humidity_sensor_->publish_state(rh);
+  ESP_LOGI(TAG, "Update done. Got temp=%.1f C rh=%.1f %%", temp, rh);
 }
-void PMWCS3Component::dump_config() {
+void HDC302XComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "HDC302X");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
@@ -82,35 +145,34 @@ void PMWCS3Component::dump_config() {
   LOG_UPDATE_INTERVAL(this);
   LOG_SENSOR("  ", "temperature", this->temperature_sensor_);
   LOG_SENSOR("  ", "humidity", this->humidity_sensor_);
-  LOG_SENSOR("  ", "last_error", this->last_error_sensor_);
+  LOG_TEXT_SENSOR("  ", "last_error", this->last_error_sensor_);
 }
 
 i2c::ErrorCode HDC302XComponent::readTemperatureHumidityOnDemand(float *temp, float *RH) {
-  hdcTriggerMode_t mode = TRIGGERMODE_LP0; // LP0 is lowest noise
+  hdcTriggerMode_t mode = TRIGGERMODE_LP0;  // LP0 is lowest noise
   return sendCommandReadTRH(static_cast<uint16_t>(mode), temp, RH);
 }
-  
-  
+
 void HDC302XComponent::clearStatusRegister() {
   i2c::ErrorCode ec = writeCommand(HDC302x_Commands::CLEAR_STATUS_REGISTER);
   if (ec != i2c::NO_ERROR) {
     WARN("Clear status reg command failed (i2c::ErrorCode {})", ec);
   }
 }
-  
-i2c::ErrorCode HDC302XComponent::writeCommand(uint16_t comm) {
+
+i2c::ErrorCode HDC302XComponent::writeCommand(uint16_t command) {
   uint8_t buffer[2];
-  buffer[0] = (uint8_t)(command >> 8);   // High byte
-  buffer[1] = (uint8_t)(command & 0xFF); // Low byte
+  buffer[0] = (uint8_t) (command >> 8);    // High byte
+  buffer[1] = (uint8_t) (command & 0xFF);  // Low byte
   return write(buffer, 2);
 }
-  
+
 i2c::ErrorCode HDC302XComponent::writeCommandReadData(uint16_t command, uint16_t *data) {
   uint8_t cmd_buffer[2];
-  uint8_t data_buffer[3]; // Two bytes for data, one for CRC
+  uint8_t data_buffer[3];  // Two bytes for data, one for CRC
 
-  cmd_buffer[0] = (uint8_t)(command >> 8);   // High byte of the command
-  cmd_buffer[1] = (uint8_t)(command & 0xFF); // Low byte of the command
+  cmd_buffer[0] = (uint8_t) (command >> 8);    // High byte of the command
+  cmd_buffer[1] = (uint8_t) (command & 0xFF);  // Low byte of the command
 
   // Write the command and read the data + CRC
   i2c::ErrorCode ec = write(cmd_buffer, 2, false /* stop */);
@@ -121,32 +183,32 @@ i2c::ErrorCode HDC302XComponent::writeCommandReadData(uint16_t command, uint16_t
   if (ec != i2c::NO_ERROR) {
     return ec;
   }
-  
+
   // Calculate CRC
   uint8_t calculated_crc = calculateCRC8(data_buffer, 2);
   // Check if calculated CRC matches the received CRC
   if (calculated_crc != data_buffer[2]) {
-    return i2c::ERROR_CRC; // CRC mismatch
+    return i2c::ERROR_CRC;  // CRC mismatch
   }
 
   // CRC checks out, return the data
-  *data = (uint16_t)(data_buffer[0] << 8 | data_buffer[1]);
+  *data = (uint16_t) (data_buffer[0] << 8 | data_buffer[1]);
   return i2c::NO_ERROR;
 }
 
 i2c::ErrorCode HDC302XComponent::writeCommandData(uint16_t cmd, uint16_t data) {
   uint8_t buffer[5];
-  buffer[0] = (uint8_t)(cmd >> 8);          // High byte of the command
-  buffer[1] = (uint8_t)(cmd & 0xFF);        // Low byte of the command
-  buffer[2] = (uint8_t)(data >> 8);         // High byte of the data
-  buffer[3] = (uint8_t)(data & 0xFF);       // Low byte of the data
-  buffer[4] = calculateCRC8(buffer + 2, 2); // Calculate CRC for the data
+  buffer[0] = (uint8_t) (cmd >> 8);          // High byte of the command
+  buffer[1] = (uint8_t) (cmd & 0xFF);        // Low byte of the command
+  buffer[2] = (uint8_t) (data >> 8);         // High byte of the data
+  buffer[3] = (uint8_t) (data & 0xFF);       // Low byte of the data
+  buffer[4] = calculateCRC8(buffer + 2, 2);  // Calculate CRC for the data
 
   i2c::ErrorCode ec = write(buffer, 5);
   return ec;
 }
-  
-i2c::ErrorCode HDC302XComponent::sendCommandReadTRH(uint16_t command, double *temp, double *RH) {
+
+i2c::ErrorCode HDC302XComponent::sendCommandReadTRH(uint16_t command, float *temp, float *RH) {
   // Trigger the temperature and humidity measurement
   i2c::ErrorCode ec = writeCommand(command);
   if (ec != i2c::NO_ERROR) {
@@ -165,34 +227,32 @@ i2c::ErrorCode HDC302XComponent::sendCommandReadTRH(uint16_t command, double *te
 
   // Validate CRC for temperature data
   if (calculateCRC8(buffer, 2) != buffer[2]) {
-    return i2c::ERROR_CRC; // CRC mismatch
+    return i2c::ERROR_CRC;  // CRC mismatch
   }
 
   // Validate CRC for humidity data
   if (calculateCRC8(buffer + 3, 2) != buffer[5]) {
-    return i2c::ERROR_CRC; // CRC mismatch
+    return i2c::ERROR_CRC;  // CRC mismatch
   }
 
   uint16_t rawTemperature = (buffer[0] << 8) | buffer[1];
   uint16_t rawHumidity = (buffer[3] << 8) | buffer[4];
 
   // Convert raw temperature data to degrees Celsius
-  temp = (rawTemperature * (175.0 / 65535.0)) - 45.0;
-  temp = ((rawTemperature / 65535.0) * 175.0) - 45.0;
-  grrr;
-  
+  *temp = ((rawTemperature / 65535.0) * 175.0) - 45.0;
+
   // Convert raw humidity data to percentage
-  RH = (rawHumidity / 65535.0) * 100.0;
+  *RH = (rawHumidity / 65535.0) * 100.0;
 
   return i2c::NO_ERROR;
 }
 
-i2c::ErrorCode HDC302XComponent::readStatus(uint16_t* status) {
+i2c::ErrorCode HDC302XComponent::readStatus(uint16_t *status) {
   i2c::ErrorCode ec = writeCommandReadData(HDC302x_Commands::READ_STATUS_REGISTER, status);
   return ec;
 }
 
-i2c::ErrorCode HDC302XComponent::isHeaterOn(bool* isOn) {
+i2c::ErrorCode HDC302XComponent::isHeaterOn(bool *isOn) {
   uint16_t status;
   i2c::ErrorCode ec = readStatus(&status);
   if (ec != i2c::NO_ERROR) {
@@ -215,31 +275,5 @@ i2c::ErrorCode HDC302XComponent::heaterEnable(HDC302x_HeaterPower power) {
   }
 }
 
-/**
- * @brief Calculates the CRC-8 for the given data.
- *
- * This function calculates the CRC-8 for the given data array using the
- * polynomial 0x31.
- *
- * @param data Pointer to the data array.
- * @param len Length of the data array.
- * @return uint8_t The calculated CRC-8 value.
- */
-static uint8_t calculateCRC8(const uint8_t *data, int len) {
-  uint8_t crc = 0xFF; // Typical initial value
-  for (int i = 0; i < len; i++) {
-    crc ^= data[i];               // XOR byte into least sig. byte of crc
-    for (int j = 8; j > 0; j--) { // Loop over each bit
-      if (crc & 0x80) {           // If the uppermost bit is 1...
-        crc = (crc << 1) ^ 0x31;  // Polynomial used by HDC302x
-      } else {
-        crc = (crc << 1);
-      }
-    }
-  }
-  return crc; // Final XOR value can also be applied if specified by device
-}  
-  
-}
-}
-
+}  // namespace hdc302x
+}  // namespace esphome
