@@ -19,6 +19,7 @@ from esphome.types import ConfigType
 CODEOWNERS = ["@jesserockz"]
 
 byte_vector = cg.std_vector.template(cg.uint8)
+address_array = cg.std_ns.class_("array").template(cg.uint8, 6)
 
 espnow_ns = cg.esphome_ns.namespace("espnow")
 ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
@@ -172,7 +173,7 @@ async def register_peer(var, config, args):
     if isinstance(peer, core.MACAddress):
         peer = peer.parts
 
-    template_ = await cg.templatable(peer, args, byte_vector, byte_vector)
+    template_ = await cg.templatable(peer, args, address_array, address_array)
     cg.add(var.set_address(template_))
 
 
