@@ -143,6 +143,7 @@ void RemoteReceiverComponent::loop() {
       if (this->temp_.size() == 1) {
         // signals must at least one rising and one leading edge
         this->temp_.clear();
+        i = 0;
       }
 
       if (this->temp_.empty()) {
