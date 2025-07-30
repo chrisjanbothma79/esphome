@@ -132,24 +132,6 @@ void BLEClientBase::connect() {
            this->remote_addr_type_);
   this->paired_ = false;
 
-  // For connections without cache, set fast connection parameters before connecting
-  // This ensures service discovery completes within the 10-second timeout that
-  // some devices like HomeKit BLE sensors enforce
-  if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
-    auto ret = esp_ble_gap_set_prefer_conn_params(this->remote_bda_,
-                                                  0x06,   // min_int: 7.5ms
-                                                  0x06,   // max_int: 7.5ms
-                                                  0,      // latency: 0
-                                                  1000);  // timeout: 10s
-    if (ret != ESP_OK) {
-      ESP_LOGW(TAG, "[%d] [%s] esp_ble_gap_set_prefer_conn_params failed: %d", this->connection_index_,
-               this->address_str_.c_str(), ret);
-    } else {
-      ESP_LOGD(TAG, "[%d] [%s] Set preferred connection params for fast discovery (no cache)", this->connection_index_,
-               this->address_str_.c_str());
-    }
-  }
-
   auto ret = esp_ble_gattc_open(this->gattc_if_, this->remote_bda_, this->remote_addr_type_, true);
   if (ret) {
     ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_open error, status=%d", this->connection_index_, this->address_str_.c_str(),
@@ -157,6 +139,23 @@ void BLEClientBase::connect() {
     this->set_state(espbt::ClientState::IDLE);
   } else {
     this->set_state(espbt::ClientState::CONNECTING);
+
+    // For connections without cache, set fast connection parameters after initiating connection
+    // This ensures service discovery completes within the 10-second timeout that
+    // some devices like HomeKit BLE sensors enforce
+    if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
+      auto param_ret = esp_ble_gap_set_prefer_conn_params(this->remote_bda_,
+                                                          0x06,   // min_int: 7.5ms
+                                                          0x06,   // max_int: 7.5ms
+                                                          0,      // latency: 0
+                                                          1000);  // timeout: 10s
+      if (param_ret != ESP_OK) {
+        ESP_LOGW(TAG, "[%d] [%s] esp_ble_gap_set_prefer_conn_params failed: %d", this->connection_index_,
+                 this->address_str_.c_str(), param_ret);
+      } else {
+        ESP_LOGD(TAG, "[%d] [%s] Set fast conn params", this->connection_index_, this->address_str_.c_str());
+      }
+    }
   }
 }
 
@@ -395,8 +394,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         conn_params.max_int = 0x0C;  // 15ms - ESP-IDF default maximum (BTM_BLE_CONN_INT_MAX_DEF)
         conn_params.latency = 0;
         conn_params.timeout = 600;  // 6s - ESP-IDF default timeout (BTM_BLE_CONN_TIMEOUT_DEF)
-        ESP_LOGD(TAG, "[%d] [%s] Restoring default connection parameters after service discovery",
-                 this->connection_index_, this->address_str_.c_str());
+        ESP_LOGD(TAG, "[%d] [%s] Restored default conn params", this->connection_index_, this->address_str_.c_str());
         esp_ble_gap_update_conn_params(&conn_params);
       }
 
