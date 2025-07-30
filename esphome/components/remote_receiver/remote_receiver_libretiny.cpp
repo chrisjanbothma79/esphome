@@ -32,6 +32,17 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
     if (arg->overflow) {
       arg->overflow = false;
     }
+
+    const uint32_t prev = (arg->buffer_size + arg->buffer_write_at - 1) % arg->buffer_size;
+    const uint32_t prev_delta = arg->buffer[prev] - last_change;
+    if (prev_delta <= arg->filter_us) {
+      // If delta of the previous change is less than filter_us, we can just update the previous value
+      arg->buffer_write_at = prev;
+      arg->buffer[arg->buffer_write_at] = now;
+      arg->buffer_idle_at = prev;
+      return;
+    }
+
     arg->buffer_idle_at = next;
   } else if (arg->overflow) {
     arg->buffer[arg->buffer_write_at] = now;
