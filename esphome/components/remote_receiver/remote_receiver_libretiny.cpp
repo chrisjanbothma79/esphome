@@ -13,27 +13,36 @@ static const char *const TAG = "remote_receiver.libretiny";
 void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverComponentStore *arg) {
   const uint32_t now = micros();
   const uint32_t next = (arg->buffer_write_at + 1) % arg->buffer_size;
-  // If next is buffer_read, we have hit an overflow
-  if (next == arg->buffer_read_at) {
-    arg->overflow = true;
-    arg->buffer[arg->buffer_write_at] = now;
-    return;
-  }
 
   // If the lhs is 1 (rising edge) we should write to an uneven index and vice versa
   const bool level = arg->pin.digital_read();
   if (level != next % 2)
     return;
 
+  // If next is buffer_read_at, we have hit an overflow
+  if (next == arg->buffer_read_at) {
+    arg->overflow = true;
+    // Reset the write_at to the last good idle position corresponding to signal level,
+    // droping some data since it's is already corrupted
+    if (level == arg->buffer_idle_at % 2) {
+      arg->buffer_write_at = arg->buffer_idle_at;
+    } else {
+      arg->buffer_write_at = (arg->buffer_idle_at + 1) % arg->buffer_size;
+    }
+    arg->buffer[arg->buffer_write_at] = now;
+    return;
+  }
+
   const uint32_t last_change = arg->buffer[arg->buffer_write_at];
   const uint32_t time_since_change = now - last_change;
+  const uint32_t prev = (arg->buffer_size + arg->buffer_write_at - 1) % arg->buffer_size;
 
   if (time_since_change >= arg->idle_us) {
+    // Handle idle state
     arg->overflow = false;
 
-    const uint32_t prev = (arg->buffer_size + arg->buffer_write_at - 1) % arg->buffer_size;
     const uint32_t prev_delta = last_change - arg->buffer[prev];
-    if (prev_delta <= arg->filter_us && prev_delta != 0) {
+    if (prev_delta <= arg->filter_us && prev_delta != 0 && arg->buffer[prev] != 0) {
       // If delta of the previous change is less than filter_us, we can just update the previous value
       arg->buffer_write_at = prev;
       arg->buffer[arg->buffer_write_at] = now;
@@ -43,11 +52,16 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
 
     arg->buffer_idle_at = next;
   } else if (arg->overflow) {
+    // Handle overflow condition by updating the time
+    if (level == arg->buffer_idle_at % 2) {
+      arg->buffer_write_at = arg->buffer_idle_at;
+    } else {
+      arg->buffer_write_at = (arg->buffer_idle_at + 1) % arg->buffer_size;
+    }
     arg->buffer[arg->buffer_write_at] = now;
     return;
   } else if (time_since_change <= arg->filter_us && arg->buffer_write_at != arg->buffer_idle_at) {
     // Remove short pulse from the buffer
-    const uint32_t prev = (arg->buffer_size + arg->buffer_write_at - 1) % arg->buffer_size;
     arg->buffer_write_at = prev;
     return;
   }
@@ -160,13 +174,6 @@ void RemoteReceiverComponent::loop() {
   if (s.overflow) {
     ESP_LOGVV(TAG, "Remote receiver buffer overflow! write_at=%u idle_at=%u read_at=%u", s.buffer_write_at,
               s.buffer_idle_at, s.buffer_read_at);
-    // Reset the write_at to the last good idle position droping some data since it's is already corrupted
-    if (s.buffer_write_at % 2 == s.buffer_idle_at % 2) {
-      s.buffer_write_at = s.buffer_idle_at;
-    } else {
-      s.buffer[(s.buffer_idle_at + 1) % s.buffer_size] = s.buffer[s.buffer_write_at];
-      s.buffer_write_at = (s.buffer_idle_at + 1) % s.buffer_size;
-    }
   }
 
   this->call_listeners_dumpers_();
