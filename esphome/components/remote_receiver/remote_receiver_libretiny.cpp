@@ -146,7 +146,7 @@ void RemoteReceiverComponent::loop() {
         i = 0;
       }
 
-      if (this->temp_.empty()) {
+      if (this->temp_.empty() && read_at != idle_at) {
         pre_prev = prev;
         prev = s.buffer_read_at = read_at;
         read_at = (read_at + 1) % s.buffer_size;
