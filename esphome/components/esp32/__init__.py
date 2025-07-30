@@ -528,7 +528,7 @@ def _check_advanced(config):
     ):
         raise cv.Invalid(
             f"'{CONF_EXECUTE_FROM_PSRAM}' is only supported on {VARIANT_ESP32S3} variant",
-            path=[CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+            path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
         )
     return config
 
