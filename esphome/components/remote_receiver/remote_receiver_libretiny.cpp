@@ -1,7 +1,7 @@
 #include "remote_receiver.h"
 #include "esphome/core/hal.h"
-#include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 #ifdef USE_LIBRETINY
 
@@ -31,7 +31,6 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
 }
 
 void RemoteReceiverComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   this->pin_->setup();
   auto &s = this->store_;
   s.filter_us = this->filter_us_;

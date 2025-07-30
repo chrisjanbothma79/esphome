@@ -12,7 +12,6 @@ static const uint32_t TEARDOWN_TIMEOUT_DEEP_SLEEP_MS = 5000;
 bool global_has_deep_sleep = false;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 void DeepSleepComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   global_has_deep_sleep = true;
 
   const optional<uint32_t> run_duration = get_run_duration_();
@@ -67,6 +66,7 @@ void DeepSleepComponent::begin_sleep(bool manual) {
   // It's critical to teardown components cleanly for deep sleep to ensure
   // Home Assistant sees a clean disconnect instead of marking the device unavailable
   App.teardown_components(TEARDOWN_TIMEOUT_DEEP_SLEEP_MS);
+  App.run_powerdown_hooks();
 
   this->deep_sleep_();
 }

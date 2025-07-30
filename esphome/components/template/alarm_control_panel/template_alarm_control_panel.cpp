@@ -76,7 +76,6 @@ void TemplateAlarmControlPanel::dump_config() {
 }
 
 void TemplateAlarmControlPanel::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->name_.c_str());
   this->current_state_ = ACP_STATE_DISARMED;
   if (this->restore_mode_ == ALARM_CONTROL_PANEL_RESTORE_DEFAULT_DISARMED) {
     uint8_t value;
@@ -265,6 +264,18 @@ uint32_t TemplateAlarmControlPanel::desired_arming_delay_() {
     default:
       return 0;
   }
+}
+
+void TemplateAlarmControlPanel::bypass_before_arming() {
+#ifdef USE_BINARY_SENSOR
+  for (auto sensor_info : this->sensor_map_) {
+    // Check for sensors left on and set to bypass automatically and remove them from monitoring
+    if ((sensor_info.second.flags & BINARY_SENSOR_MODE_BYPASS_AUTO) && (sensor_info.first->state)) {
+      ESP_LOGW(TAG, "'%s' is left on and will be automatically bypassed", sensor_info.first->get_name().c_str());
+      this->bypassed_sensor_indicies_.push_back(sensor_info.second.store_index);
+    }
+  }
+#endif
 }
 
 void TemplateAlarmControlPanel::control(const AlarmControlPanelCall &call) {

@@ -1,7 +1,7 @@
 #include "esphome/core/defines.h"
-#include "esphome/core/log.h"
-#include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 #include "lvgl_hal.h"
 #include "lvgl_esphome.h"
 
@@ -434,7 +434,6 @@ LvglComponent::LvglComponent(std::vector<display::Display *> displays, float buf
 }
 
 void LvglComponent::setup() {
-  ESP_LOGCONFIG(TAG, "LVGL Setup starts");
   auto *display = this->displays_[0];
   auto width = display->get_width();
   auto height = display->get_height();
@@ -489,7 +488,6 @@ void LvglComponent::setup() {
     disp->set_rotation(display::DISPLAY_ROTATION_0_DEGREES);
   this->show_page(0, LV_SCR_LOAD_ANIM_NONE, 0);
   lv_disp_trig_activity(this->disp_);
-  ESP_LOGCONFIG(TAG, "LVGL Setup complete");
 }
 
 void LvglComponent::update() {

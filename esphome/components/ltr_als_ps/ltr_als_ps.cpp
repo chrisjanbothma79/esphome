@@ -1,7 +1,7 @@
 #include "ltr_als_ps.h"
 #include "esphome/core/application.h"
-#include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 using esphome::i2c::ErrorCode;
 
@@ -63,7 +63,6 @@ static float get_ps_gain_coeff(PsGain gain) {
 }
 
 void LTRAlsPsComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   // As per datasheet we need to wait at least 100ms after power on to get ALS chip responsive
   this->set_timeout(100, [this]() { this->state_ = State::DELAYED_SETUP; });
 }

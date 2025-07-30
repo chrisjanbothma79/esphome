@@ -1,4 +1,5 @@
 #include "ags10.h"
+#include "esphome/core/helpers.h"
 
 #include <cinttypes>
 
@@ -23,8 +24,6 @@ static const uint16_t ZP_CURRENT = 0x0000;
 static const uint16_t ZP_DEFAULT = 0xFFFF;
 
 void AGS10Component::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-
   auto version = this->read_version_();
   if (version) {
     ESP_LOGD(TAG, "AGS10 Sensor Version: 0x%02X", *version);
@@ -44,8 +43,6 @@ void AGS10Component::setup() {
   } else {
     ESP_LOGE(TAG, "AGS10 Sensor Resistance: unknown");
   }
-
-  ESP_LOGD(TAG, "Sensor initialized");
 }
 
 void AGS10Component::update() {

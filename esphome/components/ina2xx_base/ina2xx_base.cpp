@@ -1,7 +1,7 @@
 #include "ina2xx_base.h"
-#include "esphome/core/log.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 #include <cinttypes>
 #include <cmath>
 
@@ -50,8 +50,6 @@ static bool check_model_and_device_match(INAModel model, uint16_t dev_id) {
 }
 
 void INA2XX::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-
   if (!this->reset_config_()) {
     ESP_LOGE(TAG, "Reset failed, check connection");
     this->mark_failed();

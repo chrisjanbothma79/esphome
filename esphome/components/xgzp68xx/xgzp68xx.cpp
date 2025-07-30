@@ -1,7 +1,7 @@
 #include "xgzp68xx.h"
-#include "esphome/core/log.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 #include "esphome/components/i2c/i2c.h"
 
 #include <cinttypes>
@@ -69,7 +69,6 @@ void XGZP68XXComponent::update() {
 }
 
 void XGZP68XXComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   uint8_t config;
 
   // Display some sample bits to confirm we are talking to the sensor

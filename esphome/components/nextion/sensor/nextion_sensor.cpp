@@ -53,7 +53,7 @@ void NextionSensor::set_state(float state, bool publish, bool send_to_nextion) {
 
   if (this->wave_chan_id_ == UINT8_MAX) {
     if (send_to_nextion) {
-      if (this->nextion_->is_sleeping() || !this->visible_) {
+      if (this->nextion_->is_sleeping() || !this->component_flags_.visible) {
         this->needs_to_send_update_ = true;
       } else {
         this->needs_to_send_update_ = false;
@@ -88,7 +88,7 @@ void NextionSensor::set_state(float state, bool publish, bool send_to_nextion) {
     } else {
       this->raw_state = state;
       this->state = state;
-      this->has_state_ = true;
+      this->set_has_state(true);
     }
   }
   this->update_component_settings();

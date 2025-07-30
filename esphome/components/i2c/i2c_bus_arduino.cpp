@@ -1,11 +1,11 @@
 #ifdef USE_ARDUINO
 
 #include "i2c_bus_arduino.h"
-#include "esphome/core/log.h"
-#include "esphome/core/helpers.h"
-#include "esphome/core/application.h"
 #include <Arduino.h>
 #include <cstring>
+#include "esphome/core/application.h"
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace i2c {
@@ -13,7 +13,6 @@ namespace i2c {
 static const char *const TAG = "i2c.arduino";
 
 void ArduinoI2CBus::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   recover_();
 
 #if defined(USE_ESP32)
@@ -23,6 +22,7 @@ void ArduinoI2CBus::setup() {
   } else {
     wire_ = new TwoWire(next_bus_num);  // NOLINT(cppcoreguidelines-owning-memory)
   }
+  this->port_ = next_bus_num;
   next_bus_num++;
 #elif defined(USE_ESP8266)
   wire_ = new TwoWire();  // NOLINT(cppcoreguidelines-owning-memory)
@@ -41,7 +41,7 @@ void ArduinoI2CBus::setup() {
   this->initialized_ = true;
   if (this->scan_) {
     ESP_LOGV(TAG, "Scanning bus for active devices");
-    this->i2c_scan_();
+    this->i2c_scan();
   }
 }
 
@@ -125,7 +125,7 @@ ErrorCode ArduinoI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt)
   size_t to_request = 0;
   for (size_t i = 0; i < cnt; i++)
     to_request += buffers[i].len;
-  size_t ret = wire_->requestFrom((int) address, (int) to_request, 1);
+  size_t ret = wire_->requestFrom(address, to_request, true);
   if (ret != to_request) {
     ESP_LOGVV(TAG, "RX %u from %02X failed with error %u", to_request, address, ret);
     return ERROR_TIMEOUT;

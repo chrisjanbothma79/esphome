@@ -1,7 +1,7 @@
 #include "tm1637.h"
-#include "esphome/core/log.h"
-#include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace tm1637 {
@@ -125,8 +125,6 @@ const uint8_t TM1637_ASCII_TO_RAW[] PROGMEM = {
     0b01100011,           // '~', ord 0x7E (degree symbol)
 };
 void TM1637Display::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-
   this->clk_pin_->setup();               // OUTPUT
   this->clk_pin_->digital_write(false);  // LOW
   this->dio_pin_->setup();               // OUTPUT
