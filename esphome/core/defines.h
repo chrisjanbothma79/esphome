@@ -15,8 +15,8 @@
 #define ESPHOME_VARIANT "ESP32"
 #define ESPHOME_DEBUG_SCHEDULER
 
-// Default threading model for static analysis (ESP32 is multi-core with atomics)
-#define ESPHOME_CORES_MULTI_ATOMICS
+// Default threading model for static analysis (ESP32 is multi-threaded with atomics)
+#define ESPHOME_THREAD_MULTI_ATOMICS
 
 // logger
 #define ESPHOME_LOG_LEVEL ESPHOME_LOG_LEVEL_VERY_VERBOSE
@@ -109,6 +109,8 @@
 #define USE_API
 #define USE_API_CLIENT_CONNECTED_TRIGGER
 #define USE_API_CLIENT_DISCONNECTED_TRIGGER
+#define USE_API_HOMEASSISTANT_SERVICES
+#define USE_API_HOMEASSISTANT_STATES
 #define USE_API_NOISE
 #define USE_API_PLAINTEXT
 #define USE_API_SERVICES

@@ -2,13 +2,13 @@
 
 #include "api_server.h"
 #ifdef USE_API
+#ifdef USE_API_HOMEASSISTANT_SERVICES
 #include "api_pb2.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
 #include <vector>
 
-namespace esphome {
-namespace api {
+namespace esphome::api {
 
 template<typename... X> class TemplatableStringValue : public TemplatableValue<std::string, X...> {
  private:
@@ -70,22 +70,19 @@ template<typename... Ts> class HomeAssistantServiceCallAction : public Action<Ts
       resp.data.emplace_back();
       auto &kv = resp.data.back();
       kv.set_key(StringRef(it.key));
-      std::string value = it.value.value(x...);
-      kv.set_value(StringRef(value));
+      kv.value = it.value.value(x...);
     }
     for (auto &it : this->data_template_) {
       resp.data_template.emplace_back();
       auto &kv = resp.data_template.back();
       kv.set_key(StringRef(it.key));
-      std::string value = it.value.value(x...);
-      kv.set_value(StringRef(value));
+      kv.value = it.value.value(x...);
     }
     for (auto &it : this->variables_) {
       resp.variables.emplace_back();
       auto &kv = resp.variables.back();
       kv.set_key(StringRef(it.key));
-      std::string value = it.value.value(x...);
-      kv.set_value(StringRef(value));
+      kv.value = it.value.value(x...);
     }
     this->parent_->send_homeassistant_service_call(resp);
   }
@@ -99,6 +96,6 @@ template<typename... Ts> class HomeAssistantServiceCallAction : public Action<Ts
   std::vector<TemplatableKeyValuePair<Ts...>> variables_;
 };
 
-}  // namespace api
-}  // namespace esphome
+}  // namespace esphome::api
+#endif
 #endif
