@@ -396,6 +396,9 @@ void ESPNowComponent::send_() {
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to send packet to %s - %s", format_mac_address_pretty(packet->address_).c_str(),
              LOG_STR_ARG(espnow_error_to_str(err)));
+    if (packet->callback_ != nullptr) {
+      packet->callback_(err);
+    }
     this->status_momentary_warning("send-failed");
     this->send_packet_pool_.release(packet);
     this->current_send_packet_ = nullptr;  // Reset current packet
