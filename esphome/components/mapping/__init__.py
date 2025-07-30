@@ -19,7 +19,7 @@ map_ = cg.std_ns.class_("map")
 pair = cg.std_ns.class_("pair")
 less = cg.std_ns.class_("less")
 char_traits = cg.std_ns.class_("char_traits")
-char = cg.global_ns.namespace("char")
+char = cg.global_ns.class_("char")
 basic_string = cg.std_ns.class_("basic_string")
 allocator = cg.esphome_ns.class_("RAMAllocator")
 
