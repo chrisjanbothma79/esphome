@@ -71,7 +71,7 @@ def test_esp32_config(
                     "advanced": {"execute_from_psram": True},
                 },
             },
-            r"'execute_from_psram' is only supported on ESP32S3 variant @ data\['advanced'\]\['execute_from_psram'\]",
+            r"'execute_from_psram' is only supported on ESP32S3 variant @ data\['framework'\]\['advanced'\]\['execute_from_psram'\]",
             id="execute_from_psram_invalid_for_variant_config",
         ),
     ],
