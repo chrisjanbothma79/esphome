@@ -112,8 +112,7 @@ void APIConnection::start() {
   APIError err = this->helper_->init();
   if (err != APIError::OK) {
     on_fatal_error();
-    ESP_LOGW(TAG, "%s: Helper init failed %s errno=%d", this->get_client_combined_info().c_str(), api_error_to_str(err),
-             errno);
+    this->log_warning_("Helper init failed", err);
     return;
   }
   this->client_info_.peername = helper_->getpeername();
@@ -144,8 +143,7 @@ void APIConnection::loop() {
   APIError err = this->helper_->loop();
   if (err != APIError::OK) {
     on_fatal_error();
-    ESP_LOGW(TAG, "%s: Socket operation failed %s errno=%d", this->get_client_combined_info().c_str(),
-             api_error_to_str(err), errno);
+    this->log_socket_operation_failed_(err);
     return;
   }
 
@@ -161,8 +159,7 @@ void APIConnection::loop() {
         break;
       } else if (err != APIError::OK) {
         on_fatal_error();
-        ESP_LOGW(TAG, "%s: Reading failed %s errno=%d", this->get_client_combined_info().c_str(), api_error_to_str(err),
-                 errno);
+        this->log_warning_("Reading failed", err);
         return;
       } else {
         this->last_traffic_ = now;
@@ -1540,8 +1537,7 @@ bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
   APIError err = this->helper_->loop();
   if (err != APIError::OK) {
     on_fatal_error();
-    ESP_LOGW(TAG, "%s: Socket operation failed %s errno=%d", this->get_client_combined_info().c_str(),
-             api_error_to_str(err), errno);
+    this->log_socket_operation_failed_(err);
     return false;
   }
   if (this->helper_->can_write_without_blocking())
@@ -1561,8 +1557,7 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint8_t message_type) {
     return false;
   if (err != APIError::OK) {
     on_fatal_error();
-    ESP_LOGW(TAG, "%s: Packet write failed %s errno=%d", this->get_client_combined_info().c_str(),
-             api_error_to_str(err), errno);
+    this->log_warning_("Packet write failed", err);
     return false;
   }
   // Do not set last_traffic_ on send
@@ -1756,8 +1751,7 @@ void APIConnection::process_batch_() {
                                                        std::span<const PacketInfo>(packet_info, packet_count));
   if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
     on_fatal_error();
-    ESP_LOGW(TAG, "%s: Batch write failed %s errno=%d", this->get_client_combined_info().c_str(), api_error_to_str(err),
-             errno);
+    this->log_warning_("Batch write failed", err);
   }
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1834,6 +1828,12 @@ void APIConnection::process_state_subscriptions_() {
   }
 }
 #endif  // USE_API_HOMEASSISTANT_STATES
+
+void APIConnection::log_warning_(const char *message, APIError err) {
+  ESP_LOGW(TAG, "%s: %s %s errno=%d", this->get_client_combined_info().c_str(), message, api_error_to_str(err), errno);
+}
+
+void APIConnection::log_socket_operation_failed_(APIError err) { this->log_warning_("Socket operation failed", err); }
 
 }  // namespace esphome::api
 #endif
