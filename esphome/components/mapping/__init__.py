@@ -40,7 +40,13 @@ class IndexType:
 
 INDEX_TYPES = {
     "int": IndexType(cv.int_, cg.int_, int),
-    "string": IndexType(cv.string, cg.std_string, str),
+    "string": IndexType(
+        cv.string,
+        basic_string.template(
+            char, char_traits.template(char), allocator.template(char)
+        ),
+        str,
+    ),
 }
 
 
@@ -121,11 +127,6 @@ async def to_code(config):
     if to_ in INDEX_TYPES:
         value_conversion = INDEX_TYPES[to_].conversion
         value_type = INDEX_TYPES[to_].data_type
-        if value_conversion is str:
-            # If the value is a string, wrap it with an allocator to leverage PSRAM
-            value_type = basic_string.template(
-                char, char_traits.template(char), allocator.template(char)
-            )
         entries = {
             index_conversion(key): value_conversion(value)
             for key, value in entries.items()
@@ -151,5 +152,5 @@ async def to_code(config):
     CORE.register_variable(varid, var)
 
     for key, value in entries.items():
-        cg.add(AssignmentExpression(None, "", var[key], value))
+        cg.add(AssignmentExpression(None, "", var[cg.safe_exp(key)], value))
     return var
