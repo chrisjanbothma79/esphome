@@ -18,6 +18,8 @@ from esphome.types import ConfigType
 
 CODEOWNERS = ["@jesserockz"]
 
+byte_vector = cg.std_vector.template(cg.uint8)
+
 espnow_ns = cg.esphome_ns.namespace("espnow")
 ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
 
@@ -167,13 +169,11 @@ def _validate_raw_data(value):
 
 async def register_peer(var, config, args):
     peer = config[CONF_ADDRESS]
-    if cg.is_template(peer):
-        template_ = await cg.templatable(
-            peer, args, cg.std_vector.template(cg.uint8, 6)
-        )
-        cg.add(var.set_address_template(template_))
-    else:
-        cg.add(var.set_address_static(peer.parts))
+    if isinstance(peer, core.MACAddress):
+        peer = peer.parts
+
+    template_ = await cg.templatable(peer, args, byte_vector, byte_vector)
+    cg.add(var.set_address(template_))
 
 
 PEER_SCHEMA = cv.Schema(
@@ -237,12 +237,8 @@ async def send_action(
     data = config.get(CONF_DATA, [])
     if isinstance(data, bytes):
         data = list(data)
-
-    if cg.is_template(data):
-        templ = await cg.templatable(data, args, cg.std_vector.template(cg.uint8))
-        cg.add(var.set_data_template(templ))
-    else:
-        cg.add(var.set_data_static(data))
+    templ = await cg.templatable(data, args, byte_vector, byte_vector)
+    cg.add(var.set_data(templ))
 
     cg.add(var.set_wait_for_sent(config[CONF_WAIT_FOR_SENT]))
     cg.add(var.set_continue_on_error(config[CONF_CONTINUE_ON_ERROR]))

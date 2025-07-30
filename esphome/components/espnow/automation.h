@@ -11,6 +11,9 @@ namespace esphome {
 namespace espnow {
 
 template<typename... Ts> class SendAction : public Action<Ts...>, public Parented<ESPNowComponent> {
+  TEMPLATABLE_VALUE(std::vector<uint8_t>, address);
+  TEMPLATABLE_VALUE(std::vector<uint8_t>, data);
+
  public:
   void add_on_sent(const std::vector<Action<Ts...> *> &actions) {
     this->sent_.add_actions(actions);
@@ -33,22 +36,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
 
   void set_wait_for_sent(bool wait_for_sent) { this->flags_.wait_for_sent = wait_for_sent; }
   void set_continue_on_error(bool continue_on_error) { this->flags_.continue_on_error = continue_on_error; }
-  void set_data_template(std::function<std::vector<uint8_t>(Ts...)> func) {
-    this->data_func_ = func;
-    this->flags_.data_is_static = false;
-  }
-  void set_data_static(const std::vector<uint8_t> &data) {
-    this->data_static_ = data;
-    this->flags_.data_is_static = true;
-  }
-  void set_address_template(std::function<std::array<uint8_t, ESP_NOW_ETH_ALEN>(Ts...)> func) {
-    this->address_func_ = func;
-    this->flags_.address_is_static = false;
-  }
-  void set_address_static(const std::array<uint8_t, ESP_NOW_ETH_ALEN> &address) {
-    this->address_static_ = address;
-    this->flags_.address_is_static = true;
-  }
+
   void play_complex(Ts... x) override {
     this->num_running_++;
     send_callback_t send_callback = [this, x...](esp_err_t status) {
@@ -70,24 +58,12 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
         }
       }
     };
-    esp_err_t err;
-    if (this->flags_.address_is_static && this->flags_.data_is_static) {
-      err = this->parent_->send(this->address_static_.data(), this->data_static_, send_callback);
-    } else if (this->flags_.address_is_static) {
-      auto data = this->data_func_(x...);
-      err = this->parent_->send(this->address_static_.data(), data, send_callback);
-    } else if (this->flags_.data_is_static) {
-      auto address = this->address_func_(x...);
-      err = this->parent_->send(address.data(), this->data_static_, send_callback);
-    } else {
-      auto address = this->address_func_(x...);
-      auto data = this->data_func_(x...);
-      err = this->parent_->send(address.data(), data, send_callback);
-    }
+    std::vector<uint8_t> data = this->data_.value(x...);
+    std::vector<uint8_t> address = this->address_.value(x...);
+    esp_err_t err = this->parent_->send(address.data(), data, send_callback);
     if (err != ESP_OK) {
       send_callback(err);
-    }
-    if (!this->flags_.wait_for_sent) {
+    } else if (!this->flags_.wait_for_sent) {
       this->play_next_(x...);
     }
   }
@@ -104,67 +80,31 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
   ActionList<Ts...> sent_;
   ActionList<Ts...> error_;
 
-  std::function<std::array<uint8_t, ESP_NOW_ETH_ALEN>(Ts...)> address_func_;
-  std::function<std::vector<uint8_t>(Ts...)> data_func_;
-  std::array<uint8_t, ESP_NOW_ETH_ALEN> address_static_{0};
-  std::vector<uint8_t> data_static_;
   struct {
-    uint8_t address_is_static : 1;  // Is the address static or dynamic
-    uint8_t data_is_static : 1;     // Is the data static or dynamic
     uint8_t wait_for_sent : 1;      // Wait for the send operation to complete before continuing automation
     uint8_t continue_on_error : 1;  // Continue automation even if the send operation fails
-    uint8_t reserved : 4;           // Reserved for future use
+    uint8_t reserved : 6;           // Reserved for future use
   } flags_{0};
 };
 
 template<typename... Ts> class AddPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
- public:
-  void set_address_template(std::function<std::array<uint8_t, ESP_NOW_ETH_ALEN>(Ts...)> func) {
-    this->address_func_ = func;
-    this->address_is_static_ = false;
-  }
-  void set_address_static(const std::array<uint8_t, ESP_NOW_ETH_ALEN> &address) {
-    this->address_static_ = address;
-    this->address_is_static_ = true;
-  }
-  void play(Ts... x) override {
-    if (this->address_is_static_) {
-      this->parent_->add_peer(this->address_static_.data());
-    } else {
-      auto address = this->address_func_(x...);
-      this->parent_->add_peer(address.data());
-    }
-  }
+  TEMPLATABLE_VALUE(std::vector<uint8_t>, address);
 
- protected:
-  std::function<std::array<uint8_t, ESP_NOW_ETH_ALEN>(Ts...)> address_func_;
-  std::array<uint8_t, ESP_NOW_ETH_ALEN> address_static_{0};
-  bool address_is_static_{false};
+ public:
+  void play(Ts... x) override {
+    auto address = this->address_->value(x...);
+    this->parent_->add_peer(address.data());
+  }
 };
 
 template<typename... Ts> class DeletePeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
- public:
-  void set_address_template(std::function<std::array<uint8_t, ESP_NOW_ETH_ALEN>(Ts...)> func) {
-    this->address_func_ = func;
-    this->address_is_static_ = false;
-  }
-  void set_address_static(const std::array<uint8_t, ESP_NOW_ETH_ALEN> &address) {
-    this->address_static_ = address;
-    this->address_is_static_ = true;
-  }
-  void play(Ts... x) override {
-    if (this->address_is_static_) {
-      this->parent_->del_peer(this->address_static_.data());
-    } else {
-      auto address = this->address_func_(x...);
-      this->parent_->del_peer(address.data());
-    }
-  }
+  TEMPLATABLE_VALUE(std::vector<uint8_t>, address);
 
- protected:
-  std::function<std::array<uint8_t, ESP_NOW_ETH_ALEN>(Ts...)> address_func_;
-  std::array<uint8_t, ESP_NOW_ETH_ALEN> address_static_{0};
-  bool address_is_static_{false};
+ public:
+  void play(Ts... x) override {
+    auto address = this->address_->value(x...);
+    this->parent_->del_peer(address.data());
+  }
 };
 
 template<typename... Ts> class SetChannelAction : public Action<Ts...>, public Parented<ESPNowComponent> {
