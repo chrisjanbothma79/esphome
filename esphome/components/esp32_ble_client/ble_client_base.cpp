@@ -6,11 +6,22 @@
 #ifdef USE_ESP32
 
 #include <esp_gap_ble_api.h>
+#include <esp_gatt_defs.h>
 
 namespace esphome {
 namespace esp32_ble_client {
 
 static const char *const TAG = "esp32_ble_client";
+
+// Connection interval defaults matching ESP-IDF's BTM_BLE_CONN_INT_*_DEF
+static const uint16_t DEFAULT_MIN_CONN_INTERVAL = 0x0A;  // 10 * 1.25ms = 12.5ms
+static const uint16_t DEFAULT_MAX_CONN_INTERVAL = 0x0C;  // 12 * 1.25ms = 15ms
+static const uint16_t DEFAULT_CONN_TIMEOUT = 600;        // 600 * 10ms = 6s
+
+// Fastest connection parameters for devices with short discovery timeouts
+static const uint16_t FAST_MIN_CONN_INTERVAL = 0x06;  // 6 * 1.25ms = 7.5ms (BLE minimum)
+static const uint16_t FAST_MAX_CONN_INTERVAL = 0x06;  // 6 * 1.25ms = 7.5ms
+static const uint16_t FAST_CONN_TIMEOUT = 1000;       // 1000 * 10ms = 10s
 static const esp_bt_uuid_t NOTIFY_DESC_UUID = {
     .len = ESP_UUID_LEN_16,
     .uuid =
@@ -144,11 +155,10 @@ void BLEClientBase::connect() {
     // This ensures service discovery completes within the 10-second timeout that
     // some devices like HomeKit BLE sensors enforce
     if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
-      auto param_ret = esp_ble_gap_set_prefer_conn_params(this->remote_bda_,
-                                                          0x06,   // min_int: 7.5ms
-                                                          0x06,   // max_int: 7.5ms
-                                                          0,      // latency: 0
-                                                          1000);  // timeout: 10s
+      auto param_ret =
+          esp_ble_gap_set_prefer_conn_params(this->remote_bda_, FAST_MIN_CONN_INTERVAL, FAST_MAX_CONN_INTERVAL,
+                                             0,  // latency: 0
+                                             FAST_CONN_TIMEOUT);
       if (param_ret != ESP_OK) {
         ESP_LOGW(TAG, "[%d] [%s] esp_ble_gap_set_prefer_conn_params failed: %d", this->connection_index_,
                  this->address_str_.c_str(), param_ret);
@@ -319,7 +329,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (!this->check_addr(param->disconnect.remote_bda))
         return false;
       // Check if we were disconnected while waiting for service discovery
-      if (param->disconnect.reason == 0x13 &&  // 0x13 = ESP_GATT_CONN_TERMINATE_PEER
+      if (param->disconnect.reason == ESP_GATT_CONN_TERMINATE_PEER_USER &&
           this->state_ == espbt::ClientState::CONNECTED) {
         ESP_LOGW(TAG, "[%d] [%s] Disconnected by remote during service discovery", this->connection_index_,
                  this->address_str_.c_str());
@@ -390,10 +400,10 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
         esp_ble_conn_update_params_t conn_params = {{0}};
         memcpy(conn_params.bda, this->remote_bda_, sizeof(esp_bd_addr_t));
-        conn_params.min_int = 0x0A;  // 12.5ms - ESP-IDF default minimum (BTM_BLE_CONN_INT_MIN_DEF)
-        conn_params.max_int = 0x0C;  // 15ms - ESP-IDF default maximum (BTM_BLE_CONN_INT_MAX_DEF)
+        conn_params.min_int = DEFAULT_MIN_CONN_INTERVAL;
+        conn_params.max_int = DEFAULT_MAX_CONN_INTERVAL;
         conn_params.latency = 0;
-        conn_params.timeout = 600;  // 6s - ESP-IDF default timeout (BTM_BLE_CONN_TIMEOUT_DEF)
+        conn_params.timeout = DEFAULT_CONN_TIMEOUT;
         ESP_LOGD(TAG, "[%d] [%s] Restored default conn params", this->connection_index_, this->address_str_.c_str());
         esp_ble_gap_update_conn_params(&conn_params);
       }
