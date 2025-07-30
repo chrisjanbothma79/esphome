@@ -41,6 +41,29 @@ binary_sensor:
       sensor.in_range:
         id: template_sens
         below: 30.0
+    filters:
+      - invert:
+      - delayed_on: 100ms
+      - delayed_off: 100ms
+      - delayed_on_off: !lambda "if (id(test_switch).state) return 1000; else return 0;"
+      - delayed_on_off:
+          time_on: 10s
+          time_off: !lambda "if (id(test_switch).state) return 1000; else return 0;"
+      - autorepeat:
+          - delay: 1s
+            time_off: 100ms
+            time_on: 900ms
+          - delay: 5s
+            time_off: 100ms
+            time_on: 400ms
+      - lambda: |-
+          if (id(other_binary_sensor).state) {
+            return x;
+          } else {
+            return {};
+          }
+      - settle: 500ms
+      - timeout: 5s
 
 sensor:
   - platform: template
@@ -145,6 +168,7 @@ output:
 
 switch:
   - platform: template
+    id: test_switch
     name: "Template Switch"
     lambda: |-
       if (id(some_binary_sensor).state) {
