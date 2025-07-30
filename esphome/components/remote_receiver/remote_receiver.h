@@ -24,8 +24,6 @@ struct RemoteReceiverComponentStore {
   volatile uint32_t buffer_write_at;
   /// The position of idle
   volatile uint32_t buffer_idle_at;
-  /// The position of previous idle
-  volatile uint32_t buffer_prev_idle_at;
   /// The position last read from
   uint32_t buffer_read_at{0};
   volatile bool overflow{false};

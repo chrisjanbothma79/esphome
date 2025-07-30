@@ -27,21 +27,19 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
 
   const uint32_t last_change = arg->buffer[arg->buffer_write_at];
   const uint32_t time_since_change = now - last_change;
-  if (time_since_change <= arg->filter_us)
-    return;
+
   if (time_since_change >= arg->idle_us) {
     if (arg->overflow) {
-      if (arg->buffer_idle_at % 2 == arg->buffer_write_at % 2) {
-        arg->buffer_write_at = arg->buffer_idle_at;
-      } else {
-        arg->buffer_write_at = (arg->buffer_idle_at + 1) % arg->buffer_size;
-      }
-      arg->buffer[arg->buffer_write_at] = now;
       arg->overflow = false;
-      return;
     }
-    arg->buffer_prev_idle_at = arg->buffer_idle_at;
     arg->buffer_idle_at = next;
+  } else if (arg->overflow) {
+    arg->buffer[arg->buffer_write_at] = now;
+  } else if (time_since_change <= arg->filter_us && arg->buffer_write_at != arg->buffer_idle_at) {
+    // Remove short pulse from the buffer
+    const uint32_t prev = (arg->buffer_size + arg->buffer_write_at - 1) % arg->buffer_size;
+    arg->buffer_write_at = prev;
+    return;
   }
 
   arg->buffer[arg->buffer_write_at = next] = now;
@@ -109,7 +107,7 @@ void RemoteReceiverComponent::loop() {
   uint32_t pre_prev = s.buffer_read_at;
   s.buffer_read_at = (s.buffer_read_at + 1) % s.buffer_size;
   uint32_t prev = s.buffer_read_at;
-  ESP_LOGVV(TAG, "  i=-1 buffer[%u]=%u - buffer[%u]=%u -> %d", prev, s.buffer[prev], pre_prev, s.buffer[pre_prev],
+  ESP_LOGVV(TAG, "  idle buffer[%u]=%u - buffer[%u]=%u -> %d", prev, s.buffer[prev], pre_prev, s.buffer[pre_prev],
             (prev % 2 == 0 ? 1 : -1) * (s.buffer[prev] - s.buffer[pre_prev]));
   uint32_t read_at = (s.buffer_read_at + 1) % s.buffer_size;
   const uint32_t reserve_size = 1 + (s.buffer_size + idle_at - read_at) % s.buffer_size;
@@ -121,6 +119,8 @@ void RemoteReceiverComponent::loop() {
     int32_t delta = s.buffer[read_at] - s.buffer[prev];
     if (uint32_t(delta) >= this->idle_us_) {
       if (this->temp_.empty()) {
+        ESP_LOGVV(TAG, "  idle buffer[%u]=%u - buffer[%u]=%u -> %d", read_at, s.buffer[read_at], prev, s.buffer[prev],
+                  multiplier * delta);
         prev = s.buffer_read_at = read_at;
         read_at = (read_at + 1) % s.buffer_size;
         multiplier *= -1;
@@ -143,10 +143,11 @@ void RemoteReceiverComponent::loop() {
   if (s.overflow) {
     ESP_LOGVV(TAG, "Remote receiver buffer overflow! write_at=%u idle_at=%u read_at=%u", s.buffer_write_at,
               s.buffer_idle_at, s.buffer_read_at);
-    // Reset the buffer to the idle position since data is already corrupted
+    // Reset the write_at to the last good idle position droping some data since it's is already corrupted
     if (s.buffer_write_at % 2 == s.buffer_idle_at % 2) {
       s.buffer_write_at = s.buffer_idle_at;
     } else {
+      s.buffer[(s.buffer_idle_at + 1) % s.buffer_size] = s.buffer[s.buffer_write_at];
       s.buffer_write_at = (s.buffer_idle_at + 1) % s.buffer_size;
     }
   }
