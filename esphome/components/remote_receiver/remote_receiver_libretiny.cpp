@@ -107,8 +107,6 @@ void RemoteReceiverComponent::loop() {
   uint32_t pre_prev = s.buffer_read_at;
   s.buffer_read_at = (s.buffer_read_at + 1) % s.buffer_size;
   uint32_t prev = s.buffer_read_at;
-  ESP_LOGVV(TAG, "  idle buffer[%u]=%u - buffer[%u]=%u -> %d", prev, s.buffer[prev], pre_prev, s.buffer[pre_prev],
-            (prev % 2 == 0 ? 1 : -1) * (s.buffer[prev] - s.buffer[pre_prev]));
   uint32_t read_at = (s.buffer_read_at + 1) % s.buffer_size;
   const uint32_t reserve_size = 1 + (s.buffer_size + idle_at - read_at) % s.buffer_size;
   this->temp_.clear();
@@ -119,8 +117,7 @@ void RemoteReceiverComponent::loop() {
     int32_t delta = s.buffer[read_at] - s.buffer[prev];
     if (uint32_t(delta) >= this->idle_us_) {
       if (this->temp_.empty()) {
-        ESP_LOGVV(TAG, "  idle buffer[%u]=%u - buffer[%u]=%u -> %d", read_at, s.buffer[read_at], prev, s.buffer[prev],
-                  multiplier * delta);
+        pre_prev = prev;
         prev = s.buffer_read_at = read_at;
         read_at = (read_at + 1) % s.buffer_size;
         multiplier *= -1;
@@ -129,6 +126,11 @@ void RemoteReceiverComponent::loop() {
 
       // already found a space longer than idle. There must have been more than one pulse
       break;
+    }
+
+    if (this->temp_.empty()) {
+      ESP_LOGVV(TAG, "  idle buffer[%u]=%u - buffer[%u]=%u -> %d", prev, s.buffer[prev], pre_prev, s.buffer[pre_prev],
+                (prev % 2 == 0 ? 1 : -1) * (s.buffer[prev] - s.buffer[pre_prev]));
     }
 
     ESP_LOGVV(TAG, "  i=%u buffer[%u]=%u - buffer[%u]=%u -> %d", i, read_at, s.buffer[read_at], prev, s.buffer[prev],
