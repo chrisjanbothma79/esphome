@@ -6,6 +6,7 @@
 #ifdef USE_ESP32
 
 #include <esp_gap_ble_api.h>
+#include <esp_gatt_defs.h>
 
 namespace esphome {
 namespace esp32_ble_client {
@@ -319,7 +320,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (!this->check_addr(param->disconnect.remote_bda))
         return false;
       // Check if we were disconnected while waiting for service discovery
-      if (param->disconnect.reason == 0x13 &&  // 0x13 = ESP_GATT_CONN_TERMINATE_PEER
+      if (param->disconnect.reason == ESP_GATT_CONN_TERMINATE_PEER_USER &&
           this->state_ == espbt::ClientState::CONNECTED) {
         ESP_LOGW(TAG, "[%d] [%s] Disconnected by remote during service discovery", this->connection_index_,
                  this->address_str_.c_str());
