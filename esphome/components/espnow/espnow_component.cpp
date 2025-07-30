@@ -32,11 +32,11 @@ ESPNowComponent *global_esp_now = nullptr;  // NOLINT(cppcoreguidelines-avoid-no
 static const LogString *espnow_error_to_str(esp_err_t error) {
   switch (error) {
     case ESP_ERR_ESPNOW_FAILED:
-      return LOG_STR("Cannot send espnow packet, espnow is in fail mode");
-    case ESP_ERR_ESPNOW_OWN_PEER_ADDRESS:
-      return LOG_STR("Trying to send a message to your self");
-    case ESP_ERR_ESPNOW_PAYLOAD_SIZE:
-      return LOG_STR("Trying to send a payload size to large");
+      return LOG_STR("ESPNow is in fail mode");
+    case ESP_ERR_ESPNOW_OWN_ADDRESS:
+      return LOG_STR("Message to your self");
+    case ESP_ERR_ESPNOW_DATA_SIZE:
+      return LOG_STR("Data size to large");
     case ESP_ERR_ESPNOW_PEER_NOT_SET:
       return LOG_STR("Peer address not set");
     case ESP_ERR_ESPNOW_PEER_NOT_PAIRED:
@@ -56,7 +56,7 @@ static const LogString *espnow_error_to_str(esp_err_t error) {
     case ESP_OK:
       return LOG_STR("OK");
     case ESP_NOW_SEND_FAIL:
-      return LOG_STR("Send fail");
+      return LOG_STR("Failed");
     default:
       return LOG_STR("Unknown Error");
   }
@@ -353,9 +353,9 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payl
   } else if (peer_address == 0ULL) {
     return ESP_ERR_ESPNOW_PEER_NOT_SET;
   } else if (memcmp(peer_address, this->own_address_, ESP_NOW_ETH_ALEN) == 0) {
-    return ESP_ERR_ESPNOW_OWN_PEER_ADDRESS;
+    return ESP_ERR_ESPNOW_OWN_ADDRESS;
   } else if (size > ESP_NOW_MAX_DATA_LEN) {
-    return ESP_ERR_ESPNOW_PAYLOAD_SIZE;
+    return ESP_ERR_ESPNOW_DATA_SIZE;
   } else if (!esp_now_is_peer_exist(peer_address)) {
     if (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_) {
       esp_err_t err = this->add_peer(peer_address);
