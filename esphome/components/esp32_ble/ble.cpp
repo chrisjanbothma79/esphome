@@ -261,10 +261,9 @@ bool ESP32BLE::ble_setup_() {
 #endif
 #endif
 
-
   esp_err_t local_mtu_ret = esp_ble_gatt_set_local_mtu(500);
-  if (local_mtu_ret){
-      ESP_LOGE(TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
+  if (local_mtu_ret) {
+    ESP_LOGE(TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
   }
 
   // BLE takes some time to be fully set up, 200ms should be more than enough
@@ -533,12 +532,10 @@ void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_pa
 =======
       ESP_LOGV(TAG, "Ignoring ESP_GAP_BLE_SET_PKT_LENGTH_COMPLETE_EVT");
       return;
-    case ESP_GAP_BLE_PHY_UPDATE_COMPLETE_EVT:       // BLE 5.0 PHY update complete
+    case ESP_GAP_BLE_PHY_UPDATE_COMPLETE_EVT:  // BLE 5.0 PHY update complete
 #ifdef CONFIG_BT_BLE_50_FEATURES_SUPPORTED
-      ESP_LOGW(TAG, "PHY Update Complete - status: %d, tx_phy: %d, rx_phy: %d", 
-               param->phy_update.status,
-               param->phy_update.tx_phy, 
-               param->phy_update.rx_phy);
+      ESP_LOGW(TAG, "PHY Update Complete - status: %d, tx_phy: %d, rx_phy: %d", param->phy_update.status,
+               param->phy_update.tx_phy, param->phy_update.rx_phy);
       // Log PHY values for debugging
       // PHY values: 1=1M, 2=2M, 3=Coded
       if (param->phy_update.tx_phy == 2 || param->phy_update.rx_phy == 2) {
