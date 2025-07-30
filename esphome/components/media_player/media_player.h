@@ -103,9 +103,9 @@ class MediaPlayerTraits {
   }
 
  protected:
+  std::vector<MediaPlayerSupportedFormat> supported_formats_{};
   bool supports_pause_{false};
   bool supports_turn_off_on_{false};
-  std::vector<MediaPlayerSupportedFormat> supported_formats_{};
 };
 
 class MediaPlayerCall {
