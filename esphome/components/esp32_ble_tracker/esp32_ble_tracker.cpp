@@ -222,8 +222,8 @@ void ESP32BLETracker::loop() {
 #ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
     if (this->coex_prefer_ble_) {
       this->coex_prefer_ble_ = false;
-      ESP_LOGD(TAG, "Setting coexistence preference to balanced.");
-      esp_coex_preference_set(ESP_COEX_PREFER_BALANCE);  // Reset to default
+      ESP_LOGD(TAG, "NOT Setting coexistence preference to balanced.");
+      //esp_coex_preference_set(ESP_COEX_PREFER_BALANCE);  // Reset to default
     }
 #endif
     if (this->scan_continuous_) {

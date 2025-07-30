@@ -10,6 +10,7 @@
 #include <esp_bt_device.h>
 #include <esp_bt_main.h>
 #include <esp_gap_ble_api.h>
+#include <esp_gatt_common_api.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/FreeRTOSConfig.h>
 #include <freertos/task.h>
@@ -38,6 +39,7 @@ static const char *phy_mode_to_string(BLEPhy phy) {
 
 #if defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6) || \
     defined(USE_ESP32_VARIANT_ESP32H2)
+#ifdef CONFIG_BT_BLE_50_FEATURES_SUPPORTED
 static uint8_t phy_mode_to_mask(BLEPhy phy) {
   switch (phy) {
     case BLE_PHY_1M:
@@ -50,6 +52,7 @@ static uint8_t phy_mode_to_mask(BLEPhy phy) {
       return ESP_BLE_GAP_PHY_1M_PREF_MASK;  // Default to 1M
   }
 }
+#endif
 #endif
 
 void ESP32BLE::setup() {
@@ -240,19 +243,29 @@ bool ESP32BLE::ble_setup_() {
   // Configure PHY settings
 #if defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6) || \
     defined(USE_ESP32_VARIANT_ESP32H2)
-  // Only newer ESP32 variants support PHY configuration
-  if (this->preferred_phy_ != BLE_PHY_AUTO) {
-    uint8_t phy_mask = phy_mode_to_mask(this->preferred_phy_);
+#ifdef CONFIG_BT_BLE_50_FEATURES_SUPPORTED
+  // Only configure PHY if BLE 5.0 features are enabled
+  uint8_t phy_mask = phy_mode_to_mask(this->preferred_phy_);
 
-    err = esp_ble_gap_set_preferred_default_phy(phy_mask, phy_mask);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "esp_ble_gap_set_preferred_default_phy failed: %d", err);
-      // Not a fatal error, continue
-    } else {
-      ESP_LOGD(TAG, "Set preferred PHY to %s", phy_mode_to_string(this->preferred_phy_));
-    }
+  // Always set PHY preferences to ensure proper configuration
+  // This is important to override any default behavior that might enable 2M or Coded PHY
+  err = esp_ble_gap_set_preferred_default_phy(phy_mask, phy_mask);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "esp_ble_gap_set_preferred_default_phy failed: %d", err);
+    // Not a fatal error, continue
+  } else {
+    ESP_LOGD(TAG, "Set preferred PHY to %s", phy_mode_to_string(this->preferred_phy_));
   }
+#else
+  ESP_LOGD(TAG, "BLE 5.0 features disabled, PHY configuration not available");
 #endif
+#endif
+
+
+  esp_err_t local_mtu_ret = esp_ble_gatt_set_local_mtu(500);
+  if (local_mtu_ret){
+      ESP_LOGE(TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
+  }
 
   // BLE takes some time to be fully set up, 200ms should be more than enough
   delay(200);  // NOLINT
@@ -511,9 +524,36 @@ void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_pa
       enqueue_ble_event(event, param);
       return;
 
-    // Ignore these GAP events as they are not relevant for our use case
+    // Log these GAP events for debugging
     case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
+      ESP_LOGV(TAG, "Ignoring ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT");
+      return;
     case ESP_GAP_BLE_SET_PKT_LENGTH_COMPLETE_EVT:
+<<<<<<< Updated upstream
+=======
+      ESP_LOGV(TAG, "Ignoring ESP_GAP_BLE_SET_PKT_LENGTH_COMPLETE_EVT");
+      return;
+    case ESP_GAP_BLE_PHY_UPDATE_COMPLETE_EVT:       // BLE 5.0 PHY update complete
+#ifdef CONFIG_BT_BLE_50_FEATURES_SUPPORTED
+      ESP_LOGW(TAG, "PHY Update Complete - status: %d, tx_phy: %d, rx_phy: %d", 
+               param->phy_update.status,
+               param->phy_update.tx_phy, 
+               param->phy_update.rx_phy);
+      // Log PHY values for debugging
+      // PHY values: 1=1M, 2=2M, 3=Coded
+      if (param->phy_update.tx_phy == 2 || param->phy_update.rx_phy == 2) {
+        ESP_LOGW(TAG, "Device negotiated 2M PHY despite 1M preference!");
+      }
+      if (param->phy_update.tx_phy == 3 || param->phy_update.rx_phy == 3) {
+        ESP_LOGW(TAG, "Device negotiated Coded PHY!");
+      }
+#else
+      ESP_LOGV(TAG, "Ignoring ESP_GAP_BLE_PHY_UPDATE_COMPLETE_EVT (BLE 5.0 disabled)");
+#endif
+      return;
+    case ESP_GAP_BLE_CHANNEL_SELECT_ALGORITHM_EVT:  // BLE 5.0 channel selection algorithm
+      ESP_LOGV(TAG, "Ignoring ESP_GAP_BLE_CHANNEL_SELECT_ALGORITHM_EVT");
+>>>>>>> Stashed changes
       return;
 
     default:

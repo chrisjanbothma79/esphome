@@ -272,11 +272,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         this->conn_id_ = UNSET_CONN_ID;
         break;
       }
-      auto ret = esp_ble_gattc_send_mtu_req(this->gattc_if_, param->open.conn_id);
-      if (ret) {
-        ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_send_mtu_req failed, status=%x", this->connection_index_,
-                 this->address_str_.c_str(), ret);
-      }
+
       this->set_state(espbt::ClientState::CONNECTED);
       if (this->connection_type_ == espbt::ConnectionType::V3_WITH_CACHE) {
         ESP_LOGI(TAG, "[%d] [%s] Connected", this->connection_index_, this->address_str_.c_str());
@@ -284,13 +280,52 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         this->state_ = espbt::ClientState::ESTABLISHED;
         break;
       }
-      esp_ble_gattc_search_service(esp_gattc_if, param->cfg_mtu.conn_id, nullptr);
+      // For V3_WITHOUT_CACHE, we need to discover services to keep connection active
+      ESP_LOGD(TAG, "[%d] [%s] Searching for services", this->connection_index_,
+               this->address_str_.c_str());
+      auto search_ret = esp_ble_gattc_search_service(this->gattc_if_, this->conn_id_, nullptr);
+      if (search_ret != ESP_OK) {
+        ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_search_service failed: %d", this->connection_index_,
+                 this->address_str_.c_str(), search_ret);
+      }
       break;
     }
+    case ESP_GATTC_DIS_SRVC_CMPL_EVT:
+        ESP_LOGD(TAG, "[%d] [%s] ESP_GATTC_DIS_SRVC_CMPL_EVT", this->connection_index_, this->address_str_.c_str());
+        if (param->dis_srvc_cmpl.status != ESP_GATT_OK){
+            ESP_LOGE(TAG, "Service discover failed, status %d", param->dis_srvc_cmpl.status);
+            break;
+        }
+        ESP_LOGI(TAG, "Service discover complete, conn_id %d", param->dis_srvc_cmpl.conn_id);
+        // Don't search again - this seems redundant
+        // esp_ble_gattc_search_service(this->gattc_if_, param->dis_srvc_cmpl.conn_id, nullptr);
+        break;    
     case ESP_GATTC_CONNECT_EVT: {
       if (!this->check_addr(param->connect.remote_bda))
         return false;
       this->log_event_("ESP_GATTC_CONNECT_EVT");
+      this->conn_id_ = param->connect.conn_id;
+      this->service_count_ = 0;
+      ESP_LOGI(TAG, "[%d] [%s] Connection established, conn_id %d",
+               this->connection_index_, this->address_str_.c_str(), this->conn_id_);
+      
+      // Update connection parameters for faster service discovery
+      esp_ble_conn_update_params_t conn_params = {0};
+      memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
+      conn_params.min_int = 0x06;  // 7.5ms - fastest interval
+      conn_params.max_int = 0x06;  // 7.5ms - fastest interval
+      conn_params.latency = 0;
+      conn_params.timeout = 1000;  // 10s timeout
+      ESP_LOGD(TAG, "[%d] [%s] Updating connection parameters for fast discovery", 
+               this->connection_index_, this->address_str_.c_str());
+      esp_ble_gap_update_conn_params(&conn_params);
+      
+      auto ret = esp_ble_gattc_send_mtu_req(this->gattc_if_, param->connect.conn_id);
+      if (ret) {
+        ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_send_mtu_req failed, status=%x", this->connection_index_,
+                 this->address_str_.c_str(), ret);
+      }
+      ESP_LOGD(TAG, "[%d] [%s] Requesting MTU", this->connection_index_, this->address_str_.c_str());      
       break;
     }
     case ESP_GATTC_DISCONNECT_EVT: {
@@ -304,6 +339,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     }
 
     case ESP_GATTC_CFG_MTU_EVT: {
+      ESP_LOGD(TAG, "[%d] [%s] ESP_GATTC_CFG_MTU_EVT", this->connection_index_, this->address_str_.c_str());
       if (this->conn_id_ != param->cfg_mtu.conn_id)
         return false;
       if (param->cfg_mtu.status != ESP_GATT_OK) {
@@ -327,6 +363,8 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       break;
     }
     case ESP_GATTC_SEARCH_RES_EVT: {
+      ESP_LOGD(TAG, "[%d] [%s] ESP_GATTC_SEARCH_RES_EVT", this->connection_index_,
+               this->address_str_.c_str());
       if (this->conn_id_ != param->search_res.conn_id)
         return false;
       this->service_count_++;
@@ -432,7 +470,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
 
     default:
       // ideally would check all other events for matching conn_id
-      ESP_LOGD(TAG, "[%d] [%s] Event %d", this->connection_index_, this->address_str_.c_str(), event);
+      ESP_LOGV(TAG, "[%d] [%s] Unhandled event %d", this->connection_index_, this->address_str_.c_str(), event);
       break;
   }
   return true;
