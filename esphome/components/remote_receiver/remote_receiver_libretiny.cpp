@@ -22,8 +22,15 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
   // If next is buffer_read_at, we have hit an overflow
   if (next == arg->buffer_read_at) {
     arg->overflow = true;
-    // Reset the write_at to the last good idle position droping some data since it's is already corrupted
-    arg->buffer_write_at = arg->buffer_idle_at;
+    // Reset the write_at to the last good idle position corresponding to signal level,
+    // droping some data since it's is already corrupted
+    if (arg->buffer_write_at != arg->buffer_idle_at) {
+      if (level == arg->buffer_idle_at % 2) {
+        arg->buffer_write_at = arg->buffer_idle_at;
+      } else {
+        arg->buffer_write_at = (arg->buffer_idle_at + 1) % arg->buffer_size;
+      }
+    }
     arg->buffer[arg->buffer_write_at] = now;
     return;
   }
@@ -138,7 +145,6 @@ void RemoteReceiverComponent::loop() {
       if (this->temp_.size() == 1) {
         // signals must at least one rising and one leading edge
         this->temp_.clear();
-        i = 0;
       }
 
       if (this->temp_.empty() && read_at != idle_at) {
@@ -146,6 +152,7 @@ void RemoteReceiverComponent::loop() {
         prev = s.buffer_read_at = read_at;
         read_at = (read_at + 1) % s.buffer_size;
         multiplier *= -1;
+        i = 0;
         continue;
       }
 
