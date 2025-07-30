@@ -389,7 +389,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       // Now that we've discovered all services, we can use more balanced parameters
       // that save power and reduce interference
       if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
-        esp_ble_conn_update_params_t conn_params = {0};
+        esp_ble_conn_update_params_t conn_params = {{0}};
         memcpy(conn_params.bda, this->remote_bda_, sizeof(esp_bd_addr_t));
         conn_params.min_int = 0x0A;  // 12.5ms - ESP-IDF default minimum (BTM_BLE_CONN_INT_MIN_DEF)
         conn_params.max_int = 0x0C;  // 15ms - ESP-IDF default maximum (BTM_BLE_CONN_INT_MAX_DEF)
