@@ -23,35 +23,6 @@ namespace esphome::esp32_ble {
 
 static const char *const TAG = "esp32_ble";
 
-static const char *phy_mode_to_string(BLEPhy phy) {
-  switch (phy) {
-    case BLE_PHY_1M:
-      return "1M";
-    case BLE_PHY_2M:
-      return "2M";
-    case BLE_PHY_AUTO:
-      return "AUTO";
-    default:
-      return "UNKNOWN";
-  }
-}
-
-#if defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6) || \
-    defined(USE_ESP32_VARIANT_ESP32H2)
-static uint8_t phy_mode_to_mask(BLEPhy phy) {
-  switch (phy) {
-    case BLE_PHY_1M:
-      return ESP_BLE_GAP_PHY_1M_PREF_MASK;
-    case BLE_PHY_2M:
-      return ESP_BLE_GAP_PHY_2M_PREF_MASK;
-    case BLE_PHY_AUTO:
-      return ESP_BLE_GAP_PHY_1M_PREF_MASK | ESP_BLE_GAP_PHY_2M_PREF_MASK;
-    default:
-      return ESP_BLE_GAP_PHY_1M_PREF_MASK;  // Default to 1M
-  }
-}
-#endif
-
 void ESP32BLE::setup() {
   global_ble = this;
   if (!ble_pre_setup_()) {
@@ -236,23 +207,6 @@ bool ESP32BLE::ble_setup_() {
     ESP_LOGE(TAG, "esp_ble_gap_set_security_param failed: %d", err);
     return false;
   }
-
-  // Configure PHY settings
-#if defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6) || \
-    defined(USE_ESP32_VARIANT_ESP32H2)
-  // Only newer ESP32 variants support PHY configuration
-  if (this->preferred_phy_ != BLE_PHY_AUTO) {
-    uint8_t phy_mask = phy_mode_to_mask(this->preferred_phy_);
-
-    err = esp_ble_gap_set_preferred_default_phy(phy_mask, phy_mask);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "esp_ble_gap_set_preferred_default_phy failed: %d", err);
-      // Not a fatal error, continue
-    } else {
-      ESP_LOGD(TAG, "Set preferred PHY to %s", phy_mode_to_string(this->preferred_phy_));
-    }
-  }
-#endif
 
   // BLE takes some time to be fully set up, 200ms should be more than enough
   delay(200);  // NOLINT
@@ -563,10 +517,8 @@ void ESP32BLE::dump_config() {
     ESP_LOGCONFIG(TAG,
                   "BLE:\n"
                   "  MAC address: %s\n"
-                  "  IO Capability: %s\n"
-                  "  Preferred PHY: %s",
-                  format_mac_address_pretty(mac_address).c_str(), io_capability_s,
-                  phy_mode_to_string(this->preferred_phy_));
+                  "  IO Capability: %s",
+                  format_mac_address_pretty(mac_address).c_str(), io_capability_s);
   } else {
     ESP_LOGCONFIG(TAG, "Bluetooth stack is not enabled");
   }
