@@ -29,12 +29,10 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
   const uint32_t time_since_change = now - last_change;
 
   if (time_since_change >= arg->idle_us) {
-    if (arg->overflow) {
-      arg->overflow = false;
-    }
+    arg->overflow = false;
 
     const uint32_t prev = (arg->buffer_size + arg->buffer_write_at - 1) % arg->buffer_size;
-    const uint32_t prev_delta = arg->buffer[prev] - last_change;
+    const uint32_t prev_delta = last_change - arg->buffer[prev];
     if (prev_delta <= arg->filter_us && prev_delta != 0) {
       // If delta of the previous change is less than filter_us, we can just update the previous value
       arg->buffer_write_at = prev;
@@ -46,6 +44,7 @@ void IRAM_ATTR HOT RemoteReceiverComponentStore::gpio_intr(RemoteReceiverCompone
     arg->buffer_idle_at = next;
   } else if (arg->overflow) {
     arg->buffer[arg->buffer_write_at] = now;
+    return;
   } else if (time_since_change <= arg->filter_us && arg->buffer_write_at != arg->buffer_idle_at) {
     // Remove short pulse from the buffer
     const uint32_t prev = (arg->buffer_size + arg->buffer_write_at - 1) % arg->buffer_size;
