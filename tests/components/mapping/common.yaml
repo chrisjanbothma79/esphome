@@ -50,6 +50,14 @@ mapping:
       red: red_id
       blue: blue_id
       green: green_id
+  - id: string_map_2
+    from: string
+    to: string
+    entries:
+      one: "one"
+      two: "two"
+      three: "three"
+      seventy-seven: "seventy-seven"
 
 color:
   - id: red_id
