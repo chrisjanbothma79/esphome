@@ -45,7 +45,6 @@ static const char *const TAG = "wifi";
 float WiFiComponent::get_setup_priority() const { return setup_priority::WIFI; }
 
 void WiFiComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   this->wifi_pre_setup_();
   if (this->enable_on_boot_) {
     this->start();
@@ -261,10 +260,8 @@ void WiFiComponent::setup_ap_config_() {
     }
     this->ap_.set_ssid(name);
   }
-
-  ESP_LOGCONFIG(TAG, "Setting up AP");
-
   ESP_LOGCONFIG(TAG,
+                "Setting up AP:\n"
                 "  AP SSID: '%s'\n"
                 "  AP Password: '%s'",
                 this->ap_.get_ssid().c_str(), this->ap_.get_password().c_str());
@@ -536,9 +533,17 @@ void WiFiComponent::check_scanning_finished() {
                        return false;
 
                      if (a.get_matches() && b.get_matches()) {
-                       // if both match, check priority
+                       // For APs with the same SSID, always prefer stronger signal
+                       // This helps with mesh networks and multiple APs
+                       if (a.get_ssid() == b.get_ssid()) {
+                         return a.get_rssi() > b.get_rssi();
+                       }
+
+                       // For different SSIDs, check priority first
                        if (a.get_priority() != b.get_priority())
                          return a.get_priority() > b.get_priority();
+                       // If priorities are equal, prefer stronger signal
+                       return a.get_rssi() > b.get_rssi();
                      }
 
                      return a.get_rssi() > b.get_rssi();
