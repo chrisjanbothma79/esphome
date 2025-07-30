@@ -1647,6 +1647,8 @@ void APIConnection::process_batch_() {
     return;
   }
 
+  // Get shared buffer reference once to avoid multiple calls
+  auto &shared_buf = this->parent_->get_shared_buffer_ref();
   size_t num_items = this->deferred_batch_.size();
 
   // Fast path for single message - allocate exact size needed
@@ -1657,8 +1659,7 @@ void APIConnection::process_batch_() {
     uint16_t payload_size =
         item.creator(item.entity, this, std::numeric_limits<uint16_t>::max(), true, item.message_type);
 
-    if (payload_size > 0 &&
-        this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, item.message_type)) {
+    if (payload_size > 0 && this->send_buffer(ProtoWriteBuffer{&shared_buf}, item.message_type)) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
       // Log messages after send attempt for VV debugging
       // It's safe to use the buffer for logging at this point regardless of send result
@@ -1685,20 +1686,17 @@ void APIConnection::process_batch_() {
   const uint8_t footer_size = this->helper_->frame_footer_size();
 
   // Initialize buffer and tracking variables
-  this->parent_->get_shared_buffer_ref().clear();
+  shared_buf.clear();
 
   // Pre-calculate exact buffer size needed based on message types
-  uint32_t total_estimated_size = 0;
-  for (size_t i = 0; i < this->deferred_batch_.size(); i++) {
-    const auto &item = this->deferred_batch_[i];
+  uint32_t total_estimated_size = num_items * (header_padding + footer_size);
+  for (const auto &item : this->deferred_batch_.items) {
     total_estimated_size += item.estimated_size;
   }
 
   // Calculate total overhead for all messages
-  uint32_t total_overhead = (header_padding + footer_size) * num_items;
-
   // Reserve based on estimated size (much more accurate than 24-byte worst-case)
-  this->parent_->get_shared_buffer_ref().reserve(total_estimated_size + total_overhead);
+  shared_buf.reserve(total_estimated_size);
   this->flags_.batch_first_message = true;
 
   size_t items_processed = 0;
@@ -1740,7 +1738,7 @@ void APIConnection::process_batch_() {
     remaining_size -= payload_size;
     // Calculate where the next message's header padding will start
     // Current buffer size + footer space (that prepare_message_buffer will add for this message)
-    current_offset = this->parent_->get_shared_buffer_ref().size() + footer_size;
+    current_offset = shared_buf.size() + footer_size;
   }
 
   if (items_processed == 0) {
@@ -1750,12 +1748,11 @@ void APIConnection::process_batch_() {
 
   // Add footer space for the last message (for Noise protocol MAC)
   if (footer_size > 0) {
-    auto &shared_buf = this->parent_->get_shared_buffer_ref();
     shared_buf.resize(shared_buf.size() + footer_size);
   }
 
   // Send all collected packets
-  APIError err = this->helper_->write_protobuf_packets(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()},
+  APIError err = this->helper_->write_protobuf_packets(ProtoWriteBuffer{&shared_buf},
                                                        std::span<const PacketInfo>(packet_info, packet_count));
   if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
     on_fatal_error();
