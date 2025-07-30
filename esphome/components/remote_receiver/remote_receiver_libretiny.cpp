@@ -126,6 +126,11 @@ void RemoteReceiverComponent::loop() {
   for (uint32_t i = 0; prev != idle_at; i++) {
     int32_t delta = s.buffer[read_at] - s.buffer[prev];
     if (uint32_t(delta) >= this->idle_us_) {
+      if (this->temp_.size() == 1) {
+        // signals must at least one rising and one leading edge
+        this->temp_.clear();
+      }
+
       if (this->temp_.empty()) {
         pre_prev = prev;
         prev = s.buffer_read_at = read_at;
