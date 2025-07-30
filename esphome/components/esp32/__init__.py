@@ -524,12 +524,17 @@ def _check_advanced(config):
         config.get(CONF_FRAMEWORK, {})
         .get(CONF_ADVANCED, {})
         .get(CONF_EXECUTE_FROM_PSRAM)
-        and config[CONF_VARIANT] != VARIANT_ESP32S3
     ):
-        raise cv.Invalid(
-            f"'{CONF_EXECUTE_FROM_PSRAM}' is only supported on {VARIANT_ESP32S3} variant",
-            path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
-        )
+        if config[CONF_VARIANT] != VARIANT_ESP32S3:
+            raise cv.Invalid(
+                f"'{CONF_EXECUTE_FROM_PSRAM}' is only supported on {VARIANT_ESP32S3} variant",
+                path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+            )
+        if "psram" not in fv.full_config.get():
+            raise cv.Invalid(
+                f"'{CONF_EXECUTE_FROM_PSRAM}' requires PSRAM to be configured",
+                path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+            )
     return config
 
 

@@ -74,6 +74,17 @@ def test_esp32_config(
             r"'execute_from_psram' is only supported on ESP32S3 variant @ data\['framework'\]\['advanced'\]\['execute_from_psram'\]",
             id="execute_from_psram_invalid_for_variant_config",
         ),
+        pytest.param(
+            {
+                "variant": "esp32s3",
+                "framework": {
+                    "type": "esp-idf",
+                    "advanced": {"execute_from_psram": True},
+                },
+            },
+            r"'execute_from_psram' requires PSRAM to be configured @ data\['framework'\]\['advanced'\]\['execute_from_psram'\]",
+            id="execute_from_psram_requires_psram_config",
+        ),
     ],
 )
 def test_esp32_configuration_errors(
