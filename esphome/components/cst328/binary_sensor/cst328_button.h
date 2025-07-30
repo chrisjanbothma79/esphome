@@ -13,14 +13,9 @@ class CST328Button : public binary_sensor::BinarySensor,
                      public CST328ButtonListener,
                      public Parented<CST328Touchscreen> {
  public:
-  void setup() override {
-    this->parent_->register_button_listener(this);
-    this->publish_initial_state(false);
-  }
-
-  void dump_config() override { LOG_BINARY_SENSOR("", "CST328 Button", this); }
-
-  void update_button(bool state) override { this->publish_state(state); }
+  void setup() override;
+  void dump_config() override;
+  void update_button(bool state) override;
 };
 
 }  // namespace cst328

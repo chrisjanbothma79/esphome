@@ -3,6 +3,8 @@
 namespace esphome {
 namespace cst328 {
 
+static const char *const TAG = "cst328.touchscreen";
+
 void CST328Touchscreen::setup() {
   ESP_LOGCONFIG(TAG, "Setting up CST328 Touchscreen...");
   if (this->reset_pin_ != nullptr) {
@@ -36,21 +38,21 @@ void CST328Touchscreen::continue_setup_() {
   }
 
   // Enter debug/info mode
-  if (i2c::ERROR_OK != this->write_register16(static_cast<uint16_t>(Cst328WorkModes::DEBUG_INFO_MODE), buffer, 0)) {
+  if (i2c::ERROR_OK != this->write_register16(CST_WM_DEBUG_INFO, buffer, 0)) {
     ESP_LOGE(TAG, "Failed to enter debug/info mode");
     this->mark_failed();
     return;
   }
 
   // Read chip and project ID
-  if (this->read16_(static_cast<u_int16_t>(Cst328Registers::CHIP_TYPE_AND_PROJECT_ID), buffer, 4)) {
+  if (this->read16_(CST_REG_CHIP_TYPE_AND_PROJECT_ID, buffer, 4)) {
     this->chip_id_ = buffer[2] + (buffer[3] << 8);
     this->project_id_ = buffer[0] + (buffer[1] << 8);
     ESP_LOGV(TAG, "Chip ID %X, project ID %X", this->chip_id_, this->project_id_);
   }
 
   // Read FW checksum
-  if (this->read16_(static_cast<uint16_t>(Cst328Registers::FW_CRC_AND_BOOT_TIME), buffer, 4)) {
+  if (this->read16_(CST_REG_FW_CRC_AND_BOOT_TIME, buffer, 4)) {
     uint16_t fw_crc = buffer[2] + (buffer[3] << 8);
     if (0xCACA != fw_crc) {
       ESP_LOGE(TAG, "Invalid FW checksum: %X", fw_crc);
@@ -60,7 +62,7 @@ void CST328Touchscreen::continue_setup_() {
   }
 
   // Read FW version
-  if (this->read16_(static_cast<u_int16_t>(Cst328Registers::FW_REVISION), buffer, 4)) {
+  if (this->read16_(CST_REG_FW_REVISION, buffer, 4)) {
     this->fw_ver_major_ = buffer[3];
     this->fw_ver_minor_ = buffer[2];
     this->fw_build_ = buffer[0] + (buffer[1] << 8);
@@ -68,7 +70,7 @@ void CST328Touchscreen::continue_setup_() {
   }
 
   // Read X/Y resolution
-  if (this->read16_(static_cast<u_int16_t>(Cst328Registers::X_Y_RESOLUTION), buffer, 4)) {
+  if (this->read16_(CST_REG_X_Y_RESOLUTION, buffer, 4)) {
     this->x_raw_max_ = buffer[0] + (buffer[1] << 8);
     this->y_raw_max_ = buffer[2] + (buffer[3] << 8);
   } else {
@@ -77,13 +79,13 @@ void CST328Touchscreen::continue_setup_() {
   }
 
   // Enter normal mode
-  this->write_register16(static_cast<uint16_t>(Cst328WorkModes::NORMAL_MODE), buffer, 0);
+  this->write_register16(CST_WM_NORMAL, buffer, 0);
 
   // read once and sync?
   uint8_t sync_byte;
-  this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), &sync_byte, 1);
+  this->read_register16(CST_REG_TOUCH_INFORMATION, &sync_byte, 1);
   sync_byte = 0xAB;
-  this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), &sync_byte, 1);
+  this->write_register16(CST_REG_TOUCH_INFORMATION, &sync_byte, 1);
 
   this->setup_complete_ = true;
 
@@ -117,7 +119,7 @@ void CST328Touchscreen::update_touches() {
   this->status_clear_warning();
   this->skip_update_ = false;
 
-  if (!this->read16_(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), data, 1)) {
+  if (!this->read16_(CST_REG_TOUCH_FINGER_NUMBER, data, 1)) {
     // Failed to read
     ESP_LOGW(TAG, "update_touches() ERROR - Can't read touch count");
     this->skip_update_ = true;
@@ -137,7 +139,7 @@ void CST328Touchscreen::update_touches() {
       ESP_LOGD(TAG, "update_touches() INFO %d touches", touch_cnt);
 
       // Read Touch Points
-      if (!this->read16_(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), data, sizeof(data))) {
+      if (!this->read16_(CST_REG_TOUCH_INFORMATION, data, sizeof(data))) {
         ESP_LOGV(TAG, "update_touches() ERROR - Can't read touch data");
         this->status_set_warning();
 
@@ -163,8 +165,8 @@ void CST328Touchscreen::update_touches() {
     }
   }
 
-  this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), &sync_byte, 1);
-  this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), &clear_byte, 1);
+  this->write_register16(CST_REG_TOUCH_INFORMATION, &sync_byte, 1);
+  this->write_register16(CST_REG_TOUCH_FINGER_NUMBER, &clear_byte, 1);
 }
 }  // namespace cst328
 }  // namespace esphome
