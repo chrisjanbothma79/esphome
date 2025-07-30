@@ -4,13 +4,24 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_FROM, CONF_ID, CONF_TO
 from esphome.core import CORE
-from esphome.cpp_generator import MockObj, VariableDeclarationExpression, add_global
+from esphome.cpp_generator import (
+    AssignmentExpression,
+    MockObj,
+    VariableDeclarationExpression,
+    add_global,
+)
 from esphome.loader import get_component
 
 CODEOWNERS = ["@clydebarrow"]
 MULTI_CONF = True
 
 map_ = cg.std_ns.class_("map")
+pair = cg.std_ns.class_("pair")
+less = cg.std_ns.class_("less")
+char_traits = cg.std_ns.class_("char_traits")
+char = cg.global_ns.namespace("char")
+basic_string = cg.std_ns.class_("basic_string")
+allocator = cg.esphome_ns.class_("RAMAllocator")
 
 CONF_ENTRIES = "entries"
 CONF_CLASS = "class"
@@ -110,6 +121,11 @@ async def to_code(config):
     if to_ in INDEX_TYPES:
         value_conversion = INDEX_TYPES[to_].conversion
         value_type = INDEX_TYPES[to_].data_type
+        if value_conversion is str:
+            # If the value is a string, wrap it with an allocator to leverage PSRAM
+            value_type = basic_string.template(
+                char, char_traits.template(char), allocator.template(char)
+            )
         entries = {
             index_conversion(key): value_conversion(value)
             for key, value in entries.items()
@@ -123,12 +139,17 @@ async def to_code(config):
         if list(entries.values())[0].op != ".":
             value_type = value_type.operator("ptr")
     varid = config[CONF_ID]
-    varid.type = map_.template(index_type, value_type)
+    varid.type = map_.template(
+        index_type,
+        value_type,
+        less.template(index_type),
+        allocator.template(pair.template(index_type.operator("const"), value_type)),
+    )
     var = MockObj(varid, ".")
     decl = VariableDeclarationExpression(varid.type, "", varid)
     add_global(decl)
     CORE.register_variable(varid, var)
 
     for key, value in entries.items():
-        cg.add(var.insert((key, value)))
+        cg.add(AssignmentExpression(None, "", var[key], value))
     return var
