@@ -325,7 +325,7 @@ optional<float> FilterOutValueFilter::new_value(float value) {
 // ThrottleFilter
 ThrottleFilter::ThrottleFilter(uint32_t min_time_between_inputs) : min_time_between_inputs_(min_time_between_inputs) {}
 optional<float> ThrottleFilter::new_value(float value) {
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
   if (this->last_input_ == 0 || now - this->last_input_ >= min_time_between_inputs_) {
     this->last_input_ = now;
     return value;
