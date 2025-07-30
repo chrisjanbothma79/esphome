@@ -346,27 +346,25 @@ void ESPNowComponent::loop() {
 
 esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payload, size_t size,
                                 const send_callback_t &callback) {
-  esp_err_t err = ESP_OK;
   if (this->state_ != ESPNOW_STATE_ENABLED) {
-    err = ESP_ERR_ESPNOW_NOT_INIT;
+    return ESP_ERR_ESPNOW_NOT_INIT;
   } else if (this->is_failed()) {
-    err = ESP_ERR_ESPNOW_FAILED;
+    return ESP_ERR_ESPNOW_FAILED;
   } else if (peer_address == 0ULL) {
-    err = ESP_ERR_ESPNOW_PEER_NOT_SET;
+    return ESP_ERR_ESPNOW_PEER_NOT_SET;
   } else if (memcmp(peer_address, this->own_address_, ESP_NOW_ETH_ALEN) == 0) {
-    err = ESP_ERR_ESPNOW_OWN_PEER_ADDRESS;
+    return ESP_ERR_ESPNOW_OWN_PEER_ADDRESS;
   } else if (size > ESP_NOW_MAX_DATA_LEN) {
-    err = ESP_ERR_ESPNOW_PAYLOAD_SIZE;
+    return ESP_ERR_ESPNOW_PAYLOAD_SIZE;
   } else if (!esp_now_is_peer_exist(peer_address)) {
     if (memcmp(peer_address, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0 || this->auto_add_peer_) {
-      err = this->add_peer(peer_address);
+      esp_err_t err = this->add_peer(peer_address);
+      if (err != ESP_OK) {
+        return err;
+      }
     } else {
-      err = ESP_ERR_ESPNOW_PEER_NOT_PAIRED;
+      return ESP_ERR_ESPNOW_PEER_NOT_PAIRED;
     }
-  }
-  if (err != ESP_OK) {
-    callback(err);  // Call the callback with the error
-    return err;
   }
   // Allocate a packet from the pool
   ESPNowSendPacket *packet = this->send_packet_pool_.allocate();
@@ -374,7 +372,6 @@ esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payl
     this->send_packet_queue_.increment_dropped_count();
     ESP_LOGE(TAG, "Failed to allocate send packet from pool");
     this->status_momentary_warning("send-packet-pool-full");
-    callback(ESP_ERR_ESPNOW_NO_MEM);  // Call the callback with no memory error
     return ESP_ERR_ESPNOW_NO_MEM;
   }
   // Load the packet data
