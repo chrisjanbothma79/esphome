@@ -94,7 +94,7 @@ template<typename... Ts> class AddPeerAction : public Action<Ts...>, public Pare
 
  public:
   void play(Ts... x) override {
-    address_array address = this->address_->value(x...);
+    address_array address = this->address_.value(x...);
     this->parent_->add_peer(address.data());
   }
 };
@@ -104,7 +104,7 @@ template<typename... Ts> class DeletePeerAction : public Action<Ts...>, public P
 
  public:
   void play(Ts... x) override {
-    address_array address = this->address_->value(x...);
+    address_array address = this->address_.value(x...);
     this->parent_->del_peer(address.data());
   }
 };
