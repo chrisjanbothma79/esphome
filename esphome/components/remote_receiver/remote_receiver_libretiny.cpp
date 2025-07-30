@@ -106,8 +106,11 @@ void RemoteReceiverComponent::loop() {
             s.buffer[idle_at]);
 
   // Skip first value, it's from the previous idle level
+  uint32_t pre_prev = s.buffer_read_at;
   s.buffer_read_at = (s.buffer_read_at + 1) % s.buffer_size;
   uint32_t prev = s.buffer_read_at;
+  ESP_LOGVV(TAG, "  i=-1 buffer[%u]=%u - buffer[%u]=%u -> %d", prev, s.buffer[prev], pre_prev, s.buffer[pre_prev],
+            (prev % 2 == 0 ? 1 : -1) * (s.buffer[prev] - s.buffer[pre_prev]));
   uint32_t read_at = (s.buffer_read_at + 1) % s.buffer_size;
   const uint32_t reserve_size = 1 + (s.buffer_size + idle_at - read_at) % s.buffer_size;
   this->temp_.clear();
