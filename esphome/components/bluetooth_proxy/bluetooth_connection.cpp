@@ -56,6 +56,13 @@ static size_t estimate_service_size(uint16_t char_count, bool use_efficient_uuid
   return service_overhead + (char_size + desc_size) * char_count;
 }
 
+// Helper to calculate actual service size
+static size_t get_service_size(api::BluetoothGATTService &service) {
+  api::ProtoSize service_size;
+  service.calculate_size(service_size);
+  return service_size.get_size();
+}
+
 bool BluetoothConnection::supports_efficient_uuids_() const {
   auto *api_conn = this->proxy_->get_api_connection();
   return api_conn && api_conn->client_supports_api_version(1, 12);
@@ -169,96 +176,88 @@ void BluetoothConnection::send_service_for_discovery_() {
       break;
     }
 
-    if (total_char_count == 0) {
-      // No characteristics, increment and continue to next service
-      this->send_service_++;
-      continue;
-    }
-
-    // Reserve space and process characteristics
-    service_resp.characteristics.reserve(total_char_count);
-    uint16_t char_offset = 0;
-    esp_gattc_char_elem_t char_result;
-    while (true) {  // characteristics
-      uint16_t char_count = 1;
-      esp_gatt_status_t char_status =
-          esp_ble_gattc_get_all_char(this->gattc_if_, this->conn_id_, service_result.start_handle,
-                                     service_result.end_handle, &char_result, &char_count, char_offset);
-      if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND) {
-        break;
-      }
-      if (char_status != ESP_GATT_OK) {
-        ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
-                 this->address_str().c_str(), char_status);
-        this->send_service_ = DONE_SENDING_SERVICES;
-        return;
-      }
-      if (char_count == 0) {
-        break;
-      }
-
-      service_resp.characteristics.emplace_back();
-      auto &characteristic_resp = service_resp.characteristics.back();
-
-      fill_gatt_uuid(characteristic_resp.uuid, characteristic_resp.short_uuid, char_result.uuid, use_efficient_uuids);
-
-      characteristic_resp.handle = char_result.char_handle;
-      characteristic_resp.properties = char_result.properties;
-      char_offset++;
-
-      // Get the number of descriptors directly with one call
-      uint16_t total_desc_count = 0;
-      esp_gatt_status_t desc_count_status = esp_ble_gattc_get_attr_count(
-          this->gattc_if_, this->conn_id_, ESP_GATT_DB_DESCRIPTOR, 0, 0, char_result.char_handle, &total_desc_count);
-
-      if (desc_count_status != ESP_GATT_OK) {
-        ESP_LOGE(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d", this->connection_index_,
-                 this->address_str().c_str(), char_result.char_handle, desc_count_status);
-        this->send_service_ = DONE_SENDING_SERVICES;
-        return;
-      }
-      if (total_desc_count == 0) {
-        // No descriptors, continue to next characteristic
-        continue;
-      }
-
-      // Reserve space and process descriptors
-      characteristic_resp.descriptors.reserve(total_desc_count);
-      uint16_t desc_offset = 0;
-      esp_gattc_descr_elem_t desc_result;
-      while (true) {  // descriptors
-        uint16_t desc_count = 1;
-        esp_gatt_status_t desc_status = esp_ble_gattc_get_all_descr(
-            this->gattc_if_, this->conn_id_, char_result.char_handle, &desc_result, &desc_count, desc_offset);
-        if (desc_status == ESP_GATT_INVALID_OFFSET || desc_status == ESP_GATT_NOT_FOUND) {
+    if (total_char_count > 0) {
+      // Reserve space and process characteristics
+      service_resp.characteristics.reserve(total_char_count);
+      uint16_t char_offset = 0;
+      esp_gattc_char_elem_t char_result;
+      while (true) {  // characteristics
+        uint16_t char_count = 1;
+        esp_gatt_status_t char_status =
+            esp_ble_gattc_get_all_char(this->gattc_if_, this->conn_id_, service_result.start_handle,
+                                       service_result.end_handle, &char_result, &char_count, char_offset);
+        if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND) {
           break;
         }
-        if (desc_status != ESP_GATT_OK) {
-          ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
-                   this->address_str().c_str(), desc_status);
+        if (char_status != ESP_GATT_OK) {
+          ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
+                   this->address_str().c_str(), char_status);
           this->send_service_ = DONE_SENDING_SERVICES;
           return;
         }
-        if (desc_count == 0) {
-          break;  // No more descriptors
+        if (char_count == 0) {
+          break;
         }
 
-        characteristic_resp.descriptors.emplace_back();
-        auto &descriptor_resp = characteristic_resp.descriptors.back();
+        service_resp.characteristics.emplace_back();
+        auto &characteristic_resp = service_resp.characteristics.back();
 
-        fill_gatt_uuid(descriptor_resp.uuid, descriptor_resp.short_uuid, desc_result.uuid, use_efficient_uuids);
+        fill_gatt_uuid(characteristic_resp.uuid, characteristic_resp.short_uuid, char_result.uuid, use_efficient_uuids);
 
-        descriptor_resp.handle = desc_result.handle;
-        desc_offset++;
+        characteristic_resp.handle = char_result.char_handle;
+        characteristic_resp.properties = char_result.properties;
+        char_offset++;
+
+        // Get the number of descriptors directly with one call
+        uint16_t total_desc_count = 0;
+        esp_gatt_status_t desc_count_status = esp_ble_gattc_get_attr_count(
+            this->gattc_if_, this->conn_id_, ESP_GATT_DB_DESCRIPTOR, 0, 0, char_result.char_handle, &total_desc_count);
+
+        if (desc_count_status != ESP_GATT_OK) {
+          ESP_LOGE(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d",
+                   this->connection_index_, this->address_str().c_str(), char_result.char_handle, desc_count_status);
+          this->send_service_ = DONE_SENDING_SERVICES;
+          return;
+        }
+        if (total_desc_count == 0) {
+          // No descriptors, continue to next characteristic
+          continue;
+        }
+
+        // Reserve space and process descriptors
+        characteristic_resp.descriptors.reserve(total_desc_count);
+        uint16_t desc_offset = 0;
+        esp_gattc_descr_elem_t desc_result;
+        while (true) {  // descriptors
+          uint16_t desc_count = 1;
+          esp_gatt_status_t desc_status = esp_ble_gattc_get_all_descr(
+              this->gattc_if_, this->conn_id_, char_result.char_handle, &desc_result, &desc_count, desc_offset);
+          if (desc_status == ESP_GATT_INVALID_OFFSET || desc_status == ESP_GATT_NOT_FOUND) {
+            break;
+          }
+          if (desc_status != ESP_GATT_OK) {
+            ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
+                     this->address_str().c_str(), desc_status);
+            this->send_service_ = DONE_SENDING_SERVICES;
+            return;
+          }
+          if (desc_count == 0) {
+            break;  // No more descriptors
+          }
+
+          characteristic_resp.descriptors.emplace_back();
+          auto &descriptor_resp = characteristic_resp.descriptors.back();
+
+          fill_gatt_uuid(descriptor_resp.uuid, descriptor_resp.short_uuid, desc_result.uuid, use_efficient_uuids);
+
+          descriptor_resp.handle = desc_result.handle;
+          desc_offset++;
+        }
       }
-    }
+    }  // end if (total_char_count > 0)
 
     // Calculate the actual size of just this service
-    api::ProtoSize service_size;
-    service_resp.calculate_size(service_size);
-
-    // Update running total
-    current_size += service_size.get_size() + 1;  // +1 for field tag
+    current_size += get_service_size(service_resp) + 1;  // +1 for field tag
 
     // Check if we've exceeded the limit (worst case scenario)
     // Our estimation above should have caught this, but if we're here it means
