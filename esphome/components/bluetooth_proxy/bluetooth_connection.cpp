@@ -61,7 +61,7 @@ static size_t get_service_size(api::BluetoothGATTService &service) {
   api::ProtoSize service_size;
   service.calculate_size(service_size);
   size_t size = service_size.get_size();
-  ESP_LOGD(TAG, "Service size calculation: uuid[0]=%llx uuid[1]=%llx short_uuid=%u handle=%u -> size=%d",
+  ESP_LOGV(TAG, "Service size calculation: uuid[0]=%llx uuid[1]=%llx short_uuid=%u handle=%u -> size=%d",
            service.uuid[0], service.uuid[1], service.short_uuid, service.handle, size);
   return size;
 }
@@ -136,7 +136,7 @@ void BluetoothConnection::send_service_for_discovery_() {
   api::ProtoSize size;
   resp.calculate_size(size);
   current_size = size.get_size();
-  ESP_LOGD(TAG, "[%d] [%s] Starting batch with base size: %d, send_service_: %d", this->connection_index_,
+  ESP_LOGV(TAG, "[%d] [%s] Starting batch with base size: %d, send_service_: %d", this->connection_index_,
            this->address_str().c_str(), current_size, this->send_service_);
 
   while (this->send_service_ < this->service_count_) {
@@ -181,7 +181,7 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     service_resp.handle = service_result.start_handle;
 
-    ESP_LOGD(TAG, "[%d] [%s] Service UUID: %llx,%llx short:%u handle:%u", this->connection_index_,
+    ESP_LOGV(TAG, "[%d] [%s] Service UUID: %llx,%llx short:%u handle:%u", this->connection_index_,
              this->address_str().c_str(), service_resp.uuid[0], service_resp.uuid[1], service_resp.short_uuid,
              service_resp.handle);
 
@@ -277,7 +277,7 @@ void BluetoothConnection::send_service_for_discovery_() {
       } else {
         // This single service is too large, but we have to send it anyway
         current_size += service_size;
-        ESP_LOGW(TAG, "[%d] [%s] Service %d is too large (%d bytes) but sending anyway", this->connection_index_,
+        ESP_LOGV(TAG, "[%d] [%s] Service %d is too large (%d bytes) but sending anyway", this->connection_index_,
                  this->address_str().c_str(), this->send_service_, service_size);
         // Increment so we don't get stuck
         this->send_service_++;
@@ -288,7 +288,7 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     // Now we know we're keeping this service, add its size
     current_size += service_size;
-    ESP_LOGD(TAG, "[%d] [%s] Service %d size: %d, total size now: %d", this->connection_index_,
+    ESP_LOGV(TAG, "[%d] [%s] Service %d size: %d, total size now: %d", this->connection_index_,
              this->address_str().c_str(), this->send_service_, service_size, current_size);
 
     // Successfully added this service, increment counter
