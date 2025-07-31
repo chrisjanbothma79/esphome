@@ -91,9 +91,13 @@ void RemoteReceiverComponent::setup() {
 
   // First index is a space.
   if (this->pin_->digital_read()) {
-    s.buffer_write_at = s.buffer_idle_at = s.buffer_read_at = 1;
+    s.buffer_write_at = 1;
+    s.buffer_idle_at = 1;
+    s.buffer_read_at = 1;
   } else {
-    s.buffer_write_at = s.buffer_idle_at = s.buffer_read_at = 0;
+    s.buffer_write_at = 0;
+    s.buffer_idle_at = 0;
+    s.buffer_read_at = 0;
   }
   this->pin_->attach_interrupt(RemoteReceiverComponentStore::gpio_intr, &this->store_, gpio::INTERRUPT_ANY_EDGE);
 }
