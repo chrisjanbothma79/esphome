@@ -85,6 +85,17 @@ def test_esp32_config(
             r"'execute_from_psram' requires PSRAM to be configured @ data\['framework'\]\['advanced'\]\['execute_from_psram'\]",
             id="execute_from_psram_requires_psram_config",
         ),
+        pytest.param(
+            {
+                "variant": "esp32s3",
+                "framework": {
+                    "type": "esp-idf",
+                    "advanced": {"ignore_efuse_mac_crc": True},
+                },
+            },
+            r"ignore_efuse_mac_crc is not supported on ESP32S3 @ data\['framework'\]\['advanced'\]\['ignore_efuse_mac_crc'\]",
+            id="ignore_efuse_mac_crc_only_on_esp32",
+        ),
     ],
 )
 def test_esp32_configuration_errors(
@@ -94,7 +105,7 @@ def test_esp32_configuration_errors(
 ) -> None:
     set_core_config(PlatformFramework.ESP32_IDF)
     """Test detection of invalid configuration."""
-    from esphome.components.esp32 import CONFIG_SCHEMA
+    from esphome.components.esp32 import CONFIG_SCHEMA, FINAL_VALIDATE_SCHEMA
 
     with pytest.raises(cv.Invalid, match=error_match):
-        CONFIG_SCHEMA(config)
+        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))

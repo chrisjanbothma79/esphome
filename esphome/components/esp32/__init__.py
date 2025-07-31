@@ -524,46 +524,44 @@ def _check_advanced(config):
         config.get(CONF_FRAMEWORK, {})
         .get(CONF_ADVANCED, {})
         .get(CONF_EXECUTE_FROM_PSRAM)
+        and config[CONF_VARIANT] != VARIANT_ESP32S3
     ):
-        if config[CONF_VARIANT] != VARIANT_ESP32S3:
-            raise cv.Invalid(
-                f"'{CONF_EXECUTE_FROM_PSRAM}' is only supported on {VARIANT_ESP32S3} variant",
-                path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
-            )
-        if "psram" not in fv.full_config.get():
-            raise cv.Invalid(
-                f"'{CONF_EXECUTE_FROM_PSRAM}' requires PSRAM to be configured",
-                path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
-            )
+        raise cv.Invalid(
+            f"'{CONF_EXECUTE_FROM_PSRAM}' is only supported on {VARIANT_ESP32S3} variant",
+            path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+        )
     return config
 
 
 def final_validate(config):
-    if not (
-        pio_options := fv.full_config.get()[CONF_ESPHOME].get(CONF_PLATFORMIO_OPTIONS)
-    ):
-        # Not specified or empty
-        return config
-
-    pio_flash_size_key = "board_upload.flash_size"
-    pio_partitions_key = "board_build.partitions"
-    if CONF_PARTITIONS in config and pio_partitions_key in pio_options:
-        raise cv.Invalid(
-            f"Do not specify '{pio_partitions_key}' in '{CONF_PLATFORMIO_OPTIONS}' with '{CONF_PARTITIONS}' in esp32"
-        )
-
-    if pio_flash_size_key in pio_options:
-        raise cv.Invalid(
-            f"Please specify {CONF_FLASH_SIZE} within esp32 configuration only"
-        )
-
+    if pio_options := fv.full_config.get()[CONF_ESPHOME].get(CONF_PLATFORMIO_OPTIONS):
+        pio_flash_size_key = "board_upload.flash_size"
+        pio_partitions_key = "board_build.partitions"
+        if CONF_PARTITIONS in config and pio_partitions_key in pio_options:
+            raise cv.Invalid(
+                f"Do not specify '{pio_partitions_key}' in '{CONF_PLATFORMIO_OPTIONS}' with '{CONF_PARTITIONS}' in esp32"
+            )
+        if pio_flash_size_key in pio_options:
+            raise cv.Invalid(
+                f"Please specify {CONF_FLASH_SIZE} within esp32 configuration only"
+            )
     if (
         config[CONF_VARIANT] != VARIANT_ESP32
         and CONF_ADVANCED in (conf_fw := config[CONF_FRAMEWORK])
         and CONF_IGNORE_EFUSE_MAC_CRC in conf_fw[CONF_ADVANCED]
     ):
         raise cv.Invalid(
-            f"{CONF_IGNORE_EFUSE_MAC_CRC} is not supported on {config[CONF_VARIANT]}"
+            f"{CONF_IGNORE_EFUSE_MAC_CRC} is not supported on {config[CONF_VARIANT]}",
+            path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_IGNORE_EFUSE_MAC_CRC],
+        )
+    if (
+        config.get(CONF_FRAMEWORK, {})
+        .get(CONF_ADVANCED, {})
+        .get(CONF_EXECUTE_FROM_PSRAM)
+    ) and "psram" not in fv.full_config.get():
+        raise cv.Invalid(
+            f"'{CONF_EXECUTE_FROM_PSRAM}' requires PSRAM to be configured",
+            path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
         )
 
     return config
