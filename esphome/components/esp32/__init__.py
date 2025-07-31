@@ -558,7 +558,7 @@ def final_validate(config):
     ):
         errs.append(
             cv.Invalid(
-                f"{CONF_IGNORE_EFUSE_MAC_CRC} is not supported on {config[CONF_VARIANT]}",
+                f"'{CONF_IGNORE_EFUSE_MAC_CRC}' is not supported on {config[CONF_VARIANT]}",
                 path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_IGNORE_EFUSE_MAC_CRC],
             )
         )
