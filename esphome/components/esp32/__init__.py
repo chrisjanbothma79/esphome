@@ -6,6 +6,7 @@ from pathlib import Path
 
 from esphome import yaml_util
 import esphome.codegen as cg
+from esphome.components.psram import DOMAIN as PSRAM_DOMAIN
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADVANCED,
@@ -566,7 +567,7 @@ def final_validate(config):
         config.get(CONF_FRAMEWORK, {})
         .get(CONF_ADVANCED, {})
         .get(CONF_EXECUTE_FROM_PSRAM)
-    ) and "psram" not in full_config:
+    ) and PSRAM_DOMAIN not in full_config:
         errs.append(
             cv.Invalid(
                 f"'{CONF_EXECUTE_FROM_PSRAM}' requires PSRAM to be configured",
