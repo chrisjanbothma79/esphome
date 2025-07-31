@@ -126,14 +126,15 @@ void BluetoothConnection::send_service_for_discovery_() {
   resp.address = this->address_;
 
   // Dynamic batching based on actual size
-  static constexpr size_t MAX_PACKET_SIZE = 1390;     // MTU limit for API messages
-  static constexpr size_t NEXT_SERVICE_BUFFER = 400;  // Reserve space for next service
+  static constexpr size_t MAX_PACKET_SIZE = 1390;  // MTU limit for API messages
 
   // Keep running total of actual message size
   size_t current_size = 0;
   api::ProtoSize size;
   resp.calculate_size(size);
   current_size = size.get_size();
+  ESP_LOGD(TAG, "[%d] [%s] Starting batch with base size: %d", this->connection_index_, this->address_str().c_str(),
+           current_size);
 
   while (this->send_service_ < this->service_count_) {
     esp_gattc_service_elem_t service_result;
@@ -257,7 +258,10 @@ void BluetoothConnection::send_service_for_discovery_() {
     }  // end if (total_char_count > 0)
 
     // Calculate the actual size of just this service
-    current_size += get_service_size(service_resp) + 1;  // +1 for field tag
+    size_t service_size = get_service_size(service_resp) + 1;  // +1 for field tag
+    current_size += service_size;
+    ESP_LOGD(TAG, "[%d] [%s] Service %d size: %d, total size now: %d", this->connection_index_,
+             this->address_str().c_str(), this->send_service_ - 1, service_size, current_size);
 
     // Check if we've exceeded the limit (worst case scenario)
     // Our estimation above should have caught this, but if we're here it means
@@ -278,15 +282,11 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     // Successfully added this service, increment counter
     this->send_service_++;
-
-    // Check if we have room for another service
-    if (current_size > MAX_PACKET_SIZE - NEXT_SERVICE_BUFFER) {
-      // Getting close to limit, send this batch
-      break;
-    }
   }
 
   // Send the message with dynamically batched services
+  ESP_LOGD(TAG, "[%d] [%s] Sending batch with %d services, total size %d", this->connection_index_,
+           this->address_str().c_str(), resp.services.size(), current_size);
   api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
 }
 
