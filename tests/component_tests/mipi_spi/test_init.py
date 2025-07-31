@@ -29,11 +29,13 @@ from esphome.const import (
     CONF_DIMENSIONS,
     CONF_HEIGHT,
     CONF_INIT_SEQUENCE,
+    CONF_INPUT,
+    CONF_OUTPUT,
     CONF_WIDTH,
     PlatformFramework,
 )
 from esphome.core import CORE
-from esphome.pins import internal_gpio_pin_number
+from esphome.pins import gpio_pin_schema
 from esphome.types import ConfigType
 from tests.component_tests.types import SetCoreConfigCallable
 
@@ -303,7 +305,13 @@ def choose_variant_with_pins() -> Callable[..., None]:
                 CORE.data[KEY_ESP32][KEY_VARIANT] = v
                 for pin in pins:
                     if pin is not None:
-                        pin = internal_gpio_pin_number(pin)
+                        pin = gpio_pin_schema(
+                            {
+                                CONF_INPUT: True,
+                                CONF_OUTPUT: True,
+                            },
+                            internal=True,
+                        )(pin)
                         validate_gpio_pin(pin)
                 return
             except cv.Invalid:
