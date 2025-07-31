@@ -151,6 +151,8 @@ enum MediaPlayerState : uint32_t {
   MEDIA_PLAYER_STATE_PLAYING = 2,
   MEDIA_PLAYER_STATE_PAUSED = 3,
   MEDIA_PLAYER_STATE_ANNOUNCING = 4,
+  MEDIA_PLAYER_STATE_OFF = 5,
+  MEDIA_PLAYER_STATE_ON = 6,
 };
 enum MediaPlayerCommand : uint32_t {
   MEDIA_PLAYER_COMMAND_PLAY = 0,
@@ -165,6 +167,8 @@ enum MediaPlayerCommand : uint32_t {
   MEDIA_PLAYER_COMMAND_REPEAT_ONE = 9,
   MEDIA_PLAYER_COMMAND_REPEAT_OFF = 10,
   MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST = 11,
+  MEDIA_PLAYER_COMMAND_TURN_ON = 12,
+  MEDIA_PLAYER_COMMAND_TURN_OFF = 13,
 };
 enum MediaPlayerFormatPurpose : uint32_t {
   MEDIA_PLAYER_FORMAT_PURPOSE_DEFAULT = 0,
@@ -1891,12 +1895,12 @@ class BluetoothGATTService : public ProtoMessage {
 class BluetoothGATTGetServicesResponse : public ProtoMessage {
  public:
   static constexpr uint8_t MESSAGE_TYPE = 71;
-  static constexpr uint8_t ESTIMATED_SIZE = 21;
+  static constexpr uint8_t ESTIMATED_SIZE = 38;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "bluetooth_gatt_get_services_response"; }
 #endif
   uint64_t address{0};
-  std::array<BluetoothGATTService, 1> services{};
+  std::vector<BluetoothGATTService> services{};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(ProtoSize &size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
