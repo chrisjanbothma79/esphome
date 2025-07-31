@@ -298,8 +298,6 @@ void BluetoothConnection::send_service_for_discovery_() {
   }
 
   // Send the message with dynamically batched services
-  ESP_LOGV(TAG, "[%d] [%s] Sending batch with %d services, total size %d", this->connection_index_,
-           this->address_str().c_str(), resp.services.size(), current_size);
   api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
 }
 
