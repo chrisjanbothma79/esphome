@@ -8,7 +8,7 @@ import pytest
 
 from esphome.components.esp32 import VARIANTS
 import esphome.config_validation as cv
-from esphome.const import PlatformFramework
+from esphome.const import CONF_ESPHOME, PlatformFramework
 from tests.component_tests.types import SetCoreConfigCallable
 
 
@@ -93,7 +93,7 @@ def test_esp32_config(
                     "advanced": {"ignore_efuse_mac_crc": True},
                 },
             },
-            r"ignore_efuse_mac_crc is not supported on ESP32S3 @ data\['framework'\]\['advanced'\]\['ignore_efuse_mac_crc'\]",
+            r"'ignore_efuse_mac_crc' is not supported on ESP32S3 @ data\['framework'\]\['advanced'\]\['ignore_efuse_mac_crc'\]",
             id="ignore_efuse_mac_crc_only_on_esp32",
         ),
     ],
@@ -103,7 +103,7 @@ def test_esp32_configuration_errors(
     error_match: str,
     set_core_config: SetCoreConfigCallable,
 ) -> None:
-    set_core_config(PlatformFramework.ESP32_IDF)
+    set_core_config(PlatformFramework.ESP32_IDF, full_config={CONF_ESPHOME: {}})
     """Test detection of invalid configuration."""
     from esphome.components.esp32 import CONFIG_SCHEMA, FINAL_VALIDATE_SCHEMA
 
