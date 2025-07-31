@@ -1857,6 +1857,8 @@ class BluetoothGATTDescriptor : public ProtoMessage {
  public:
   std::array<uint64_t, 2> uuid{};
   uint32_t handle{0};
+  uint32_t uuid16{0};
+  uint32_t uuid32{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(ProtoSize &size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1871,6 +1873,8 @@ class BluetoothGATTCharacteristic : public ProtoMessage {
   uint32_t handle{0};
   uint32_t properties{0};
   std::vector<BluetoothGATTDescriptor> descriptors{};
+  uint32_t uuid16{0};
+  uint32_t uuid32{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(ProtoSize &size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1884,6 +1888,8 @@ class BluetoothGATTService : public ProtoMessage {
   std::array<uint64_t, 2> uuid{};
   uint32_t handle{0};
   std::vector<BluetoothGATTCharacteristic> characteristics{};
+  uint32_t uuid16{0};
+  uint32_t uuid32{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(ProtoSize &size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
