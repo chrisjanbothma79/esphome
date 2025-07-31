@@ -9,13 +9,10 @@ import pytest
 from esphome import config_validation as cv
 from esphome.components.esp32 import (
     KEY_BOARD,
-    KEY_ESP32,
     KEY_VARIANT,
     VARIANT_ESP32,
     VARIANT_ESP32S3,
-    VARIANTS,
 )
-from esphome.components.esp32.gpio import validate_gpio_pin
 from esphome.components.mipi import CONF_NATIVE_HEIGHT
 from esphome.components.mipi_spi.display import (
     CONF_BUS_MODE,
@@ -29,13 +26,9 @@ from esphome.const import (
     CONF_DIMENSIONS,
     CONF_HEIGHT,
     CONF_INIT_SEQUENCE,
-    CONF_INPUT,
-    CONF_OUTPUT,
     CONF_WIDTH,
     PlatformFramework,
 )
-from esphome.core import CORE
-from esphome.pins import gpio_pin_schema
 from esphome.types import ConfigType
 from tests.component_tests.types import SetCoreConfigCallable
 
@@ -290,37 +283,6 @@ def test_custom_model_with_all_options(
             "buffer_size": 0.25,
         }
     )
-
-
-@pytest.fixture
-def choose_variant_with_pins() -> Callable[..., None]:
-    """
-    Set the ESP32 variant for the given model based on pins. For ESP32 only since the other platforms
-    do not have variants.
-    """
-
-    def chooser(pins: list) -> None:
-        for v in VARIANTS:
-            try:
-                CORE.data[KEY_ESP32][KEY_VARIANT] = v
-                for pin in pins:
-                    if pin is not None:
-                        pin = gpio_pin_schema(
-                            {
-                                CONF_INPUT: True,
-                                CONF_OUTPUT: True,
-                            },
-                            internal=True,
-                        )(pin)
-                        validate_gpio_pin(pin)
-                return
-            except cv.Invalid:
-                continue
-        raise cv.Invalid(
-            f"No compatible variant found for pins: {', '.join(map(str, pins))}"
-        )
-
-    return chooser
 
 
 def test_all_predefined_models(
