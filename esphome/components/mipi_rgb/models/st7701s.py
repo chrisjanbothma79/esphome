@@ -135,8 +135,8 @@ st7701s.extend(
     cs_pin=18,
     reset_pin=8,
     de_pin=17,
-    vsync_pin=3,
-    hsync_pin=46,
+    vsync_pin={"number": 3, "ignore_strapping_warning": True},
+    hsync_pin={"number": 46, "ignore_strapping_warning": True},
     pclk_pin=9,
     data_pins={
         "red": [40, 41, 42, 2, 1],
