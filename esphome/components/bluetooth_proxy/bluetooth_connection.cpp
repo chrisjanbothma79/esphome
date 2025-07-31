@@ -129,16 +129,14 @@ void BluetoothConnection::send_service_for_discovery_() {
   resp.address = this->address_;
 
   // Dynamic batching based on actual size
-  static constexpr size_t MAX_PACKET_SIZE =
-      1360;  // Conservative MTU limit for API messages (accounts for WPA3 overhead)
+  // Conservative MTU limit for API messages (accounts for WPA3 overhead)
+  static constexpr size_t MAX_PACKET_SIZE = 1360;
 
   // Keep running total of actual message size
   size_t current_size = 0;
   api::ProtoSize size;
   resp.calculate_size(size);
   current_size = size.get_size();
-  ESP_LOGV(TAG, "[%d] [%s] Starting batch with base size: %d, send_service_: %d", this->connection_index_,
-           this->address_str().c_str(), current_size, this->send_service_);
 
   while (this->send_service_ < this->service_count_) {
     esp_gattc_service_elem_t service_result;
@@ -181,10 +179,6 @@ void BluetoothConnection::send_service_for_discovery_() {
     fill_gatt_uuid(service_resp.uuid, service_resp.short_uuid, service_result.uuid, use_efficient_uuids);
 
     service_resp.handle = service_result.start_handle;
-
-    ESP_LOGV(TAG, "[%d] [%s] Service UUID: %llx,%llx short:%u handle:%u", this->connection_index_,
-             this->address_str().c_str(), service_resp.uuid[0], service_resp.uuid[1], service_resp.short_uuid,
-             service_resp.handle);
 
     if (total_char_count > 0) {
       // Reserve space and process characteristics
@@ -292,7 +286,6 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     // Now we know we're keeping this service, add its size
     current_size += service_size;
-
     // Successfully added this service, increment counter
     this->send_service_++;
   }
