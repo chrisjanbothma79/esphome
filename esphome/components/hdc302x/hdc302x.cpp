@@ -71,7 +71,11 @@ typedef enum {
 #define WARN(...) \
   { \
     std::string err = std::format(__VA_ARGS__); \
-    ESP_LOGW(TAG, err.c_str()); \
+    if (bus_name_.empty()) { \
+      ESP_LOGW(TAG, err.c_str()); \
+    } else { \
+      ESP_LOGW(TAG, "%s %s", bus_name_.c_str(), err.c_str()); \
+    } \
     if (last_error_sensor_) { \
       last_error_sensor_->publish_state(err); \
     } \
@@ -123,7 +127,7 @@ void HDC302XComponent::setup() {
   // setAutoMode(EXIT_AUTO_MODE);
 }
 void HDC302XComponent::update() {
-  ESP_LOGI(TAG, "Update starting");
+  ESP_LOGI(TAG, "Update starting on %s", bus_name_.c_str());
   float temp, rh;
   i2c::ErrorCode ec = readTemperatureHumidityOnDemand(&temp, &rh);
   if (ec != i2c::NO_ERROR) {
@@ -238,7 +242,7 @@ i2c::ErrorCode HDC302XComponent::sendCommandReadTRH(uint16_t command, float *tem
   uint16_t rawTemperature = (buffer[0] << 8) | buffer[1];
   uint16_t rawHumidity = (buffer[3] << 8) | buffer[4];
 
-  // Convert raw temperature data to degrees Celsius
+  // Convert raw temperature data to degrees C
   *temp = ((rawTemperature / 65535.0) * 175.0) - 45.0;
 
   // Convert raw humidity data to percentage

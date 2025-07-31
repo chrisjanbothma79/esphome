@@ -31,6 +31,7 @@ hdc302x_ns = cg.esphome_ns.namespace("hdc302x")
 HDC302XComponent = hdc302x_ns.class_(
     "HDC302XComponent", cg.PollingComponent, i2c.I2CDevice
 )
+# UNIT_FAHRENHEIT = "°C"
 
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -72,6 +73,9 @@ async def to_code(config):
     if CONF_LAST_ERROR in config:
         sens = await text_sensor.new_text_sensor(config[CONF_LAST_ERROR])
         cg.add(var.set_last_error_sensor(sens))
+
+    if "i2c_id" in config:
+        cg.add(var.set_bus_name(str(config["i2c_id"])))
 
 
 #    # Actions

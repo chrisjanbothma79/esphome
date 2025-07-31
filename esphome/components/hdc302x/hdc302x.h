@@ -28,6 +28,7 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   void set_temperature_sensor(sensor::Sensor *a_sensor) { temperature_sensor_ = a_sensor; }
   void set_humidity_sensor(sensor::Sensor *a_sensor) { humidity_sensor_ = a_sensor; }
   void set_last_error_sensor(text_sensor::TextSensor *a_sensor) { last_error_sensor_ = a_sensor; }
+  void set_bus_name(std::string name) { bus_name_ = name; }
 
   // void air_calibration();
 
@@ -48,6 +49,7 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
   text_sensor::TextSensor *last_error_sensor_{nullptr};
+  std::string bus_name_;
   /*
   enum State : uint8_t {
     IDLE,
