@@ -6,7 +6,6 @@ from pathlib import Path
 
 from esphome import yaml_util
 import esphome.codegen as cg
-from esphome.components.psram import DOMAIN as PSRAM_DOMAIN
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADVANCED,
@@ -520,21 +519,10 @@ def _detect_variant(value):
     return value
 
 
-def _check_advanced(config):
-    if (
-        config.get(CONF_FRAMEWORK, {})
-        .get(CONF_ADVANCED, {})
-        .get(CONF_EXECUTE_FROM_PSRAM)
-        and config[CONF_VARIANT] != VARIANT_ESP32S3
-    ):
-        raise cv.Invalid(
-            f"'{CONF_EXECUTE_FROM_PSRAM}' is only supported on {VARIANT_ESP32S3} variant",
-            path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
-        )
-    return config
-
-
 def final_validate(config):
+    # Imported locally to avoid circular import issues
+    from esphome.components.psram import DOMAIN as PSRAM_DOMAIN
+
     errs = []
     full_config = fv.full_config.get()
     if pio_options := full_config[CONF_ESPHOME].get(CONF_PLATFORMIO_OPTIONS):
@@ -567,13 +555,21 @@ def final_validate(config):
         config.get(CONF_FRAMEWORK, {})
         .get(CONF_ADVANCED, {})
         .get(CONF_EXECUTE_FROM_PSRAM)
-    ) and PSRAM_DOMAIN not in full_config:
-        errs.append(
-            cv.Invalid(
-                f"'{CONF_EXECUTE_FROM_PSRAM}' requires PSRAM to be configured",
-                path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+    ):
+        if config[CONF_VARIANT] != VARIANT_ESP32S3:
+            errs.append(
+                cv.Invalid(
+                    f"'{CONF_EXECUTE_FROM_PSRAM}' is only supported on {VARIANT_ESP32S3} variant",
+                    path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+                )
             )
-        )
+        if PSRAM_DOMAIN not in full_config:
+            errs.append(
+                cv.Invalid(
+                    f"'{CONF_EXECUTE_FROM_PSRAM}' requires PSRAM to be configured",
+                    path=[CONF_FRAMEWORK, CONF_ADVANCED, CONF_EXECUTE_FROM_PSRAM],
+                )
+            )
 
     if errs:
         raise cv.MultipleInvalid(errs)
@@ -739,7 +735,6 @@ CONFIG_SCHEMA = cv.All(
     ),
     _detect_variant,
     _set_default_framework,
-    _check_advanced,
     set_core_data,
     cv.has_at_least_one_key(CONF_BOARD, CONF_VARIANT),
 )
