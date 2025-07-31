@@ -37,6 +37,25 @@ static void fill_gatt_uuid(std::array<uint64_t, 2> &uuid_128, uint32_t &short_uu
   }
 }
 
+// Constants for size estimation
+static constexpr uint8_t SERVICE_OVERHEAD_LEGACY = 25;     // UUID(20) + handle(4) + overhead(1)
+static constexpr uint8_t SERVICE_OVERHEAD_EFFICIENT = 10;  // UUID(6) + handle(4)
+static constexpr uint8_t CHAR_SIZE_128BIT = 35;            // UUID(20) + handle(4) + props(4) + overhead(7)
+static constexpr uint8_t DESC_SIZE_128BIT = 25;            // UUID(20) + handle(4) + overhead(1)
+static constexpr uint8_t DESC_SIZE_16BIT = 10;             // UUID(6) + handle(4)
+static constexpr uint8_t DESC_PER_CHAR = 2;                // Assume 2 descriptors per characteristic
+
+// Helper to estimate service size before fetching all data
+static size_t estimate_service_size(uint16_t char_count, bool use_efficient_uuids) {
+  size_t service_overhead = use_efficient_uuids ? SERVICE_OVERHEAD_EFFICIENT : SERVICE_OVERHEAD_LEGACY;
+  // Always assume 128-bit UUIDs for characteristics to be safe
+  size_t char_size = CHAR_SIZE_128BIT;
+  // Assume mix of descriptor types: one 128-bit + one 16-bit per characteristic
+  size_t desc_size = (DESC_SIZE_128BIT + DESC_SIZE_16BIT) * DESC_PER_CHAR;
+
+  return service_overhead + (char_size + desc_size) * char_count;
+}
+
 bool BluetoothConnection::supports_efficient_uuids_() const {
   auto *api_conn = this->proxy_->get_api_connection();
   return api_conn && api_conn->client_supports_api_version(1, 12);
@@ -95,16 +114,21 @@ void BluetoothConnection::send_service_for_discovery_() {
   // Check if client supports efficient UUIDs
   bool use_efficient_uuids = this->supports_efficient_uuids_();
 
-  // Prepare response for up to 3 services
+  // Prepare response
   api::BluetoothGATTGetServicesResponse resp;
   resp.address = this->address_;
 
-  // Process up to 3 services in this iteration
-  uint8_t services_to_process =
-      std::min(MAX_SERVICES_PER_BATCH, static_cast<uint8_t>(this->service_count_ - this->send_service_));
-  resp.services.reserve(services_to_process);
+  // Dynamic batching based on actual size
+  static constexpr size_t MAX_PACKET_SIZE = 1390;     // MTU limit for API messages
+  static constexpr size_t NEXT_SERVICE_BUFFER = 400;  // Reserve space for next service
 
-  for (int service_idx = 0; service_idx < services_to_process; service_idx++) {
+  // Keep running total of actual message size
+  size_t current_size = 0;
+  api::ProtoSize size;
+  resp.calculate_size(size);
+  current_size = size.get_size();
+
+  while (this->send_service_ < this->service_count_) {
     esp_gattc_service_elem_t service_result;
     uint16_t service_count = 1;
     esp_gatt_status_t service_status = esp_ble_gattc_get_service(this->gattc_if_, this->conn_id_, nullptr,
@@ -118,7 +142,6 @@ void BluetoothConnection::send_service_for_discovery_() {
       return;
     }
 
-    this->send_service_++;
     resp.services.emplace_back();
     auto &service_resp = resp.services.back();
 
@@ -139,8 +162,16 @@ void BluetoothConnection::send_service_for_discovery_() {
       return;
     }
 
+    // If this service likely won't fit, send current batch (unless it's the first)
+    if (!resp.services.empty() &&
+        (current_size + estimate_service_size(total_char_count, use_efficient_uuids) > MAX_PACKET_SIZE)) {
+      // This service likely won't fit, send current batch
+      break;
+    }
+
     if (total_char_count == 0) {
-      // No characteristics, continue to next service
+      // No characteristics, increment and continue to next service
+      this->send_service_++;
       continue;
     }
 
@@ -221,9 +252,42 @@ void BluetoothConnection::send_service_for_discovery_() {
         desc_offset++;
       }
     }
+
+    // Calculate the actual size of just this service
+    api::ProtoSize service_size;
+    service_resp.calculate_size(service_size);
+
+    // Update running total
+    current_size += service_size.get_size() + 1;  // +1 for field tag
+
+    // Check if we've exceeded the limit (worst case scenario)
+    // Our estimation above should have caught this, but if we're here it means
+    // this service is extraordinarily large (many characteristics/descriptors)
+    if (current_size > MAX_PACKET_SIZE) {
+      // We've gone over - pop the last service if we have more than one
+      if (resp.services.size() > 1) {
+        resp.services.pop_back();
+        // Don't increment send_service_ - we'll retry this service in next batch
+      } else {
+        // This single service is too large, but we have to send it anyway
+        // Increment so we don't get stuck
+        this->send_service_++;
+      }
+      // Send what we have
+      break;
+    }
+
+    // Successfully added this service, increment counter
+    this->send_service_++;
+
+    // Check if we have room for another service
+    if (current_size > MAX_PACKET_SIZE - NEXT_SERVICE_BUFFER) {
+      // Getting close to limit, send this batch
+      break;
+    }
   }
 
-  // Send the message with 1-3 services
+  // Send the message with dynamically batched services
   api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
 }
 
