@@ -199,9 +199,7 @@ void BluetoothConnection::send_service_for_discovery_() {
   }
 
   // Send the message with 1-3 services
-  if (services_processed > 0) {
-    api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
-  }
+  api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
 }
 
 bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
