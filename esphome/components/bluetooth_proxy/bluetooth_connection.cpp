@@ -273,6 +273,9 @@ void BluetoothConnection::send_service_for_discovery_() {
       // We would go over - pop the last service if we have more than one
       if (resp.services.size() > 1) {
         resp.services.pop_back();
+        ESP_LOGD(TAG, "[%d] [%s] Service %d would exceed limit (current: %d + service: %d > %d), sending current batch",
+                 this->connection_index_, this->address_str().c_str(), this->send_service_, current_size, service_size,
+                 MAX_PACKET_SIZE);
         // Don't increment send_service_ - we'll retry this service in next batch
       } else {
         // This single service is too large, but we have to send it anyway
