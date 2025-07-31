@@ -1561,8 +1561,7 @@ void BluetoothGATTDescriptor::dump_to(std::string &out) const {
     dump_field(out, "uuid", it, 4);
   }
   dump_field(out, "handle", this->handle);
-  dump_field(out, "uuid16", this->uuid16);
-  dump_field(out, "uuid32", this->uuid32);
+  dump_field(out, "short_uuid", this->short_uuid);
 }
 void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
   MessageDumpHelper helper(out, "BluetoothGATTCharacteristic");
@@ -1576,8 +1575,7 @@ void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
-  dump_field(out, "uuid16", this->uuid16);
-  dump_field(out, "uuid32", this->uuid32);
+  dump_field(out, "short_uuid", this->short_uuid);
 }
 void BluetoothGATTService::dump_to(std::string &out) const {
   MessageDumpHelper helper(out, "BluetoothGATTService");
@@ -1590,8 +1588,7 @@ void BluetoothGATTService::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
-  dump_field(out, "uuid16", this->uuid16);
-  dump_field(out, "uuid32", this->uuid32);
+  dump_field(out, "short_uuid", this->short_uuid);
 }
 void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
   MessageDumpHelper helper(out, "BluetoothGATTGetServicesResponse");

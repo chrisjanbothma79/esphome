@@ -113,9 +113,9 @@ void BluetoothConnection::send_service_for_discovery_() {
       // Use 128-bit format for old clients or when UUID is already 128-bit
       fill_128bit_uuid_array(service_resp.uuid, service_result.uuid);
     } else if (service_result.uuid.len == ESP_UUID_LEN_16) {
-      service_resp.uuid16 = service_result.uuid.uuid.uuid16;
+      service_resp.short_uuid = service_result.uuid.uuid.uuid16;
     } else if (service_result.uuid.len == ESP_UUID_LEN_32) {
-      service_resp.uuid32 = service_result.uuid.uuid.uuid32;
+      service_resp.short_uuid = service_result.uuid.uuid.uuid32;
     }
 
     service_resp.handle = service_result.start_handle;
@@ -167,9 +167,9 @@ void BluetoothConnection::send_service_for_discovery_() {
         // Use 128-bit format for old clients or when UUID is already 128-bit
         fill_128bit_uuid_array(characteristic_resp.uuid, char_result.uuid);
       } else if (char_result.uuid.len == ESP_UUID_LEN_16) {
-        characteristic_resp.uuid16 = char_result.uuid.uuid.uuid16;
+        characteristic_resp.short_uuid = char_result.uuid.uuid.uuid16;
       } else if (char_result.uuid.len == ESP_UUID_LEN_32) {
-        characteristic_resp.uuid32 = char_result.uuid.uuid.uuid32;
+        characteristic_resp.short_uuid = char_result.uuid.uuid.uuid32;
       }
 
       characteristic_resp.handle = char_result.char_handle;
@@ -220,9 +220,9 @@ void BluetoothConnection::send_service_for_discovery_() {
           // Use 128-bit format for old clients or when UUID is already 128-bit
           fill_128bit_uuid_array(descriptor_resp.uuid, desc_result.uuid);
         } else if (desc_result.uuid.len == ESP_UUID_LEN_16) {
-          descriptor_resp.uuid16 = desc_result.uuid.uuid.uuid16;
+          descriptor_resp.short_uuid = desc_result.uuid.uuid.uuid16;
         } else if (desc_result.uuid.len == ESP_UUID_LEN_32) {
-          descriptor_resp.uuid32 = desc_result.uuid.uuid.uuid32;
+          descriptor_resp.short_uuid = desc_result.uuid.uuid.uuid32;
         }
 
         descriptor_resp.handle = desc_result.handle;
