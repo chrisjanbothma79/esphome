@@ -60,7 +60,10 @@ static size_t estimate_service_size(uint16_t char_count, bool use_efficient_uuid
 static size_t get_service_size(api::BluetoothGATTService &service) {
   api::ProtoSize service_size;
   service.calculate_size(service_size);
-  return service_size.get_size();
+  size_t size = service_size.get_size();
+  ESP_LOGD(TAG, "Service size calculation: uuid[0]=%llx uuid[1]=%llx short_uuid=%u handle=%u -> size=%d",
+           service.uuid[0], service.uuid[1], service.short_uuid, service.handle, size);
+  return size;
 }
 
 bool BluetoothConnection::supports_efficient_uuids_() const {
@@ -133,8 +136,8 @@ void BluetoothConnection::send_service_for_discovery_() {
   api::ProtoSize size;
   resp.calculate_size(size);
   current_size = size.get_size();
-  ESP_LOGD(TAG, "[%d] [%s] Starting batch with base size: %d", this->connection_index_, this->address_str().c_str(),
-           current_size);
+  ESP_LOGD(TAG, "[%d] [%s] Starting batch with base size: %d, send_service_: %d", this->connection_index_,
+           this->address_str().c_str(), current_size, this->send_service_);
 
   while (this->send_service_ < this->service_count_) {
     esp_gattc_service_elem_t service_result;
@@ -156,6 +159,10 @@ void BluetoothConnection::send_service_for_discovery_() {
     fill_gatt_uuid(service_resp.uuid, service_resp.short_uuid, service_result.uuid, use_efficient_uuids);
 
     service_resp.handle = service_result.start_handle;
+
+    ESP_LOGD(TAG, "[%d] [%s] Service UUID: %llx,%llx short:%u handle:%u", this->connection_index_,
+             this->address_str().c_str(), service_resp.uuid[0], service_resp.uuid[1], service_resp.short_uuid,
+             service_resp.handle);
 
     // Get the number of characteristics directly with one call
     uint16_t total_char_count = 0;
@@ -259,26 +266,29 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     // Calculate the actual size of just this service
     size_t service_size = get_service_size(service_resp) + 1;  // +1 for field tag
-    current_size += service_size;
-    ESP_LOGD(TAG, "[%d] [%s] Service %d size: %d, total size now: %d", this->connection_index_,
-             this->address_str().c_str(), this->send_service_ - 1, service_size, current_size);
 
-    // Check if we've exceeded the limit (worst case scenario)
-    // Our estimation above should have caught this, but if we're here it means
-    // this service is extraordinarily large (many characteristics/descriptors)
-    if (current_size > MAX_PACKET_SIZE) {
-      // We've gone over - pop the last service if we have more than one
+    // Check if adding this service would exceed the limit
+    if (current_size + service_size > MAX_PACKET_SIZE) {
+      // We would go over - pop the last service if we have more than one
       if (resp.services.size() > 1) {
         resp.services.pop_back();
         // Don't increment send_service_ - we'll retry this service in next batch
       } else {
         // This single service is too large, but we have to send it anyway
+        current_size += service_size;
+        ESP_LOGW(TAG, "[%d] [%s] Service %d is too large (%d bytes) but sending anyway", this->connection_index_,
+                 this->address_str().c_str(), this->send_service_, service_size);
         // Increment so we don't get stuck
         this->send_service_++;
       }
       // Send what we have
       break;
     }
+
+    // Now we know we're keeping this service, add its size
+    current_size += service_size;
+    ESP_LOGD(TAG, "[%d] [%s] Service %d size: %d, total size now: %d", this->connection_index_,
+             this->address_str().c_str(), this->send_service_, service_size, current_size);
 
     // Successfully added this service, increment counter
     this->send_service_++;
