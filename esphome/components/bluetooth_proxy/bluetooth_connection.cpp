@@ -297,14 +297,13 @@ void BluetoothConnection::send_service_for_discovery_() {
     int size_diff = (int) service_size - (int) estimated_size;
     ESP_LOGV(TAG, "[%d] [%s] Service %d actual: %d, estimated: %d, diff: %+d", this->connection_index_,
              this->address_str().c_str(), this->send_service_, service_size, estimated_size, size_diff);
-    ESP_LOGV(TAG, "[%d] [%s] Total size now: %d", this->connection_index_, this->address_str().c_str(), current_size);
 
     // Successfully added this service, increment counter
     this->send_service_++;
   }
 
   // Send the message with dynamically batched services
-  ESP_LOGD(TAG, "[%d] [%s] Sending batch with %d services, total size %d", this->connection_index_,
+  ESP_LOGV(TAG, "[%d] [%s] Sending batch with %d services, total size %d", this->connection_index_,
            this->address_str().c_str(), resp.services.size(), current_size);
   api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
 }

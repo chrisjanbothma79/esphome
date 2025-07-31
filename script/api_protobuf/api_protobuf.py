@@ -1122,6 +1122,18 @@ class FixedArrayRepeatedType(TypeInfo):
             ]
             return f"if ({non_zero_checks}) {{\n" + "\n".join(encode_lines) + "\n}"
 
+        # If skip_zero is enabled, wrap encoding in a zero check
+        if self.skip_zero:
+            # Build the condition to check if at least one element is non-zero
+            non_zero_checks = " || ".join(
+                [f"this->{self.field_name}[{i}] != 0" for i in range(self.array_size)]
+            )
+            encode_lines = [
+                f"  {encode_element(f'this->{self.field_name}[{i}]')}"
+                for i in range(self.array_size)
+            ]
+            return f"if ({non_zero_checks}) {{\n" + "\n".join(encode_lines) + "\n}"
+
         # Unroll small arrays for efficiency
         if self.array_size == 1:
             return encode_element(f"this->{self.field_name}[0]")
