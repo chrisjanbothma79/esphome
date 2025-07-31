@@ -1120,15 +1120,15 @@ class FixedArrayRepeatedType(TypeInfo):
 
         # If skip_zero is enabled, wrap encoding in a zero check
         if self.skip_zero:
-            # Build the condition to check if all elements are zero
-            zero_checks = " && ".join(
-                [f"this->{self.field_name}[{i}] == 0" for i in range(self.array_size)]
+            # Build the condition to check if at least one element is non-zero
+            non_zero_checks = " || ".join(
+                [f"this->{self.field_name}[{i}] != 0" for i in range(self.array_size)]
             )
             encode_lines = [
                 f"  {encode_element(f'this->{self.field_name}[{i}]')}"
                 for i in range(self.array_size)
             ]
-            return f"if (!({zero_checks})) {{\n" + "\n".join(encode_lines) + "\n}"
+            return f"if ({non_zero_checks}) {{\n" + "\n".join(encode_lines) + "\n}"
 
         # Unroll small arrays for efficiency
         if self.array_size == 1:
@@ -1160,15 +1160,15 @@ class FixedArrayRepeatedType(TypeInfo):
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # If skip_zero is enabled, wrap size calculation in a zero check
         if self.skip_zero:
-            # Build the condition to check if all elements are zero
-            zero_checks = " && ".join(
-                [f"{name}[{i}] == 0" for i in range(self.array_size)]
+            # Build the condition to check if at least one element is non-zero
+            non_zero_checks = " || ".join(
+                [f"{name}[{i}] != 0" for i in range(self.array_size)]
             )
             size_lines = [
                 f"  {self._ti.get_size_calculation(f'{name}[{i}]', True)}"
                 for i in range(self.array_size)
             ]
-            return f"if (!({zero_checks})) {{\n" + "\n".join(size_lines) + "\n}"
+            return f"if ({non_zero_checks}) {{\n" + "\n".join(size_lines) + "\n}"
 
         # For fixed arrays, we always encode all elements
 

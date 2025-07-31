@@ -1888,7 +1888,7 @@ bool BluetoothGATTGetServicesRequest::decode_varint(uint32_t field_id, ProtoVarI
   return true;
 }
 void BluetoothGATTDescriptor::encode(ProtoWriteBuffer buffer) const {
-  if (!(this->uuid[0] == 0 && this->uuid[1] == 0)) {
+  if (this->uuid[0] != 0 || this->uuid[1] != 0) {
     buffer.encode_uint64(1, this->uuid[0], true);
     buffer.encode_uint64(1, this->uuid[1], true);
   }
@@ -1897,7 +1897,7 @@ void BluetoothGATTDescriptor::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->uuid32);
 }
 void BluetoothGATTDescriptor::calculate_size(ProtoSize &size) const {
-  if (!(this->uuid[0] == 0 && this->uuid[1] == 0)) {
+  if (this->uuid[0] != 0 || this->uuid[1] != 0) {
     size.add_uint64_force(1, this->uuid[0]);
     size.add_uint64_force(1, this->uuid[1]);
   }
@@ -1906,7 +1906,7 @@ void BluetoothGATTDescriptor::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, this->uuid32);
 }
 void BluetoothGATTCharacteristic::encode(ProtoWriteBuffer buffer) const {
-  if (!(this->uuid[0] == 0 && this->uuid[1] == 0)) {
+  if (this->uuid[0] != 0 || this->uuid[1] != 0) {
     buffer.encode_uint64(1, this->uuid[0], true);
     buffer.encode_uint64(1, this->uuid[1], true);
   }
@@ -1919,7 +1919,7 @@ void BluetoothGATTCharacteristic::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(6, this->uuid32);
 }
 void BluetoothGATTCharacteristic::calculate_size(ProtoSize &size) const {
-  if (!(this->uuid[0] == 0 && this->uuid[1] == 0)) {
+  if (this->uuid[0] != 0 || this->uuid[1] != 0) {
     size.add_uint64_force(1, this->uuid[0]);
     size.add_uint64_force(1, this->uuid[1]);
   }
@@ -1930,7 +1930,7 @@ void BluetoothGATTCharacteristic::calculate_size(ProtoSize &size) const {
   size.add_uint32(1, this->uuid32);
 }
 void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
-  if (!(this->uuid[0] == 0 && this->uuid[1] == 0)) {
+  if (this->uuid[0] != 0 || this->uuid[1] != 0) {
     buffer.encode_uint64(1, this->uuid[0], true);
     buffer.encode_uint64(1, this->uuid[1], true);
   }
@@ -1942,7 +1942,7 @@ void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(5, this->uuid32);
 }
 void BluetoothGATTService::calculate_size(ProtoSize &size) const {
-  if (!(this->uuid[0] == 0 && this->uuid[1] == 0)) {
+  if (this->uuid[0] != 0 || this->uuid[1] != 0) {
     size.add_uint64_force(1, this->uuid[0]);
     size.add_uint64_force(1, this->uuid[1]);
   }
