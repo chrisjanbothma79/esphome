@@ -236,7 +236,6 @@ def _validate_supported_local_file(config):
 
 def _validate_off_on_enable(config):
     if not config[CONF_OFF_ON_ENABLED]:
-
         if CONF_ON_TURN_OFF in config:
             raise cv.Invalid(
                 f"{CONF_ON_TURN_OFF} unsupported when {CONF_OFF_ON_ENABLED} is false"
