@@ -91,9 +91,9 @@ void RemoteReceiverComponent::setup() {
 
   // First index is a space.
   if (this->pin_->digital_read()) {
-    s.buffer_write_at = s.buffer_read_at = s.buffer_idle_at = 1;
+    s.buffer_write_at = s.buffer_idle_at = s.buffer_read_at = 1;
   } else {
-    s.buffer_write_at = s.buffer_read_at = s.buffer_idle_at = 0;
+    s.buffer_write_at = s.buffer_idle_at = s.buffer_read_at = 0;
   }
   this->pin_->attach_interrupt(RemoteReceiverComponentStore::gpio_intr, &this->store_, gpio::INTERRUPT_ANY_EDGE);
 }
@@ -118,7 +118,6 @@ void RemoteReceiverComponent::loop() {
   auto &s = this->store_;
 
   // copy write at to local variables, as it's volatile
-  const uint32_t write_at = s.buffer_write_at;
   const uint32_t idle_at = s.buffer_idle_at;
   const uint32_t dist = (s.buffer_size + idle_at - s.buffer_read_at) % s.buffer_size;
   // signals must at least one rising and one leading edge
