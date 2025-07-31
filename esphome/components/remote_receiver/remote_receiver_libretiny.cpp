@@ -142,11 +142,6 @@ void RemoteReceiverComponent::loop() {
   for (uint32_t i = 0; prev != idle_at; i++) {
     int32_t delta = s.buffer[read_at] - s.buffer[prev];
     if (uint32_t(delta) >= this->idle_us_) {
-      if (this->temp_.size() == 1) {
-        // signals must at least one rising and one leading edge
-        this->temp_.clear();
-      }
-
       if (this->temp_.empty() && read_at != idle_at) {
         pre_prev = prev;
         prev = s.buffer_read_at = read_at;
@@ -172,12 +167,16 @@ void RemoteReceiverComponent::loop() {
     read_at = (read_at + 1) % s.buffer_size;
     multiplier *= -1;
   }
-  this->temp_.push_back(this->idle_us_ * multiplier);
 
   if (s.overflow) {
     ESP_LOGVV(TAG, "Remote receiver buffer overflow! write_at=%u idle_at=%u read_at=%u", s.buffer_write_at,
               s.buffer_idle_at, s.buffer_read_at);
   }
+
+  if (this->temp_.empty())
+    return;
+
+  this->temp_.push_back(this->idle_us_ * multiplier);
 
   this->call_listeners_dumpers_();
 }
