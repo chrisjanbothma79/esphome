@@ -131,11 +131,13 @@ class APIConnection : public APIServerConnection {
   void media_player_command(const MediaPlayerCommandRequest &msg) override;
 #endif
   bool try_send_log_message(int level, const char *tag, const char *line, size_t message_len);
+#ifdef USE_API_HOMEASSISTANT_SERVICES
   void send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
     if (!this->flags_.service_call_subscription)
       return;
     this->send_message(call, HomeassistantServiceResponse::MESSAGE_TYPE);
   }
+#endif
 #ifdef USE_BLUETOOTH_PROXY
   void subscribe_bluetooth_le_advertisements(const SubscribeBluetoothLEAdvertisementsRequest &msg) override;
   void unsubscribe_bluetooth_le_advertisements(const UnsubscribeBluetoothLEAdvertisementsRequest &msg) override;
@@ -209,9 +211,11 @@ class APIConnection : public APIServerConnection {
     if (msg.dump_config)
       App.schedule_dump_config();
   }
+#ifdef USE_API_HOMEASSISTANT_SERVICES
   void subscribe_homeassistant_services(const SubscribeHomeassistantServicesRequest &msg) override {
     this->flags_.service_call_subscription = true;
   }
+#endif
 #ifdef USE_API_HOMEASSISTANT_STATES
   void subscribe_home_assistant_states(const SubscribeHomeAssistantStatesRequest &msg) override;
 #endif
@@ -293,6 +297,10 @@ class APIConnection : public APIServerConnection {
  protected:
   // Helper function to handle authentication completion
   void complete_authentication_();
+
+#ifdef USE_API_HOMEASSISTANT_STATES
+  void process_state_subscriptions_();
+#endif
 
   // Non-template helper to encode any ProtoMessage
   static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint8_t message_type, APIConnection *conn,
@@ -728,6 +736,11 @@ class APIConnection : public APIServerConnection {
     this->deferred_batch_.add_item_front(entity, MessageCreator(function_ptr), message_type, estimated_size);
     return this->schedule_batch_();
   }
+
+  // Helper function to log API errors with errno
+  void log_warning_(const char *message, APIError err);
+  // Specific helper for duplicated error message
+  void log_socket_operation_failed_(APIError err);
 };
 
 }  // namespace esphome::api
