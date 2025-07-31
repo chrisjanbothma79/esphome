@@ -153,18 +153,7 @@ void BluetoothConnection::send_service_for_discovery_() {
       return;
     }
 
-    resp.services.emplace_back();
-    auto &service_resp = resp.services.back();
-
-    fill_gatt_uuid(service_resp.uuid, service_resp.short_uuid, service_result.uuid, use_efficient_uuids);
-
-    service_resp.handle = service_result.start_handle;
-
-    ESP_LOGD(TAG, "[%d] [%s] Service UUID: %llx,%llx short:%u handle:%u", this->connection_index_,
-             this->address_str().c_str(), service_resp.uuid[0], service_resp.uuid[1], service_resp.short_uuid,
-             service_resp.handle);
-
-    // Get the number of characteristics directly with one call
+    // Get the number of characteristics BEFORE adding to response
     uint16_t total_char_count = 0;
     esp_gatt_status_t char_count_status =
         esp_ble_gattc_get_attr_count(this->gattc_if_, this->conn_id_, ESP_GATT_DB_CHARACTERISTIC,
@@ -183,6 +172,18 @@ void BluetoothConnection::send_service_for_discovery_() {
       // This service likely won't fit, send current batch
       break;
     }
+
+    // Now add the service since we know it will likely fit
+    resp.services.emplace_back();
+    auto &service_resp = resp.services.back();
+
+    fill_gatt_uuid(service_resp.uuid, service_resp.short_uuid, service_result.uuid, use_efficient_uuids);
+
+    service_resp.handle = service_result.start_handle;
+
+    ESP_LOGD(TAG, "[%d] [%s] Service UUID: %llx,%llx short:%u handle:%u", this->connection_index_,
+             this->address_str().c_str(), service_resp.uuid[0], service_resp.uuid[1], service_resp.short_uuid,
+             service_resp.handle);
 
     if (total_char_count > 0) {
       // Reserve space and process characteristics
