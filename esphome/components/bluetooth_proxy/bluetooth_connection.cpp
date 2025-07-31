@@ -50,7 +50,7 @@ static constexpr uint8_t DESC_PER_CHAR = 1;                // Assume 1 descripto
  * Estimate the size of a Bluetooth service based on the number of characteristics and UUID format.
  *
  * @param char_count The number of characteristics in the service.
- * @param use_efficient_uuids Whether to use efficient UUIDs (16-bit or 32-bit) instead of 128-bit UUIDs.
+ * @param use_efficient_uuids Whether to use efficient UUIDs (16-bit or 32-bit) for newer APIVersions.
  * @return The estimated size of the service in bytes.
  *
  * This function calculates the size of a Bluetooth service by considering:
