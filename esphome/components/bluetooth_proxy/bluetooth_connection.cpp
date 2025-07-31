@@ -93,11 +93,7 @@ void BluetoothConnection::send_service_for_discovery_() {
       ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service %s, status=%d, service_count=%d, offset=%d",
                this->connection_index_, this->address_str().c_str(),
                service_status != ESP_GATT_OK ? "error" : "missing", service_status, service_count, this->send_service_);
-      // If first service fails, return. If second fails, send what we have.
-      if (services_processed == 0) {
-        return;
-      }
-      break;
+      return;
     }
 
     this->send_service_++;
