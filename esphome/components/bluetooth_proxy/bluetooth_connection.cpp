@@ -252,7 +252,7 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     // Calculate the actual size of just this service
     api::ProtoSize service_sizer;
-    service.calculate_size(service_sizer);
+    service_resp.calculate_size(service_sizer);
     size_t service_size = service_sizer.get_size() + 1;  // +1 for field tag
 
     // Check if adding this service would exceed the limit
