@@ -266,7 +266,6 @@ void BluetoothConnection::send_service_for_discovery_() {
         // Don't increment send_service_ - we'll retry this service in next batch
       } else {
         // This single service is too large, but we have to send it anyway
-        current_size += service_size;
         ESP_LOGV(TAG, "[%d] [%s] Service %d is too large (%d bytes) but sending anyway", this->connection_index_,
                  this->address_str().c_str(), this->send_service_, service_size);
         // Increment so we don't get stuck
