@@ -70,6 +70,7 @@ void BluetoothConnection::send_service_for_discovery_() {
   // Early return if no API connection
   auto *api_conn = this->proxy_->get_api_connection();
   if (api_conn == nullptr) {
+    this->send_service_ = DONE_SENDING_SERVICES;
     return;
   }
 
@@ -92,6 +93,7 @@ void BluetoothConnection::send_service_for_discovery_() {
       ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service %s, status=%d, service_count=%d, offset=%d",
                this->connection_index_, this->address_str().c_str(),
                service_status != ESP_GATT_OK ? "error" : "missing", service_status, service_count, this->send_service_);
+      this->send_service_ = DONE_SENDING_SERVICES;
       return;
     }
 
@@ -108,8 +110,9 @@ void BluetoothConnection::send_service_for_discovery_() {
                                      service_result.start_handle, service_result.end_handle, 0, &total_char_count);
 
     if (char_count_status != ESP_GATT_OK) {
-      ESP_LOGW(TAG, "[%d] [%s] Error getting characteristic count, status=%d", this->connection_index_,
+      ESP_LOGE(TAG, "[%d] [%s] Error getting characteristic count, status=%d", this->connection_index_,
                this->address_str().c_str(), char_count_status);
+      this->send_service_ = DONE_SENDING_SERVICES;
       return;
     }
 
@@ -133,6 +136,7 @@ void BluetoothConnection::send_service_for_discovery_() {
       if (char_status != ESP_GATT_OK) {
         ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
                  this->address_str().c_str(), char_status);
+        this->send_service_ = DONE_SENDING_SERVICES;
         return;
       }
       if (char_count == 0) {
@@ -152,8 +156,9 @@ void BluetoothConnection::send_service_for_discovery_() {
           this->gattc_if_, this->conn_id_, ESP_GATT_DB_DESCRIPTOR, 0, 0, char_result.char_handle, &total_desc_count);
 
       if (desc_count_status != ESP_GATT_OK) {
-        ESP_LOGW(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d", this->connection_index_,
+        ESP_LOGE(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d", this->connection_index_,
                  this->address_str().c_str(), char_result.char_handle, desc_count_status);
+        this->send_service_ = DONE_SENDING_SERVICES;
         return;
       }
       if (total_desc_count == 0) {
@@ -175,6 +180,7 @@ void BluetoothConnection::send_service_for_discovery_() {
         if (desc_status != ESP_GATT_OK) {
           ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
                    this->address_str().c_str(), desc_status);
+          this->send_service_ = DONE_SENDING_SERVICES;
           return;
         }
         if (desc_count == 0) {
