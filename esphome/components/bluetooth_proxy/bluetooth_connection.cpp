@@ -56,16 +56,6 @@ static size_t estimate_service_size(uint16_t char_count, bool use_efficient_uuid
   return service_overhead + (char_size + desc_size) * char_count;
 }
 
-// Helper to calculate actual service size
-static size_t get_service_size(api::BluetoothGATTService &service) {
-  api::ProtoSize service_size;
-  service.calculate_size(service_size);
-  size_t size = service_size.get_size();
-  ESP_LOGV(TAG, "Service size calculation: uuid[0]=%llx uuid[1]=%llx short_uuid=%u handle=%u -> size=%d",
-           service.uuid[0], service.uuid[1], service.short_uuid, service.handle, size);
-  return size;
-}
-
 bool BluetoothConnection::supports_efficient_uuids_() const {
   auto *api_conn = this->proxy_->get_api_connection();
   return api_conn && api_conn->client_supports_api_version(1, 12);
@@ -261,7 +251,9 @@ void BluetoothConnection::send_service_for_discovery_() {
     }  // end if (total_char_count > 0)
 
     // Calculate the actual size of just this service
-    size_t service_size = get_service_size(service_resp) + 1;  // +1 for field tag
+    api::ProtoSize service_sizer;
+    service.calculate_size(service_sizer);
+    size_t service_size = service_sizer.get_size() + 1;  // +1 for field tag
 
     // Check if adding this service would exceed the limit
     if (current_size + service_size > MAX_PACKET_SIZE) {
