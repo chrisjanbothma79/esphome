@@ -24,11 +24,9 @@ static void fill_128bit_uuid_array(std::array<uint64_t, 2> &out, esp_bt_uuid_t u
            ((uint64_t) uuid.uuid.uuid128[1] << 8) | ((uint64_t) uuid.uuid.uuid128[0]);
 }
 
-static bool supports_efficient_uuids(api::APIConnection *api_conn) {
-  if (!api_conn)
-    return false;
-  return api_conn->get_client_api_version_major() > 1 ||
-         (api_conn->get_client_api_version_major() == 1 && api_conn->get_client_api_version_minor() >= 12);
+bool BluetoothConnection::supports_efficient_uuids_() const {
+  auto *api_conn = this->proxy_->get_api_connection();
+  return api_conn && api_conn->client_supports_api_version(1, 12);
 }
 
 void BluetoothConnection::dump_config() {
@@ -82,7 +80,7 @@ void BluetoothConnection::send_service_for_discovery_() {
   }
 
   // Check if client supports efficient UUIDs
-  bool use_efficient_uuids = supports_efficient_uuids(api_conn);
+  bool use_efficient_uuids = this->supports_efficient_uuids_();
 
   // Prepare response for up to 3 services
   api::BluetoothGATTGetServicesResponse resp;
