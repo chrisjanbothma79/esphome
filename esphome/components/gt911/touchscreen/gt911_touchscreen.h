@@ -44,7 +44,7 @@ class GT911Touchscreen : public touchscreen::Touchscreen, public i2c::I2CDevice 
    *
    * Writes single byte comamnd to the I2C register address 0x8040.
    *
-   * @param command The command byte to send to the touchscreen controller.
+   * @param[in] command The command byte to send.
    * @return true if the I2C write operation completed successfully (i2c::ERROR_OK), false otherwise.
    *
    * @see
