@@ -104,6 +104,9 @@ void OpenThreadSrpComponent::srp_factory_reset_callback(otError err, const otSrp
     // Handle other SRP client events or errors
     ESP_LOGW(TAG, "SRP client event/error: %s", otThreadErrorToString(err));
   }
+  InstanceLock lock = InstanceLock::acquire();
+  otInstance *instance = lock.get_instance();
+  otSrpClientBuffersFreeAllServices(instance);
   obj->factory_reset_ready = true;
 }
 void OpenThreadSrpComponent::setup() {
@@ -243,7 +246,6 @@ void OpenThreadComponent::on_factory_reset() {
     ESP_LOGW(TAG, "Failed to Remove SRP Host and Services");
     return;
   }
-  otSrpClientBuffersFreeAllServices(instance);
   ESP_LOGD(TAG, "Waiting on Confirmation Removal SRP Host and Services");
 }
 
