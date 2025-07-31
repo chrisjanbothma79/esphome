@@ -43,15 +43,15 @@ static constexpr uint8_t SERVICE_OVERHEAD_EFFICIENT = 10;  // UUID(6) + handle(4
 static constexpr uint8_t CHAR_SIZE_128BIT = 35;            // UUID(20) + handle(4) + props(4) + overhead(7)
 static constexpr uint8_t DESC_SIZE_128BIT = 25;            // UUID(20) + handle(4) + overhead(1)
 static constexpr uint8_t DESC_SIZE_16BIT = 10;             // UUID(6) + handle(4)
-static constexpr uint8_t DESC_PER_CHAR = 2;                // Assume 2 descriptors per characteristic
+static constexpr uint8_t DESC_PER_CHAR = 1;                // Assume 1 descriptor per characteristic
 
 // Helper to estimate service size before fetching all data
 static size_t estimate_service_size(uint16_t char_count, bool use_efficient_uuids) {
   size_t service_overhead = use_efficient_uuids ? SERVICE_OVERHEAD_EFFICIENT : SERVICE_OVERHEAD_LEGACY;
   // Always assume 128-bit UUIDs for characteristics to be safe
   size_t char_size = CHAR_SIZE_128BIT;
-  // Assume mix of descriptor types: one 128-bit + one 16-bit per characteristic
-  size_t desc_size = (DESC_SIZE_128BIT + DESC_SIZE_16BIT) * DESC_PER_CHAR;
+  // Assume one 128-bit descriptor per characteristic
+  size_t desc_size = DESC_SIZE_128BIT * DESC_PER_CHAR;
 
   return service_overhead + (char_size + desc_size) * char_count;
 }
@@ -129,7 +129,8 @@ void BluetoothConnection::send_service_for_discovery_() {
   resp.address = this->address_;
 
   // Dynamic batching based on actual size
-  static constexpr size_t MAX_PACKET_SIZE = 1390;  // MTU limit for API messages
+  static constexpr size_t MAX_PACKET_SIZE =
+      1360;  // Conservative MTU limit for API messages (accounts for WPA3 overhead)
 
   // Keep running total of actual message size
   size_t current_size = 0;
@@ -167,8 +168,8 @@ void BluetoothConnection::send_service_for_discovery_() {
     }
 
     // If this service likely won't fit, send current batch (unless it's the first)
-    if (!resp.services.empty() &&
-        (current_size + estimate_service_size(total_char_count, use_efficient_uuids) > MAX_PACKET_SIZE)) {
+    size_t estimated_size = estimate_service_size(total_char_count, use_efficient_uuids);
+    if (!resp.services.empty() && (current_size + estimated_size > MAX_PACKET_SIZE)) {
       // This service likely won't fit, send current batch
       break;
     }
@@ -291,8 +292,12 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     // Now we know we're keeping this service, add its size
     current_size += service_size;
-    ESP_LOGV(TAG, "[%d] [%s] Service %d size: %d, total size now: %d", this->connection_index_,
-             this->address_str().c_str(), this->send_service_, service_size, current_size);
+
+    // Log the difference between estimate and actual size
+    int size_diff = (int) service_size - (int) estimated_size;
+    ESP_LOGD(TAG, "[%d] [%s] Service %d actual: %d, estimated: %d, diff: %+d", this->connection_index_,
+             this->address_str().c_str(), this->send_service_, service_size, estimated_size, size_diff);
+    ESP_LOGV(TAG, "[%d] [%s] Total size now: %d", this->connection_index_, this->address_str().c_str(), current_size);
 
     // Successfully added this service, increment counter
     this->send_service_++;
