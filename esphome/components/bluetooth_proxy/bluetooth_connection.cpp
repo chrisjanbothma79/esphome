@@ -295,7 +295,7 @@ void BluetoothConnection::send_service_for_discovery_() {
 
     // Log the difference between estimate and actual size
     int size_diff = (int) service_size - (int) estimated_size;
-    ESP_LOGD(TAG, "[%d] [%s] Service %d actual: %d, estimated: %d, diff: %+d", this->connection_index_,
+    ESP_LOGV(TAG, "[%d] [%s] Service %d actual: %d, estimated: %d, diff: %+d", this->connection_index_,
              this->address_str().c_str(), this->send_service_, service_size, estimated_size, size_diff);
     ESP_LOGV(TAG, "[%d] [%s] Total size now: %d", this->connection_index_, this->address_str().c_str(), current_size);
 
