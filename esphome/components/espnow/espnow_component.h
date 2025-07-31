@@ -27,6 +27,8 @@ namespace espnow {
 static constexpr size_t MAX_ESP_NOW_SEND_QUEUE_SIZE = 16;
 static constexpr size_t MAX_ESP_NOW_RECEIVE_QUEUE_SIZE = 16;
 
+using peer_address_t = std::array<uint8_t, ESP_NOW_ETH_ALEN>;
+
 enum class ESPNowTriggers : uint8_t {
   TRIGGER_NONE = 0,
   ON_NEW_PEER = 1,
@@ -97,7 +99,7 @@ class ESPNowComponent : public Component {
   float get_setup_priority() const override { return setup_priority::LATE; }
 
   // Add a peer to the internal list of peers
-  void add_peer(std::array<uint8_t, ESP_NOW_ETH_ALEN> address) {
+  void add_peer(peer_address_t address) {
     ESPNowPeer peer;
     memcpy(peer.address, address.data(), ESP_NOW_ETH_ALEN);
     this->peers_.push_back(peer);

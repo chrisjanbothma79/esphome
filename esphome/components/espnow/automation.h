@@ -10,10 +10,8 @@
 namespace esphome {
 namespace espnow {
 
-using address_array = std::array<uint8_t, ESP_NOW_ETH_ALEN>;
-
 template<typename... Ts> class SendAction : public Action<Ts...>, public Parented<ESPNowComponent> {
-  TEMPLATABLE_VALUE(address_array, address);
+  TEMPLATABLE_VALUE(peer_address_t, address);
   TEMPLATABLE_VALUE(std::vector<uint8_t>, data);
 
  public:
@@ -60,7 +58,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
         }
       }
     };
-    address_array address = this->address_.value(x...);
+    peer_address_t address = this->address_.value(x...);
     std::vector<uint8_t> data = this->data_.value(x...);
     esp_err_t err = this->parent_->send(address.data(), data, send_callback);
     if (err != ESP_OK) {
@@ -90,21 +88,21 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
 };
 
 template<typename... Ts> class AddPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
-  TEMPLATABLE_VALUE(address_array, address);
+  TEMPLATABLE_VALUE(peer_address_t, address);
 
  public:
   void play(Ts... x) override {
-    address_array address = this->address_.value(x...);
+    peer_address_t address = this->address_.value(x...);
     this->parent_->add_peer(address.data());
   }
 };
 
 template<typename... Ts> class DeletePeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
-  TEMPLATABLE_VALUE(address_array, address);
+  TEMPLATABLE_VALUE(peer_address_t, address);
 
  public:
   void play(Ts... x) override {
-    address_array address = this->address_.value(x...);
+    peer_address_t address = this->address_.value(x...);
     this->parent_->del_peer(address.data());
   }
 };
