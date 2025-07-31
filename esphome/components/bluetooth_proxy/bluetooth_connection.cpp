@@ -24,6 +24,19 @@ static void fill_128bit_uuid_array(std::array<uint64_t, 2> &out, esp_bt_uuid_t u
            ((uint64_t) uuid.uuid.uuid128[1] << 8) | ((uint64_t) uuid.uuid.uuid128[0]);
 }
 
+// Helper to fill UUID in the appropriate format based on client support and UUID type
+static void fill_gatt_uuid(std::array<uint64_t, 2> &uuid_128, uint32_t &short_uuid, const esp_bt_uuid_t &uuid,
+                           bool use_efficient_uuids) {
+  if (!use_efficient_uuids || uuid.len == ESP_UUID_LEN_128) {
+    // Use 128-bit format for old clients or when UUID is already 128-bit
+    fill_128bit_uuid_array(uuid_128, uuid);
+  } else if (uuid.len == ESP_UUID_LEN_16) {
+    short_uuid = uuid.uuid.uuid16;
+  } else if (uuid.len == ESP_UUID_LEN_32) {
+    short_uuid = uuid.uuid.uuid32;
+  }
+}
+
 bool BluetoothConnection::supports_efficient_uuids_() const {
   auto *api_conn = this->proxy_->get_api_connection();
   return api_conn && api_conn->client_supports_api_version(1, 12);
@@ -109,14 +122,7 @@ void BluetoothConnection::send_service_for_discovery_() {
     resp.services.emplace_back();
     auto &service_resp = resp.services.back();
 
-    if (!use_efficient_uuids || service_result.uuid.len == ESP_UUID_LEN_128) {
-      // Use 128-bit format for old clients or when UUID is already 128-bit
-      fill_128bit_uuid_array(service_resp.uuid, service_result.uuid);
-    } else if (service_result.uuid.len == ESP_UUID_LEN_16) {
-      service_resp.short_uuid = service_result.uuid.uuid.uuid16;
-    } else if (service_result.uuid.len == ESP_UUID_LEN_32) {
-      service_resp.short_uuid = service_result.uuid.uuid.uuid32;
-    }
+    fill_gatt_uuid(service_resp.uuid, service_resp.short_uuid, service_result.uuid, use_efficient_uuids);
 
     service_resp.handle = service_result.start_handle;
 
@@ -163,14 +169,7 @@ void BluetoothConnection::send_service_for_discovery_() {
       service_resp.characteristics.emplace_back();
       auto &characteristic_resp = service_resp.characteristics.back();
 
-      if (!use_efficient_uuids || char_result.uuid.len == ESP_UUID_LEN_128) {
-        // Use 128-bit format for old clients or when UUID is already 128-bit
-        fill_128bit_uuid_array(characteristic_resp.uuid, char_result.uuid);
-      } else if (char_result.uuid.len == ESP_UUID_LEN_16) {
-        characteristic_resp.short_uuid = char_result.uuid.uuid.uuid16;
-      } else if (char_result.uuid.len == ESP_UUID_LEN_32) {
-        characteristic_resp.short_uuid = char_result.uuid.uuid.uuid32;
-      }
+      fill_gatt_uuid(characteristic_resp.uuid, characteristic_resp.short_uuid, char_result.uuid, use_efficient_uuids);
 
       characteristic_resp.handle = char_result.char_handle;
       characteristic_resp.properties = char_result.properties;
@@ -216,14 +215,7 @@ void BluetoothConnection::send_service_for_discovery_() {
         characteristic_resp.descriptors.emplace_back();
         auto &descriptor_resp = characteristic_resp.descriptors.back();
 
-        if (!use_efficient_uuids || desc_result.uuid.len == ESP_UUID_LEN_128) {
-          // Use 128-bit format for old clients or when UUID is already 128-bit
-          fill_128bit_uuid_array(descriptor_resp.uuid, desc_result.uuid);
-        } else if (desc_result.uuid.len == ESP_UUID_LEN_16) {
-          descriptor_resp.short_uuid = desc_result.uuid.uuid.uuid16;
-        } else if (desc_result.uuid.len == ESP_UUID_LEN_32) {
-          descriptor_resp.short_uuid = desc_result.uuid.uuid.uuid32;
-        }
+        fill_gatt_uuid(descriptor_resp.uuid, descriptor_resp.short_uuid, desc_result.uuid, use_efficient_uuids);
 
         descriptor_resp.handle = desc_result.handle;
         desc_offset++;
