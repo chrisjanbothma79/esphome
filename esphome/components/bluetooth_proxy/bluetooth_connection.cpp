@@ -78,8 +78,9 @@ void BluetoothConnection::send_service_for_discovery_() {
   resp.address = this->address_;
 
   // Process up to 3 services in this iteration
-  static constexpr int MAX_SERVICES_PER_BATCH = 3;
-  int services_to_process = std::min(MAX_SERVICES_PER_BATCH, this->service_count_ - this->send_service_);
+  uint8_t services_to_process =
+      std::min(MAX_SERVICES_PER_BATCH, static_cast<uint8_t>(this->service_count_ - this->send_service_));
+  uint8_t services_processed = 0;
   resp.services.reserve(services_to_process);
 
   for (int service_idx = 0; service_idx < services_to_process; service_idx++) {
