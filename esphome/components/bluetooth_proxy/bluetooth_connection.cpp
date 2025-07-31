@@ -293,11 +293,6 @@ void BluetoothConnection::send_service_for_discovery_() {
     // Now we know we're keeping this service, add its size
     current_size += service_size;
 
-    // Log the difference between estimate and actual size
-    ESP_LOGV(TAG, "[%d] [%s] Service %d actual: %d, estimated: %d, diff: %+d", this->connection_index_,
-             this->address_str().c_str(), this->send_service_, service_size, estimated_size,
-             (int) service_size - (int) estimated_size);
-
     // Successfully added this service, increment counter
     this->send_service_++;
   }
