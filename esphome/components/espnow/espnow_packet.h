@@ -14,8 +14,7 @@
 #include <esp_idf_version.h>
 #include <esp_now.h>
 
-namespace esphome {
-namespace espnow {
+namespace esphome::espnow {
 
 static const uint8_t ESPNOW_BROADCAST_ADDR[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static const uint8_t ESPNOW_MULTICAST_ADDR[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE};
@@ -162,7 +161,6 @@ class ESPNowSendPacket {
   }
 };
 
-}  // namespace espnow
-}  // namespace esphome
+}  // namespace esphome::espnow
 
 #endif  // USE_ESP32

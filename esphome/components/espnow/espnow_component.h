@@ -20,8 +20,7 @@
 #include <string>
 #include <vector>
 
-namespace esphome {
-namespace espnow {
+namespace esphome::espnow {
 
 // Maximum size of the ESPNow event queue - must be power of 2 for lock-free queue
 static constexpr size_t MAX_ESP_NOW_SEND_QUEUE_SIZE = 16;
@@ -178,7 +177,6 @@ class ESPNowComponent : public Component {
 
 extern ESPNowComponent *global_esp_now;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-}  // namespace espnow
-}  // namespace esphome
+}  // namespace esphome::espnow
 
 #endif  // USE_ESP32

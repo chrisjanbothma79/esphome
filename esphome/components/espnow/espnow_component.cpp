@@ -19,8 +19,7 @@
 #include "esphome/components/wifi/wifi_component.h"
 #endif
 
-namespace esphome {
-namespace espnow {
+namespace esphome::espnow {
 
 static constexpr const char *TAG = "espnow";
 
@@ -464,7 +463,6 @@ esp_err_t ESPNowComponent::del_peer(const uint8_t *peer) {
   return ESP_OK;
 }
 
-}  // namespace espnow
-}  // namespace esphome
+}  // namespace esphome::espnow
 
 #endif  // USE_ESP32

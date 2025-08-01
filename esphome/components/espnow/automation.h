@@ -7,8 +7,7 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/base_automation.h"
 
-namespace esphome {
-namespace espnow {
+namespace esphome::espnow {
 
 template<typename... Ts> class SendAction : public Action<Ts...>, public Parented<ESPNowComponent> {
   TEMPLATABLE_VALUE(peer_address_t, address);
@@ -171,7 +170,6 @@ class OnBroadcastedTrigger : public Trigger<const ESPNowRecvInfo &, const uint8_
   const uint8_t *address_[ESP_NOW_ETH_ALEN];
 };
 
-}  // namespace espnow
-}  // namespace esphome
+}  // namespace esphome::espnow
 
 #endif  // USE_ESP32
