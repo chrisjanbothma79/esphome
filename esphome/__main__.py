@@ -692,7 +692,7 @@ def command_update_all(args: ArgsProtocol) -> int | None:
     return failed
 
 
-def command_idedata(args, config):
+def command_idedata(args: ArgsProtocol, config: ConfigType) -> int:
     import json
 
     from esphome import platformio_api
@@ -708,7 +708,7 @@ def command_idedata(args, config):
     return 0
 
 
-def command_rename(args, config):
+def command_rename(args: ArgsProtocol, config: ConfigType) -> int | None:
     for c in args.name:
         if c not in ALLOWED_NAME_CHARS:
             print(
