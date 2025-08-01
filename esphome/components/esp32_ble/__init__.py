@@ -168,7 +168,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.SplitDefault(CONF_DISABLE_BT_LOGS, esp32_idf=True): cv.All(
             cv.only_with_esp_idf, cv.boolean
         ),
-        cv.Optional(CONF_CONNECTION_TIMEOUT, default="20s"): cv.All(
+        cv.SplitDefault(CONF_CONNECTION_TIMEOUT, esp32_idf="20s"): cv.All(
             cv.only_with_esp_idf,
             cv.positive_time_period_seconds,
             cv.Range(min=TimePeriod(seconds=1), max=TimePeriod(seconds=180)),
