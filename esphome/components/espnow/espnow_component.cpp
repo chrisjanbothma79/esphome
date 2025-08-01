@@ -234,7 +234,7 @@ void ESPNowComponent::setup() {
 }
 
 void ESPNowComponent::enable() {
-  if (this->state_ != ESPNOW_STATE_ENABLED)
+  if (this->state_ == ESPNOW_STATE_ENABLED)
     return;
 
   ESP_LOGD(TAG, "Enabling");
