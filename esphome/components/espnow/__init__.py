@@ -71,6 +71,7 @@ def _validate_unknown_peer(config):
             f"'{CONF_ON_UNKNOWN_PEER}' cannot be used when '{CONF_AUTO_ADD_PEER}' is enabled.",
             path=[CONF_ON_UNKNOWN_PEER],
         )
+    return config
 
 
 CONFIG_SCHEMA = cv.All(
@@ -123,6 +124,7 @@ async def _trigger_to_code(config):
 
 
 async def to_code(config):
+    print(config)
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
