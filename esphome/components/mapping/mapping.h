@@ -38,32 +38,38 @@ template<typename K, typename V> class Mapping {
 
     // assignment operator that handles the assignment
     Proxy &operator=(const V &v) {
-      this->map_.set(key_t{this->key_}, v);
+      this->map_.set(this->key_, v);
       return *this;
     }
 
     // conversion operator to support reading
     operator V() const { return this->map_.get(key_); }
 
-   private:
+   protected:
     Mapping &map_;
     const K &key_;
   };
 
   Proxy operator[](const K &key) { return Proxy(*this, key); }
 
-  V get(const key_t &key) const {
-    auto it = this->map_.find(key);
+  void set(const K &key, const V &value) { this->map_[key_t{key}] = value; }
+
+  V get(const K &key) const {
+    auto it = this->map_.find(key_t{key});
     if (it != this->map_.end()) {
       return V{it->second};
     }
-    esph_log_e(TAG, "Key '%s' not found in mapping", to_string(key).c_str());
-    return V{};
+    if constexpr (std::is_pointer_v<K>) {
+      esph_log_e(TAG, "Key '%p' not found in mapping", key);
+    } else if constexpr (std::is_same_v<K, std::string>) {
+      esph_log_e(TAG, "Key '%s' not found in mapping", key.c_str());
+    } else {
+      esph_log_e(TAG, "Key '%s' not found in mapping", to_string(key).c_str());
+    }
+    return {};
   }
 
-  void set(const key_t &key, const V &value) { this->map_[key] = value; }
-
- private:
+ protected:
   std::map<key_t, value_t, std::less<key_t>, RAMAllocator<std::pair<key_t, value_t>>> map_;
 };
 
