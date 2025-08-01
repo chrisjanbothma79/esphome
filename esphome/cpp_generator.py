@@ -636,6 +636,16 @@ def add_define(name: str, value: SafeExpType = None):
         CORE.add_define(Define(name, safe_exp(value)))
 
 
+def register_platform_component(platform_name: str, class_, var) -> None:
+    add(MockObj(f"App.register_entity<{class_}>")(var))
+    CORE.register_platform_component(platform_name, var)
+
+
+def define_entity(class_):
+    """Add a entity to std::tuple inside the auto-generated entities.h file."""
+    CORE.define_entity(str(class_))
+
+
 def add_platformio_option(key: str, value: str | list[str]):
     CORE.add_platformio_option(key, value)
 
