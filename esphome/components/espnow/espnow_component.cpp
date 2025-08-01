@@ -293,7 +293,9 @@ void ESPNowComponent::enable_() {
 #endif
 
   for (auto peer : this->peers_) {
-    this->add_peer(peer.address);
+    if (esp_now_is_peer_exist(peer)) {
+      esp_now_del_peer(peer);
+    }
   }
 
   xTaskCreate(espnow_task, "espnow", 4096, this, tskIDLE_PRIORITY + 1, nullptr);
