@@ -277,7 +277,7 @@ def upload_using_esptool(config, port, file, speed):
 
     def run_esptool(baud_rate):
         cmd = [
-            "esptool.py",
+            "esptool",
             "--before",
             "default_reset",
             "--after",
