@@ -393,7 +393,8 @@ class DoubleType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        return self._get_fixed_size_calculation(name, "add_double")
+        field_id_size = self.calculate_field_id_size()
+        return f"size.add_double({field_id_size}, {name});"
 
     def get_fixed_size_bytes(self) -> int:
         return 8
@@ -1118,18 +1119,6 @@ class FixedArrayRepeatedType(TypeInfo):
 
         # If skip_zero is enabled, wrap encoding in a zero check
         if self.skip_zero:
-            # Build the condition to check if at least one element is non-zero
-            non_zero_checks = " || ".join(
-                [f"this->{self.field_name}[{i}] != 0" for i in range(self.array_size)]
-            )
-            encode_lines = [
-                f"  {encode_element(f'this->{self.field_name}[{i}]')}"
-                for i in range(self.array_size)
-            ]
-            return f"if ({non_zero_checks}) {{\n" + "\n".join(encode_lines) + "\n}"
-
-        # If skip_zero is enabled, wrap encoding in a zero check
-        if self.skip_zero:
             if self.is_define:
                 # When using a define, we need to use a loop-based approach
                 o = f"for (const auto &it : this->{self.field_name}) {{\n"
@@ -1477,9 +1466,6 @@ def build_type_usage_map(
                 field_ifdef = get_field_opt(field, pb.field_ifdef)
                 message_field_ifdefs.setdefault(type_name, set()).add(field_ifdef)
                 used_messages.add(type_name)
-                # Also track the field_ifdef if present
-                field_ifdef = get_field_opt(field, pb.field_ifdef)
-                message_field_ifdefs.setdefault(type_name, set()).add(field_ifdef)
 
     # Helper to get unique ifdef from a set of messages
     def get_unique_ifdef(message_names: set[str]) -> str | None:
