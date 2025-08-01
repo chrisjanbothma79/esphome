@@ -267,7 +267,6 @@ void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest 
       if (connection->state() != espbt::ClientState::IDLE) {
         connection->disconnect();
       } else {
-        // Manual disconnect for idle connection
         connection->set_address(0);
         this->send_device_connection(msg.address, false);
         this->send_connections_free();
