@@ -24,6 +24,8 @@ class BluetoothConnection : public esp32_ble_client::BLEClientBase {
 
   esp_err_t notify_characteristic(uint16_t handle, bool enable);
 
+  void set_address(uint64_t address) override;
+
  protected:
   friend class BluetoothProxy;
 

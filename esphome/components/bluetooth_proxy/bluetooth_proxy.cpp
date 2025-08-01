@@ -35,6 +35,9 @@ void BluetoothProxy::setup() {
   // Don't pre-allocate pool - let it grow only if needed in busy environments
   // Many devices in quiet areas will never need the overflow pool
 
+  this->connections_free_response_.limit = this->connections_.size();
+  this->connections_free_response_.free = this->connections_.size();
+
   this->parent_->add_scanner_state_callback([this](esp32_ble_tracker::ScannerState state) {
     if (this->api_connection_ != nullptr) {
       this->send_bluetooth_scanner_state_(state);
@@ -132,20 +135,6 @@ void BluetoothProxy::dump_config() {
                 "  Active: %s\n"
                 "  Connections: %d",
                 YESNO(this->active_), this->connections_.size());
-}
-
-int BluetoothProxy::get_bluetooth_connections_free() {
-  int free = 0;
-  for (auto *connection : this->connections_) {
-    if (connection->address_ == 0) {
-      free++;
-      ESP_LOGV(TAG, "[%d] Free connection", connection->get_connection_index());
-    } else {
-      ESP_LOGV(TAG, "[%d] Used connection by [%s]", connection->get_connection_index(),
-               connection->address_str().c_str());
-    }
-  }
-  return free;
 }
 
 void BluetoothProxy::loop() {
@@ -278,6 +267,7 @@ void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest 
       if (connection->state() != espbt::ClientState::IDLE) {
         connection->disconnect();
       } else {
+        // Manual disconnect for idle connection
         connection->set_address(0);
         this->send_device_connection(msg.address, false);
         this->send_connections_free();
@@ -441,15 +431,9 @@ void BluetoothProxy::send_device_connection(uint64_t address, bool connected, ui
 void BluetoothProxy::send_connections_free() {
   if (this->api_connection_ == nullptr)
     return;
-  api::BluetoothConnectionsFreeResponse call;
-  call.free = this->get_bluetooth_connections_free();
-  call.limit = this->get_bluetooth_connections_limit();
-  for (auto *connection : this->connections_) {
-    if (connection->address_ != 0) {
-      call.allocated.push_back(connection->address_);
-    }
-  }
-  this->api_connection_->send_message(call, api::BluetoothConnectionsFreeResponse::MESSAGE_TYPE);
+
+  this->api_connection_->send_message(this->connections_free_response_,
+                                      api::BluetoothConnectionsFreeResponse::MESSAGE_TYPE);
 }
 
 void BluetoothProxy::send_gatt_services_done(uint64_t address) {
@@ -497,6 +481,33 @@ void BluetoothProxy::bluetooth_scanner_set_mode(bool active) {
   this->parent_->stop_scan();
   this->parent_->set_scan_continuous(
       true);  // Set this to true to automatically start scanning again when it has cleaned up.
+}
+
+void BluetoothProxy::allocate_connection_(BluetoothConnection *connection, uint64_t address) {
+  // Update pre-allocated message directly
+  this->connections_free_response_.free--;
+
+  // Find first zero slot and set it
+  auto it = std::find(this->connections_free_response_.allocated.begin(),
+                      this->connections_free_response_.allocated.end(), 0);
+  if (it != this->connections_free_response_.allocated.end()) {
+    *it = address;
+  }
+}
+
+void BluetoothProxy::free_connection_(uint64_t address) {
+  if (address == 0)
+    return;  // Safety check
+
+  // Update pre-allocated message directly
+  this->connections_free_response_.free++;
+
+  // Find the address and set to 0
+  auto it = std::find(this->connections_free_response_.allocated.begin(),
+                      this->connections_free_response_.allocated.end(), address);
+  if (it != this->connections_free_response_.allocated.end()) {
+    *it = 0;
+  }
 }
 
 BluetoothProxy *global_bluetooth_proxy = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

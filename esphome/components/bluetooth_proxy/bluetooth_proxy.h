@@ -49,6 +49,7 @@ enum BluetoothProxySubscriptionFlag : uint32_t {
 };
 
 class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Component {
+  friend class BluetoothConnection;  // Allow connection to call free_connection_
  public:
   BluetoothProxy();
 #ifdef USE_ESP32_BLE_DEVICE
@@ -73,9 +74,6 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
   void bluetooth_gatt_write_descriptor(const api::BluetoothGATTWriteDescriptorRequest &msg);
   void bluetooth_gatt_send_services(const api::BluetoothGATTGetServicesRequest &msg);
   void bluetooth_gatt_notify(const api::BluetoothGATTNotifyRequest &msg);
-
-  int get_bluetooth_connections_free();
-  int get_bluetooth_connections_limit() { return this->connections_.size(); }
 
   void subscribe_api_connection(api::APIConnection *api_connection, uint32_t flags);
   void unsubscribe_api_connection(api::APIConnection *api_connection);
@@ -135,6 +133,10 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
 
   BluetoothConnection *get_connection_(uint64_t address, bool reserve);
 
+  // Helper functions for connection state management
+  void allocate_connection_(BluetoothConnection *connection, uint64_t address);
+  void free_connection_(uint64_t address);
+
   // Memory optimized layout for 32-bit systems
   // Group 1: Pointers (4 bytes each, naturally aligned)
   api::APIConnection *api_connection_{nullptr};
@@ -148,6 +150,9 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
 
   // Group 3: 4-byte types
   uint32_t last_advertisement_flush_time_{0};
+
+  // Pre-allocated response message - always ready to send
+  api::BluetoothConnectionsFreeResponse connections_free_response_;
 
   // Group 4: 1-byte types grouped together
   bool active_;

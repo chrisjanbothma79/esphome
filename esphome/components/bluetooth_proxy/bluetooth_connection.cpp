@@ -78,6 +78,20 @@ void BluetoothConnection::dump_config() {
   BLEClientBase::dump_config();
 }
 
+void BluetoothConnection::set_address(uint64_t address) {
+  // If we're clearing an address (disconnecting), update the pre-allocated message
+  if (address == 0 && this->address_ != 0) {
+    this->proxy_->free_connection_(this->address_);
+  }
+  // If we're setting a new address (connecting), update the pre-allocated message
+  else if (address != 0 && this->address_ == 0) {
+    this->proxy_->allocate_connection_(this, address);
+  }
+
+  // Call parent implementation to actually set the address
+  BLEClientBase::set_address(address);
+}
+
 void BluetoothConnection::loop() {
   BLEClientBase::loop();
 
@@ -100,6 +114,7 @@ void BluetoothConnection::reset_connection_(esp_err_t reason) {
   // (aioesphomeapi) implements a 30-second timeout (DEFAULT_BLE_TIMEOUT)
   // to detect incomplete service discovery rather than relying on us to
   // tell them about a partial list.
+
   this->set_address(0);
   this->send_service_ = DONE_SENDING_SERVICES;
   this->proxy_->send_connections_free();
