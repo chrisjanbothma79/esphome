@@ -334,10 +334,10 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
             addresses = []
             # First priority: entry.address AKA use_address
             if (
-                entry.address
+                (use_address := entry.address)
                 and (
                     address_list := await dashboard.dns_cache.async_resolve(
-                        entry.address, time.monotonic()
+                        use_address, time.monotonic()
                     )
                 )
                 and not isinstance(address_list, Exception)
