@@ -110,7 +110,7 @@ class RedirectText:
     def __getattr__(self, item):
         return getattr(self._out, item)
 
-    def _write_color_replace(self, s):
+    def _write_color_replace(self, s: str | bytes) -> None:
         from esphome.core import CORE
 
         if CORE.dashboard:
@@ -121,7 +121,7 @@ class RedirectText:
             s = s.replace("\033", "\\033")
         self._out.write(s)
 
-    def write(self, s):
+    def write(self, s: str | bytes) -> int:
         # s is usually a str already (self._out is of type TextIOWrapper)
         # However, s is sometimes also a bytes object in python3. Let's make sure it's a
         # str
@@ -266,7 +266,7 @@ class OrderedDict(collections.OrderedDict):
         return dict(self).__repr__()
 
 
-def list_yaml_files(folders):
+def list_yaml_files(folders: list[str]) -> list[str]:
     files = filter_yaml_files(
         [os.path.join(folder, p) for folder in folders for p in os.listdir(folder)]
     )
@@ -274,7 +274,7 @@ def list_yaml_files(folders):
     return files
 
 
-def filter_yaml_files(files):
+def filter_yaml_files(files: list[str]) -> list[str]:
     return [
         f
         for f in files
