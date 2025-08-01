@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from typing import Any
 
 from esphome import const
 
@@ -223,7 +224,7 @@ def run_external_command(
     return retval
 
 
-def run_external_process(*cmd: str, **kwargs: str) -> int | str:
+def run_external_process(*cmd: str, **kwargs: Any) -> int | str:
     full_cmd = " ".join(shlex_quote(x) for x in cmd)
     _LOGGER.debug("Running:  %s", full_cmd)
     filter_lines = kwargs.get("filter_lines")
