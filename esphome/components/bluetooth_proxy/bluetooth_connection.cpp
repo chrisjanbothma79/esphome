@@ -114,7 +114,6 @@ void BluetoothConnection::reset_connection_(esp_err_t reason) {
   // (aioesphomeapi) implements a 30-second timeout (DEFAULT_BLE_TIMEOUT)
   // to detect incomplete service discovery rather than relying on us to
   // tell them about a partial list.
-
   this->set_address(0);
   this->send_service_ = DONE_SENDING_SERVICES;
   this->proxy_->send_connections_free();
