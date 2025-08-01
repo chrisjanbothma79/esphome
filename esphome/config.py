@@ -337,6 +337,8 @@ class LoadTargetPlatformValidationStep(ConfigValidationStep):
         self.conf = conf
 
     def run(self, result: Config) -> None:
+        if self.conf is None:
+            result[self.domain] = self.conf = {}
         result.add_output_path([self.domain], self.domain)
         component = get_component(self.domain)
 
