@@ -324,15 +324,15 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
         configuration = json_message["configuration"]
         config_file = settings.rel_path(configuration)
         port = json_message["port"]
-        addresses: list[str] = []
-
+        addresses: list[str] = [port]
         if (
             port == "OTA"  # pylint: disable=too-many-boolean-expressions
             and (entry := entries.get(config_file))
             and entry.loaded_integrations
             and "api" in entry.loaded_integrations
         ):
-            # First priority: use_address from configuration
+            addresses = []
+            # First priority: entry.address AKA use_address
             if (
                 entry.address
                 and (
@@ -342,32 +342,23 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
                 )
                 and not isinstance(address_list, Exception)
             ):
-                addresses = sort_ip_addresses(address_list)
-            # Second priority: mDNS resolved addresses
-            elif (mdns := dashboard.mdns_status) and (
+                addresses.extend(sort_ip_addresses(address_list))
+
+            # Second priority: mDNS
+            if (mdns := dashboard.mdns_status) and (
                 address_list := await mdns.async_resolve_host(entry.name)
             ):
-                # Use all IP addresses if available but only
+                # Use the IP address if available but only
                 # if the API is loaded and the device is online
                 # since MQTT logging will not work otherwise
-                addresses = sort_ip_addresses(address_list)
+                addresses.extend(sort_ip_addresses(address_list))
 
-        # Build command with multiple --device arguments for each address
-        command = [
-            *DASHBOARD_COMMAND,
-            *args,
-            config_file,
-        ]
+        device_args: list[str] = []
+        for address in addresses:
+            device_args.append("--device")
+            device_args.append(address)
 
-        if addresses:
-            # Add multiple --device arguments for each resolved address
-            for address in addresses:
-                command.extend(["--device", address])
-        else:
-            # Fallback to original port if no addresses were resolved
-            command.extend(["--device", port])
-
-        return command
+        return [*DASHBOARD_COMMAND, *args, config_file, *device_args]
 
 
 class EsphomeLogsHandler(EsphomePortCommandWebSocket):
