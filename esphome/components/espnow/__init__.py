@@ -13,7 +13,7 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_WIFI,
 )
-from esphome.core import CORE
+from esphome.core import CORE, HexInt
 from esphome.types import ConfigType
 
 CODEOWNERS = ["@jesserockz"]
@@ -156,7 +156,7 @@ def _validate_raw_data(value):
             raise cv.Invalid(
                 f"'{CONF_DATA}' must be less than {MAX_ESPNOW_PACKET_SIZE} characters long, got {len(value)}"
             )
-        return value.encode("utf-8")
+        return value
     if isinstance(value, list):
         if len(value) > MAX_ESPNOW_PACKET_SIZE:
             raise cv.Invalid(
@@ -171,7 +171,7 @@ def _validate_raw_data(value):
 async def register_peer(var, config, args):
     peer = config[CONF_ADDRESS]
     if isinstance(peer, core.MACAddress):
-        peer = peer.parts
+        peer = [HexInt(p) for p in peer.parts]
 
     template_ = await cg.templatable(peer, args, peer_address_t, peer_address_t)
     cg.add(var.set_address(template_))
@@ -236,8 +236,8 @@ async def send_action(
     await register_peer(var, config, args)
 
     data = config.get(CONF_DATA, [])
-    if isinstance(data, bytes):
-        data = list(data)
+    if isinstance(data, str):
+        data = [cg.RawExpression(f"'{c}'") for c in data]
     templ = await cg.templatable(data, args, byte_vector, byte_vector)
     cg.add(var.set_data(templ))
 
