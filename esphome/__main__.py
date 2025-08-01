@@ -69,6 +69,9 @@ class ArgsProtocol(Protocol):
     only_generate: bool
     show_secrets: bool
     dashboard: bool
+    configuration: str
+    name: str
+    upload_speed: str | None
 
 
 def choose_prompt(options, purpose: str = None):
@@ -224,7 +227,7 @@ def wrap_to_code(name, comp):
     return wrapped
 
 
-def write_cpp(config):
+def write_cpp(config: ConfigType) -> int:
     if not get_bool_env(ENV_NOGITIGNORE):
         writer.write_gitignore()
 
@@ -232,7 +235,7 @@ def write_cpp(config):
     return write_cpp_file()
 
 
-def generate_cpp_contents(config):
+def generate_cpp_contents(config: ConfigType) -> None:
     _LOGGER.info("Generating C++ source...")
 
     for name, component, conf in iter_component_configs(CORE.config):
@@ -243,7 +246,7 @@ def generate_cpp_contents(config):
     CORE.flush_tasks()
 
 
-def write_cpp_file():
+def write_cpp_file() -> int:
     code_s = indent(CORE.cpp_main_section)
     writer.write_cpp(code_s)
 
@@ -254,7 +257,7 @@ def write_cpp_file():
     return 0
 
 
-def compile_program(args, config):
+def compile_program(args: ArgsProtocol, config: ConfigType) -> int:
     from esphome import platformio_api
 
     _LOGGER.info("Compiling app...")
