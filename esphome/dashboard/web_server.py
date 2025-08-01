@@ -353,10 +353,9 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
                 # since MQTT logging will not work otherwise
                 addresses.extend(sort_ip_addresses(address_list))
 
-        device_args: list[str] = []
-        for address in addresses:
-            device_args.append("--device")
-            device_args.append(address)
+        device_args: list[str] = [
+            arg for address in addresses for arg in ("--device", address)
+        ]
 
         return [*DASHBOARD_COMMAND, *args, config_file, *device_args]
 
