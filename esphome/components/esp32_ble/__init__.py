@@ -171,7 +171,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.SplitDefault(CONF_CONNECTION_TIMEOUT, esp32_idf="20s"): cv.All(
             cv.only_with_esp_idf,
             cv.positive_time_period_seconds,
-            cv.Range(min=TimePeriod(seconds=1), max=TimePeriod(seconds=180)),
+            cv.Range(min=TimePeriod(seconds=10), max=TimePeriod(seconds=180)),
         ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
