@@ -483,33 +483,6 @@ void BluetoothProxy::bluetooth_scanner_set_mode(bool active) {
       true);  // Set this to true to automatically start scanning again when it has cleaned up.
 }
 
-void BluetoothProxy::allocate_connection_(BluetoothConnection *connection, uint64_t address) {
-  // Update pre-allocated message directly
-  this->connections_free_response_.free--;
-
-  // Find first zero slot and set it
-  auto it = std::find(this->connections_free_response_.allocated.begin(),
-                      this->connections_free_response_.allocated.end(), 0);
-  if (it != this->connections_free_response_.allocated.end()) {
-    *it = address;
-  }
-}
-
-void BluetoothProxy::free_connection_(uint64_t address) {
-  if (address == 0)
-    return;  // Safety check
-
-  // Update pre-allocated message directly
-  this->connections_free_response_.free++;
-
-  // Find the address and set to 0
-  auto it = std::find(this->connections_free_response_.allocated.begin(),
-                      this->connections_free_response_.allocated.end(), address);
-  if (it != this->connections_free_response_.allocated.end()) {
-    *it = 0;
-  }
-}
-
 BluetoothProxy *global_bluetooth_proxy = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace esphome::bluetooth_proxy

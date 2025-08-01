@@ -133,10 +133,6 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
 
   BluetoothConnection *get_connection_(uint64_t address, bool reserve);
 
-  // Helper functions for connection state management
-  void allocate_connection_(BluetoothConnection *connection, uint64_t address);
-  void free_connection_(uint64_t address);
-
   // Memory optimized layout for 32-bit systems
   // Group 1: Pointers (4 bytes each, naturally aligned)
   api::APIConnection *api_connection_{nullptr};

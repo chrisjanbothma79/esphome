@@ -32,6 +32,7 @@ class BluetoothConnection : public esp32_ble_client::BLEClientBase {
   bool supports_efficient_uuids_() const;
   void send_service_for_discovery_();
   void reset_connection_(esp_err_t reason);
+  void update_allocated_slot_(uint64_t find_value, uint64_t set_value);
 
   // Memory optimized layout for 32-bit systems
   // Group 1: Pointers (4 bytes each, naturally aligned)
