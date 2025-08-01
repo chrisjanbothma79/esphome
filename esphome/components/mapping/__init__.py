@@ -15,13 +15,8 @@ from esphome.loader import get_component
 CODEOWNERS = ["@clydebarrow"]
 MULTI_CONF = True
 
-map_ = cg.std_ns.class_("map")
-pair = cg.std_ns.class_("pair")
-less = cg.std_ns.class_("less")
-char_traits = cg.std_ns.class_("char_traits")
-char = cg.global_ns.class_("char")
-basic_string = cg.std_ns.class_("basic_string")
-allocator = cg.esphome_ns.class_("RAMAllocator")
+mapping_ns = cg.esphome_ns.namespace("mapping")
+mapping_class = mapping_ns.class_("Mapping")
 
 CONF_ENTRIES = "entries"
 CONF_CLASS = "class"
@@ -42,9 +37,7 @@ INDEX_TYPES = {
     "int": IndexType(cv.int_, cg.int_, int),
     "string": IndexType(
         cv.string,
-        basic_string.template(
-            char, char_traits.template(char), allocator.template(char)
-        ),
+        cg.std_string,
         str,
     ),
 }
@@ -64,7 +57,7 @@ def to_schema(value):
 
 BASE_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_ID): cv.declare_id(map_),
+        cv.Required(CONF_ID): cv.declare_id(mapping_class),
         cv.Required(CONF_FROM): cv.one_of(*INDEX_TYPES, lower=True),
         cv.Required(CONF_TO): cv.string,
     },
@@ -140,11 +133,9 @@ async def to_code(config):
         if list(entries.values())[0].op != ".":
             value_type = value_type.operator("ptr")
     varid = config[CONF_ID]
-    varid.type = map_.template(
+    varid.type = mapping_class.template(
         index_type,
         value_type,
-        less.template(index_type),
-        allocator.template(pair.template(index_type.operator("const"), value_type)),
     )
     var = MockObj(varid, ".")
     decl = VariableDeclarationExpression(varid.type, "", varid)
