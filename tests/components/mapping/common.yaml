@@ -76,6 +76,6 @@ color:
 display:
   lambda: |-
       std::string value = id(string_map)[2];
-      it.print(0, 0, id(font), TextAlign::TOP_LEFT, value.c_str())
+      it.print(0, 0, id(font), TextAlign::TOP_LEFT, value.c_str());
       it.image(0, 0, id(weather_map)[0]);
       it.image(0, 100, id(weather_map)[1]);

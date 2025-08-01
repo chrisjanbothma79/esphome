@@ -38,7 +38,7 @@ template<typename K, typename V> class Mapping {
 
     // assignment operator that handles the assignment
     Proxy &operator=(const V &v) {
-      this->map_.set(key_t{key_}, v);
+      this->map_.set(key_t{this->key_}, v);
       return *this;
     }
 
@@ -52,20 +52,16 @@ template<typename K, typename V> class Mapping {
 
   Proxy operator[](const K &key) { return Proxy(*this, key); }
 
-  V get(key_t &key) const {
+  V get(const key_t &key) const {
     auto it = this->map_.find(key);
     if (it != this->map_.end()) {
-      if constexpr (std::is_same_v<V, std::string>) {
-        return std::string(it->second);
-      } else {
-        return V{it->second};
-      }
+      return V{it->second};
     }
     esph_log_e(TAG, "Key '%s' not found in mapping", to_string(key).c_str());
     return V{};
   }
 
-  void set(key_t &key, const V &value) { this->map_[key] = value; }
+  void set(const key_t &key, const V &value) { this->map_[key] = value; }
 
  private:
   std::map<key_t, value_t, std::less<key_t>, RAMAllocator<std::pair<key_t, value_t>>> map_;
