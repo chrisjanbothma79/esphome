@@ -324,6 +324,8 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
         configuration = json_message["configuration"]
         config_file = settings.rel_path(configuration)
         port = json_message["port"]
+        addresses: list[str] = []
+
         if (
             port == "OTA"  # pylint: disable=too-many-boolean-expressions
             and (entry := entries.get(config_file))
@@ -333,10 +335,10 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
             if (mdns := dashboard.mdns_status) and (
                 address_list := await mdns.async_resolve_host(entry.name)
             ):
-                # Use the IP address if available but only
+                # Use all IP addresses if available but only
                 # if the API is loaded and the device is online
                 # since MQTT logging will not work otherwise
-                port = sort_ip_addresses(address_list)[0]
+                addresses = sort_ip_addresses(address_list)
             elif (
                 entry.address
                 and (
@@ -347,15 +349,24 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
                 and not isinstance(address_list, Exception)
             ):
                 # If mdns is not available, try to use the DNS cache
-                port = sort_ip_addresses(address_list)[0]
+                addresses = sort_ip_addresses(address_list)
 
-        return [
+        # Build command with multiple --device arguments for each address
+        command = [
             *DASHBOARD_COMMAND,
             *args,
             config_file,
-            "--device",
-            port,
         ]
+
+        if addresses:
+            # Add multiple --device arguments for each resolved address
+            for address in addresses:
+                command.extend(["--device", address])
+        else:
+            # Fallback to original port if no addresses were resolved
+            command.extend(["--device", port])
+
+        return command
 
 
 class EsphomeLogsHandler(EsphomePortCommandWebSocket):

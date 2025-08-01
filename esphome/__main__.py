@@ -356,7 +356,7 @@ def upload_program(config, args, host):
             return upload_using_esptool(config, host, file, args.upload_speed)
 
         if CORE.target_platform in (PLATFORM_RP2040):
-            return upload_using_platformio(config, args.device)
+            return upload_using_platformio(config, host)
 
         if CORE.is_libretiny:
             return upload_using_platformio(config, host)
@@ -379,9 +379,12 @@ def upload_program(config, args, host):
     remote_port = int(ota_conf[CONF_PORT])
     password = ota_conf.get(CONF_PASSWORD, "")
 
+    # Check if we should use MQTT for address resolution
+    # This happens when no device was specified, or the current host is "MQTT"/"OTA"
+    devices = args.device or []
     if (
         CONF_MQTT in config  # pylint: disable=too-many-boolean-expressions
-        and (not args.device or args.device in ("MQTT", "OTA"))
+        and (not devices or host in ("MQTT", "OTA"))
         and (
             ((config[CONF_MDNS][CONF_DISABLED]) and not is_ip_address(CORE.address))
             or get_port_type(host) == "MQTT"
@@ -399,23 +402,28 @@ def upload_program(config, args, host):
     return espota2.run_ota(host, remote_port, password, CORE.firmware_bin)
 
 
-def show_logs(config, args, port):
+def show_logs(config, args, devices):
     if "logger" not in config:
         raise EsphomeError("Logger is not configured!")
+
+    port = devices[0]
+
     if get_port_type(port) == "SERIAL":
         check_permissions(port)
         return run_miniterm(config, port, args)
     if get_port_type(port) == "NETWORK" and "api" in config:
+        addresses_to_use = devices
         if config[CONF_MDNS][CONF_DISABLED] and CONF_MQTT in config:
             from esphome import mqtt
 
-            port = mqtt.get_esphome_device_ip(
+            mqtt_address = mqtt.get_esphome_device_ip(
                 config, args.username, args.password, args.client_id
             )[0]
+            addresses_to_use = [mqtt_address]
 
         from esphome.components.api.client import run_logs
 
-        return run_logs(config, port)
+        return run_logs(config, addresses_to_use)
     if get_port_type(port) == "MQTT" and "mqtt" in config:
         from esphome import mqtt
 
@@ -478,19 +486,31 @@ def command_compile(args, config):
 
 
 def command_upload(args, config):
-    port = choose_upload_log_host(
-        default=args.device,
-        check_default=None,
-        show_ota=True,
-        show_mqtt=False,
-        show_api=False,
-        purpose="uploading",
-    )
-    exit_code = upload_program(config, args, port)
-    if exit_code != 0:
-        return exit_code
-    _LOGGER.info("Successfully uploaded program.")
-    return 0
+    devices = args.device or []
+    if not devices:
+        # No devices specified, use the interactive chooser
+        devices = [
+            choose_upload_log_host(
+                default=None,
+                check_default=None,
+                show_ota=True,
+                show_mqtt=False,
+                show_api=False,
+                purpose="uploading",
+            )
+        ]
+
+    # Try each device until one succeeds
+    for device in devices:
+        _LOGGER.info("Uploading to %s", device)
+        exit_code = upload_program(config, args, device)
+        if exit_code == 0:
+            _LOGGER.info("Successfully uploaded program.")
+            return 0
+        if len(devices) > 1:
+            _LOGGER.warning("Failed to upload to %s", device)
+
+    return exit_code
 
 
 def command_discover(args, config):
@@ -503,15 +523,21 @@ def command_discover(args, config):
 
 
 def command_logs(args, config):
-    port = choose_upload_log_host(
-        default=args.device,
-        check_default=None,
-        show_ota=False,
-        show_mqtt=True,
-        show_api=True,
-        purpose="logging",
-    )
-    return show_logs(config, args, port)
+    devices = args.device or []
+    if not devices:
+        # No devices specified, use the interactive chooser
+        devices = [
+            choose_upload_log_host(
+                default=None,
+                check_default=None,
+                show_ota=False,
+                show_mqtt=True,
+                show_api=True,
+                purpose="logging",
+            )
+        ]
+
+    return show_logs(config, args, devices)
 
 
 def command_run(args, config):
@@ -531,29 +557,48 @@ def command_run(args, config):
         program_path = idedata.raw["prog_path"]
         return run_external_process(program_path)
 
-    port = choose_upload_log_host(
-        default=args.device,
-        check_default=None,
-        show_ota=True,
-        show_mqtt=False,
-        show_api=True,
-        purpose="uploading",
-    )
-    exit_code = upload_program(config, args, port)
-    if exit_code != 0:
+    devices = args.device or []
+    if not devices:
+        # No devices specified, use the interactive chooser
+        devices = [
+            choose_upload_log_host(
+                default=None,
+                check_default=None,
+                show_ota=True,
+                show_mqtt=False,
+                show_api=True,
+                purpose="uploading",
+            )
+        ]
+
+    # Try each device for upload until one succeeds
+    successful_device = None
+    for device in devices:
+        _LOGGER.info("Uploading to %s", device)
+        exit_code = upload_program(config, args, device)
+        if exit_code == 0:
+            _LOGGER.info("Successfully uploaded program.")
+            successful_device = device
+            break
+        if len(devices) > 1:
+            _LOGGER.warning("Failed to upload to %s", device)
+
+    if successful_device is None:
         return exit_code
-    _LOGGER.info("Successfully uploaded program.")
+
     if args.no_logs:
         return 0
+
+    # For logs, prefer the device we successfully uploaded to
     port = choose_upload_log_host(
-        default=args.device,
-        check_default=port,
+        default=successful_device,
+        check_default=successful_device,
         show_ota=False,
         show_mqtt=True,
         show_api=True,
         purpose="logging",
     )
-    return show_logs(config, args, port)
+    return show_logs(config, args, [port])
 
 
 def command_clean_mqtt(args, config):
@@ -854,7 +899,8 @@ def parse_args(argv):
     )
     parser_upload.add_argument(
         "--device",
-        help="Manually specify the serial port/address to use, for example /dev/ttyUSB0.",
+        action="append",
+        help="Manually specify the serial port/address to use, for example /dev/ttyUSB0. Can be specified multiple times for fallback addresses.",
     )
     parser_upload.add_argument(
         "--upload_speed",
@@ -876,7 +922,8 @@ def parse_args(argv):
     )
     parser_logs.add_argument(
         "--device",
-        help="Manually specify the serial port/address to use, for example /dev/ttyUSB0.",
+        action="append",
+        help="Manually specify the serial port/address to use, for example /dev/ttyUSB0. Can be specified multiple times for fallback addresses.",
     )
     parser_logs.add_argument(
         "--reset",
@@ -905,7 +952,8 @@ def parse_args(argv):
     )
     parser_run.add_argument(
         "--device",
-        help="Manually specify the serial port/address to use, for example /dev/ttyUSB0.",
+        action="append",
+        help="Manually specify the serial port/address to use, for example /dev/ttyUSB0. Can be specified multiple times for fallback addresses.",
     )
     parser_run.add_argument(
         "--upload_speed",
