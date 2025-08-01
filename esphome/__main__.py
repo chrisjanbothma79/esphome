@@ -507,19 +507,17 @@ def command_compile(args: ArgsProtocol, config: ConfigType) -> int | None:
 
 
 def command_upload(args: ArgsProtocol, config: ConfigType) -> int | None:
-    devices: list[str] = args.device or []
-    if not devices:
-        # No devices specified, use the interactive chooser
-        devices = [
-            choose_upload_log_host(
-                default=None,
-                check_default=None,
-                show_ota=True,
-                show_mqtt=False,
-                show_api=False,
-                purpose="uploading",
-            )
-        ]
+    # No devices specified, use the interactive chooser
+    devices: list[str] = args.device or [
+        choose_upload_log_host(
+            default=None,
+            check_default=None,
+            show_ota=True,
+            show_mqtt=False,
+            show_api=False,
+            purpose="uploading",
+        )
+    ]
 
     # Try each device until one succeeds
     for device in devices:
