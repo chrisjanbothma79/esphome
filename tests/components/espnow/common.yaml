@@ -1,5 +1,5 @@
 espnow:
-  auto_add_peer: true
+  auto_add_peer: false
   channel: 1
   peers:
     - 11:22:33:44:55:66
