@@ -223,7 +223,7 @@ def run_external_command(
     return retval
 
 
-def run_external_process(*cmd, **kwargs):
+def run_external_process(*cmd: str, **kwargs: str) -> int | str:
     full_cmd = " ".join(shlex_quote(x) for x in cmd)
     _LOGGER.debug("Running:  %s", full_cmd)
     filter_lines = kwargs.get("filter_lines")

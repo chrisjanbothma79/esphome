@@ -250,7 +250,9 @@ def compile_program(args, config):
     return 0 if idedata is not None else 1
 
 
-def upload_using_esptool(config: ConfigType, port: str, file: str, speed: int):
+def upload_using_esptool(
+    config: ConfigType, port: str, file: str, speed: int
+) -> str | int:
     from esphome import platformio_api
 
     first_baudrate = speed or config[CONF_ESPHOME][CONF_PLATFORMIO_OPTIONS].get(
@@ -342,7 +344,7 @@ def check_permissions(port: str):
             )
 
 
-def upload_program(config: ConfigType, args, host: str):
+def upload_program(config: ConfigType, args, host: str) -> int | str:
     try:
         module = importlib.import_module("esphome.components." + CORE.target_platform)
         if getattr(module, "upload_program")(config, args, host):
