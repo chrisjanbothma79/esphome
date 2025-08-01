@@ -345,13 +345,19 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
                 addresses.extend(sort_ip_addresses(address_list))
 
             # Second priority: mDNS
-            if (mdns := dashboard.mdns_status) and (
-                address_list := await mdns.async_resolve_host(entry.name)
+            if (
+                (mdns := dashboard.mdns_status)
+                and (address_list := await mdns.async_resolve_host(entry.name))
+                and (
+                    new_addresses := [
+                        addr for addr in address_list if addr not in addresses
+                    ]
+                )
             ):
                 # Use the IP address if available but only
                 # if the API is loaded and the device is online
                 # since MQTT logging will not work otherwise
-                addresses.extend(sort_ip_addresses(address_list))
+                addresses.extend(sort_ip_addresses(new_addresses))
 
         device_args: list[str] = [
             arg for address in addresses for arg in ("--device", address)
