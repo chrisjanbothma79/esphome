@@ -17,6 +17,7 @@ from esphome.const import (
     CONF_PIN,
     CONF_RAW,
     DEVICE_CLASS_VOLTAGE,
+    PLATFORM_NRF52,
     STATE_CLASS_MEASUREMENT,
     UNIT_VOLT,
 )
@@ -85,7 +86,7 @@ CONFIG_SCHEMA = cv.All(
             cv.SplitDefault(CONF_ATTENUATION, esp32="0db"): cv.All(
                 cv.only_on_esp32, _attenuation
             ),
-            cv.GenerateID(CONF_NRF_SAADC): cv.declare_id(adc_dt_spec),
+            cv.OnlyWith(CONF_NRF_SAADC, PLATFORM_NRF52): cv.declare_id(adc_dt_spec),
             cv.Optional(CONF_SAMPLES, default=1): cv.int_range(min=1, max=255),
             cv.Optional(CONF_SAMPLING_MODE, default="avg"): _sampling_mode,
         }
