@@ -49,7 +49,6 @@ enum BluetoothProxySubscriptionFlag : uint32_t {
 };
 
 class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Component {
-  friend class BluetoothConnection;  // Allow connection to call free_connection_
  public:
   BluetoothProxy();
 #ifdef USE_ESP32_BLE_DEVICE
