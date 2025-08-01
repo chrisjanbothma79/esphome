@@ -428,11 +428,13 @@ void BluetoothProxy::send_device_connection(uint64_t address, bool connected, ui
   this->api_connection_->send_message(call, api::BluetoothDeviceConnectionResponse::MESSAGE_TYPE);
 }
 void BluetoothProxy::send_connections_free() {
-  if (this->api_connection_ == nullptr)
-    return;
+  if (this->api_connection_ != nullptr) {
+    this->send_connections_free(this->api_connection_);
+  }
+}
 
-  this->api_connection_->send_message(this->connections_free_response_,
-                                      api::BluetoothConnectionsFreeResponse::MESSAGE_TYPE);
+void BluetoothProxy::send_connections_free(api::APIConnection *api_connection) {
+  api_connection->send_message(this->connections_free_response_, api::BluetoothConnectionsFreeResponse::MESSAGE_TYPE);
 }
 
 void BluetoothProxy::send_gatt_services_done(uint64_t address) {

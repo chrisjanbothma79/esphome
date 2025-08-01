@@ -1105,7 +1105,7 @@ void APIConnection::bluetooth_gatt_notify(const BluetoothGATTNotifyRequest &msg)
 
 bool APIConnection::send_subscribe_bluetooth_connections_free_response(
     const SubscribeBluetoothConnectionsFreeRequest &msg) {
-  bluetooth_proxy::global_bluetooth_proxy->send_connections_free();
+  bluetooth_proxy::global_bluetooth_proxy->send_connections_free(this);
   return true;
 }
 
