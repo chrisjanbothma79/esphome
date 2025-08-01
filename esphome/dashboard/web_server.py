@@ -332,14 +332,8 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
             and entry.loaded_integrations
             and "api" in entry.loaded_integrations
         ):
-            if (mdns := dashboard.mdns_status) and (
-                address_list := await mdns.async_resolve_host(entry.name)
-            ):
-                # Use all IP addresses if available but only
-                # if the API is loaded and the device is online
-                # since MQTT logging will not work otherwise
-                addresses = sort_ip_addresses(address_list)
-            elif (
+            # First priority: use_address from configuration
+            if (
                 entry.address
                 and (
                     address_list := await dashboard.dns_cache.async_resolve(
@@ -348,7 +342,14 @@ class EsphomePortCommandWebSocket(EsphomeCommandWebSocket):
                 )
                 and not isinstance(address_list, Exception)
             ):
-                # If mdns is not available, try to use the DNS cache
+                addresses = sort_ip_addresses(address_list)
+            # Second priority: mDNS resolved addresses
+            elif (mdns := dashboard.mdns_status) and (
+                address_list := await mdns.async_resolve_host(entry.name)
+            ):
+                # Use all IP addresses if available but only
+                # if the API is loaded and the device is online
+                # since MQTT logging will not work otherwise
                 addresses = sort_ip_addresses(address_list)
 
         # Build command with multiple --device arguments for each address
