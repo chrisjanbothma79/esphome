@@ -81,6 +81,7 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
 
   void send_device_connection(uint64_t address, bool connected, uint16_t mtu = 0, esp_err_t error = ESP_OK);
   void send_connections_free();
+  void send_connections_free(api::APIConnection *api_connection);
   void send_gatt_services_done(uint64_t address);
   void send_gatt_error(uint64_t address, uint16_t handle, esp_err_t error);
   void send_device_pairing(uint64_t address, bool paired, esp_err_t error = ESP_OK);
