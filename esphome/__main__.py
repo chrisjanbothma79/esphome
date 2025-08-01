@@ -341,7 +341,7 @@ def check_permissions(port):
             )
 
 
-def upload_program(config, args, host):
+def upload_program(config, args, host: str):
     try:
         module = importlib.import_module("esphome.components." + CORE.target_platform)
         if getattr(module, "upload_program")(config, args, host):
@@ -381,7 +381,7 @@ def upload_program(config, args, host):
 
     # Check if we should use MQTT for address resolution
     # This happens when no device was specified, or the current host is "MQTT"/"OTA"
-    devices = args.device or []
+    devices: list[str] = args.device or []
     if (
         CONF_MQTT in config  # pylint: disable=too-many-boolean-expressions
         and (not devices or host in ("MQTT", "OTA"))
@@ -486,7 +486,7 @@ def command_compile(args, config):
 
 
 def command_upload(args, config) -> int:
-    devices = args.device or []
+    devices: list[str] = args.device or []
     if not devices:
         # No devices specified, use the interactive chooser
         devices = [
