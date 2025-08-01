@@ -116,6 +116,86 @@ void on_data_received(const esp_now_recv_info_t *info, const uint8_t *data, int 
   // Push always because we're the only producer and the pool ensures we never exceed queue size
 }
 
+void espnow_task(void *param) {
+  ESPNowComponent *that = (ESPNowComponent *) param;
+
+  for (;;) {
+    // Process received packets
+    ESPNowPacket *packet = that->receive_packet_queue_.pop();
+    while (packet != nullptr) {
+      switch (packet->type_) {
+        case ESPNowPacket::RECEIVED: {
+          const ESPNowRecvInfo info = packet->get_receive_info();
+          if (!esp_now_is_peer_exist(info.src_addr)) {
+            if (that->auto_add_peer_) {
+              that->add_peer(info.src_addr);
+            } else {
+              for (auto *handler : that->unknown_peer_handlers_) {
+                if (handler->on_unknown_peer(info, packet->packet_.receive.data, packet->packet_.receive.size))
+                  break;  // If a handler returns true, stop processing further handlers
+              }
+            }
+          }
+          // Intentionally left as if instead of else in case the peer is added above
+          if (esp_now_is_peer_exist(info.src_addr)) {
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
+            ESP_LOGV(TAG, "<<< [%s -> %s] %s", format_mac_address_pretty(info.src_addr).c_str(),
+                     format_mac_address_pretty(info.des_addr).c_str(),
+                     format_hex_pretty(packet->packet_.receive.data, packet->packet_.receive.size).c_str());
+#endif
+            if (memcmp(info.des_addr, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0) {
+              for (auto *handler : that->broadcasted_handlers_) {
+                if (handler->on_broadcasted(info, packet->packet_.receive.data, packet->packet_.receive.size))
+                  break;  // If a handler returns true, stop processing further handlers
+              }
+            } else {
+              for (auto *handler : that->received_handlers_) {
+                if (handler->on_received(info, packet->packet_.receive.data, packet->packet_.receive.size))
+                  break;  // If a handler returns true, stop processing further handlers
+              }
+            }
+          }
+          break;
+        }
+        case ESPNowPacket::SENT: {
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
+          ESP_LOGV(TAG, ">>> [%s] %s", format_mac_address_pretty(packet->packet_.sent.address).c_str(),
+                   LOG_STR_ARG(espnow_error_to_str(packet->packet_.sent.status)));
+#endif
+          if (that->current_send_packet_ != nullptr) {
+            that->current_send_packet_->callback_(packet->packet_.sent.status);
+            that->send_packet_pool_.release(that->current_send_packet_);
+            that->current_send_packet_ = nullptr;  // Reset current packet after sending
+          }
+          break;
+        }
+        default:
+          break;
+      }
+      // Return the packet to the pool
+      that->receive_packet_pool_.release(packet);
+      packet = that->receive_packet_queue_.pop();
+    }
+
+    // Process sending packet queue
+    if (that->current_send_packet_ == nullptr) {
+      that->send_();
+    }
+
+    // Log dropped received packets periodically
+    uint16_t received_dropped = that->receive_packet_queue_.get_and_reset_dropped_count();
+    if (received_dropped > 0) {
+      ESP_LOGW(TAG, "Dropped %u received packets due to buffer overflow", received_dropped);
+    }
+
+    // Log dropped send packets periodically
+    uint16_t send_dropped = that->send_packet_queue_.get_and_reset_dropped_count();
+    if (send_dropped > 0) {
+      ESP_LOGW(TAG, "Dropped %u send packets due to buffer overflow", send_dropped);
+    }
+  }
+}
+
 ESPNowComponent::ESPNowComponent() { global_esp_now = this; }
 
 void ESPNowComponent::dump_config() {
@@ -215,6 +295,9 @@ void ESPNowComponent::enable_() {
   for (auto peer : this->peers_) {
     this->add_peer(peer.address);
   }
+
+  xTaskCreate(espnow_task, "espnow", 4096, this, tskIDLE_PRIORITY + 1, nullptr);
+
   this->state_ = ESPNOW_STATE_ENABLED;
 }
 
@@ -267,80 +350,6 @@ void ESPNowComponent::loop() {
     }
   }
 #endif
-
-  // Process received packets
-  ESPNowPacket *packet = this->receive_packet_queue_.pop();
-  while (packet != nullptr) {
-    switch (packet->type_) {
-      case ESPNowPacket::RECEIVED: {
-        const ESPNowRecvInfo info = packet->get_receive_info();
-        if (!esp_now_is_peer_exist(info.src_addr)) {
-          if (this->auto_add_peer_) {
-            this->add_peer(info.src_addr);
-          } else {
-            for (auto *handler : this->unknown_peer_handlers_) {
-              if (handler->on_unknown_peer(info, packet->packet_.receive.data, packet->packet_.receive.size))
-                break;  // If a handler returns true, stop processing further handlers
-            }
-          }
-        }
-        // Intentionally left as if instead of else in case the peer is added above
-        if (esp_now_is_peer_exist(info.src_addr)) {
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
-          ESP_LOGV(TAG, "<<< [%s -> %s] %s", format_mac_address_pretty(info.src_addr).c_str(),
-                   format_mac_address_pretty(info.des_addr).c_str(),
-                   format_hex_pretty(packet->packet_.receive.data, packet->packet_.receive.size).c_str());
-#endif
-          if (memcmp(info.des_addr, ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0) {
-            for (auto *handler : this->broadcasted_handlers_) {
-              if (handler->on_broadcasted(info, packet->packet_.receive.data, packet->packet_.receive.size))
-                break;  // If a handler returns true, stop processing further handlers
-            }
-          } else {
-            for (auto *handler : this->received_handlers_) {
-              if (handler->on_received(info, packet->packet_.receive.data, packet->packet_.receive.size))
-                break;  // If a handler returns true, stop processing further handlers
-            }
-          }
-        }
-        break;
-      }
-      case ESPNowPacket::SENT: {
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
-        ESP_LOGV(TAG, ">>> [%s] %s", format_mac_address_pretty(packet->packet_.sent.address).c_str(),
-                 LOG_STR_ARG(espnow_error_to_str(packet->packet_.sent.status)));
-#endif
-        if (this->current_send_packet_ != nullptr) {
-          this->current_send_packet_->callback_(packet->packet_.sent.status);
-          this->send_packet_pool_.release(this->current_send_packet_);
-          this->current_send_packet_ = nullptr;  // Reset current packet after sending
-        }
-        break;
-      }
-      default:
-        break;
-    }
-    // Return the packet to the pool
-    this->receive_packet_pool_.release(packet);
-    packet = this->receive_packet_queue_.pop();
-  }
-
-  // Process sending packet queue
-  if (this->current_send_packet_ == nullptr) {
-    this->send_();
-  }
-
-  // Log dropped received packets periodically
-  uint16_t received_dropped = this->receive_packet_queue_.get_and_reset_dropped_count();
-  if (received_dropped > 0) {
-    ESP_LOGW(TAG, "Dropped %u received packets due to buffer overflow", received_dropped);
-  }
-
-  // Log dropped send packets periodically
-  uint16_t send_dropped = this->send_packet_queue_.get_and_reset_dropped_count();
-  if (send_dropped > 0) {
-    ESP_LOGW(TAG, "Dropped %u send packets due to buffer overflow", send_dropped);
-  }
 }
 
 esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payload, size_t size,

@@ -150,6 +150,7 @@ class ESPNowComponent : public Component {
 #else
   friend void on_send_report(const uint8_t *mac_addr, esp_now_send_status_t status);
 #endif
+  friend void espnow_task(void *params);
 
   void enable_();
   void send_();
