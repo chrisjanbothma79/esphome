@@ -402,7 +402,7 @@ def upload_program(config, args, host):
     return espota2.run_ota(host, remote_port, password, CORE.firmware_bin)
 
 
-def show_logs(config, args, devices):
+def show_logs(config, args, devices: list[str]):
     if "logger" not in config:
         raise EsphomeError("Logger is not configured!")
 
@@ -485,7 +485,7 @@ def command_compile(args, config):
     return 0
 
 
-def command_upload(args, config):
+def command_upload(args, config) -> int:
     devices = args.device or []
     if not devices:
         # No devices specified, use the interactive chooser
@@ -522,7 +522,7 @@ def command_discover(args, config):
     raise EsphomeError("No discover method configured (mqtt)")
 
 
-def command_logs(args, config):
+def command_logs(args, config) -> int:
     devices = args.device or []
     if not devices:
         # No devices specified, use the interactive chooser
