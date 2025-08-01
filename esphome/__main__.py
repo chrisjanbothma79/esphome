@@ -290,7 +290,7 @@ def upload_using_esptool(config, port, file, speed):
             mcu,
             "write_flash",
             "-z",
-            "--flash_size",
+            "--flash-size",
             "detect",
         ]
         for img in flash_images:
