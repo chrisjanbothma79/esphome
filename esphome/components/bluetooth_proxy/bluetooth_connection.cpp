@@ -46,6 +46,18 @@ static constexpr uint8_t DESC_SIZE_16BIT = 10;             // UUID(6) + handle(4
 static constexpr uint8_t DESC_PER_CHAR = 1;                // Assume 1 descriptor per characteristic
 
 // Helper to estimate service size before fetching all data
+/**
+ * Estimate the size of a Bluetooth service based on the number of characteristics and UUID format.
+ *
+ * @param char_count The number of characteristics in the service.
+ * @param use_efficient_uuids Whether to use efficient UUIDs (16-bit or 32-bit) for newer APIVersions.
+ * @return The estimated size of the service in bytes.
+ *
+ * This function calculates the size of a Bluetooth service by considering:
+ * - A service overhead, which depends on whether efficient UUIDs are used.
+ * - The size of each characteristic, assuming 128-bit UUIDs for safety.
+ * - The size of descriptors, assuming one 128-bit descriptor per characteristic.
+ */
 static size_t estimate_service_size(uint16_t char_count, bool use_efficient_uuids) {
   size_t service_overhead = use_efficient_uuids ? SERVICE_OVERHEAD_EFFICIENT : SERVICE_OVERHEAD_LEGACY;
   // Always assume 128-bit UUIDs for characteristics to be safe
@@ -64,6 +76,30 @@ bool BluetoothConnection::supports_efficient_uuids_() const {
 void BluetoothConnection::dump_config() {
   ESP_LOGCONFIG(TAG, "BLE Connection:");
   BLEClientBase::dump_config();
+}
+
+void BluetoothConnection::update_allocated_slot_(uint64_t find_value, uint64_t set_value) {
+  auto &allocated = this->proxy_->connections_free_response_.allocated;
+  auto it = std::find(allocated.begin(), allocated.end(), find_value);
+  if (it != allocated.end()) {
+    *it = set_value;
+  }
+}
+
+void BluetoothConnection::set_address(uint64_t address) {
+  // If we're clearing an address (disconnecting), update the pre-allocated message
+  if (address == 0 && this->address_ != 0) {
+    this->proxy_->connections_free_response_.free++;
+    this->update_allocated_slot_(this->address_, 0);
+  }
+  // If we're setting a new address (connecting), update the pre-allocated message
+  else if (address != 0 && this->address_ == 0) {
+    this->proxy_->connections_free_response_.free--;
+    this->update_allocated_slot_(0, address);
+  }
+
+  // Call parent implementation to actually set the address
+  BLEClientBase::set_address(address);
 }
 
 void BluetoothConnection::loop() {
