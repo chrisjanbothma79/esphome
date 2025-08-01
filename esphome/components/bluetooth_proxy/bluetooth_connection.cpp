@@ -80,7 +80,7 @@ void BluetoothConnection::dump_config() {
 
 void BluetoothConnection::update_allocated_slot_(uint64_t find_value, uint64_t set_value) {
   auto &allocated = this->proxy_->connections_free_response_.allocated;
-  auto it = std::find(allocated.begin(), allocated.end(), find_value);
+  auto *it = std::find(allocated.begin(), allocated.end(), find_value);
   if (it != allocated.end()) {
     *it = set_value;
   }
