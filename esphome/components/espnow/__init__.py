@@ -124,7 +124,6 @@ async def _trigger_to_code(config):
 
 
 async def to_code(config):
-    print(config)
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
