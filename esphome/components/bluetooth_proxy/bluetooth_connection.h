@@ -4,8 +4,7 @@
 
 #include "esphome/components/esp32_ble_client/ble_client_base.h"
 
-namespace esphome {
-namespace bluetooth_proxy {
+namespace esphome::bluetooth_proxy {
 
 class BluetoothProxy;
 
@@ -28,6 +27,7 @@ class BluetoothConnection : public esp32_ble_client::BLEClientBase {
  protected:
   friend class BluetoothProxy;
 
+  bool supports_efficient_uuids_() const;
   void send_service_for_discovery_();
   void reset_connection_(esp_err_t reason);
 
@@ -43,7 +43,6 @@ class BluetoothConnection : public esp32_ble_client::BLEClientBase {
   // 1 byte used, 1 byte padding
 };
 
-}  // namespace bluetooth_proxy
-}  // namespace esphome
+}  // namespace esphome::bluetooth_proxy
 
 #endif  // USE_ESP32
