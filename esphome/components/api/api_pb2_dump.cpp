@@ -385,6 +385,10 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerState>(enums::Medi
       return "MEDIA_PLAYER_STATE_PAUSED";
     case enums::MEDIA_PLAYER_STATE_ANNOUNCING:
       return "MEDIA_PLAYER_STATE_ANNOUNCING";
+    case enums::MEDIA_PLAYER_STATE_OFF:
+      return "MEDIA_PLAYER_STATE_OFF";
+    case enums::MEDIA_PLAYER_STATE_ON:
+      return "MEDIA_PLAYER_STATE_ON";
     default:
       return "UNKNOWN";
   }
@@ -415,6 +419,10 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerCommand>(enums::Me
       return "MEDIA_PLAYER_COMMAND_REPEAT_OFF";
     case enums::MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST:
       return "MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST";
+    case enums::MEDIA_PLAYER_COMMAND_TURN_ON:
+      return "MEDIA_PLAYER_COMMAND_TURN_ON";
+    case enums::MEDIA_PLAYER_COMMAND_TURN_OFF:
+      return "MEDIA_PLAYER_COMMAND_TURN_OFF";
     default:
       return "UNKNOWN";
   }
@@ -1553,6 +1561,7 @@ void BluetoothGATTDescriptor::dump_to(std::string &out) const {
     dump_field(out, "uuid", it, 4);
   }
   dump_field(out, "handle", this->handle);
+  dump_field(out, "short_uuid", this->short_uuid);
 }
 void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
   MessageDumpHelper helper(out, "BluetoothGATTCharacteristic");
@@ -1566,6 +1575,7 @@ void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
+  dump_field(out, "short_uuid", this->short_uuid);
 }
 void BluetoothGATTService::dump_to(std::string &out) const {
   MessageDumpHelper helper(out, "BluetoothGATTService");
@@ -1578,6 +1588,7 @@ void BluetoothGATTService::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
+  dump_field(out, "short_uuid", this->short_uuid);
 }
 void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
   MessageDumpHelper helper(out, "BluetoothGATTGetServicesResponse");
