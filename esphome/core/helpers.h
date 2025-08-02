@@ -113,6 +113,8 @@ template<typename T, size_t N> class StaticVector {
     }
   }
 
+  size_t size() const { return count_; }
+
   // For range-based for loops
   iterator begin() { return data_.begin(); }
   iterator end() { return data_.begin() + count_; }

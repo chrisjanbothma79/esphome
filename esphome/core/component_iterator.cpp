@@ -20,18 +20,14 @@ void ComponentIterator::begin(bool include_internal) {
 template<typename Container>
 void ComponentIterator::process_platform_item_(const Container &items,
                                                bool (ComponentIterator::*on_item)(typename Container::value_type)) {
-  // Since static_vector doesn't have size(), we need to iterate differently
-  size_t index = 0;
-  for (auto *item : items) {
-    if (index++ == this->at_) {
-      if ((item->is_internal() && !this->include_internal_) || (this->*on_item)(item)) {
-        this->at_++;
-      }
-      return;
+  if (this->at_ >= items.size()) {
+    this->advance_platform_();
+  } else {
+    auto *item = items[this->at_];
+    if ((item->is_internal() && !this->include_internal_) || (this->*on_item)(item)) {
+      this->at_++;
     }
   }
-  // If we get here, we've reached the end
-  this->advance_platform_();
 }
 
 void ComponentIterator::advance_platform_() {
