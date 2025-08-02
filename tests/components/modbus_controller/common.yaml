@@ -45,8 +45,8 @@ modbus_controller:
           printf("address=%d, value=%d", x);
           return true;
     max_cmd_retries: 0
-  - id: modbus_controller_4
-    modbus_id: modbus1
+  - id: modbus_controller4
+    modbus_id: mod_bus2
     address: 0x4
     server_courtesy_response:
       register_count: 100
