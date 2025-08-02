@@ -25,7 +25,6 @@ static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
   }
 
 void GT911Touchscreen::setup() {
-  i2c::ErrorCode err;
   if (this->reset_pin_ != nullptr) {
     // pull reset pin low for 2ms
     this->status_set_warning("resetting");
@@ -57,7 +56,8 @@ void GT911Touchscreen::setup_internal_() {
 
   // check the configuration of the int line.
   uint8_t data[4];
-  i2c::ErrorCode err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
+  i2c::ErrorCode err;
+  err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
   if (err != i2c::ERROR_OK && this->address_ == PRIMARY_ADDRESS) {
     this->address_ = SECONDARY_ADDRESS;
     err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
