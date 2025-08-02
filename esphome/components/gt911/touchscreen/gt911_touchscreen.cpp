@@ -26,8 +26,6 @@ static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
 
 void GT911Touchscreen::setup() {
   if (this->reset_pin_ != nullptr) {
-    // pull reset pin low for 2ms
-    this->status_set_warning("reset");
     this->reset_pin_->setup();
     this->reset_pin_->digital_write(false);
     if (this->interrupt_pin_ != nullptr) {
@@ -36,19 +34,14 @@ void GT911Touchscreen::setup() {
       this->interrupt_pin_->digital_write(false);
     }
     delay(2);
-    this->reset_pin_->digital_write(true);
-    // continue setup 50ms after reset
+    this->reset_pin_->digital_write(true);  // wait 50ms after reset
     this->set_timeout(50, [this] { this->setup_internal_(); });
     return;
   }
-
-  // continue setup
   this->setup_internal_();
 }
 
 void GT911Touchscreen::setup_internal_() {
-  this->status_clear_warning();
-
   if (this->interrupt_pin_ != nullptr) {
     // set pre-configured input mode
     this->interrupt_pin_->setup();
@@ -96,17 +89,15 @@ void GT911Touchscreen::setup_internal_() {
     this->mark_failed(ESP_LOG_MSG_COMM_FAIL);
     return;
   }
-
   this->setup_done_ = true;
 }
 
 void GT911Touchscreen::update_touches() {
-  this->skip_update_ = true;  // skip send touch events, touchscreen is not ready yet.
-
   if (!this->setup_done_) {
     return;
   }
 
+  this->skip_update_ = true;  // skip send touch events by default, set to false after successful error checks
   i2c::ErrorCode err;
   uint8_t touch_state = 0;
   uint8_t data[MAX_TOUCHES + 1][8];  // 8 bytes each for each point, plus extra space for the key byte
@@ -128,8 +119,7 @@ void GT911Touchscreen::update_touches() {
   err = this->read(data[0], sizeof(data[0]) * num_of_touches + 1);
   ERROR_CHECK(err);
 
-  // All error checks passed, send touch events
-  this->skip_update_ = false;
+  this->skip_update_ = false;  // All error checks passed, send touch events
   for (uint8_t i = 0; i != num_of_touches; i++) {
     uint16_t id = data[i][0];
     uint16_t x = encode_uint16(data[i][2], data[i][1]);
