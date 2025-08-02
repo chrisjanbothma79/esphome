@@ -95,6 +95,7 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
     // data starts at 2 and length is 4 for read registers commands
     if (this->role == ModbusRole::SERVER) {
       if (function_code == ModbusFunctionCode::READ_COILS ||
+          function_code == ModbusFunctionCode::READ_DISCRETE_INPUTS ||
           function_code == ModbusFunctionCode::READ_HOLDING_REGISTERS ||
           function_code == ModbusFunctionCode::READ_INPUT_REGISTERS ||
           function_code == ModbusFunctionCode::WRITE_SINGLE_REGISTER) {
