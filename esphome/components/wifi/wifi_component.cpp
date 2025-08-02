@@ -507,7 +507,7 @@ void WiFiComponent::start_scanning() {
 
 // Helper function for WiFi scan result comparison
 // Returns true if 'a' should be placed before 'b' in the sorted order
-static bool wifi_scan_result_is_better(const WiFiScanResult &a, const WiFiScanResult &b) {
+[[nodiscard]] inline static bool wifi_scan_result_is_better(const WiFiScanResult &a, const WiFiScanResult &b) {
   // Matching networks always come before non-matching
   if (a.get_matches() && !b.get_matches())
     return true;
