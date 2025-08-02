@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import (
@@ -291,6 +291,8 @@ class Version:
     extra: str = ""
 
     def __str__(self):
+        if self.extra:
+            return f"{self.major}.{self.minor}.{self.patch}-{self.extra}"
         return f"{self.major}.{self.minor}.{self.patch}"
 
     @classmethod
@@ -1866,7 +1868,7 @@ def validate_registry_entry(name, registry):
 
 def none(value):
     if value in ("none", "None"):
-        return None
+        return
     raise Invalid("Must be none")
 
 
@@ -2113,10 +2115,8 @@ def require_esphome_version(year, month, patch):
 
 @contextmanager
 def suppress_invalid():
-    try:
+    with suppress(vol.Invalid):
         yield
-    except vol.Invalid:
-        pass
 
 
 GIT_SCHEMA = Schema(
