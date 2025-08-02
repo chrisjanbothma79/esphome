@@ -27,7 +27,7 @@ static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
 void GT911Touchscreen::setup() {
   if (this->reset_pin_ != nullptr) {
     // pull reset pin low for 2ms
-    this->status_set_warning("resetting");
+    this->status_set_warning("reset");
     this->reset_pin_->setup();
     this->reset_pin_->digital_write(false);
     if (this->interrupt_pin_ != nullptr) {
