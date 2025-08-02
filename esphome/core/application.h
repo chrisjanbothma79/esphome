@@ -454,12 +454,7 @@ class Application {
   const char *comment_{nullptr};
   const char *compilation_time_{nullptr};
 
-  // size_t members
-  size_t dump_config_at_{SIZE_MAX};
-
-  // Vectors (largest members)
-  StaticVector<Component *, ESPHOME_COMPONENT_COUNT> components_{};
-
+  // std::vector (3 pointers each: begin, end, capacity)
   // Partitioned vector design for looping components
   // =================================================
   // Components are partitioned into [active | inactive] sections:
@@ -477,6 +472,48 @@ class Application {
   //   and active_end_ is incremented
   // - This eliminates branch mispredictions from flag checking in the hot loop
   std::vector<Component *> looping_components_{};
+#ifdef USE_SOCKET_SELECT_SUPPORT
+  std::vector<int> socket_fds_;  // Vector of all monitored socket file descriptors
+#endif
+
+  // std::string members (typically 24-32 bytes each)
+  std::string name_;
+  std::string friendly_name_;
+
+  // size_t members
+  size_t dump_config_at_{SIZE_MAX};
+
+  // 4-byte members
+  uint32_t last_loop_{0};
+  uint32_t loop_component_start_time_{0};
+
+#ifdef USE_SOCKET_SELECT_SUPPORT
+  int max_fd_{-1};  // Highest file descriptor number for select()
+#endif
+
+  // 2-byte members (grouped together for alignment)
+  uint16_t loop_interval_{16};                 // Loop interval in ms (max 65535ms = 65.5 seconds)
+  uint16_t looping_components_active_end_{0};  // Index marking end of active components in looping_components_
+  uint16_t current_loop_index_{0};             // For safe reentrant modifications during iteration
+
+  // 1-byte members (grouped together to minimize padding)
+  uint8_t app_state_{0};
+  bool name_add_mac_suffix_;
+  bool in_loop_{false};
+  volatile bool has_pending_enable_loop_requests_{false};
+
+#ifdef USE_SOCKET_SELECT_SUPPORT
+  bool socket_fds_changed_{false};  // Flag to rebuild base_read_fds_ when socket_fds_ changes
+#endif
+
+#ifdef USE_SOCKET_SELECT_SUPPORT
+  // Variable-sized members
+  fd_set base_read_fds_{};  // Cached fd_set rebuilt only when socket_fds_ changes
+  fd_set read_fds_{};       // Working fd_set for select(), copied from base_read_fds_
+#endif
+
+  // StaticVectors (largest members - contain actual array data inline)
+  StaticVector<Component *, ESPHOME_COMPONENT_COUNT> components_{};
 
 #ifdef USE_DEVICES
   StaticVector<Device *, ESPHOME_DEVICE_COUNT> devices_{};
@@ -547,41 +584,6 @@ class Application {
 #endif
 #ifdef USE_UPDATE
   StaticVector<update::UpdateEntity *, ESPHOME_ENTITY_UPDATE_COUNT> updates_{};
-#endif
-
-#ifdef USE_SOCKET_SELECT_SUPPORT
-  std::vector<int> socket_fds_;  // Vector of all monitored socket file descriptors
-#endif
-
-  // String members
-  std::string name_;
-  std::string friendly_name_;
-
-  // 4-byte members
-  uint32_t last_loop_{0};
-  uint32_t loop_component_start_time_{0};
-
-#ifdef USE_SOCKET_SELECT_SUPPORT
-  int max_fd_{-1};  // Highest file descriptor number for select()
-#endif
-
-  // 2-byte members (grouped together for alignment)
-  uint16_t loop_interval_{16};  // Loop interval in ms (max 65535ms = 65.5 seconds)
-  uint16_t looping_components_active_end_{0};
-  uint16_t current_loop_index_{0};  // For safe reentrant modifications during iteration
-
-  // 1-byte members (grouped together to minimize padding)
-  uint8_t app_state_{0};
-  bool name_add_mac_suffix_;
-  bool in_loop_{false};
-  volatile bool has_pending_enable_loop_requests_{false};
-
-#ifdef USE_SOCKET_SELECT_SUPPORT
-  bool socket_fds_changed_{false};  // Flag to rebuild base_read_fds_ when socket_fds_ changes
-
-  // Variable-sized members at end
-  fd_set base_read_fds_{};  // Cached fd_set rebuilt only when socket_fds_ changes
-  fd_set read_fds_{};       // Working fd_set for select(), copied from base_read_fds_
 #endif
 };
 
