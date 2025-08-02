@@ -93,11 +93,11 @@ void GT911Touchscreen::setup_internal_() {
 }
 
 void GT911Touchscreen::update_touches() {
+  this->skip_update_ = true;  // skip send touch events by default, set to false after successful error checks
   if (!this->setup_done_) {
     return;
   }
 
-  this->skip_update_ = true;  // skip send touch events by default, set to false after successful error checks
   i2c::ErrorCode err;
   uint8_t touch_state = 0;
   uint8_t data[MAX_TOUCHES + 1][8];  // 8 bytes each for each point, plus extra space for the key byte
