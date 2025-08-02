@@ -211,6 +211,7 @@
   {}
 
 #define USE_WEBSERVER
+#define USE_WEBSERVER_AUTH
 #define USE_WEBSERVER_PORT 80  // NOLINT
 #endif
 
