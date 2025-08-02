@@ -91,7 +91,7 @@ SELECT_SCHEMA = select_schema(Select)
 SELECT_SCHEMA.add_extra(cv.deprecated_schema_constant("select"))
 
 
-async def setup_select_core_(var, config, *, options: list[str]):
+async def setup_select_core_(var, config, options: list[str]):
     await setup_entity(var, config, "select")
 
     cg.add(var.traits.set_options(options))
@@ -110,7 +110,7 @@ async def setup_select_core_(var, config, *, options: list[str]):
         await web_server.add_entity_config(var, web_server_config)
 
 
-async def register_select(var, config, *, options: list[str]):
+async def register_select(var, config, options: list[str]):
     if not CORE.has_id(config[CONF_ID]):
         var = cg.Pvariable(config[CONF_ID], var)
     cg.add(cg.App.register_select(var))
