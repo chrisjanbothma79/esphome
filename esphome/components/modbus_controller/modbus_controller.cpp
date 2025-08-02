@@ -142,7 +142,7 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
     }
 
     if (!found) {
-      if ((this->server_courtesy_response_ != nullptr) && this->server_courtesy_response_->enable &&
+      if ((this->server_courtesy_response_ != nullptr) &&
           (current_address <= this->server_courtesy_response_->register_count)) {
         ESP_LOGD(TAG,
                  "Could not match any register to address 0x%02X, but default allowed. "
@@ -454,10 +454,8 @@ void ModbusController::dump_config() {
   if (this->server_courtesy_response_ != nullptr) {
     ESP_LOGCONFIG(TAG,
                   "  Server Courtesy Response:\n"
-                  "    Enabled: %s\n"
                   "    Register Count: %d\n"
                   "    Register Value: %d\n",
-                  this->server_courtesy_response_->enable ? "true" : "false",
                   this->server_courtesy_response_->register_count, this->server_courtesy_response_->register_value);
   }
 

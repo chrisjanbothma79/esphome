@@ -20,7 +20,6 @@ from .const import (
     CONF_BYTE_OFFSET,
     CONF_COMMAND_THROTTLE,
     CONF_CUSTOM_COMMAND,
-    CONF_ENABLE,
     CONF_FORCE_NEW_RANGE,
     CONF_MAX_CMD_RETRIES,
     CONF_MODBUS_CONTROLLER_ID,
@@ -150,7 +149,6 @@ _LOGGER = logging.getLogger(__name__)
 SERVER_COURTESY_RESPONSE_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(ServerCourtesyResponse),
-        cv.Optional(CONF_ENABLE, default=False): cv.boolean,
         cv.Optional(CONF_REGISTER_COUNT, default=0xFFFF): cv.All(
             cv.positive_int, cv.Range(min=0, max=0xFFFF)
         ),
@@ -321,7 +319,6 @@ async def to_code(config):
         server_courtesy_response = config[CONF_SERVER_COURTESY_RESPONSE]
         server_courtesy_response_var = cg.new_Pvariable(
             server_courtesy_response[CONF_ID],
-            server_courtesy_response[CONF_ENABLE],
             server_courtesy_response[CONF_REGISTER_COUNT],
             server_courtesy_response[CONF_REGISTER_VALUE],
         )

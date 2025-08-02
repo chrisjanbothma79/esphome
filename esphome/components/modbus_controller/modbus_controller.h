@@ -233,9 +233,8 @@ class SensorItem {
 class ServerCourtesyResponse {
  public:
   ServerCourtesyResponse() = default;
-  ServerCourtesyResponse(bool enable, uint16_t register_count, uint16_t register_value)
-      : enable(enable), register_count(register_count), register_value(register_value) {}
-  bool enable{false};
+  ServerCourtesyResponse(uint16_t register_count, uint16_t register_value)
+      : register_count(register_count), register_value(register_value) {}
   uint16_t register_count{0};
   uint16_t register_value{0};
 };
