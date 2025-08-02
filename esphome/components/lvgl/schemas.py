@@ -428,28 +428,28 @@ grid_spec = cv.Any(
     lvalid.size, df.LvConstant("LV_GRID_", "CONTENT").one_of, grid_free_space
 )
 
+LAYOUTS = {
+    df.TYPE_GRID: {
+        cv.Required(df.CONF_GRID_ROWS): [grid_spec],
+        cv.Required(df.CONF_GRID_COLUMNS): [grid_spec],
+        cv.Optional(df.CONF_GRID_COLUMN_ALIGN): grid_alignments,
+        cv.Optional(df.CONF_GRID_ROW_ALIGN): grid_alignments,
+        cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
+        cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
+    },
+    df.TYPE_FLEX: {
+        cv.Optional(df.CONF_FLEX_FLOW, default="row_wrap"): df.FLEX_FLOWS.one_of,
+        cv.Optional(df.CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
+        cv.Optional(df.CONF_FLEX_ALIGN_CROSS, default="start"): flex_alignments,
+        cv.Optional(df.CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
+        cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
+        cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
+    },
+}
+
 LAYOUT_SCHEMA = {
     cv.Optional(df.CONF_LAYOUT): cv.typed_schema(
-        {
-            df.TYPE_GRID: {
-                cv.Required(df.CONF_GRID_ROWS): [grid_spec],
-                cv.Required(df.CONF_GRID_COLUMNS): [grid_spec],
-                cv.Optional(df.CONF_GRID_COLUMN_ALIGN): grid_alignments,
-                cv.Optional(df.CONF_GRID_ROW_ALIGN): grid_alignments,
-                cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
-                cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
-            },
-            df.TYPE_FLEX: {
-                cv.Optional(
-                    df.CONF_FLEX_FLOW, default="row_wrap"
-                ): df.FLEX_FLOWS.one_of,
-                cv.Optional(df.CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
-                cv.Optional(df.CONF_FLEX_ALIGN_CROSS, default="start"): flex_alignments,
-                cv.Optional(df.CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
-                cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
-                cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
-            },
-        },
+        LAYOUTS,
         lower=True,
     )
 }
