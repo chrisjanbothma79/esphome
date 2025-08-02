@@ -5,6 +5,10 @@ namespace cst328 {
 
 static const char *const TAG = "cst328.touchscreen";
 
+static const uint32_t CST328_TRANSITION_TIMEOUT = 100;  // 200 ms from datasheet, but typically much less
+static const uint16_t CST328_FW_CRC = 0xCACA;           // Expected firmware CRC value
+static const uint8_t CST328_SYNC_BYTE = 0xAB;           // Sync byte used in communication
+
 void CST328Touchscreen::setup() {
   ESP_LOGCONFIG(TAG, "Setting up CST328 Touchscreen...");
   if (this->reset_pin_ != nullptr) {
@@ -14,7 +18,7 @@ void CST328Touchscreen::setup() {
     this->reset_pin_->digital_write(false);
     delay(5);
     this->reset_pin_->digital_write(true);
-    this->set_timeout(50, [this] { this->continue_setup_(); });
+    this->set_timeout(CST328_TRANSITION_TIMEOUT, [this] { this->continue_setup_(); });
   } else {
     this->continue_setup_();
   }
@@ -54,7 +58,7 @@ void CST328Touchscreen::continue_setup_() {
   // Read FW checksum
   if (this->read16_(CST_REG_FW_CRC_AND_BOOT_TIME, buffer, 4)) {
     uint16_t fw_crc = buffer[2] + (buffer[3] << 8);
-    if (0xCACA != fw_crc) {
+    if (CST328_FW_CRC != fw_crc) {
       ESP_LOGE(TAG, "Invalid FW checksum: %X", fw_crc);
       this->mark_failed();
       return;
@@ -84,7 +88,7 @@ void CST328Touchscreen::continue_setup_() {
   // read once and sync?
   uint8_t sync_byte;
   this->read_register16(CST_REG_TOUCH_INFORMATION, &sync_byte, 1);
-  sync_byte = 0xAB;
+  sync_byte = CST328_SYNC_BYTE;
   this->write_register16(CST_REG_TOUCH_INFORMATION, &sync_byte, 1);
 
   this->setup_complete_ = true;
