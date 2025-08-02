@@ -680,11 +680,15 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
 )
 
 
-def _show_framework_migration_message(name: str, _shown: list[bool] = []) -> None:
+class _FrameworkMigrationWarning:
+    shown = False
+
+
+def _show_framework_migration_message(name: str) -> None:
     """Show a friendly message about framework migration when defaulting to Arduino."""
-    if _shown:
+    if _FrameworkMigrationWarning.shown:
         return
-    _shown.append(True)
+    _FrameworkMigrationWarning.shown = True
 
     from esphome.log import AnsiFore, color
 
