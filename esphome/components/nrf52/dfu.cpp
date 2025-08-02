@@ -9,14 +9,11 @@
 namespace esphome {
 namespace nrf52 {
 
-volatile bool goto_dfu = false;
+volatile bool goto_dfu = false;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 static const uint32_t DFU_DBL_RESET_MAGIC = 0x5A1AD5;  // SALADS
-static uint32_t *dbl_reset_mem = ((uint32_t *) 0x20007F7C);
 
 #define DEVICE_AND_COMMA(node_id) DEVICE_DT_GET(node_id),
-
-const struct device *cdc_dev[] = {DT_FOREACH_STATUS_OKAY(zephyr_cdc_acm_uart, DEVICE_AND_COMMA)};
 
 static void cdc_dte_rate_callback(const struct device * /*unused*/, uint32_t rate) {
   if (rate == 1200) {
@@ -25,6 +22,7 @@ static void cdc_dte_rate_callback(const struct device * /*unused*/, uint32_t rat
 }
 
 void DeviceFirmwareUpdate::setup() {
+  const struct device *cdc_dev[] = {DT_FOREACH_STATUS_OKAY(zephyr_cdc_acm_uart, DEVICE_AND_COMMA)};
   for (auto &idx : cdc_dev) {
     cdc_acm_dte_rate_callback_set(idx, cdc_dte_rate_callback);
   }
@@ -33,6 +31,7 @@ void DeviceFirmwareUpdate::setup() {
 void DeviceFirmwareUpdate::loop() {
   if (goto_dfu) {
     goto_dfu = false;
+    volatile uint32_t *dbl_reset_mem = (volatile uint32_t *) 0x20007F7C;
     (*dbl_reset_mem) = DFU_DBL_RESET_MAGIC;
     reset_output_->set_state(true);
   }
