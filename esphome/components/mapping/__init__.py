@@ -4,12 +4,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_FROM, CONF_ID, CONF_TO
 from esphome.core import CORE
-from esphome.cpp_generator import (
-    AssignmentExpression,
-    MockObj,
-    VariableDeclarationExpression,
-    add_global,
-)
+from esphome.cpp_generator import MockObj, VariableDeclarationExpression, add_global
 from esphome.loader import get_component
 
 CODEOWNERS = ["@clydebarrow"]
@@ -143,5 +138,5 @@ async def to_code(config):
     CORE.register_variable(varid, var)
 
     for key, value in entries.items():
-        cg.add(AssignmentExpression(None, "", var[cg.safe_exp(key)], value))
+        cg.add(var.set(key, value))
     return var

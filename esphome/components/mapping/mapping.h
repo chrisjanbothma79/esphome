@@ -32,26 +32,6 @@ template<typename K, typename V> class Mapping {
                                      alloc_string_t,  // if V is std::string, custom string type
                                      V>;
 
-  class Proxy {
-   public:
-    Proxy(Mapping &map, const K &key) : map_(map), key_(key) {}
-
-    // assignment operator that handles the assignment
-    Proxy &operator=(const V &v) {
-      this->map_.set(this->key_, v);
-      return *this;
-    }
-
-    // conversion operator to support reading
-    operator V() const { return this->map_.get(key_); }
-
-   protected:
-    Mapping &map_;
-    const K &key_;
-  };
-
-  Proxy operator[](const K &key) { return Proxy(*this, key); }
-
   void set(const K &key, const V &value) { this->map_[key_t{key}] = value; }
 
   V get(const K &key) const {
@@ -67,6 +47,19 @@ template<typename K, typename V> class Mapping {
       esph_log_e(TAG, "Key '%s' not found in mapping", to_string(key).c_str());
     }
     return {};
+  }
+
+  // index map overload
+  V operator[](K key) { return this->get(key); }
+
+  // convenience function for strings to get a C-style string
+  template<typename T = V, std::enable_if_t<std::is_same_v<T, std::string>, int> = 0>
+  const char *operator[](K key) const {
+    auto it = this->map_.find(key_t{key});
+    if (it != this->map_.end()) {
+      return it->second.c_str();  // safe since value remains in map
+    }
+    return "";
   }
 
  protected:
