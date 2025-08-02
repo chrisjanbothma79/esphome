@@ -1,6 +1,7 @@
 from esphome.components.mipi import DriverChip
-from esphome.components.mipi_rgb.models.st7701s import st7701s
 from esphome.config_validation import UNDEFINED
+
+from .st7701s import st7701s
 
 wave_4_3 = DriverChip(
     "ESP32-S3-TOUCH-LCD-4.3",
