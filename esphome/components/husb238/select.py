@@ -1,12 +1,9 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import select
-from esphome.const import (
-    CONF_NAME,
-    CONF_VOLTAGE,
-    ENTITY_CATEGORY_CONFIG,
-)
-from . import husb238_ns, Husb238Component, CONF_HUSB238_ID
+import esphome.config_validation as cv
+from esphome.const import CONF_NAME, CONF_VOLTAGE, ENTITY_CATEGORY_CONFIG
+
+from . import CONF_HUSB238_ID, Husb238Component, husb238_ns
 
 CODEOWNERS = ["@latonita"]
 DEPENDENCIES = ["husb238"]

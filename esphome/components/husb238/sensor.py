@@ -1,9 +1,9 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import sensor
+import esphome.config_validation as cv
 from esphome.const import (
-    CONF_NAME,
     CONF_CURRENT,
+    CONF_NAME,
     CONF_VOLTAGE,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_VOLTAGE,
@@ -11,7 +11,8 @@ from esphome.const import (
     UNIT_AMPERE,
     UNIT_VOLT,
 )
-from . import Husb238Component, CONF_HUSB238_ID
+
+from . import CONF_HUSB238_ID, Husb238Component
 
 CODEOWNERS = ["@latonita"]
 DEPENDENCIES = ["husb238"]

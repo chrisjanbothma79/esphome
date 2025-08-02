@@ -1,8 +1,9 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import binary_sensor
+import esphome.config_validation as cv
 from esphome.const import CONF_NAME, ENTITY_CATEGORY_DIAGNOSTIC
-from . import Husb238Component, CONF_HUSB238_ID
+
+from . import CONF_HUSB238_ID, Husb238Component
 
 CODEOWNERS = ["@latonita"]
 DEPENDENCIES = ["husb238"]
