@@ -493,68 +493,68 @@ class Application {
   std::vector<Area *> areas_{};
 #endif
 #ifdef USE_BINARY_SENSOR
-  static_vector<binary_sensor::BinarySensor *, ESPHOME_ENTITY_BINARY_SENSOR_COUNT> binary_sensors_{};
+  StaticVector<binary_sensor::BinarySensor *, ESPHOME_ENTITY_BINARY_SENSOR_COUNT> binary_sensors_{};
 #endif
 #ifdef USE_SWITCH
-  static_vector<switch_::Switch *, ESPHOME_ENTITY_SWITCH_COUNT> switches_{};
+  StaticVector<switch_::Switch *, ESPHOME_ENTITY_SWITCH_COUNT> switches_{};
 #endif
 #ifdef USE_BUTTON
-  static_vector<button::Button *, ESPHOME_ENTITY_BUTTON_COUNT> buttons_{};
+  StaticVector<button::Button *, ESPHOME_ENTITY_BUTTON_COUNT> buttons_{};
 #endif
 #ifdef USE_EVENT
-  static_vector<event::Event *, ESPHOME_ENTITY_EVENT_COUNT> events_{};
+  StaticVector<event::Event *, ESPHOME_ENTITY_EVENT_COUNT> events_{};
 #endif
 #ifdef USE_SENSOR
-  static_vector<sensor::Sensor *, ESPHOME_ENTITY_SENSOR_COUNT> sensors_{};
+  StaticVector<sensor::Sensor *, ESPHOME_ENTITY_SENSOR_COUNT> sensors_{};
 #endif
 #ifdef USE_TEXT_SENSOR
-  static_vector<text_sensor::TextSensor *, ESPHOME_ENTITY_TEXT_SENSOR_COUNT> text_sensors_{};
+  StaticVector<text_sensor::TextSensor *, ESPHOME_ENTITY_TEXT_SENSOR_COUNT> text_sensors_{};
 #endif
 #ifdef USE_FAN
-  static_vector<fan::Fan *, ESPHOME_ENTITY_FAN_COUNT> fans_{};
+  StaticVector<fan::Fan *, ESPHOME_ENTITY_FAN_COUNT> fans_{};
 #endif
 #ifdef USE_COVER
-  static_vector<cover::Cover *, ESPHOME_ENTITY_COVER_COUNT> covers_{};
+  StaticVector<cover::Cover *, ESPHOME_ENTITY_COVER_COUNT> covers_{};
 #endif
 #ifdef USE_CLIMATE
-  static_vector<climate::Climate *, ESPHOME_ENTITY_CLIMATE_COUNT> climates_{};
+  StaticVector<climate::Climate *, ESPHOME_ENTITY_CLIMATE_COUNT> climates_{};
 #endif
 #ifdef USE_LIGHT
-  static_vector<light::LightState *, ESPHOME_ENTITY_LIGHT_COUNT> lights_{};
+  StaticVector<light::LightState *, ESPHOME_ENTITY_LIGHT_COUNT> lights_{};
 #endif
 #ifdef USE_NUMBER
-  static_vector<number::Number *, ESPHOME_ENTITY_NUMBER_COUNT> numbers_{};
+  StaticVector<number::Number *, ESPHOME_ENTITY_NUMBER_COUNT> numbers_{};
 #endif
 #ifdef USE_DATETIME_DATE
-  static_vector<datetime::DateEntity *, ESPHOME_ENTITY_DATE_COUNT> dates_{};
+  StaticVector<datetime::DateEntity *, ESPHOME_ENTITY_DATE_COUNT> dates_{};
 #endif
 #ifdef USE_DATETIME_TIME
-  static_vector<datetime::TimeEntity *, ESPHOME_ENTITY_TIME_COUNT> times_{};
+  StaticVector<datetime::TimeEntity *, ESPHOME_ENTITY_TIME_COUNT> times_{};
 #endif
 #ifdef USE_DATETIME_DATETIME
-  static_vector<datetime::DateTimeEntity *, ESPHOME_ENTITY_DATETIME_COUNT> datetimes_{};
+  StaticVector<datetime::DateTimeEntity *, ESPHOME_ENTITY_DATETIME_COUNT> datetimes_{};
 #endif
 #ifdef USE_SELECT
-  static_vector<select::Select *, ESPHOME_ENTITY_SELECT_COUNT> selects_{};
+  StaticVector<select::Select *, ESPHOME_ENTITY_SELECT_COUNT> selects_{};
 #endif
 #ifdef USE_TEXT
-  static_vector<text::Text *, ESPHOME_ENTITY_TEXT_COUNT> texts_{};
+  StaticVector<text::Text *, ESPHOME_ENTITY_TEXT_COUNT> texts_{};
 #endif
 #ifdef USE_LOCK
-  static_vector<lock::Lock *, ESPHOME_ENTITY_LOCK_COUNT> locks_{};
+  StaticVector<lock::Lock *, ESPHOME_ENTITY_LOCK_COUNT> locks_{};
 #endif
 #ifdef USE_VALVE
-  static_vector<valve::Valve *, ESPHOME_ENTITY_VALVE_COUNT> valves_{};
+  StaticVector<valve::Valve *, ESPHOME_ENTITY_VALVE_COUNT> valves_{};
 #endif
 #ifdef USE_MEDIA_PLAYER
-  static_vector<media_player::MediaPlayer *, ESPHOME_ENTITY_MEDIA_PLAYER_COUNT> media_players_{};
+  StaticVector<media_player::MediaPlayer *, ESPHOME_ENTITY_MEDIA_PLAYER_COUNT> media_players_{};
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
-  static_vector<alarm_control_panel::AlarmControlPanel *, ESPHOME_ENTITY_ALARM_CONTROL_PANEL_COUNT>
+  StaticVector<alarm_control_panel::AlarmControlPanel *, ESPHOME_ENTITY_ALARM_CONTROL_PANEL_COUNT>
       alarm_control_panels_{};
 #endif
 #ifdef USE_UPDATE
-  static_vector<update::UpdateEntity *, ESPHOME_ENTITY_UPDATE_COUNT> updates_{};
+  StaticVector<update::UpdateEntity *, ESPHOME_ENTITY_UPDATE_COUNT> updates_{};
 #endif
 
 #ifdef USE_SOCKET_SELECT_SUPPORT
