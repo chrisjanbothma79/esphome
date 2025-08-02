@@ -5,7 +5,7 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
-static const char *const TAG = "camera_impl";
+static const char *const TAG = "camera";
 
 namespace esphome {
 namespace camera {
@@ -49,9 +49,9 @@ void CameraImpl::setup() {
     return;
   }
 
-  this->jpeg_ = std::make_shared<CameraImageImpl>();
-  if (!this->jpeg_->set_data_length(this->encoder_buffer_size_)) {
-    this->status_set_error("Failed to allocate memory for encoder buffer.");
+  this->jpeg_ = std::make_shared<CameraImageAdapter>(encoder_->get_output_buffer());
+  if (this->jpeg_ == nullptr) {
+    this->status_set_error("Missing set_encoder_buffer() call detected.");
     this->mark_failed();
     return;
   }
@@ -140,45 +140,44 @@ bool CameraImpl::camera_loop() {
       return false;
     }
 
-    // Set available data to max for encoder.
-    this->jpeg_->set_data_length(this->jpeg_->get_max_data_length());
     state_ = CAMERA_STATE_ENCODING;
   }
 
   if (state_ == CAMERA_STATE_ENCODING) {
     // Encodes the pixels and returns the number of bytes written.
-    size_t length = this->encoder_->encode_pixels(this->input_image_spec_, this->input_image_, this->jpeg_.get());
+    size_t length = this->encoder_->encode_pixels(this->input_image_spec_, this->input_image_);
     switch (this->encoder_->get_last_error()) {
       case ENCODER_ERROR_SUCCESS: {
-        // Incremental image encoding
-        if (length == 0)
-          return true;
+        if (skip_frame_counter_ > 1)
+          ESP_LOGW(TAG, "ENCODER_ERROR_SKIP_FRAME. TOTAL: %d", skip_frame_counter_);
 
-        // Image encoded
-        this->jpeg_->set_data_length(length);
+        if (retry_frame_counter_ > 1)
+          ESP_LOGV(TAG, "ENCODER_ERROR_RETRY_FRAME. TOTAL: %d", retry_frame_counter_);
+
+        skip_frame_counter_ = 0;
+        retry_frame_counter_ = 0;
         state_ = CAMERA_STATE_RATE_LIMITING;
       } break;
-      case ENCODER_ERROR_OUT_OF_MEMORY: {
-        ESP_LOGW(TAG, "The encoder buffer is too small. The encoding failed. Buffer size: %u",
-                 this->jpeg_->get_max_data_length());
-        state_ = CAMERA_STATE_CLEAR_REQUEST;
-        if (this->encoder_buffer_grow_ > 0) {
-          size_t new_size = this->jpeg_->get_max_data_length() + this->encoder_buffer_grow_;
-          ESP_LOGI(TAG, "Increasing encoder buffer size with %u bytes. Retry...", this->encoder_buffer_grow_);
-          if (!this->jpeg_->set_data_length(new_size)) {
-            this->status_set_error("Failed to increase encoder buffer.");
-            this->mark_failed();
-            return false;
-          }
+        break;
+      case ENCODER_ERROR_SKIP_FRAME: {
+        if (skip_frame_counter_ == 0)
+          ESP_LOGW(TAG, "ENCODER_ERROR_SKIP_FRAME.");
 
-          // Retry encoding with more memory. Encoder resets itself in case of an error.
-          state_ = CAMERA_STATE_ENCODING;
-          return true;
-        }
-      } break;
-      default:
-        ESP_LOGE(TAG, "Encoder failed with error code: %u", this->encoder_->get_last_error());
+        ++skip_frame_counter_;
         state_ = CAMERA_STATE_CLEAR_REQUEST;
+      } break;
+      case ENCODER_ERROR_RETRY_FRAME: {
+        if (retry_frame_counter_ == 0)
+          ESP_LOGV(TAG, "ENCODER_ERROR_RETRY_FRAME.");
+
+        ++retry_frame_counter_;
+        return true;
+      } break;
+      case ENCODER_ERROR_CONFIGURATION: {
+        this->status_set_error("ENCODER_ERROR_CONFIGURATION");
+        this->mark_failed();
+        return false;
+      } break;
     }
   }
 
@@ -212,15 +211,15 @@ void CameraImpl::dump_config() {
                 "  Name: %s\n"
                 "  Internal: %s\n"
                 "  Resolution: %dx%d\n"
-                "  Format: %d\n"
-                "  Encoder enabled: %s\n"
-                "  Encoder size: %d\n"
-                "  Encoder grow: %d\n"
+                "  %s\n"
                 "  Idle update: %d ms\n"
-                "  Max update: %d ms",
+                "  Max update: %d ms\n"
+                "  Encoder enabled: %s\n",
                 this->name_.c_str(), YESNO(this->is_internal()), camera_image_spec_.width, camera_image_spec_.height,
-                camera_image_spec_.format, YESNO(this->encoder_), encoder_buffer_size_, encoder_buffer_grow_,
-                idle_update_interval_, max_update_interval_);
+                to_string(camera_image_spec_.format), idle_update_interval_, max_update_interval_,
+                YESNO(this->encoder_));
+  if (this->encoder_)
+    this->encoder_->dump_config();
 }
 
 }  // namespace camera

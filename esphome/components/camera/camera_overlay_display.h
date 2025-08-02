@@ -49,11 +49,11 @@ class CameraOverlayDisplay : public display::Display {
         reinterpret_cast<uint16_t *>(data_buffer_)[idx] =
             (color.r & 0xF8) << 8 | (color.g & 0xFC) << 3 | (color.b & 0xF8) >> 3;
       } break;
-      case camera::IMAGE_FORMAT_RGB888: {
+      case camera::IMAGE_FORMAT_BGR888: {
         int idx = (y * this->spec_.width + x) * 3;
-        data_buffer_[idx] = color.r;
+        data_buffer_[idx] = color.b;
         data_buffer_[idx + 1] = color.g;
-        data_buffer_[idx + 2] = color.b;
+        data_buffer_[idx + 2] = color.r;
       } break;
     }
   }

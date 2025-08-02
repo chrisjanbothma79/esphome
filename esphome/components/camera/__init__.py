@@ -12,8 +12,6 @@ CODEOWNERS = ["@DT-art1", "@bdraco"]
 CONF_IDLE_UPDATE_INTERVAL = "idle_update_interval"
 CONF_MAX_UPDATE_INTERVAL = "max_update_interval"
 CONF_CAMERA_ENCODER_ID = "camera_encoder_id"
-CONF_ENCODER_BUFFER_SIZE = "encoder_buffer_size"
-CONF_ENCODER_BUFFER_GROW = "encoder_buffer_grow"
 
 CONF_ON_STREAM_START = "on_stream_start"
 CONF_ON_STREAM_STOP = "on_stream_stop"
@@ -55,7 +53,7 @@ CONF_IMAGE_FORMAT = "image_format"
 CONF_IMAGE_FORMAT_SELECTS = {
     "GRAYSCALE": ImageFormat.IMAGE_FORMAT_GRAYSCALE,
     "RGB565": ImageFormat.IMAGE_FORMAT_RGB565,
-    "RGB888": ImageFormat.IMAGE_FORMAT_RGB888,
+    "BGR888": ImageFormat.IMAGE_FORMAT_BGR888,
 }
 
 IS_PLATFORM_COMPONENT = True
@@ -106,8 +104,6 @@ _CAMERA_SCHEMA = (
             ),
             cv.Optional(CONF_IDLE_UPDATE_INTERVAL, default=0): cv.int_range(0),
             cv.Optional(CONF_MAX_UPDATE_INTERVAL, default=100): cv.int_range(0),
-            cv.Optional(CONF_ENCODER_BUFFER_SIZE, default=4096): cv.int_range(1024),
-            cv.Optional(CONF_ENCODER_BUFFER_GROW, default=4096): cv.int_range(0),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -131,8 +127,6 @@ def camera_schema(
 async def setup_camera(var, config):
     cg.add(var.set_idle_update_interval(config[CONF_IDLE_UPDATE_INTERVAL]))
     cg.add(var.set_max_update_interval(config[CONF_MAX_UPDATE_INTERVAL]))
-    cg.add(var.set_encoder_buffer_size(config[CONF_ENCODER_BUFFER_SIZE]))
-    cg.add(var.set_encoder_buffer_grow(config[CONF_ENCODER_BUFFER_GROW]))
     cg.add(
         var.set_camera_image_spec(
             config[CONF_WIDTH], config[CONF_HEIGHT], config[CONF_IMAGE_FORMAT]

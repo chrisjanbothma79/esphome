@@ -35,10 +35,6 @@ class CameraImpl : public Camera {
   void set_max_update_interval(uint32_t max_update_interval) { this->max_update_interval_ = max_update_interval; }
   // Sets encoder implementation
   void set_encoder(Encoder *encoder) { this->encoder_ = encoder; }
-  // Sets the initial number of bytes in the encoder buffer
-  void set_encoder_buffer_size(size_t encoder_buffer_size) { this->encoder_buffer_size_ = encoder_buffer_size; }
-  // Specifies how many bytes the buffer should grow after an underflow error
-  void set_encoder_buffer_grow(size_t encoder_buffer_grow) { this->encoder_buffer_grow_ = encoder_buffer_grow; }
   // Performs camera processing tasks such as image capture and JPEG encoding spread
   // over multiple loop cycles to avoid blocking and ensure real-time responsiveness.
   // This method is intended to be called repeatedly from the loop.
@@ -66,7 +62,7 @@ class CameraImpl : public Camera {
   CameraImageImpl *pixels_{};
   CameraImage *input_image_{};
   CameraImageSpec *input_image_spec_{};
-  std::shared_ptr<CameraImageImpl> jpeg_;
+  std::shared_ptr<CameraImageAdapter> jpeg_;
   CameraImageSpec camera_image_spec_{};
   CameraIncrementalContext camera_incremental_context_;
   CameraState state_{CAMERA_STATE_INIT};
@@ -74,12 +70,12 @@ class CameraImpl : public Camera {
   Encoder *encoder_{};
   uint8_t image_requesters_{};
   uint8_t stream_requesters_{};
-  size_t encoder_buffer_size_{};
-  size_t encoder_buffer_grow_{};
   uint32_t last_idle_request_{};
   uint32_t idle_update_interval_{};
   uint32_t last_update_{};
   uint32_t max_update_interval_{};
+  uint32_t skip_frame_counter_{};
+  uint32_t retry_frame_counter_{};
 };
 
 }  // namespace camera

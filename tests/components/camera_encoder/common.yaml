@@ -1,6 +1,5 @@
 camera_encoder:
   id: jpeg_encoder
-  type: default
-  mcu_count: 256
-  quality: LOW
-  subsampling: 420
+  quality: 80
+  buffer_size: 4096
+  buffer_expand_size: 1024
