@@ -214,14 +214,6 @@ class Application {
 #endif
 
   /// Reserve space for components to avoid memory fragmentation
-  void reserve_components(size_t count) { this->components_.reserve(count); }
-
-#ifdef USE_AREAS
-  void reserve_area(size_t count) { this->areas_.reserve(count); }
-#endif
-#ifdef USE_DEVICES
-  void reserve_device(size_t count) { this->devices_.reserve(count); }
-#endif
 
   /// Register the component in this Application instance.
   template<class C> C *register_component(C *c) {
@@ -316,7 +308,7 @@ class Application {
     } \
     return nullptr; \
   }
-  const std::vector<Device *> &get_devices() { return this->devices_; }
+  const auto &get_devices() { return this->devices_; }
 #else
 #define GET_ENTITY_METHOD(entity_type, entity_name, entities_member) \
   entity_type *get_##entity_name##_by_key(uint32_t key, bool include_internal = false) { \
@@ -328,7 +320,7 @@ class Application {
   }
 #endif  // USE_DEVICES
 #ifdef USE_AREAS
-  const std::vector<Area *> &get_areas() { return this->areas_; }
+  const auto &get_areas() { return this->areas_; }
 #endif
 #ifdef USE_BINARY_SENSOR
   auto &get_binary_sensors() const { return this->binary_sensors_; }
@@ -466,7 +458,7 @@ class Application {
   size_t dump_config_at_{SIZE_MAX};
 
   // Vectors (largest members)
-  std::vector<Component *> components_{};
+  StaticVector<Component *, ESPHOME_COMPONENT_COUNT> components_{};
 
   // Partitioned vector design for looping components
   // =================================================
@@ -487,10 +479,10 @@ class Application {
   std::vector<Component *> looping_components_{};
 
 #ifdef USE_DEVICES
-  std::vector<Device *> devices_{};
+  StaticVector<Device *, ESPHOME_DEVICE_COUNT> devices_{};
 #endif
 #ifdef USE_AREAS
-  std::vector<Area *> areas_{};
+  StaticVector<Area *, ESPHOME_AREA_COUNT> areas_{};
 #endif
 #ifdef USE_BINARY_SENSOR
   StaticVector<binary_sensor::BinarySensor *, ESPHOME_ENTITY_BINARY_SENSOR_COUNT> binary_sensors_{};
