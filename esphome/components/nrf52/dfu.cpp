@@ -25,8 +25,8 @@ static void cdc_dte_rate_callback(const struct device * /*unused*/, uint32_t rat
 }
 
 void DeviceFirmwareUpdate::setup() {
-  for (int idx = 0; idx < ARRAY_SIZE(cdc_dev); idx++) {
-    cdc_acm_dte_rate_callback_set(cdc_dev[idx], cdc_dte_rate_callback);
+  for (auto &idx : cdc_dev) {
+    cdc_acm_dte_rate_callback_set(idx, cdc_dte_rate_callback);
   }
 }
 
