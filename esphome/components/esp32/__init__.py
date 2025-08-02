@@ -724,7 +724,7 @@ def _show_framework_migration_message(name: str, variant: str) -> None:
         + color(AnsiFore.WHITE, "        type: esp-idf\n")
         + "\n"
         + color(AnsiFore.CYAN, "  Option 2")
-        + ": Keep using Arduino (100% supported)\n"
+        + ": Keep using Arduino (still supported)\n"
         + "    Add this to your YAML under 'esp32:':\n"
         + color(AnsiFore.WHITE, "      framework:\n")
         + color(AnsiFore.WHITE, "        type: arduino\n")
