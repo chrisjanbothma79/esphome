@@ -37,12 +37,15 @@ static const char *const TAG = "app";
 // Helper function for insertion sort of components by setup priority
 // Using insertion sort instead of std::stable_sort saves ~1.3KB of flash
 // by avoiding template instantiations (std::rotate, std::stable_sort, lambdas)
+// IMPORTANT: This sort is stable (preserves relative order of equal elements),
+// which is necessary to maintain user-defined component order for same priority
 static void insertion_sort_by_setup_priority(Component **components, size_t size) {
   for (size_t i = 1; i < size; i++) {
     Component *key = components[i];
     float key_priority = key->get_actual_setup_priority();
     int32_t j = i - 1;
 
+    // Using '<' (not '<=') ensures stability - equal priority components keep their order
     while (j >= 0 && components[j]->get_actual_setup_priority() < key_priority) {
       components[j + 1] = components[j];
       j--;
@@ -52,12 +55,15 @@ static void insertion_sort_by_setup_priority(Component **components, size_t size
 }
 
 // Helper function for insertion sort of components by loop priority
+// IMPORTANT: This sort is stable (preserves relative order of equal elements),
+// which is required when components are re-sorted during setup() if they block
 static void insertion_sort_by_loop_priority(Component **components, size_t size) {
   for (size_t i = 1; i < size; i++) {
     Component *key = components[i];
     float key_priority = key->get_loop_priority();
     int32_t j = i - 1;
 
+    // Using '<' (not '<=') ensures stability - equal priority components keep their order
     while (j >= 0 && components[j]->get_loop_priority() < key_priority) {
       components[j + 1] = components[j];
       j--;
