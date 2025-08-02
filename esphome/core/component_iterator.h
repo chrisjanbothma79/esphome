@@ -172,9 +172,9 @@ class ComponentIterator {
   uint16_t at_{0};  // Supports up to 65,535 entities per type
   bool include_internal_{false};
 
-  template<typename Container>
-  void process_platform_item_(const Container &items,
-                              bool (ComponentIterator::*on_item)(typename Container::value_type));
+  template<typename PlatformItem>
+  void process_platform_item_(const std::vector<PlatformItem *> &items,
+                              bool (ComponentIterator::*on_item)(PlatformItem *));
   void advance_platform_();
 };
 

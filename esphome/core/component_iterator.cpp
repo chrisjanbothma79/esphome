@@ -17,13 +17,13 @@ void ComponentIterator::begin(bool include_internal) {
   this->include_internal_ = include_internal;
 }
 
-template<typename Container>
-void ComponentIterator::process_platform_item_(const Container &items,
-                                               bool (ComponentIterator::*on_item)(typename Container::value_type)) {
+template<typename PlatformItem>
+void ComponentIterator::process_platform_item_(const std::vector<PlatformItem *> &items,
+                                               bool (ComponentIterator::*on_item)(PlatformItem *)) {
   if (this->at_ >= items.size()) {
     this->advance_platform_();
   } else {
-    auto *item = items[this->at_];
+    PlatformItem *item = items[this->at_];
     if ((item->is_internal() && !this->include_internal_) || (this->*on_item)(item)) {
       this->at_++;
     }
