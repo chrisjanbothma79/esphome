@@ -95,7 +95,7 @@ template<> constexpr int64_t byteswap(int64_t n) { return __builtin_bswap64(n); 
 ///@{
 
 /// Minimal static vector - saves memory by avoiding std::vector overhead
-template<typename T, size_t N> class static_vector {
+template<typename T, size_t N> class StaticVector {
  public:
   using value_type = T;
   using iterator = typename std::array<T, N>::iterator;
@@ -112,6 +112,11 @@ template<typename T, size_t N> class static_vector {
       data_[count_++] = value;
     }
   }
+
+  size_t size() const { return count_; }
+
+  T &operator[](size_t i) { return data_[i]; }
+  const T &operator[](size_t i) const { return data_[i]; }
 
   // For range-based for loops
   iterator begin() { return data_.begin(); }
