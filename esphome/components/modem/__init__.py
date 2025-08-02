@@ -49,7 +49,7 @@ CONF_TOFF_PULSE_DELAY = "toff_pulse_delay"
 CONF_TOFF_DELAY = "toff_delay"
 CONF_INIT_AT = "init_at"
 CONF_ON_NOT_RESPONDING = "on_not_responding"
-CONF_ON_START_PPP = "on_start_ppp"
+CONF_ON_POWERON = "on_poweron"
 CONF_ON_ENABLE = "on_enable"
 CONF_ENABLE_CMUX = "enable_cmux"
 CONF_DTE_BUFFER_SIZE = "dte_buffer_size"
@@ -104,8 +104,8 @@ ModemOnConnectTrigger = modem_ns.class_(
 ModemOnDisconnectTrigger = modem_ns.class_(
     "ModemOnDisconnectTrigger", automation.Trigger.template()
 )
-ModemOnStartPPPTrigger = modem_ns.class_(
-    "ModemOnStartPPPTrigger", automation.Trigger.template()
+ModemOnPowerOnTrigger = modem_ns.class_(
+    "ModemOnPowerOnTrigger", automation.Trigger.template()
 )
 ModemOnEnableTrigger = modem_ns.class_(
     "ModemOnEnableTrigger", automation.Trigger.template()
@@ -174,8 +174,8 @@ CONFIG_SCHEMA = cv.All(
                     )
                 }
             ),
-            cv.Optional(CONF_ON_START_PPP): automation.validate_automation(
-                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ModemOnStartPPPTrigger)}
+            cv.Optional(CONF_ON_POWERON): automation.validate_automation(
+                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ModemOnPowerOnTrigger)}
             ),
             cv.Optional(CONF_ON_ENABLE): automation.validate_automation(
                 {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ModemOnEnableTrigger)}
@@ -223,17 +223,15 @@ def _final_validate(config):
         if toff_delay := config.get(CONF_TOFF_DELAY, None):
             MODEM_MODELS_POWER[config[CONF_MODEL]][CONF_TOFF_DELAY] = toff_delay
 
-        if config[CONF_MODEL] not in MODEM_MODELS_POWER:
-            # no defaults for ton/toff delay, so manual config is required
-            if not (
-                config.get(CONF_TON_PULSE_DELAY, None)
-                and config.get(CONF_TON_DELAY, None)
-                and config.get(CONF_TOFF_PULSE_DELAY, None)
-                and config.get(CONF_TOFF_DELAY, None)
-            ):
-                raise cv.Invalid(
-                    f"Modem model '{config[CONF_MODEL]}' has no known power specs. If using a power pin, '{CONF_TON_PULSE_DELAY}', '{CONF_TON_DELAY}', '{CONF_TOFF_PULSE_DELAY}', '{CONF_TOFF_DELAY}' options a required"
-                )
+        if config[CONF_MODEL] not in MODEM_MODELS_POWER and not (
+            config.get(CONF_TON_PULSE_DELAY, None)
+            and config.get(CONF_TON_DELAY, None)
+            and config.get(CONF_TOFF_PULSE_DELAY, None)
+            and config.get(CONF_TOFF_DELAY, None)
+        ):
+            raise cv.Invalid(
+                f"Modem model '{config[CONF_MODEL]}' has no known power specs. If using a power pin, '{CONF_TON_PULSE_DELAY}', '{CONF_TON_DELAY}', '{CONF_TOFF_PULSE_DELAY}', '{CONF_TOFF_DELAY}' options a required"
+            )
         power_undef = [
             k for k, v in MODEM_MODELS_POWER[config[CONF_MODEL]].items() if not v
         ]
@@ -242,13 +240,14 @@ def _final_validate(config):
                 f"Options {power_undef} must be defined for model {config[CONF_MODEL]}"
             )
 
-    if conf_safe_mode := full_config.get(CONF_SAFE_MODE, None):
-        if not conf_safe_mode.get(CONF_DISABLED, None):
-            _LOGGER.warning(
-                "%s may be explicitly disabled, since triggering it would prevent the %s component from being activated.",
-                CONF_SAFE_MODE,
-                CONF_MODEM,
-            )
+    if (
+        conf_safe_mode := full_config.get(CONF_SAFE_MODE, None)
+    ) and not conf_safe_mode.get(CONF_DISABLED, None):
+        _LOGGER.warning(
+            "%s may be explicitly disabled, since triggering it would prevent the %s component from being activated.",
+            CONF_SAFE_MODE,
+            CONF_MODEM,
+        )
 
 
 FINAL_VALIDATE_SCHEMA = _final_validate
@@ -363,7 +362,7 @@ async def to_code(config):
     modem_model = config[CONF_MODEL]
     cg.add(var.set_model(modem_model))
 
-    if power_spec := MODEM_MODELS_POWER.get(modem_model, None):
+    if power_spec := MODEM_MODELS_POWER.get(modem_model):
         cg.add(var.set_power_ton_pulse_delay(power_spec[CONF_TON_PULSE_DELAY]))
         cg.add(var.set_power_ton_delay(power_spec[CONF_TON_DELAY]))
         cg.add(var.set_power_toff_pulse_delay(power_spec[CONF_TOFF_PULSE_DELAY]))
@@ -397,24 +396,15 @@ async def to_code(config):
     if dte_buffer_size := config.get(CONF_DTE_BUFFER_SIZE, None):
         cg.add(var.set_dte_buffer_size(dte_buffer_size))
 
-    for conf in config.get(CONF_ON_NOT_RESPONDING, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
-
-    for conf in config.get(CONF_ON_CONNECT, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
-
-    for conf in config.get(CONF_ON_DISCONNECT, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
-
-    for conf in config.get(CONF_ON_START_PPP, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
-
-    for conf in config.get(CONF_ON_ENABLE, []):
-        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [], conf)
+    for conf_key in [
+        CONF_ON_NOT_RESPONDING,
+        CONF_ON_CONNECT,
+        CONF_ON_DISCONNECT,
+        CONF_ON_POWERON,
+        CONF_ON_ENABLE,
+    ]:
+        for conf in config.get(conf_key, []):
+            trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+            await automation.build_automation(trigger, [], conf)
 
     await cg.register_component(var, config)

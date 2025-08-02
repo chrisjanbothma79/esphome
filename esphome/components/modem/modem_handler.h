@@ -57,14 +57,14 @@ class ModemHandler {
 
   // Internal state attributes
   int current_baud_rate{0};
-  float rssi{NAN};
-  float ber{NAN};
-  int network_attached{0};
-  int network_mode{0};
-  bool modem_connected{false};
-  int cfun{0};
-  std::string sim_status = "None";
-  bool synced{false};
+  // float rssi{NAN};
+  // float ber{NAN};
+  // int network_attached{0};
+  // int network_mode{0};
+  // bool modem_connected{false};
+  // int cfun{0};
+  // std::string sim_status = "None";
+  // bool synced{false};
   NetworkInfos network_infos{};
 
   // UART config
@@ -81,9 +81,10 @@ class ModemHandler {
   bool get_power_status();
   bool get_signal_quality(float &out_rssi, float &out_ber);
   static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
-  std::string modem_network_status_string();
+  void modem_log_status();
+  // std::string modem_network_status_string();
   void send_init_at();
-  void update_network_state();
+  // void update_network_state();
   bool prepare_sim();
   std::string flush_uart(uint32_t timeout);
   std::string flush_uart() { return this->flush_uart(this->command_delay); }

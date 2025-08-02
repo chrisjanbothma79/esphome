@@ -114,25 +114,58 @@ bool ModemHandler::get_signal_quality(float &out_rssi, float &out_ber) {
       out_ber = 0.1f * (modem_ber * modem_ber);
     return true;
   }
+  ESP_LOGE(TAG, "XXXXXXXXXXXX");
   return false;
 }
 
-std::string ModemHandler::modem_network_status_string() {
-  std::string cfun_str;
-  if (this->cfun == 1) {
-    cfun_str = "OK";
-  } else {
-    cfun_str = "NOK (" + std::to_string(this->cfun) + ")";
-  }
+void ModemHandler::modem_log_status() {
+  bool synced = false;
+  int cfun = -1;
+  int attached = 0;
+  int network_mode = 0;
+  float rssi = NAN, ber = NAN;
+  std::string sim_status = "UNKNOWN";
 
-  char buf[256];
-  snprintf(buf, sizeof(buf),
-           "Modem status: %s, attached: %s, radio function: %s, SIM: %s, type: %s, ber: %.0f%%, rssi: %.0fdB %s",
-           this->modem_connected ? "Good" : (this->synced ? "BAD" : "No SYNC"), this->network_attached ? "Yes" : "NO",
-           cfun_str.c_str(), this->sim_status.c_str(), network_system_mode_to_string(this->network_mode).c_str(),
-           this->ber, this->rssi, get_signal_bars(this->rssi).c_str());
-  return {buf};
+  if (this->dce && this->dce->sync() == esp_modem::command_result::OK) {
+    synced = true;
+
+    auto res = this->send_at("AT+CPIN?");
+    if (res) {
+      auto &out = res.output;
+      sim_status = out.rfind("+CPIN: ", 0) == 0 ? out.substr(7) : out;
+    }
+    this->dce->get_radio_state(cfun);
+    this->dce->get_network_attachment_state(attached);
+    this->get_signal_quality(rssi, ber);
+    this->dce->get_network_system_mode(network_mode);
+  }
+  bool connected =
+      synced && network_mode != 0 && attached && !std::isnan(rssi) && sim_status.find("READY") != std::string::npos;
+  std::string cfun_str = (cfun == 1) ? "OK" : "NOK(" + std::to_string(cfun) + ")";
+
+  ESP_LOGI(TAG, "Modem status: %s, attached: %s, radio function: %s, SIM: %s, type: %s, ber: %.0f%%, rssi: %.0fdB %s",
+           connected ? "Good" : (synced ? "BAD" : "No SYNC"), attached ? "Yes" : "NO", cfun_str.c_str(),
+           sim_status.c_str(), network_system_mode_to_string(network_mode).c_str(), ber * 100.0f, rssi,
+           get_signal_bars(rssi).c_str());
 }
+
+// std::string ModemHandler::modem_network_status_string() {
+//   std::string cfun_str;
+//   if (this->cfun == 1) {
+//     cfun_str = "OK";
+//   } else {
+//     cfun_str = "NOK (" + std::to_string(this->cfun) + ")";
+//   }
+//
+//   char buf[256];
+//   snprintf(buf, sizeof(buf),
+//            "Modem status: %s, attached: %s, radio function: %s, SIM: %s, type: %s, ber: %.0f%%, rssi: %.0fdB %s",
+//            this->modem_connected ? "Good" : (this->synced ? "BAD" : "No SYNC"), this->network_attached ? "Yes" :
+//            "NO", cfun_str.c_str(), this->sim_status.c_str(),
+//            network_system_mode_to_string(this->network_mode).c_str(), this->ber, this->rssi,
+//            get_signal_bars(this->rssi).c_str());
+//   return {buf};
+// }
 
 void ModemHandler::send_init_at() {
   for (const auto &cmd : this->init_at_commands) {
@@ -149,32 +182,32 @@ void ModemHandler::send_init_at() {
   this->flush_uart();
 }
 
-void ModemHandler::update_network_state() {
-  if (this->dce && (this->dce->sync() == command_result::OK)) {
-    this->synced = true;
-    AtCommandResult sim_status_res = this->send_at("AT+CPIN?");
-    if (sim_status_res) {
-      this->sim_status =
-          sim_status_res.output.starts_with("+CPIN: ") ? sim_status_res.output.substr(7) : sim_status_res.output;
-    } else {
-      ESP_LOGE(TAG, "Unable to check pin: %s",
-               command_result_to_string(sim_status_res.esp_modem_command_result).c_str());
-    }
-    delay(200);  // NOLINT
-
-    ESPMODEM_ERROR_CHECK(this->dce->get_radio_state(this->cfun), "get_radio_state");
-    ESPMODEM_ERROR_CHECK(this->dce->get_network_attachment_state(this->network_attached),
-                         "get_network_attachment_state");
-    this->get_signal_quality(this->rssi, this->ber);
-    ESPMODEM_ERROR_CHECK(this->dce->get_network_system_mode(this->network_mode), "get_network_system_mode");
-  } else {
-    ESP_LOGW(TAG, "Modem not synced, some network states might be incorrect");
-    this->synced = false;
-  }
-
-  this->modem_connected = (this->network_mode != 0) && (!std::isnan(this->rssi)) && this->synced &&
-                          this->network_attached && this->sim_status.find("READY") != std::string::npos;
-}
+// void ModemHandler::update_network_state() {
+//   if (this->dce && (this->dce->sync() == command_result::OK)) {
+//     this->synced = true;
+//     AtCommandResult sim_status_res = this->send_at("AT+CPIN?");
+//     if (sim_status_res) {
+//       this->sim_status =
+//           sim_status_res.output.starts_with("+CPIN: ") ? sim_status_res.output.substr(7) : sim_status_res.output;
+//     } else {
+//       ESP_LOGE(TAG, "Unable to check pin: %s",
+//                command_result_to_string(sim_status_res.esp_modem_command_result).c_str());
+//     }
+//     delay(200);  // NOLINT
+//
+//     ESPMODEM_ERROR_CHECK(this->dce->get_radio_state(this->cfun), "get_radio_state");
+//     ESPMODEM_ERROR_CHECK(this->dce->get_network_attachment_state(this->network_attached),
+//                          "get_network_attachment_state");
+//     this->get_signal_quality(this->rssi, this->ber);
+//     ESPMODEM_ERROR_CHECK(this->dce->get_network_system_mode(this->network_mode), "get_network_system_mode");
+//   } else {
+//     ESP_LOGW(TAG, "Modem not synced, some network states might be incorrect");
+//     this->synced = false;
+//   }
+//
+//   this->modem_connected = (this->network_mode != 0) && (!std::isnan(this->rssi)) && this->synced &&
+//                           this->network_attached && this->sim_status.find("READY") != std::string::npos;
+// }
 
 bool ModemHandler::prepare_sim() {
   App.feed_wdt();

@@ -30,9 +30,64 @@ std::string command_result_to_string(command_result err) {
   return res;
 }
 
+std::string modem_mode_to_string(modem_mode mode) {
+  std::string res = "UNKNOWN";
+  switch (mode) {
+    case modem_mode::AUTODETECT:
+      res = "AUTODETECT";
+      break;
+    case modem_mode::COMMAND_MODE:
+      res = "COMMAND_MODE";
+      break;
+    case modem_mode::DATA_MODE:
+      res = "DATA_MODE";
+      break;
+    case modem_mode::DUAL_MODE:
+      res = "DUAL_MODE";
+      break;
+    case modem_mode::CMUX_MODE:
+      res = "CMUX_MODE";
+      break;
+    case modem_mode::CMUX_MANUAL_MODE:
+      res = "CMUX_MANUAL_MODE";
+      break;
+    case modem_mode::CMUX_MANUAL_EXIT:
+      res = "CMUX_MANUAL_EXIT";
+      break;
+    case modem_mode::CMUX_MANUAL_DATA:
+      res = "CMUX_MANUAL_DATA";
+      break;
+    case modem_mode::CMUX_MANUAL_COMMAND:
+      res = "CMUX_MANUAL_COMMAND";
+      break;
+    case modem_mode::CMUX_MANUAL_SWAP:
+      res = "CMUX_MANUAL_SWAP";
+      break;
+    case modem_mode::RESUME_DATA_MODE:
+      res = "RESUME_DATA_MODE";
+      break;
+    case modem_mode::RESUME_COMMAND_MODE:
+      res = "RESUME_COMMAND_MODE";
+      break;
+    case modem_mode::RESUME_CMUX_MANUAL_MODE:
+      res = "RESUME_CMUX_MANUAL_MODE";
+      break;
+    case modem_mode::RESUME_CMUX_MANUAL_DATA:
+      res = "RESUME_CMUX_MANUAL_DATA";
+      break;
+    case modem_mode::UNDEF:
+      res = "UNDEF";
+      break;
+  }
+  return res;
+}
+
 std::string state_to_string(ModemComponentState state) {
   std::string str;
   switch (state) {
+    case ModemComponentState::ENABLING:
+      str = "ENABLING";
+      break;
     case ModemComponentState::POWERING_ON:
       str = "POWERING_ON";
       break;
