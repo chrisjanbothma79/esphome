@@ -39,36 +39,36 @@ static const char *const TAG = "app";
 // by avoiding template instantiations (std::rotate, std::stable_sort, lambdas)
 // IMPORTANT: This sort is stable (preserves relative order of equal elements),
 // which is necessary to maintain user-defined component order for same priority
-static void insertion_sort_by_setup_priority(Component **components, size_t size) {
-  for (size_t i = 1; i < size; i++) {
-    Component *key = components[i];
+template<typename Iterator> static void insertion_sort_by_setup_priority(Iterator first, Iterator last) {
+  for (auto it = first + 1; it != last; ++it) {
+    auto key = *it;
     float key_priority = key->get_actual_setup_priority();
-    int32_t j = i - 1;
+    auto j = it - 1;
 
     // Using '<' (not '<=') ensures stability - equal priority components keep their order
-    while (j >= 0 && components[j]->get_actual_setup_priority() < key_priority) {
-      components[j + 1] = components[j];
+    while (j >= first && (*j)->get_actual_setup_priority() < key_priority) {
+      *(j + 1) = *j;
       j--;
     }
-    components[j + 1] = key;
+    *(j + 1) = key;
   }
 }
 
 // Helper function for insertion sort of components by loop priority
 // IMPORTANT: This sort is stable (preserves relative order of equal elements),
 // which is required when components are re-sorted during setup() if they block
-static void insertion_sort_by_loop_priority(Component **components, size_t size) {
-  for (size_t i = 1; i < size; i++) {
-    Component *key = components[i];
+template<typename Iterator> static void insertion_sort_by_loop_priority(Iterator first, Iterator last) {
+  for (auto it = first + 1; it != last; ++it) {
+    auto key = *it;
     float key_priority = key->get_loop_priority();
-    int32_t j = i - 1;
+    auto j = it - 1;
 
     // Using '<' (not '<=') ensures stability - equal priority components keep their order
-    while (j >= 0 && components[j]->get_loop_priority() < key_priority) {
-      components[j + 1] = components[j];
+    while (j >= first && (*j)->get_loop_priority() < key_priority) {
+      *(j + 1) = *j;
       j--;
     }
-    components[j + 1] = key;
+    *(j + 1) = key;
   }
 }
 
@@ -91,7 +91,7 @@ void Application::setup() {
   ESP_LOGV(TAG, "Sorting components by setup priority");
 
   // Sort by setup priority using our helper function
-  insertion_sort_by_setup_priority(this->components_.data(), this->components_.size());
+  insertion_sort_by_setup_priority(this->components_.begin(), this->components_.end());
 
   // Initialize looping_components_ early so enable_pending_loops_() works during setup
   this->calculate_looping_components_();
@@ -108,7 +108,7 @@ void Application::setup() {
       continue;
 
     // Sort components 0 through i by loop priority
-    insertion_sort_by_loop_priority(this->components_.data(), i + 1);
+    insertion_sort_by_loop_priority(this->components_.begin(), this->components_.begin() + i + 1);
 
     do {
       uint8_t new_app_state = STATUS_LED_WARNING;
