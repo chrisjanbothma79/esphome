@@ -17,23 +17,6 @@ void ComponentIterator::begin(bool include_internal) {
   this->include_internal_ = include_internal;
 }
 
-template<typename Container>
-void ComponentIterator::process_platform_item_(const Container &items,
-                                               bool (ComponentIterator::*on_item)(typename Container::value_type)) {
-  // Since static_vector doesn't have size(), we need to iterate differently
-  size_t index = 0;
-  for (auto *item : items) {
-    if (index++ == this->at_) {
-      if ((item->is_internal() && !this->include_internal_) || (this->*on_item)(item)) {
-        this->at_++;
-      }
-      return;
-    }
-  }
-  // If we get here, we've reached the end
-  this->advance_platform_();
-}
-
 void ComponentIterator::advance_platform_() {
   this->state_ = static_cast<IteratorState>(static_cast<uint32_t>(this->state_) + 1);
   this->at_ = 0;
