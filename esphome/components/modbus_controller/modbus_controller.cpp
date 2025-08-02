@@ -137,7 +137,7 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
 
     if (!found) {
       ESP_LOGW(TAG, "Could not match any register to address %02X. Sending exception response.", current_address);
-      send_error(function_code, 0x02);
+      send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_ADDRESS);
       return;
     }
   }
@@ -156,27 +156,27 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
   uint16_t number_of_registers;
   uint16_t payload_offset;
 
-  if (function_code == 0x10) {
+  if (function_code == ModbusFunctionCode::WRITE_MULTIPLE_REGISTERS) {
     number_of_registers = uint16_t(data[3]) | (uint16_t(data[2]) << 8);
-    if (number_of_registers == 0 || number_of_registers > 0x7B) {
+    if (number_of_registers == 0 || number_of_registers > modbus::MAX_NUM_OF_REGISTERS_TO_WRITE) {
       ESP_LOGW(TAG, "Invalid number of registers %d. Sending exception response.", number_of_registers);
-      send_error(function_code, 3);
+      send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_VALUE);
       return;
     }
     uint16_t payload_size = data[4];
     if (payload_size != number_of_registers * 2) {
       ESP_LOGW(TAG, "Payload size of %d bytes is not 2 times the number of registers (%d). Sending exception response.",
                payload_size, number_of_registers);
-      send_error(function_code, 3);
+      send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_VALUE);
       return;
     }
     payload_offset = 5;
-  } else if (function_code == 0x06) {
+  } else if (function_code == ModbusFunctionCode::WRITE_SINGLE_REGISTER) {
     number_of_registers = 1;
     payload_offset = 2;
   } else {
     ESP_LOGW(TAG, "Invalid function code 0x%X. Sending exception response.", function_code);
-    send_error(function_code, 1);
+    send_error(function_code, ModbusExceptionCode::ILLEGAL_FUNCTION);
     return;
   }
 
@@ -211,7 +211,7 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
   if (!for_each_register([](ServerRegister *server_register, uint16_t offset) -> bool {
         return server_register->write_lambda != nullptr;
       })) {
-    send_error(function_code, 1);
+    send_error(function_code, ModbusExceptionCode::ILLEGAL_FUNCTION);
     return;
   }
 
@@ -220,7 +220,7 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
         int64_t number = payload_to_number(data, server_register->value_type, offset, 0xFFFFFFFF);
         return server_register->write_lambda(number);
       })) {
-    send_error(function_code, 4);
+    send_error(function_code, ModbusExceptionCode::SERVICE_DEVICE_FAILURE);
     return;
   }
 
