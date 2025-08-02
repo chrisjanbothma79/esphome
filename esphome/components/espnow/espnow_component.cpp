@@ -127,13 +127,15 @@ void espnow_task(void *param) {
         case ESPNowPacket::RECEIVED: {
           const ESPNowRecvInfo info = packet->get_receive_info();
           if (!esp_now_is_peer_exist(info.src_addr)) {
-            if (that->auto_add_peer_) {
-              that->add_peer(info.src_addr);
-            } else {
-              for (auto *handler : that->unknown_peer_handlers_) {
-                if (handler->on_unknown_peer(info, packet->packet_.receive.data, packet->packet_.receive.size))
-                  break;  // If a handler returns true, stop processing further handlers
+            bool handled = false;
+            for (auto *handler : that->unknown_peer_handlers_) {
+              if (handler->on_unknown_peer(info, packet->packet_.receive.data, packet->packet_.receive.size)) {
+                handled = true;
+                break;  // If a handler returns true, stop processing further handlers
               }
+            }
+            if (!handled && that->auto_add_peer_) {
+              that->add_peer(info.src_addr);
             }
           }
           // Intentionally left as if instead of else in case the peer is added above
@@ -258,11 +260,8 @@ void ESPNowComponent::enable_() {
 
     this->apply_wifi_channel();
   }
-#ifdef USE_WIFI
-  else {
-    this->wifi_channel_ = wifi::global_wifi_component->get_wifi_channel();
-  }
-#endif
+  wifi_second_chan_t dummy;
+  esp_wifi_get_channel(&this->wifi_channel_, &dummy);
 
   esp_err_t err = esp_now_init();
   if (err != ESP_OK) {
@@ -293,9 +292,7 @@ void ESPNowComponent::enable_() {
 #endif
 
   for (auto peer : this->peers_) {
-    if (esp_now_is_peer_exist(peer.address)) {
-      esp_now_del_peer(peer.address);
-    }
+    this->add_peer(peer.address);
   }
 
   xTaskCreate(espnow_task, "espnow", 4096, this, tskIDLE_PRIORITY + 1, nullptr);
@@ -314,7 +311,9 @@ void ESPNowComponent::disable() {
   esp_now_unregister_send_cb();
 
   for (auto peer : this->peers_) {
-    this->del_peer(peer.address);
+    if (esp_now_is_peer_exist(peer.address)) {
+      esp_now_del_peer(peer.address);
+    }
   }
 
   esp_err_t err = esp_now_deinit();
@@ -352,6 +351,12 @@ void ESPNowComponent::loop() {
     }
   }
 #endif
+}
+
+uint8_t ESPNowComponent::get_wifi_channel() {
+  wifi_second_chan_t dummy;
+  esp_wifi_get_channel(&this->wifi_channel_, &dummy);
+  return this->wifi_channel_;
 }
 
 esp_err_t ESPNowComponent::send(const uint8_t *peer_address, const uint8_t *payload, size_t size,
