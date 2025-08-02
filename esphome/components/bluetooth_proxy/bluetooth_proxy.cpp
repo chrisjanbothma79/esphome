@@ -35,8 +35,8 @@ void BluetoothProxy::setup() {
   // Don't pre-allocate pool - let it grow only if needed in busy environments
   // Many devices in quiet areas will never need the overflow pool
 
-  this->connections_free_response_.limit = this->connection_count_;
-  this->connections_free_response_.free = this->connection_count_;
+  this->connections_free_response_.limit = BLUETOOTH_PROXY_MAX_CONNECTIONS;
+  this->connections_free_response_.free = BLUETOOTH_PROXY_MAX_CONNECTIONS;
 
   this->parent_->add_scanner_state_callback([this](esp32_ble_tracker::ScannerState state) {
     if (this->api_connection_ != nullptr) {
