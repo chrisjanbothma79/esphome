@@ -42,7 +42,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
       if (status == ESP_OK) {
         if (!this->sent_.empty()) {
           this->sent_.play(x...);
-        } else if (this->sent_.empty() && this->flags_.wait_for_sent) {
+        } else if (this->flags_.wait_for_sent) {
           this->play_next_(x...);
         }
       } else {
