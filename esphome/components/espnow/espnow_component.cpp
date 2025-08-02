@@ -293,8 +293,8 @@ void ESPNowComponent::enable_() {
 #endif
 
   for (auto peer : this->peers_) {
-    if (esp_now_is_peer_exist(peer)) {
-      esp_now_del_peer(peer);
+    if (esp_now_is_peer_exist(peer.address)) {
+      esp_now_del_peer(peer.address);
     }
   }
 
