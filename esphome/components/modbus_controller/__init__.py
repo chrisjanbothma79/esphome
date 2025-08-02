@@ -20,6 +20,7 @@ from .const import (
     CONF_BYTE_OFFSET,
     CONF_COMMAND_THROTTLE,
     CONF_CUSTOM_COMMAND,
+    CONF_ENABLE,
     CONF_FORCE_NEW_RANGE,
     CONF_MAX_CMD_RETRIES,
     CONF_MODBUS_CONTROLLER_ID,
@@ -29,7 +30,9 @@ from .const import (
     CONF_ON_ONLINE,
     CONF_REGISTER_COUNT,
     CONF_REGISTER_TYPE,
+    CONF_REGISTER_VALUE,
     CONF_RESPONSE_SIZE,
+    CONF_SERVER_COURTESY_RESPONSE,
     CONF_SKIP_UPDATES,
     CONF_VALUE_TYPE,
 )
@@ -49,6 +52,7 @@ ModbusController = modbus_controller_ns.class_(
 )
 
 SensorItem = modbus_controller_ns.struct("SensorItem")
+ServerCourtesyResponse = modbus_controller_ns.struct("ServerCourtesyResponse")
 ServerRegister = modbus_controller_ns.struct("ServerRegister")
 
 ModbusFunctionCode_ns = modbus_controller_ns.namespace("ModbusFunctionCode")
@@ -143,6 +147,19 @@ ModbusOfflineTrigger = modbus_controller_ns.class_(
 
 _LOGGER = logging.getLogger(__name__)
 
+SERVER_COURTESY_RESPONSE_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.declare_id(ServerCourtesyResponse),
+        cv.Optional(CONF_ENABLE, default=False): cv.boolean,
+        cv.Optional(CONF_REGISTER_COUNT, default=0xFFFF): cv.All(
+            cv.positive_int, cv.Range(min=0, max=0xFFFF)
+        ),
+        cv.Optional(CONF_REGISTER_VALUE, default=0): cv.All(
+            cv.positive_int, cv.Range(min=0, max=0xFFFF)
+        ),
+    }
+)
+
 ModbusServerRegisterSchema = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(ServerRegister),
@@ -162,6 +179,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_COMMAND_THROTTLE, default="0ms"
             ): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_SERVER_COURTESY_RESPONSE): SERVER_COURTESY_RESPONSE_SCHEMA,
             cv.Optional(CONF_MAX_CMD_RETRIES, default=4): cv.positive_int,
             cv.Optional(CONF_OFFLINE_SKIP_UPDATES, default=0): cv.positive_int,
             cv.Optional(
@@ -232,7 +250,7 @@ def validate_modbus_register(config):
 
 
 def _final_validate(config):
-    if CONF_SERVER_REGISTERS in config:
+    if CONF_SERVER_COURTESY_RESPONSE in config or CONF_SERVER_REGISTERS in config:
         return modbus.final_validate_modbus_device("modbus_controller", role="server")(
             config
         )
@@ -299,6 +317,15 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     cg.add(var.set_allow_duplicate_commands(config[CONF_ALLOW_DUPLICATE_COMMANDS]))
     cg.add(var.set_command_throttle(config[CONF_COMMAND_THROTTLE]))
+    if CONF_SERVER_COURTESY_RESPONSE in config:
+        server_courtesy_response = config[CONF_SERVER_COURTESY_RESPONSE]
+        server_courtesy_response_var = cg.new_Pvariable(
+            server_courtesy_response[CONF_ID],
+            server_courtesy_response[CONF_ENABLE],
+            server_courtesy_response[CONF_REGISTER_COUNT],
+            server_courtesy_response[CONF_REGISTER_VALUE],
+        )
+        cg.add(var.set_server_courtesy_response(server_courtesy_response_var))
     cg.add(var.set_max_cmd_retries(config[CONF_MAX_CMD_RETRIES]))
     cg.add(var.set_offline_skip_updates(config[CONF_OFFLINE_SKIP_UPDATES]))
     if CONF_SERVER_REGISTERS in config:
