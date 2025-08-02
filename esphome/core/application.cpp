@@ -34,6 +34,38 @@ namespace esphome {
 
 static const char *const TAG = "app";
 
+// Helper function for insertion sort of components by setup priority
+// Using insertion sort instead of std::stable_sort saves ~1.3KB of flash
+// by avoiding template instantiations (std::rotate, std::stable_sort, lambdas)
+static void insertion_sort_by_setup_priority(Component **components, size_t size) {
+  for (size_t i = 1; i < size; i++) {
+    Component *key = components[i];
+    float key_priority = key->get_actual_setup_priority();
+    int32_t j = i - 1;
+
+    while (j >= 0 && components[j]->get_actual_setup_priority() < key_priority) {
+      components[j + 1] = components[j];
+      j--;
+    }
+    components[j + 1] = key;
+  }
+}
+
+// Helper function for insertion sort of components by loop priority
+static void insertion_sort_by_loop_priority(Component **components, size_t size) {
+  for (size_t i = 1; i < size; i++) {
+    Component *key = components[i];
+    float key_priority = key->get_loop_priority();
+    int32_t j = i - 1;
+
+    while (j >= 0 && components[j]->get_loop_priority() < key_priority) {
+      components[j + 1] = components[j];
+      j--;
+    }
+    components[j + 1] = key;
+  }
+}
+
 void Application::register_component_(Component *comp) {
   if (comp == nullptr) {
     ESP_LOGW(TAG, "Tried to register null component!");
@@ -51,9 +83,9 @@ void Application::register_component_(Component *comp) {
 void Application::setup() {
   ESP_LOGI(TAG, "Running through setup()");
   ESP_LOGV(TAG, "Sorting components by setup priority");
-  std::stable_sort(this->components_.begin(), this->components_.end(), [](const Component *a, const Component *b) {
-    return a->get_actual_setup_priority() > b->get_actual_setup_priority();
-  });
+
+  // Sort by setup priority using our helper function
+  insertion_sort_by_setup_priority(this->components_.data(), this->components_.size());
 
   // Initialize looping_components_ early so enable_pending_loops_() works during setup
   this->calculate_looping_components_();
@@ -69,20 +101,8 @@ void Application::setup() {
     if (component->can_proceed())
       continue;
 
-    // Using insertion sort instead of std::stable_sort saves ~1.3KB of flash
-    // by avoiding std::rotate, std::stable_sort, and lambda template instantiations.
-    // Insertion sort is efficient for small arrays and maintains stability
-    for (int32_t j = 1; j <= static_cast<int32_t>(i); j++) {
-      Component *key = this->components_[j];
-      float key_priority = key->get_loop_priority();
-      int32_t k = j - 1;
-
-      while (k >= 0 && this->components_[k]->get_loop_priority() < key_priority) {
-        this->components_[k + 1] = this->components_[k];
-        k--;
-      }
-      this->components_[k + 1] = key;
-    }
+    // Sort components 0 through i by loop priority
+    insertion_sort_by_loop_priority(this->components_.data(), i + 1);
 
     do {
       uint8_t new_app_state = STATUS_LED_WARNING;
