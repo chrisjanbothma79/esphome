@@ -69,8 +69,20 @@ void Application::setup() {
     if (component->can_proceed())
       continue;
 
-    std::stable_sort(this->components_.begin(), this->components_.begin() + i + 1,
-                     [](Component *a, Component *b) { return a->get_loop_priority() > b->get_loop_priority(); });
+    // Using insertion sort instead of std::stable_sort saves ~1.3KB of flash
+    // by avoiding std::rotate, std::stable_sort, and lambda template instantiations.
+    // Insertion sort is efficient for small arrays and maintains stability
+    for (int32_t j = 1; j <= static_cast<int32_t>(i); j++) {
+      Component *key = this->components_[j];
+      float key_priority = key->get_loop_priority();
+      int32_t k = j - 1;
+
+      while (k >= 0 && this->components_[k]->get_loop_priority() < key_priority) {
+        this->components_[k + 1] = this->components_[k];
+        k--;
+      }
+      this->components_[k + 1] = key;
+    }
 
     do {
       uint8_t new_app_state = STATUS_LED_WARNING;
