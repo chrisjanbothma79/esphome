@@ -708,8 +708,11 @@ class APIConnection : public APIServerConnection {
     // 2. OR: We should try to send immediately (should_try_send_immediately = true)
     //        AND Batch delay is 0 (user has opted in to immediate sending)
     // 3. AND: Buffer has space available
-    if ((message_type == UpdateStateResponse::MESSAGE_TYPE ||
-         (this->flags_.should_try_send_immediately && this->get_batch_delay_ms_() == 0)) &&
+    if ((
+#ifdef USE_UPDATE
+            message_type == UpdateStateResponse::MESSAGE_TYPE ||
+#endif
+            (this->flags_.should_try_send_immediately && this->get_batch_delay_ms_() == 0)) &&
         this->helper_->can_write_without_blocking()) {
       // Now actually encode and send
       if (creator(entity, this, MAX_BATCH_PACKET_SIZE, true) &&
