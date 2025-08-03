@@ -15,16 +15,25 @@ namespace camera {
  */
 enum CameraRequester : uint8_t { IDLE, API_REQUESTER, WEB_REQUESTER };
 
-/** Enumeration of different image formats.
- *  IMAGE_FORMAT_GRAYSCALE: 1 byte.
- *  IMAGE_FORMAT_RGB565: 2 bytes of color information.
- *  IMAGE_FORMAT_RGB888: 3 bytes of colors in RGB order.
- */
+/// Enumeration of different image formats.
 enum ImageFormat : uint8_t {
-  IMAGE_FORMAT_GRAYSCALE = 0,
-  IMAGE_FORMAT_RGB565,
-  IMAGE_FORMAT_RGB888,
+  IMAGE_FORMAT_GRAYSCALE = 0,  ///< 8-bit grayscale.
+  IMAGE_FORMAT_RGB565,         ///< 16-bit RGB (5-6-5).
+  IMAGE_FORMAT_BGR888,         ///< RGB pixel data in 8-bit format, stored as B, G, R (1 byte each).
 };
+
+/// Returns string name for a given ImageFormat.
+inline const char *to_string(ImageFormat format) {
+  switch (format) {
+    case IMAGE_FORMAT_GRAYSCALE:
+      return "IMAGE_FORMAT_GRAYSCALE";
+    case IMAGE_FORMAT_RGB565:
+      return "IMAGE_FORMAT_RGB565";
+    case IMAGE_FORMAT_BGR888:
+      return "IMAGE_FORMAT_BGR888";
+  }
+  return "IMAGE_FORMAT_UNKNOWN";
+}
 
 /** Abstract camera image base class.
  *  Encapsulates the JPEG encoded data and it is shared among
@@ -54,10 +63,9 @@ class CameraImageReader {
   virtual ~CameraImageReader() {}
 };
 
-/** Specification of a caputured camera image.
- *  This struct defines the format and size details for images
- *  captured or processed by a camera component.
- */
+/// Specification of a caputured camera image.
+/// This struct defines the format and size details for images captured
+/// or processed by a camera component.
 struct CameraImageSpec {
   uint16_t width;
   uint16_t height;
@@ -68,7 +76,7 @@ struct CameraImageSpec {
         return 1;
       case IMAGE_FORMAT_RGB565:
         return 2;
-      case IMAGE_FORMAT_RGB888:
+      case IMAGE_FORMAT_BGR888:
         return 3;
     }
 

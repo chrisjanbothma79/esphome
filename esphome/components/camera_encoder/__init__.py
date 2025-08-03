@@ -1,67 +1,55 @@
 import esphome.codegen as cg
+from esphome.components.esp32 import add_idf_component
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_TYPE
+from esphome.const import CONF_BUFFER_SIZE, CONF_ID, CONF_TYPE
+from esphome.core import CORE
 
 CODEOWNERS = ["@DT-art1"]
 
 AUTO_LOAD = ["camera"]
 
-CONF_MCU_COUNT = "mcu_count"
+CONF_BUFFER_EXPAND_SIZE = "buffer_expand_size"
+CONF_ENCODER_BUFFER_ID = "encoder_buffer_id"
 CONF_QUALITY = "quality"
-CONF_SUBSAMPLING = "subsampling"
 
-DEFAULT_ENCODER = "default"
+ESP32_CAMERA_ENCODER = "esp32_camera"
 
 camera_ns = cg.esphome_ns.namespace("camera")
 camera_encoder_ns = cg.esphome_ns.namespace("camera_encoder")
 
 Encoder = camera_ns.class_("Encoder")
-DefaultEncoder = camera_encoder_ns.class_("DefaultJPEGEncoder", Encoder)
+EncoderBufferImpl = camera_encoder_ns.class_("EncoderBufferImpl")
 
-DefaultQuality = camera_encoder_ns.enum("DefaultQuality")
-DefaultSubsampling = camera_encoder_ns.enum("DefaultSubsampling")
+ESP32CAMERAJPEGEncoder = camera_encoder_ns.class_("ESP32CameraJPEGEncoder", Encoder)
 
-CONF_DEFAULT_SUBSAMPLING_SELECTS = {
-    "444": DefaultSubsampling.SUBSAMPLING_444,
-    "420": DefaultSubsampling.SUBSAMPLING_420,
-}
-CONF_DEFAULT_QUALITY_SELECTS = {
-    "BEST": DefaultQuality.QUALITY_BEST,
-    "HIGH": DefaultQuality.QUALITY_HIGH,
-    "MED": DefaultQuality.QUALITY_MED,
-    "LOW": DefaultQuality.QUALITY_LOW,
-}
-
-DEFAULT_ENCODER_SCHEMA = cv.Schema(
+ESP32_CAMERA_ENCODER_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(): cv.declare_id(DefaultEncoder),
-        cv.Optional(CONF_QUALITY, default="HIGH"): cv.enum(
-            CONF_DEFAULT_QUALITY_SELECTS, upper=True
-        ),
-        cv.Optional(CONF_SUBSAMPLING, default="444"): cv.enum(
-            CONF_DEFAULT_SUBSAMPLING_SELECTS, upper=True
-        ),
-        cv.Optional(CONF_MCU_COUNT, default=0): cv.int_range(0),
+        cv.GenerateID(): cv.declare_id(ESP32CAMERAJPEGEncoder),
+        cv.Optional(CONF_QUALITY, default=80): cv.int_range(1, 100),
+        cv.Optional(CONF_BUFFER_SIZE, default=4096): cv.int_range(1024),
+        cv.Optional(CONF_BUFFER_EXPAND_SIZE, default=1024): cv.int_range(0),
+        cv.GenerateID(CONF_ENCODER_BUFFER_ID): cv.declare_id(EncoderBufferImpl),
     }
 )
 
-
 CONFIG_SCHEMA = cv.typed_schema(
     {
-        DEFAULT_ENCODER: DEFAULT_ENCODER_SCHEMA,
+        ESP32_CAMERA_ENCODER: ESP32_CAMERA_ENCODER_SCHEMA,
     },
-    default_type=DEFAULT_ENCODER,
+    default_type=ESP32_CAMERA_ENCODER,
 )
 
 
 async def to_code(config):
-    cg.add_build_flag("-DUSE_CAMERA_SW_JPEG_ENCODER")
-    cg.add_library("dt-art1/jpegenc-pio", "1.0.0")
-
-    if config[CONF_TYPE] == DEFAULT_ENCODER:
-        cg.new_Pvariable(
+    buffer = cg.new_Pvariable(config[CONF_ENCODER_BUFFER_ID])
+    cg.add(buffer.set_buffer_size(config[CONF_BUFFER_SIZE]))
+    if config[CONF_TYPE] == ESP32_CAMERA_ENCODER:
+        if CORE.using_esp_idf:
+            add_idf_component(name="espressif/esp32-camera", ref="2.1.0")
+        cg.add_build_flag("-DUSE_ESP32_CAMERA_JPEG_ENCODER")
+        var = cg.new_Pvariable(
             config[CONF_ID],
             config[CONF_QUALITY],
-            config[CONF_SUBSAMPLING],
-            config[CONF_MCU_COUNT],
+            buffer,
         )
+        cg.add(var.set_buffer_expand_size(config[CONF_BUFFER_EXPAND_SIZE]))
