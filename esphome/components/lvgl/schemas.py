@@ -5,6 +5,7 @@ from esphome.const import (
     CONF_ARGS,
     CONF_FORMAT,
     CONF_GROUP,
+    CONF_HEIGHT,
     CONF_ID,
     CONF_ON_BOOT,
     CONF_ON_VALUE,
@@ -13,17 +14,17 @@ from esphome.const import (
     CONF_TIME,
     CONF_TRIGGER_ID,
     CONF_TYPE,
+    CONF_WIDTH,
     CONF_X,
     CONF_Y,
 )
 from esphome.core import TimePeriod
 from esphome.core.config import StartupTrigger
-from esphome.schema_extractors import SCHEMA_EXTRACT
 
 from . import defines as df, lv_validation as lvalid
-from .defines import CONF_TIME_FORMAT, LV_GRAD_DIR, TYPE_GRID
-from .helpers import add_lv_use, requires_component, validate_printf
-from .lv_validation import lv_color, lv_font, lv_gradient, lv_image, opacity
+from .defines import CONF_FLEX_FLOW, CONF_TIME_FORMAT, LV_GRAD_DIR
+from .helpers import requires_component, validate_printf
+from .lv_validation import lv_color, lv_font, lv_gradient, lv_image, opacity, size
 from .lvcode import LvglComponent, lv_event_t_ptr
 from .types import (
     LVEncoderListener,
@@ -349,7 +350,7 @@ def obj_schema(widget_type: WidgetType):
     )
 
 
-def _validate_grid_layout(config):
+def validate_grid_layout(config):
     layout = config[df.CONF_LAYOUT]
     rows = len(layout[df.CONF_GRID_ROWS])
     columns = len(layout[df.CONF_GRID_COLUMNS])
@@ -401,9 +402,6 @@ def _validate_grid_layout(config):
     return config
 
 
-LAYOUT_SCHEMAS = {}
-LAYOUT_VALIDATORS = {TYPE_GRID: _validate_grid_layout}
-
 ALIGN_TO_SCHEMA = {
     cv.Optional(df.CONF_ALIGN_TO): cv.Schema(
         {
@@ -440,10 +438,13 @@ LAYOUTS = {
     df.TYPE_FLEX: {
         cv.Optional(df.CONF_FLEX_FLOW, default="row_wrap"): df.FLEX_FLOWS.one_of,
         cv.Optional(df.CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
-        cv.Optional(df.CONF_FLEX_ALIGN_CROSS, default="start"): flex_alignments,
+        cv.Optional(
+            df.CONF_FLEX_ALIGN_CROSS, default="start"
+        ): df.LV_FLEX_CROSS_ALIGNMENTS.one_of,
         cv.Optional(df.CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
         cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
         cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
+        cv.Optional(df.CONF_FLEX_GROW): cv.int_,
     },
 }
 
@@ -498,6 +499,36 @@ ALL_STYLES = {
 }
 
 
+def get_layout_schema(config: dict):
+    """
+    Get the child layout schema for a given widget based on its layout type.
+    :param config: The config to check
+    :return: The schema to apply to children of this layout
+    """
+    layout = config.get(df.CONF_LAYOUT, {})
+    ltype = layout.get(CONF_TYPE, df.TYPE_NONE)
+    schema = {}
+    if ltype == df.TYPE_GRID:
+        schema = GRID_CELL_SCHEMA
+    elif ltype == df.TYPE_FLEX:
+        if grow := layout[df.CONF_FLEX_GROW]:
+            schema = {cv.Optional(df.CONF_FLEX_GROW, default=grow): cv.int_}
+        else:
+            schema = FLEX_OBJ_SCHEMA
+        # Polyfill to implement stretch alignment for flex containers
+        # LVGL does not support this natively, so we add a 100% size property to the children in the cross-axis
+        if layout[df.CONF_FLEX_ALIGN_CROSS] == "LV_FLEX_ALIGN_STRETCH":
+            dimension = (
+                CONF_WIDTH
+                if "COLUMN" in layout[CONF_FLEX_FLOW].upper()
+                else CONF_HEIGHT
+            )
+            schema[cv.Optional(dimension, default="100%")] = size
+        # Pass through the default flex grow value if specified
+
+    return schema
+
+
 def container_validator(schema, widget_type: WidgetType):
     """
     Create a validator for a container given the widget type
@@ -507,29 +538,22 @@ def container_validator(schema, widget_type: WidgetType):
     """
 
     def validator(value):
-        if w_sch := widget_type.schema:
-            if isinstance(w_sch, dict):
-                w_sch = cv.Schema(w_sch)
-            # order is important here to preserve extras
-            result = w_sch.extend(schema)
-        else:
-            result = schema
-        ltype = df.TYPE_NONE
-        if value and (layout := value.get(df.CONF_LAYOUT)):
-            if not isinstance(layout, dict):
-                raise cv.Invalid("Layout value must be a dict")
-            ltype = layout.get(CONF_TYPE)
-            if not ltype:
-                raise (cv.Invalid("Layout schema requires type:"))
-            add_lv_use(ltype)
-        if value == SCHEMA_EXTRACT:
-            return result
-        result = result.extend(
-            LAYOUT_SCHEMAS.get(ltype.lower(), LAYOUT_SCHEMAS[df.TYPE_NONE])
+        w_sch = widget_type.schema
+        if not isinstance(w_sch, cv.Schema):
+            w_sch = cv.Schema(w_sch)
+        # Apply any defaults from the widget schema
+        value = w_sch.extend({}, extra=True)(value)
+        result = schema.extend(
+            {
+                cv.Optional(df.CONF_WIDGETS): cv.ensure_list(
+                    any_widget_schema(get_layout_schema(value))
+                )
+            }
         )
+        result = result.extend(w_sch)
         value = result(value)
-        if layout_validator := LAYOUT_VALIDATORS.get(ltype):
-            value = layout_validator(value)
+        if value.get(df.CONF_LAYOUT, {}).get(CONF_TYPE) == df.TYPE_GRID:
+            value = validate_grid_layout(value)
         return value
 
     return validator

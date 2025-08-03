@@ -170,6 +170,14 @@ class WidgetType:
         """
         return lv_expr.call(f"{self.lv_name}_create", parent)
 
+    def on_create(self, var: MockObjClass, config: dict):
+        """
+        Called when the widget is created, to set up any initial properties
+        :param var: The variable representing the widget
+        :param config: Its configuration
+        """
+        pass
+
     def get_uses(self):
         """
         Get a list of other widgets used by this one

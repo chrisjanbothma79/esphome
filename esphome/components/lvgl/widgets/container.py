@@ -1,6 +1,6 @@
-import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_DIRECTION, CONF_TYPE
+from esphome.cpp_generator import MockObjClass
 
 from ..defines import (
     CONF_CONTAINER,
@@ -8,46 +8,65 @@ from ..defines import (
     CONF_FLEX_ALIGN_MAIN,
     CONF_FLEX_ALIGN_TRACK,
     CONF_FLEX_FLOW,
+    CONF_FLEX_GROW,
     CONF_LAYOUT,
     CONF_MAIN,
+    CONF_PAD_COLUMN,
+    CONF_PAD_ROW,
     CONF_SCROLLBAR,
-    FLEX_FLOWS,
     TYPE_FLEX,
 )
-from ..helpers import add_lv_use
-from ..lvcode import LV, lv
+from ..lvcode import lv, lv_expr
 from ..schemas import LAYOUTS
-from ..styles import create_style
 from ..types import WidgetType, lv_obj_t
 
 TYPE_VERTICAL = "vertical"
 TYPE_HORIZONTAL = "horizontal"
 
 STYLE_BASE = {
-    CONF_TYPE: TYPE_FLEX,
-    CONF_FLEX_ALIGN_MAIN: str(LV.FLEX_ALIGNMENTS_SPACE_EVENLY),
-    CONF_FLEX_ALIGN_TRACK: str(LV.FLEX_ALIGNMENTS_CENTER),
-    CONF_FLEX_ALIGN_CROSS: str(LV.FLEX_ALIGNMENTS_CENTER),
+    CONF_FLEX_ALIGN_MAIN: "SPACE_EVENLY",
+    CONF_FLEX_ALIGN_TRACK: "CENTER",
+    CONF_FLEX_ALIGN_CROSS: "STRETCH",
+    CONF_FLEX_GROW: 1,
+    CONF_PAD_ROW: 0,
+    CONF_PAD_COLUMN: 0,
 }
-STYLE_VERTICAL = {
-    CONF_FLEX_FLOW: FLEX_FLOWS.process("COLUMN"),
-    **STYLE_BASE,
+
+FLOWS = {
+    TYPE_VERTICAL: "LV_FLEX_FLOW_COLUMN",
+    TYPE_HORIZONTAL: "LV_FLEX_FLOW_ROW",
 }
-STYLE_HORIZONTAL = {
-    CONF_FLEX_FLOW: FLEX_FLOWS.process("ROW"),
-    **STYLE_BASE,
-}
+
+FLEX_LAYOUT = LAYOUTS[TYPE_FLEX]
+FLEX_OPTIONS = [key.schema for key in FLEX_LAYOUT]
+
+
+def validate_container(config):
+    direction = config[CONF_DIRECTION]
+    defaults = STYLE_BASE.copy()
+    flow = FLOWS[direction]
+    defaults.update({CONF_FLEX_FLOW: flow})
+    schema = cv.Schema(
+        {
+            cv.Optional(CONF_FLEX_FLOW, default=flow): cv.one_of(flow, upper=True),
+            cv.Optional(CONF_TYPE, default=TYPE_FLEX): cv.one_of(TYPE_FLEX, lower=True),
+            **{
+                cv.Optional(key, default=defaults[key]): FLEX_LAYOUT[key]
+                for key in STYLE_BASE
+            },
+        }
+    )
+    result = config.copy()
+    result[CONF_LAYOUT] = schema(config[CONF_LAYOUT])
+    return result
+
 
 CONTAINER_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_DIRECTION): cv.one_of(
-            TYPE_VERTICAL,
-            TYPE_HORIZONTAL,
-            lower=True,
-        ),
-        cv.Optional(CONF_LAYOUT): LAYOUTS[TYPE_FLEX],
+        cv.Required(CONF_DIRECTION): cv.one_of(*FLOWS, lower=True),
+        cv.Optional(CONF_LAYOUT, default={CONF_TYPE: TYPE_FLEX}): dict,
     }
-)
+).add_extra(validate_container)
 
 
 class ContainerType(WidgetType):
@@ -64,36 +83,16 @@ class ContainerType(WidgetType):
             schema=CONTAINER_SCHEMA,
             modify_schema={},
         )
-        self._vertical_style = None
-        self._horizontal_style = None
+        self.styles = {}
 
-    @property
-    def vertical_style(self):
-        if self._vertical_style is None:
-            self._vertical_style = create_style(
-                STYLE_VERTICAL, "_lv_container_vertical_style"
-            )
-        return self._vertical_style
+    def obj_creator(self, parent: MockObjClass, config: dict):
+        return lv_expr.obj_create(parent)
 
-    @property
-    def horizontal_style(self):
-        if self._horizontal_style is None:
-            self._horizontal_style = create_style(
-                STYLE_HORIZONTAL, "_lv_container_horizontal_style"
-            )
-        return self._horizontal_style
+    def on_create(self, var: MockObjClass, config: dict):
+        lv.obj_remove_style_all(var)
 
     async def to_code(self, w, config):
-        add_lv_use(TYPE_FLEX)
-        if config[CONF_DIRECTION] == TYPE_VERTICAL:
-            flex = self.vertical_style
-        else:
-            flex = self.horizontal_style
-        cg.add(lv.obj_remove_style_all(w.obj))
-        cg.add(lv.obj_add_style(w.obj, flex))
-        if layout := config[CONF_LAYOUT]:
-            flex.update(layout)
-        cg.add(lv.obj_set_layout(w.obj, LV.LAYOUT_FLEX))
+        pass
 
 
 container_spec = ContainerType()

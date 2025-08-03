@@ -40,10 +40,7 @@ from .lv_validation import lv_bool, lv_images_used
 from .lvcode import LvContext, LvglComponent, lvgl_static
 from .schemas import (
     DISP_BG_SCHEMA,
-    FLEX_OBJ_SCHEMA,
     FULL_STYLE_SCHEMA,
-    GRID_CELL_SCHEMA,
-    LAYOUT_SCHEMAS,
     WIDGET_TYPES,
     any_widget_schema,
     container_schema,
@@ -136,15 +133,6 @@ for w_type in (
 
 WIDGET_SCHEMA = any_widget_schema()
 
-LAYOUT_SCHEMAS[df.TYPE_GRID] = {
-    cv.Optional(df.CONF_WIDGETS): cv.ensure_list(any_widget_schema(GRID_CELL_SCHEMA))
-}
-LAYOUT_SCHEMAS[df.TYPE_FLEX] = {
-    cv.Optional(df.CONF_WIDGETS): cv.ensure_list(any_widget_schema(FLEX_OBJ_SCHEMA))
-}
-LAYOUT_SCHEMAS[df.TYPE_NONE] = {
-    cv.Optional(df.CONF_WIDGETS): cv.ensure_list(any_widget_schema())
-}
 for w_type in WIDGET_TYPES.values():
     register_action(
         f"lvgl.{w_type.name}.update",
