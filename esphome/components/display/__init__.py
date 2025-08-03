@@ -71,7 +71,8 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
 
 def _validate_test_card(config):
     if (
-        config.get(CONF_SHOW_TEST_CARD, False) and config.get(CONF_UPDATE_INTERVAL, False) == CONF_NEVER_SECONDS
+        config.get(CONF_SHOW_TEST_CARD, False)
+        and config.get(CONF_UPDATE_INTERVAL, False) == CONF_NEVER_SECONDS
     ):
         raise cv.Invalid(
             f"`{CONF_SHOW_TEST_CARD}: true` cannot be used with `{CONF_UPDATE_INTERVAL} because a test card is never updated.`"
