@@ -116,7 +116,7 @@ void CST328Touchscreen::update_button_state_(bool state) {
 
 void CST328Touchscreen::update_touches() {
   const uint8_t clear_byte{0};
-  const uint8_t sync_byte{0xAB};
+  const uint8_t sync_byte{CST328_SYNC_BYTE};
   uint8_t data[CST328_TOUCH_DATA_SIZE];
   uint8_t touch_cnt{0};
 
