@@ -1,5 +1,5 @@
 import esphome.config_validation as cv
-from esphome.const import CONF_DIRECTION, CONF_TYPE
+from esphome.const import CONF_DIRECTION, CONF_HEIGHT, CONF_TYPE, CONF_WIDTH
 from esphome.cpp_generator import MockObjClass
 
 from ..defines import (
@@ -16,6 +16,7 @@ from ..defines import (
     CONF_SCROLLBAR,
     TYPE_FLEX,
 )
+from ..lv_validation import size
 from ..lvcode import lv, lv_expr
 from ..schemas import LAYOUTS
 from ..types import WidgetType, lv_obj_t
@@ -65,6 +66,8 @@ CONTAINER_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_DIRECTION): cv.one_of(*FLOWS, lower=True),
         cv.Optional(CONF_LAYOUT, default={CONF_TYPE: TYPE_FLEX}): dict,
+        cv.Optional(CONF_HEIGHT, default="100%"): size,
+        cv.Optional(CONF_WIDTH, default="100%"): size,
     }
 ).add_extra(validate_container)
 
