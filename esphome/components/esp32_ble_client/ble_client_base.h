@@ -31,7 +31,9 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
   void dump_config() override;
 
   void run_later(std::function<void()> &&f);  // NOLINT
+#ifdef USE_ESP32_BLE_DEVICE
   bool parse_device(const espbt::ESPBTDevice &device) override;
+#endif
   void on_scan_end() override {}
   bool gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                            esp_ble_gattc_cb_param_t *param) override;
@@ -46,7 +48,7 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
 
   void set_auto_connect(bool auto_connect) { this->auto_connect_ = auto_connect; }
 
-  void set_address(uint64_t address) {
+  virtual void set_address(uint64_t address) {
     this->address_ = address;
     this->remote_bda_[0] = (address >> 40) & 0xFF;
     this->remote_bda_[1] = (address >> 32) & 0xFF;
