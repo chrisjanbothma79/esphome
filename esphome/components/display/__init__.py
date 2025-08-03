@@ -7,6 +7,7 @@ from esphome.const import (
     CONF_FROM,
     CONF_ID,
     CONF_LAMBDA,
+    CONF_NEVER_SECONDS,
     CONF_PAGE_ID,
     CONF_PAGES,
     CONF_ROTATION,
@@ -71,11 +72,11 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
 
 def _validate_test_card(config):
     if (
-        config.get(CONF_SHOW_TEST_CARD, False)
-        and config[CONF_UPDATE_INTERVAL] == 0xFFFFFFFF
+        config.get(CONF_SHOW_TEST_CARD, False) and
+        config.get(CONF_UPDATE_INTERVAL, False)
     ):
         raise cv.Invalid(
-            f"`{CONF_SHOW_TEST_CARD}: true` cannot be used with `{CONF_UPDATE_INTERVAL}: never`"
+            f"`{CONF_SHOW_TEST_CARD}: true` cannot be used with `{CONF_UPDATE_INTERVAL} because a test card is never updated.`"
         )
     return config
 
@@ -222,3 +223,6 @@ async def display_is_displaying_page_to_code(config, condition_id, template_arg,
 async def to_code(config):
     cg.add_global(display_ns.using)
     cg.add_define("USE_DISPLAY")
+    if config.get(CONF_SHOW_TEST_CARD, False) == True:
+        yield var.schedule_initial_update()
+
