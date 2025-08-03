@@ -21,7 +21,7 @@ class DooyaBridge : public Component, public uart::UARTDevice {
 
   float get_setup_priority() const override { return setup_priority::BLUETOOTH; }
 
-  void register_subcomponent(DooyaComponent *component) { subcomponents_.push_back(component); }
+  void register_subcomponent(DooyaComponent *component) { this->subcomponents_.push_back(component); }
 
   bool start_pairing();
 
@@ -33,9 +33,9 @@ class DooyaBridge : public Component, public uart::UARTDevice {
   std::vector<std::string> paired_addresses_;
   std::vector<DooyaComponent *> subcomponents_;
   struct {
-    bool in_progress = false;
+    bool in_progress{false};
     std::chrono::time_point<std::chrono::high_resolution_clock> start;
-    bool req_sent = false;
+    bool req_sent{false};
   } pairing_;
 };
 
