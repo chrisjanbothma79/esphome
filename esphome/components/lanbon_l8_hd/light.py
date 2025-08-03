@@ -1,11 +1,11 @@
 import esphome.codegen as cg
+from esphome.components import light, output, uart
 import esphome.config_validation as cv
-from esphome.components import uart, light, output
 from esphome.const import (
-    CONF_OUTPUT_ID,
-    CONF_MIN_VALUE,
-    CONF_MAX_VALUE,
     CONF_ENABLE_PIN,
+    CONF_MAX_VALUE,
+    CONF_MIN_VALUE,
+    CONF_OUTPUT_ID,
 )
 
 DEPENDENCIES = ["uart", "light"]
