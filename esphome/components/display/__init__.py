@@ -2,7 +2,6 @@ from esphome import automation, core
 from esphome.automation import maybe_simple_id
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.core import TimePeriodMilliseconds
 from esphome.const import (
     CONF_AUTO_CLEAR_ENABLED,
     CONF_FROM,
@@ -16,7 +15,7 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_UPDATE_INTERVAL,
 )
-from esphome.core import coroutine_with_priority
+from esphome.core import TimePeriodMilliseconds, coroutine_with_priority
 
 IS_PLATFORM_COMPONENT = True
 
@@ -73,12 +72,12 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
 
 def _validate_test_card(config):
     if (
-        config.get(CONF_SHOW_TEST_CARD,False) == True and
-        config.get(CONF_UPDATE_INTERVAL,False) == CONF_NEVER_SECONDS
+        config.get(CONF_SHOW_TEST_CARD, False) == True
+        and config.get(CONF_UPDATE_INTERVAL, False) == CONF_NEVER_SECONDS
     ):
-      raise cv.Invalid(
-          f"`{CONF_SHOW_TEST_CARD}: true` cannot be used with `{CONF_UPDATE_INTERVAL} because a test card is never updated.`"
-      )
+        raise cv.Invalid(
+            f"`{CONF_SHOW_TEST_CARD}: true` cannot be used with `{CONF_UPDATE_INTERVAL} because a test card is never updated.`"
+        )
     return config
 
 
