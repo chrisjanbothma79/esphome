@@ -3,7 +3,7 @@ import logging
 from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components import i2c
-from esphome.components.esp32 import add_idf_component
+from esphome.components.esp32 import add_idf_component, add_idf_sdkconfig_option
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BRIGHTNESS,
@@ -363,6 +363,11 @@ async def to_code(config):
 
     if CORE.using_esp_idf:
         add_idf_component(name="espressif/esp32-camera", ref="2.1.1")
+
+        if config[CONF_PIXEL_FORMAT] != "JPEG":
+            add_idf_sdkconfig_option(name="CONFIG_SPIRAM_SUPPORT", value="y")
+            add_idf_sdkconfig_option(name="CONFIG_SPIRAM_USE_CAPS_ALLOC", value="y")
+            add_idf_sdkconfig_option(name="CONFIG_SPIRAM_USE_MALLOC", value="y")
 
     for conf in config.get(CONF_ON_STREAM_START, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
