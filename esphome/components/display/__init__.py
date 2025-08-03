@@ -214,7 +214,6 @@ async def display_is_displaying_page_to_code(config, condition_id, template_arg,
     page = await cg.get_variable(config[CONF_PAGE_ID])
     var = cg.new_Pvariable(condition_id, template_arg, paren)
     cg.add(var.set_page(page))
-
     return var
 
 async def to_code(config):
