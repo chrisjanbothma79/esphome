@@ -24,7 +24,7 @@ class DooyaCover : public DooyaComponent, public cover::Cover {
 
   optional<float> new_position_;
   optional<float> new_tilt_;
-  bool polling_ = false;
+  bool polling_{false};
 };
 
 }  // namespace dooya
