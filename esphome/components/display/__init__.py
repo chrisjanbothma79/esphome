@@ -216,6 +216,7 @@ async def display_is_displaying_page_to_code(config, condition_id, template_arg,
     cg.add(var.set_page(page))
     return var
 
+
 async def to_code(config):
     cg.add_global(display_ns.using)
     cg.add_define("USE_DISPLAY")
