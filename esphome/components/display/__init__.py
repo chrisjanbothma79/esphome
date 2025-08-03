@@ -225,4 +225,4 @@ async def to_code(config):
     cg.add_global(display_ns.using)
     cg.add_define("USE_DISPLAY")
     if config.get(CONF_SHOW_TEST_CARD, False) == True:
-        yield var.schedule_initial_update()
+        await var.schedule_initial_update()
