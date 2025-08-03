@@ -217,6 +217,7 @@ async def display_is_displaying_page_to_code(config, condition_id, template_arg,
     cg.add(var.set_page(page))
     return var
 
+
 @coroutine_with_priority(100.0)
 async def to_code(config):
     cg.add_global(display_ns.using)
