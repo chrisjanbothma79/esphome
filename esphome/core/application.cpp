@@ -472,9 +472,10 @@ void Application::unregister_socket_fd(int fd) {
     // Only recalculate max_fd if we removed the current max
     if (fd == this->max_fd_) {
       this->max_fd_ = -1;
-      for (int sock_fd : this->socket_fds_)
+      for (int sock_fd : this->socket_fds_) {
         if (sock_fd > this->max_fd_)
           this->max_fd_ = sock_fd;
+      }
     }
     return;
   }
