@@ -383,8 +383,9 @@ static void set_json_id(JsonObject &root, EntityBase *obj, const std::string &id
     root["name"] = obj->get_name();
     root["icon"] = obj->get_icon();
     root["entity_category"] = obj->get_entity_category();
-    if (obj->is_disabled_by_default())
-      root["is_disabled_by_default"] = obj->is_disabled_by_default();
+    bool is_disabled = obj->is_disabled_by_default();
+    if (is_disabled)
+      root["is_disabled_by_default"] = is_disabled;
   }
 }
 
