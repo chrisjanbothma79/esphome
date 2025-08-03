@@ -34,7 +34,7 @@ class DooyaComponent : public Component, public Parented<DooyaBridge> {
   virtual void process_packet(std::vector<std::pair<DooyaPacketEntryTag, std::string>> params) = 0;
 
   void set_address(std::string address) { address_ = std::move(address); }
-  std::string get_address() { return address_; };
+  std::string get_address() { return this->address_; };
 
  protected:
   std::string address_;
