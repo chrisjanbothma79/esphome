@@ -223,5 +223,3 @@ async def display_is_displaying_page_to_code(config, condition_id, template_arg,
 async def to_code(config):
     cg.add_global(display_ns.using)
     cg.add_define("USE_DISPLAY")
-    if config.get(CONF_SHOW_TEST_CARD, False) == True:
-        await var.schedule_initial_update()
