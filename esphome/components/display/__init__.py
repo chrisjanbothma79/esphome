@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_UPDATE_INTERVAL,
 )
+from esphome.core import coroutine_with_priority
 
 IS_PLATFORM_COMPONENT = True
 
@@ -75,7 +76,7 @@ def _validate_test_card(config):
         and config.get(CONF_UPDATE_INTERVAL, False) == CONF_NEVER_SECONDS
     ):
         raise cv.Invalid(
-            f"`{CONF_SHOW_TEST_CARD}: true` cannot be used with `{CONF_UPDATE_INTERVAL} because a test card is never updated.`"
+            f"`{CONF_SHOW_TEST_CARD}: True` cannot be used with `{CONF_UPDATE_INTERVAL}: never` because this combination will not show a test_card."
         )
     return config
 
@@ -216,6 +217,7 @@ async def display_is_displaying_page_to_code(config, condition_id, template_arg,
     cg.add(var.set_page(page))
     return var
 
+@coroutine_with_priority(100.0)
 async def to_code(config):
     cg.add_global(display_ns.using)
     cg.add_define("USE_DISPLAY")
