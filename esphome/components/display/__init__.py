@@ -71,9 +71,8 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
 
 
 def _validate_test_card(config):
-    if (
-        config.get(CONF_SHOW_TEST_CARD, False) and
-        config.get(CONF_UPDATE_INTERVAL, False)
+    if config.get(CONF_SHOW_TEST_CARD, False) and config.get(
+        CONF_UPDATE_INTERVAL, False
     ):
         raise cv.Invalid(
             f"`{CONF_SHOW_TEST_CARD}: true` cannot be used with `{CONF_UPDATE_INTERVAL} because a test card is never updated.`"
@@ -225,4 +224,3 @@ async def to_code(config):
     cg.add_define("USE_DISPLAY")
     if config.get(CONF_SHOW_TEST_CARD, False) == True:
         yield var.schedule_initial_update()
-
