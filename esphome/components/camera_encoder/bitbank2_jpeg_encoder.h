@@ -47,8 +47,7 @@ class Bitbank2JPEGEncoder : public camera::Encoder {
   /// @param buffer_expand_size Number of bytes to expand the buffer.
   void set_buffer_expand_size(size_t buffer_expand_size) { this->buffer_expand_size_ = buffer_expand_size; }
   // -------- Encoder --------
-  size_t encode_pixels(camera::CameraImageSpec *spec, camera::CameraImage *pixels) override;
-  camera::EncoderError get_last_error() override;
+  camera::EncoderError encode_pixels(camera::CameraImageSpec *spec, camera::CameraImage *pixels) override;
   camera::EncoderBuffer *get_output_buffer() override { return output_; }
   void dump_config() override;
   // -------------------------

@@ -1,6 +1,6 @@
 #ifdef USE_BITBANK2_JPEG_ENCODER
 
-#include "default_jpeg_encoder.h"
+#include "bitbank2_jpeg_encoder.h"
 
 namespace esphome {
 namespace camera_encoder {
@@ -15,18 +15,18 @@ Bitbank2JPEGEncoder::Bitbank2JPEGEncoder(Bitbank2Quality quality, camera::Encode
   this->output_ = output;
 }
 
-size_t Bitbank2JPEGEncoder::encode_pixels(camera::CameraImageSpec *spec, camera::CameraImage *pixels) {
+camera::EncoderError Bitbank2JPEGEncoder::encode_pixels(camera::CameraImageSpec *spec, camera::CameraImage *pixels) {
   uint8_t *buffer = this->output_->get_data();
   size_t buffer_length = this->output_->get_max_size();
 
   // Starts encoding of a new image.
   if (!this->incremental_) {
     if (encoder_.open(buffer, buffer_length) != JPEGE_SUCCESS)
-      return 0;
+      return camera::ENCODER_ERROR_CONFIGURATION;
 
     if (encoder_.encodeBegin(&encoder_state_, spec->width, spec->height, to_internal_(spec->format),
                              to_internal_(this->subsampling_), to_internal_(this->quality_)) != JPEGE_SUCCESS)
-      return 0;
+      return camera::ENCODER_ERROR_CONFIGURATION;
 
     this->incremental_ = this->mcu_count_ > 0;
   }
@@ -42,56 +42,40 @@ size_t Bitbank2JPEGEncoder::encode_pixels(camera::CameraImageSpec *spec, camera:
     --mcus;
   }
 
-  // Out of memory in the output buffer; expand buffer size.
-  if (rc == JPEGE_NO_BUFFER && this->buffer_expand_size_ > 0) {
+  // Out of memory in the output buffer.
+  if (rc == JPEGE_NO_BUFFER) {
+    this->incremental_ = false;
+    if (this->buffer_expand_size_ <= 0)
+      return camera::ENCODER_ERROR_SKIP_FRAME;
+
     size_t current_size = this->output_->get_max_size();
     size_t new_size = this->output_->get_max_size() + this->buffer_expand_size_;
-    if (this->output_->set_buffer_size(new_size)) {
-      ESP_LOGD(TAG, "Output buffer expanded (%u -> %u).", current_size, this->output_->get_max_size());
-    } else {
+    if (!this->output_->set_buffer_size(new_size)) {
       this->buffer_expand_size_ = 0;
       ESP_LOGE(TAG, "Failed to expand output buffer.");
+      return camera::ENCODER_ERROR_SKIP_FRAME;
     }
+
+    ESP_LOGD(TAG, "Output buffer expanded (%u -> %u).", current_size, this->output_->get_max_size());
+    return camera::ENCODER_ERROR_RETRY_FRAME;
   }
 
-  // Recover from error and restart encoding of image .
   if (rc != JPEGE_SUCCESS) {
     this->incremental_ = false;
-    return 0;
+    return camera::ENCODER_ERROR_SKIP_FRAME;
   }
 
-  this->incremental_ = encoder_state_.y < spec->height;
-  // Encoding done; return number of written bytes.
-  if (!this->incremental_) {
-    size_t written = encoder_.close();
-    this->output_->set_buffer_size(written);
-    return written;
-  }
+  if (this->incremental_)
+    this->incremental_ = encoder_state_.y < spec->height;
 
   // MCU limit per call is reached.
-  return 0;
-}
+  if (this->incremental_)
+    return camera::ENCODER_ERROR_RETRY_FRAME;
 
-camera::EncoderError Bitbank2JPEGEncoder::get_last_error() {
-  switch (encoder_.getLastError()) {
-    case JPEGE_SUCCESS: {
-      if (this->incremental_)
-        return camera::ENCODER_ERROR_RETRY_FRAME;
-
-      return camera::ENCODER_ERROR_SUCCESS;
-    } break;
-    case JPEGE_NO_BUFFER: {
-      if (this->buffer_expand_size_ > 0)
-        return camera::ENCODER_ERROR_RETRY_FRAME;
-      else
-        return camera::ENCODER_ERROR_SKIP_FRAME;
-    } break;
-
-    default:
-      return camera::ENCODER_ERROR_CONFIGURATION;
-  }
-
-  return camera::ENCODER_ERROR_CONFIGURATION;
+  // Encoding done.
+  size_t written = encoder_.close();
+  this->output_->set_buffer_size(written);
+  return camera::ENCODER_ERROR_SUCCESS;
 }
 
 void Bitbank2JPEGEncoder::dump_config() {

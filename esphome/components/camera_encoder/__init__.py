@@ -5,20 +5,18 @@ from esphome.components.esp32 import (
     get_esp32_variant,
 )
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_TYPE
+from esphome.const import CONF_BUFFER_SIZE, CONF_ID, CONF_TYPE
 from esphome.core import CORE
 
 CODEOWNERS = ["@DT-art1"]
 
 AUTO_LOAD = ["camera"]
 
+CONF_BUFFER_EXPAND_SIZE = "buffer_expand_size"
 CONF_ENCODER_BUFFER_ID = "encoder_buffer_id"
 CONF_MCU_COUNT = "mcu_count"
 CONF_QUALITY = "quality"
 CONF_SUBSAMPLING = "subsampling"
-
-CONF_BUFFER_SIZE = "buffer_size"
-CONF_BUFFER_EXPAND_SIZE = "buffer_expand_size"
 
 ESP32_CAMERA_ENCODER = "esp32_camera"
 P4_ENCODER = "p4"

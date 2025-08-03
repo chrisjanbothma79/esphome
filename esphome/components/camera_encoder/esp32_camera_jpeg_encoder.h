@@ -20,19 +20,18 @@ class ESP32CameraJPEGEncoder : public camera::Encoder {
   /// @param buffer_expand_size Number of bytes to expand the buffer.
   void set_buffer_expand_size(size_t buffer_expand_size) { this->buffer_expand_size_ = buffer_expand_size; }
   // -------- Encoder --------
-  size_t encode_pixels(camera::CameraImageSpec *spec, camera::CameraImage *pixels) override;
-  camera::EncoderError get_last_error() override { return last_error_; }
+  camera::EncoderError encode_pixels(camera::CameraImageSpec *spec, camera::CameraImage *pixels) override;
   camera::EncoderBuffer *get_output_buffer() override { return output_; }
   void dump_config() override;
   // -------------------------
  protected:
   static size_t callback_(void *arg, size_t index, const void *data, size_t len);
   pixformat_t to_internal_(camera::ImageFormat format);
+
   size_t buffer_expand_size_{};
   uint8_t quality_{};
-  camera::EncoderError last_error_{};
   size_t bytes_written_{};
-  bool should_expand_size_{};
+  bool out_of_output_memory_{};
   camera::EncoderBuffer *output_{};
 };
 

@@ -145,8 +145,8 @@ bool CameraImpl::camera_loop() {
 
   if (state_ == CAMERA_STATE_ENCODING) {
     // Encodes the pixels and returns the number of bytes written.
-    size_t length = this->encoder_->encode_pixels(this->input_image_spec_, this->input_image_);
-    switch (this->encoder_->get_last_error()) {
+    EncoderError error = this->encoder_->encode_pixels(this->input_image_spec_, this->input_image_);
+    switch (error) {
       case ENCODER_ERROR_SUCCESS: {
         if (skip_frame_counter_ > 1)
           ESP_LOGW(TAG, "ENCODER_ERROR_SKIP_FRAME. TOTAL: %d", skip_frame_counter_);

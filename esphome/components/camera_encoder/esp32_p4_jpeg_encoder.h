@@ -14,8 +14,7 @@ class ESP32P4JPEGEncoder : public camera::Encoder {
  public:
   ESP32P4JPEGEncoder(uint8_t quality, camera::EncoderSubsampling subsampling, camera::EncoderBuffer *output);
   // -------- Encoder --------
-  size_t encode_pixels(camera::CameraImageSpec *spec, camera::CameraImage *pixels) override;
-  camera::EncoderError get_last_error() override;
+  camera::EncoderError encode_pixels(camera::CameraImageSpec *spec, camera::CameraImage *pixels) override;
   camera::EncoderBuffer *get_output_buffer() override { return output_; }
   void dump_config() override;
   // -------------------------
@@ -23,9 +22,9 @@ class ESP32P4JPEGEncoder : public camera::Encoder {
   jpeg_enc_input_format_t to_internal_(camera::ImageFormat format);
   jpeg_down_sampling_type_t to_internal_(camera::EncoderSubsampling subsampling);
   jpeg_encoder_handle_t encoder_engine_{};
+
   uint8_t quality_{};
   camera::EncoderSubsampling subsampling_{};
-  esp_err_t last_error_{};
   camera::EncoderBuffer *output_{};
 };
 
