@@ -13,6 +13,7 @@
 namespace esphome {
 namespace modem {
 
+std::map<std::string, std::string> get_gnssinfo_tokens(const std::string &line);
 class ModemTextSensor : public PollingComponent {
  public:
   void set_network_type_text_sensor(text_sensor::TextSensor *network_type_text_sensor) {
@@ -21,6 +22,9 @@ class ModemTextSensor : public PollingComponent {
   void set_signal_strength_text_sensor(text_sensor::TextSensor *signal_strength_text_sensor) {
     this->signal_strength_text_sensor_ = signal_strength_text_sensor;
   }
+  void set_nmea_text_sensor(text_sensor::TextSensor *nmea_text_sensor) { this->nmea_text_sensor_ = nmea_text_sensor; }
+  void set_gnss_command(const std::string &gnss_command) { this->gnss_command_ = gnss_command; }
+
   // ========== INTERNAL METHODS ==========
   // (In most use cases you won't need these)
 
@@ -32,8 +36,12 @@ class ModemTextSensor : public PollingComponent {
  protected:
   text_sensor::TextSensor *network_type_text_sensor_{nullptr};
   text_sensor::TextSensor *signal_strength_text_sensor_{nullptr};
+  text_sensor::TextSensor *nmea_text_sensor_{nullptr};
   void update_network_type_text_sensor_();
   void update_signal_strength_text_sensor_();
+  void update_nmea_text_sensor_();
+
+  std::string gnss_command_;
 };
 
 }  // namespace modem

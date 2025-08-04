@@ -128,28 +128,4 @@ async def to_code(config):
         ber_sensor = await sensor.new_sensor(ber)
         cg.add(var.set_ber_sensor(ber_sensor))
 
-    if latitude := config.get(CONF_LATITUDE, None):
-        latitude_sensor = await sensor.new_sensor(latitude)
-        cg.add(var.set_latitude_sensor(latitude_sensor))
-
-    if longitude := config.get(CONF_LONGITUDE, None):
-        longitude_sensor = await sensor.new_sensor(longitude)
-        cg.add(var.set_longitude_sensor(longitude_sensor))
-
-    if altitude := config.get(CONF_ALTITUDE, None):
-        altitude_sensor = await sensor.new_sensor(altitude)
-        cg.add(var.set_altitude_sensor(altitude_sensor))
-
-    if speed := config.get(CONF_SPEED, None):
-        speed_sensor = await sensor.new_sensor(speed)
-        cg.add(var.set_speed_sensor(speed_sensor))
-
-    if course := config.get(CONF_COURSE, None):
-        course_sensor = await sensor.new_sensor(course)
-        cg.add(var.set_course_sensor(course_sensor))
-
-    if accuracy := config.get(CONF_ACCURACY, None):
-        accuracy_sensor = await sensor.new_sensor(accuracy)
-        cg.add(var.set_accuracy_sensor(accuracy_sensor))
-
     await cg.register_component(var, config)
