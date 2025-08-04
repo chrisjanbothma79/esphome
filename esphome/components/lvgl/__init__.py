@@ -4,6 +4,7 @@ from esphome.automation import build_automation, register_action, validate_autom
 import esphome.codegen as cg
 from esphome.components.const import CONF_COLOR_DEPTH, CONF_DRAW_ROUNDING
 from esphome.components.display import Display
+from esphome.components.psram import DOMAIN as PSRAM_DOMAIN
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AUTO_CLEAR_ENABLED,
@@ -201,9 +202,8 @@ def final_validation(configs):
         multi_conf_validate(configs)
     global_config = full_config.get()
     for config in configs:
-        if pages := config.get(CONF_PAGES):
-            if all(p[df.CONF_SKIP] for p in pages):
-                raise cv.Invalid("At least one page must not be skipped")
+        if (pages := config.get(CONF_PAGES)) and all(p[df.CONF_SKIP] for p in pages):
+            raise cv.Invalid("At least one page must not be skipped")
         for display_id in config[df.CONF_DISPLAYS]:
             path = global_config.get_path_for_id(display_id)[:-1]
             display = global_config.get_config_for_path(path)
@@ -220,7 +220,7 @@ def final_validation(configs):
                     draw_rounding, config[CONF_DRAW_ROUNDING]
                 )
         buffer_frac = config[CONF_BUFFER_SIZE]
-        if CORE.is_esp32 and buffer_frac > 0.5 and "psram" not in global_config:
+        if CORE.is_esp32 and buffer_frac > 0.5 and PSRAM_DOMAIN not in global_config:
             LOGGER.warning("buffer_size: may need to be reduced without PSRAM")
         for image_id in lv_images_used:
             path = global_config.get_path_for_id(image_id)[:-1]

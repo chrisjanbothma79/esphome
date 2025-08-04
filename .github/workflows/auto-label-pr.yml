@@ -14,6 +14,7 @@ env:
   SMALL_PR_THRESHOLD: 30
   MAX_LABELS: 15
   TOO_BIG_THRESHOLD: 1000
+  COMPONENT_LABEL_THRESHOLD: 10
 
 jobs:
   label:
@@ -41,6 +42,7 @@ jobs:
             const SMALL_PR_THRESHOLD = parseInt('${{ env.SMALL_PR_THRESHOLD }}');
             const MAX_LABELS = parseInt('${{ env.MAX_LABELS }}');
             const TOO_BIG_THRESHOLD = parseInt('${{ env.TOO_BIG_THRESHOLD }}');
+            const COMPONENT_LABEL_THRESHOLD = parseInt('${{ env.COMPONENT_LABEL_THRESHOLD }}');
             const BOT_COMMENT_MARKER = '<!-- auto-label-pr-bot -->';
             const CODEOWNERS_MARKER = '<!-- codeowners-request -->';
             const TOO_BIG_MARKER = '<!-- too-big-request -->';
@@ -61,7 +63,11 @@ jobs:
               'needs-docs',
               'needs-codeowners',
               'too-big',
-              'labeller-recheck'
+              'labeller-recheck',
+              'bugfix',
+              'new-feature',
+              'breaking-change',
+              'code-quality'
             ];
 
             const DOCS_PR_PATTERNS = [
@@ -84,11 +90,18 @@ jobs:
               label.startsWith('component: ') || MANAGED_LABELS.includes(label)
             );
 
-            const { data: prFiles } = await github.rest.pulls.listFiles({
-              owner,
-              repo,
-              pull_number: pr_number
-            });
+            // Check for mega-PR early - if present, skip most automatic labeling
+            const isMegaPR = currentLabels.includes('mega-pr');
+
+            // Get all PR files with automatic pagination
+            const prFiles = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner,
+                repo,
+                pull_number: pr_number
+              }
+            );
 
             // Calculate data from PR files
             const changedFiles = prFiles.map(file => file.filename);
@@ -97,6 +110,9 @@ jobs:
             console.log('Current labels:', currentLabels.join(', '));
             console.log('Changed files:', changedFiles.length);
             console.log('Total changes:', totalChanges);
+            if (isMegaPR) {
+              console.log('Mega-PR detected - applying limited labeling logic');
+            }
 
             // Fetch API data
             async function fetchApiData() {
@@ -225,7 +241,8 @@ jobs:
                 labels.add('small-pr');
               }
 
-              if (nonTestChanges > TOO_BIG_THRESHOLD) {
+              // Don't add too-big if mega-pr label is already present
+              if (nonTestChanges > TOO_BIG_THRESHOLD && !isMegaPR) {
                 labels.add('too-big');
               }
 
@@ -289,9 +306,10 @@ jobs:
                     const dir = pattern.slice(0, -1);
                     regex = new RegExp(`^${dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
                   } else if (pattern.includes('*')) {
+                    // First escape all regex special chars except *, then replace * with .*
                     const regexPattern = pattern
-                      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                      .replace(/\\*/g, '.*');
+                      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+                      .replace(/\*/g, '.*');
                     regex = new RegExp(`^${regexPattern}$`);
                   } else {
                     regex = new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
@@ -327,6 +345,31 @@ jobs:
               return labels;
             }
 
+            // Strategy: PR Template Checkbox detection
+            async function detectPRTemplateCheckboxes() {
+              const labels = new Set();
+              const prBody = context.payload.pull_request.body || '';
+
+              console.log('Checking PR template checkboxes...');
+
+              // Check for checked checkboxes in the "Types of changes" section
+              const checkboxPatterns = [
+                { pattern: /- \[x\] Bugfix \(non-breaking change which fixes an issue\)/i, label: 'bugfix' },
+                { pattern: /- \[x\] New feature \(non-breaking change which adds functionality\)/i, label: 'new-feature' },
+                { pattern: /- \[x\] Breaking change \(fix or feature that would cause existing functionality to not work as expected\)/i, label: 'breaking-change' },
+                { pattern: /- \[x\] Code quality improvements to existing code or addition of tests/i, label: 'code-quality' }
+              ];
+
+              for (const { pattern, label } of checkboxPatterns) {
+                if (pattern.test(prBody)) {
+                  console.log(`Found checked checkbox for: ${label}`);
+                  labels.add(label);
+                }
+              }
+
+              return labels;
+            }
+
             // Strategy: Requirements detection
             async function detectRequirements(allLabels) {
               const labels = new Set();
@@ -337,7 +380,7 @@ jobs:
               }
 
               // Check for missing docs
-              if (allLabels.has('new-component') || allLabels.has('new-platform')) {
+              if (allLabels.has('new-component') || allLabels.has('new-platform') || allLabels.has('new-feature')) {
                 const prBody = context.payload.pull_request.body || '';
                 const hasDocsLink = DOCS_PR_PATTERNS.some(pattern => pattern.test(prBody));
 
@@ -521,7 +564,8 @@ jobs:
               dashboardLabels,
               actionsLabels,
               codeOwnerLabels,
-              testLabels
+              testLabels,
+              checkboxLabels
             ] = await Promise.all([
               detectMergeBranch(),
               detectComponentPlatforms(apiData),
@@ -532,7 +576,8 @@ jobs:
               detectDashboardChanges(),
               detectGitHubActionsChanges(),
               detectCodeOwner(),
-              detectTests()
+              detectTests(),
+              detectPRTemplateCheckboxes()
             ]);
 
             // Combine all labels
@@ -546,7 +591,8 @@ jobs:
               ...dashboardLabels,
               ...actionsLabels,
               ...codeOwnerLabels,
-              ...testLabels
+              ...testLabels,
+              ...checkboxLabels
             ]);
 
             // Detect requirements based on all other labels
@@ -557,8 +603,16 @@ jobs:
 
             let finalLabels = Array.from(allLabels);
 
-            // Handle too many labels
-            const isMegaPR = currentLabels.includes('mega-pr');
+            // For mega-PRs, exclude component labels if there are too many
+            if (isMegaPR) {
+              const componentLabels = finalLabels.filter(label => label.startsWith('component: '));
+              if (componentLabels.length > COMPONENT_LABEL_THRESHOLD) {
+                finalLabels = finalLabels.filter(label => !label.startsWith('component: '));
+                console.log(`Mega-PR detected - excluding ${componentLabels.length} component labels (threshold: ${COMPONENT_LABEL_THRESHOLD})`);
+              }
+            }
+
+            // Handle too many labels (only for non-mega PRs)
             const tooManyLabels = finalLabels.length > MAX_LABELS;
 
             if (tooManyLabels && !isMegaPR && !finalLabels.includes('too-big')) {
