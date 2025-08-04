@@ -30,7 +30,7 @@ class DS2484OneWireBus : public one_wire::OneWireBus, public i2c::I2CDevice, pub
   uint64_t search_int() override;
   bool read_status_(uint8_t *);
   bool wait_for_completion_();
-  void write8_(uint8_t);
+  void write8(uint8_t);
   bool one_wire_triple_(bool *branch, bool *id_bit, bool *cmp_id_bit);
 
   uint64_t address_;

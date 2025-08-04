@@ -305,11 +305,7 @@ class Logger : public Component {
     }
 
     intptr_t current = (intptr_t) pthread_getspecific(log_recursion_key_);
-    if (current != 0)
-      return true;
-
-    pthread_setspecific(log_recursion_key_, (void *) 1);
-    return false;
+    return static_cast<bool>(current != 0);
   }
 
   inline void HOT reset_task_log_recursion_(bool is_main_task) {

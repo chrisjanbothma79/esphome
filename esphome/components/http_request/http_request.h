@@ -167,9 +167,9 @@ class HttpRequestComponent : public Component {
   }
 
  protected:
-  virtual std::shared_ptr<HttpContainer> perform(std::string url, std::string method, std::string body,
-                                                 std::list<Header> request_headers,
-                                                 std::set<std::string> collect_headers) = 0;
+  virtual std::shared_ptr<HttpContainer> perform_(std::string url, std::string method, std::string body,
+                                                  std::list<Header> request_headers,
+                                                  std::set<std::string> collect_headers) = 0;
   const char *useragent_{nullptr};
   bool follow_redirects_{};
   uint16_t redirect_limit_{};

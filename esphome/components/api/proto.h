@@ -51,7 +51,7 @@ class ProtoVarInt {
   ProtoVarInt() : value_(0) {}
   explicit ProtoVarInt(uint64_t value) : value_(value) {}
 
-  static optional<ProtoVarInt> parse(const uint8_t *buffer, uint32_t len, uint32_t *consumed) {
+  static optional<ProtoVarInt> parse(const uint8_t *buffer, uint32_t len, const uint32_t *consumed) {
     if (len == 0) {
       if (consumed != nullptr)
         *consumed = 0;
@@ -126,7 +126,7 @@ class ProtoVarInt {
    *       the exact size needed before calling this method.
    * @note No bounds checking is performed for performance reasons.
    */
-  void encode_to_buffer_unchecked(uint8_t *buffer, size_t len) {
+  void encode_to_buffer_unchecked(const uint8_t *buffer, size_t len) {
     uint64_t val = this->value_;
     if (val <= 0x7F) {
       buffer[0] = val;

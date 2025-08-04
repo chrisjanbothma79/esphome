@@ -234,7 +234,7 @@ class BLEEvent {
 
  private:
   // Initialize GAP event data
-  void init_gap_data_(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
+  void init_gap_data_(esp_gap_ble_cb_event_t e, const esp_ble_gap_cb_param_t *p) {
     this->event_.gap.gap_event = e;
 
     if (p == nullptr) {
@@ -312,7 +312,7 @@ class BLEEvent {
   }
 
   // Initialize GATTC event data
-  void init_gattc_data_(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
+  void init_gattc_data_(esp_gattc_cb_event_t e, esp_gatt_if_t i, const esp_ble_gattc_cb_param_t *p) {
     this->event_.gattc.gattc_event = e;
     this->event_.gattc.gattc_if = i;
 
@@ -351,7 +351,7 @@ class BLEEvent {
   }
 
   // Initialize GATTS event data
-  void init_gatts_data_(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
+  void init_gatts_data_(esp_gatts_cb_event_t e, esp_gatt_if_t i, const esp_ble_gatts_cb_param_t *p) {
     this->event_.gatts.gatts_event = e;
     this->event_.gatts.gatts_if = i;
 

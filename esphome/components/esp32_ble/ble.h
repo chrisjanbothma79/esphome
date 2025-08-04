@@ -38,7 +38,7 @@ static constexpr uint8_t SCAN_RESULT_BUFFER_SIZE = 24;
 // Maximum size of the BLE event queue - must be power of 2 for lock-free queue
 static constexpr size_t MAX_BLE_QUEUE_SIZE = 64;
 
-uint64_t ble_addr_to_uint64(const esp_bd_addr_t address);
+uint64_t ble_addr_to_uint64(esp_bd_addr_t address);
 
 // NOLINTNEXTLINE(modernize-use-using)
 typedef struct {

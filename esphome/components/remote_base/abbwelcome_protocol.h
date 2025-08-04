@@ -244,7 +244,7 @@ template<typename... Ts> class ABBWelcomeAction : public RemoteTransmitterAction
   }
 
  protected:
-  std::function<std::vector<uint8_t>(Ts...)> data_func_{};
+  std::function<std::vector<uint8_t>(ts_...)> data_func_{};
   std::vector<uint8_t> data_static_{};
   bool has_data_func_{false};
 };

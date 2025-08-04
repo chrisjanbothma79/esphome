@@ -153,7 +153,7 @@ template<typename... Ts> class BLEClientWriteAction : public Action<Ts...>, publ
   }
 
   void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
-                           esp_ble_gattc_cb_param_t *param) override {
+                           const esp_ble_gattc_cb_param_t *param) override {
     switch (event) {
       case ESP_GATTC_WRITE_CHAR_EVT:
         // upstream code checked the MAC address, verify the characteristic.
@@ -197,7 +197,7 @@ template<typename... Ts> class BLEClientWriteAction : public Action<Ts...>, publ
   BLEClient *ble_client_;
   bool has_simple_value_ = true;
   std::vector<uint8_t> value_simple_;
-  std::function<std::vector<uint8_t>(Ts...)> value_template_{};
+  std::function<std::vector<uint8_t>(ts_...)> value_template_{};
   espbt::ESPBTUUID service_uuid_;
   espbt::ESPBTUUID char_uuid_;
   std::tuple<Ts...> var_{};

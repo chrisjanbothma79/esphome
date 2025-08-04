@@ -40,7 +40,7 @@ class CaptivePortal : public AsyncWebHandler, public Component {
 #endif
   }
 
-  bool canHandle(AsyncWebServerRequest *request) const override {
+  bool canHandle(const AsyncWebServerRequest *request) const override {
     if (!this->active_)
       return false;
 

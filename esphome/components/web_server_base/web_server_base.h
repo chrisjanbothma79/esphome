@@ -35,7 +35,7 @@ class MiddlewareHandler : public AsyncWebHandler {
   void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) override {
     next_->handleBody(request, data, len, index, total);
   }
-  bool isRequestHandlerTrivial() const override { return next_->isRequestHandlerTrivial(); }
+  bool is_request_handler_trivial() const override { return next_->isRequestHandlerTrivial(); }
 
  protected:
   AsyncWebHandler *next_;
@@ -52,7 +52,7 @@ class AuthMiddlewareHandler : public MiddlewareHandler {
   AuthMiddlewareHandler(AsyncWebHandler *next, Credentials *credentials)
       : MiddlewareHandler(next), credentials_(credentials) {}
 
-  bool check_auth(AsyncWebServerRequest *request) {
+  bool check_auth(const AsyncWebServerRequest *request) {
     bool success = request->authenticate(credentials_->username.c_str(), credentials_->password.c_str());
     if (!success) {
       request->requestAuthentication();

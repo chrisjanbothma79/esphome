@@ -146,7 +146,7 @@ template<typename... Ts> class CanbusSendAction : public Action<Ts...>, public P
   optional<bool> use_extended_id_{};
   bool remote_transmission_request_{false};
   bool static_{false};
-  std::function<std::vector<uint8_t>(Ts...)> data_func_{};
+  std::function<std::vector<uint8_t>(ts_...)> data_func_{};
   std::vector<uint8_t> data_static_{};
 };
 

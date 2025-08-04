@@ -165,7 +165,7 @@ inline int32_t unpack_audio_sample_to_q31(const uint8_t *data, size_t bytes_per_
 /// @param sample Q31 fixed-point number to pack
 /// @param data Pointer to data array to store
 /// @param bytes_per_sample The audio data's bytes per sample
-inline void pack_q31_as_audio_sample(int32_t sample, uint8_t *data, size_t bytes_per_sample) {
+inline void pack_q31_as_audio_sample(int32_t sample, const uint8_t *data, size_t bytes_per_sample) {
   if (bytes_per_sample == 1) {
     data[0] = static_cast<uint8_t>(sample >> 24);
   } else if (bytes_per_sample == 2) {

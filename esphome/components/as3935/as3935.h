@@ -109,7 +109,7 @@ class AS3935Component : public Component {
   uint8_t get_distance_to_storm_();
   uint32_t get_lightning_energy_();
 
-  virtual uint8_t read_register(uint8_t reg) = 0;
+  virtual uint8_t read_register_(uint8_t reg) = 0;
   uint8_t read_register_(uint8_t reg, uint8_t mask);
 
   virtual void write_register(uint8_t reg, uint8_t mask, uint8_t bits, uint8_t start_position) = 0;
