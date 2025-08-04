@@ -208,4 +208,5 @@ button:
     name: Digital Write
     on_press:
       - remote_transmitter.digital_write: true
-      - remote_transmitter.digital_write: false
+      - remote_transmitter.digital_write:
+          value: false
