@@ -1,3 +1,13 @@
+esphome:
+  name: test-no-select-esp8266
+  friendly_name: "Test No Select ESP8266"
+
+esp8266:
+  board: d1_mini
+
+logger:
+  level: VERY_VERBOSE
+
 uart:
   - id: seeed_mr24hpc1_uart
     tx_pin: ${uart_tx_pin}
