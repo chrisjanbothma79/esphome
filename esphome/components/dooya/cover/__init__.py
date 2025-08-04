@@ -7,8 +7,7 @@ from .. import (
     DOOYA_CHILD_SCHEMA,
     DooyaComponent,
     dooya_ns,
-    register_component,
-    validate_address,
+    register_component
 )
 
 DEPENDENCIES = ["dooya"]
@@ -16,7 +15,7 @@ DEPENDENCIES = ["dooya"]
 DooyaCover = dooya_ns.class_("DooyaCover", DooyaComponent, cover.Cover)
 
 CONFIG_SCHEMA = cv.All(
-    cover.cover_schema(DooyaCover).extend(DOOYA_CHILD_SCHEMA), validate_address
+    cover.cover_schema(DooyaCover).extend(DOOYA_CHILD_SCHEMA)
 )
 
 

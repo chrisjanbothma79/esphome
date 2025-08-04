@@ -16,16 +16,18 @@ DooyaBridge = dooya_ns.class_("DooyaBridge", cg.Component)
 DooyaComponent = dooya_ns.class_("DooyaComponent", cg.Component, cg.Parented)
 
 
-def validate_address(config):
-    if len(config[CONF_ADDRESS]) != 3:
-        raise cv.Invalid("Address MUST be 3 alphanumeric characters.")
-    return config
-
+def validate_address(value):
+    if value is None:
+        raise cv.Invalid("address value is None")
+    value = str(value)
+    if not value.isupper() or not value.isalnum() or len(value) != 3:
+        raise cv.Invalid(f"{value} is not 3 uppercase alphanumeric characters")
+    return value
 
 DOOYA_CHILD_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_DOOYA_BRIDGE_ID): cv.use_id(DooyaBridge),
-        cv.Required(CONF_ADDRESS): cv.alphanumeric,
+        cv.Required(CONF_ADDRESS): validate_address,
     }
 )
 
