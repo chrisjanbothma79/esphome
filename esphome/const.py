@@ -610,7 +610,6 @@ CONF_NBITS = "nbits"
 CONF_NEC = "nec"
 CONF_NETWORKS = "networks"
 CONF_NEVER = "never"
-CONF_NEVER_SECONDS = 0xFFFFFFFF
 CONF_NEW_PASSWORD = "new_password"
 CONF_NITROGEN_DIOXIDE = "nitrogen_dioxide"
 CONF_NOISE_LEVEL = "noise_level"
@@ -1331,3 +1330,8 @@ ENTITY_CATEGORY_CONFIG = "config"
 
 # The entity category for read only diagnostic values, for example RSSI, uptime or MAC Address
 ENTITY_CATEGORY_DIAGNOSTIC = "diagnostic"
+
+# when update_interval is set to never, it becomes this many seconds.
+INTERVAL_NEVER_SECONDS = 4294967295
+# The corresponding constant in c++ is SCHEDULER_DONT_RUN but that would not be findable
+SCHEDULER_DONT_RUN = 4294967295

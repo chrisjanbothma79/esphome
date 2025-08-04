@@ -7,7 +7,7 @@ from esphome.const import (
     CONF_FROM,
     CONF_ID,
     CONF_LAMBDA,
-    CONF_NEVER_SECONDS,
+    INTERVAL_NEVER_SECONDS,
     CONF_PAGE_ID,
     CONF_PAGES,
     CONF_ROTATION,
@@ -73,7 +73,7 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
 def _validate_test_card(config):
     if (
         config.get(CONF_SHOW_TEST_CARD, False)
-        and config.get(CONF_UPDATE_INTERVAL, False) == CONF_NEVER_SECONDS
+        and config.get(CONF_UPDATE_INTERVAL, False) == INTERVAL_NEVER_SECONDS
     ):
         raise cv.Invalid(
             f"`{CONF_SHOW_TEST_CARD}: True` cannot be used with `{CONF_UPDATE_INTERVAL}: never` because this combination will not show a test_card."
