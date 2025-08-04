@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cinttypes>
-#include <chrono>
 
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
@@ -36,7 +35,7 @@ class DooyaBridge : public Component, public uart::UARTDevice {
   std::vector<DooyaComponent *> subcomponents_;
   struct {
     bool in_progress{false};
-    std::chrono::time_point<std::chrono::high_resolution_clock> start;
+    uint32_t start;
     bool req_sent{false};
   } pairing_;
   struct {

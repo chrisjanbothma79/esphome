@@ -51,7 +51,7 @@ void DooyaBridge::loop() {
   } else {
     if (pairing_.in_progress) {
       if (!pairing_.req_sent)
-        pairing_.in_progress = std::chrono::high_resolution_clock::now() - pairing_.start < std::chrono::seconds(30);
+        pairing_.in_progress = App.get_loop_component_start_time() - pairing_.start < 30000;
 
       if (pairing_.in_progress) {
         if (!pairing_.req_sent) {
@@ -84,7 +84,7 @@ bool DooyaBridge::start_pairing() {
   ESP_LOGI(TAG, "Pairing...");
 
   pairing_.in_progress = true;
-  pairing_.start = std::chrono::high_resolution_clock::now();
+  pairing_.start = App.get_loop_component_start_time();
 
   return true;
 }
