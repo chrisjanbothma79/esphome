@@ -27,14 +27,12 @@ enum DooyaPacketEntryTag : char {
 
 class DooyaComponent : public Component, public Parented<DooyaBridge> {
  public:
-  DooyaComponent() {}
-
   float get_setup_priority() const override { return setup_priority::AFTER_BLUETOOTH; }
 
   virtual void process_packet(std::vector<std::pair<DooyaPacketEntryTag, std::string>> params) = 0;
 
-  void set_address(std::string address) { address_ = std::move(address); }
-  std::string get_address() { return address_; };
+  void set_address(std::string address) { this->address_ = std::move(address); }
+  std::string get_address() { return this->address_; };
 
  protected:
   std::string address_;
