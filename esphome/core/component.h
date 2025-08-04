@@ -208,6 +208,8 @@ class Component {
    *       by dependent components to defer their own behavior until the parent component
    *       becomes operational.
    *
+   * @warning If a component is marked as failed, this method will always return `false`.
+   *
    * @return `true` if the component is ready for use, `false` otherwise.
    */
   virtual bool is_ready() const;
