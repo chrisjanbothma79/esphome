@@ -70,44 +70,99 @@ bool DeepSleepComponent::prepare_to_sleep_() {
 }
 
 void DeepSleepComponent::deep_sleep_() {
+  esp_err_t err;
+  // Reset all enabled IO wakeup configuration
+  err = esp_sleep_disable_ext1_wakeup_io(0);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "esp_sleep_disable_ext1_wakeup_io failed: %s", esp_err_to_name(err));
+    return;
+  }
+  // Reset all wakeup source configuration
+  err = esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "esp_sleep_disable_wakeup_source failed: %s", esp_err_to_name(err));
+    return;
+  }
 #if !defined(USE_ESP32_VARIANT_ESP32C3) && !defined(USE_ESP32_VARIANT_ESP32C6) && !defined(USE_ESP32_VARIANT_ESP32H2)
   if (this->sleep_duration_.has_value())
-    esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
+    err = esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "esp_sleep_enable_timer_wakeup failed: %s", esp_err_to_name(err));
+    return;
+  }
   if (this->wakeup_pin_ != nullptr) {
     bool level = !this->wakeup_pin_->is_inverted();
     if (this->wakeup_pin_mode_ == WAKEUP_PIN_MODE_INVERT_WAKEUP && this->wakeup_pin_->digital_read()) {
       level = !level;
     }
-    esp_sleep_enable_ext0_wakeup(gpio_num_t(this->wakeup_pin_->get_pin()), level);
+    err = esp_sleep_enable_ext0_wakeup(gpio_num_t(this->wakeup_pin_->get_pin()), level);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "esp_sleep_enable_ext0_wakeup failed: %s", esp_err_to_name(err));
+      return;
+    }
   }
   if (this->ext1_wakeup_.has_value()) {
-    esp_sleep_enable_ext1_wakeup(this->ext1_wakeup_->mask, this->ext1_wakeup_->wakeup_mode);
+    err = esp_sleep_enable_ext1_wakeup(this->ext1_wakeup_->mask, this->ext1_wakeup_->wakeup_mode);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "esp_sleep_enable_ext1_wakeup failed: %s", esp_err_to_name(err));
+      return;
+    }
   }
 
   if (this->touch_wakeup_.has_value() && *(this->touch_wakeup_)) {
-    esp_sleep_enable_touchpad_wakeup();
-    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+    err = esp_sleep_enable_touchpad_wakeup();
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "esp_sleep_enable_touchpad_wakeup failed: %s", esp_err_to_name(err));
+      return;
+    }
+    err = esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "esp_sleep_pd_config failed: %s", esp_err_to_name(err));
+      return;
+    }
+  } else {
+    err = esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_AUTO);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "esp_sleep_pd_config failed: %s", esp_err_to_name(err));
+      return;
+    }
   }
 #endif
 
 #if defined(USE_ESP32_VARIANT_ESP32H2)
   if (this->sleep_duration_.has_value())
-    esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
+    err = esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "esp_sleep_enable_timer_wakeup failed: %s", esp_err_to_name(err));
+    return;
+  }
   if (this->ext1_wakeup_.has_value()) {
-    esp_sleep_enable_ext1_wakeup(this->ext1_wakeup_->mask, this->ext1_wakeup_->wakeup_mode);
+    err = esp_sleep_enable_ext1_wakeup(this->ext1_wakeup_->mask, this->ext1_wakeup_->wakeup_mode);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "esp_sleep_enable_ext1_wakeup failed: %s", esp_err_to_name(err));
+      return;
+    }
   }
 #endif
 
 #if defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32C6)
   if (this->sleep_duration_.has_value())
-    esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
+    err = esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "esp_sleep_enable_timer_wakeup failed: %s", esp_err_to_name(err));
+    return;
+  }
   if (this->wakeup_pin_ != nullptr) {
     bool level = !this->wakeup_pin_->is_inverted();
     if (this->wakeup_pin_mode_ == WAKEUP_PIN_MODE_INVERT_WAKEUP && this->wakeup_pin_->digital_read()) {
       level = !level;
     }
-    esp_deep_sleep_enable_gpio_wakeup(1 << this->wakeup_pin_->get_pin(),
-                                      static_cast<esp_deepsleep_gpio_wake_up_mode_t>(level));
+    err = esp_deep_sleep_enable_gpio_wakeup(1 << this->wakeup_pin_->get_pin(),
+                                            static_cast<esp_deepsleep_gpio_wake_up_mode_t>(level));
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "esp_deep_sleep_enable_gpio_wakeup failed: %s", esp_err_to_name(err));
+      return;
+    }
   }
 #endif
   esp_deep_sleep_start();
