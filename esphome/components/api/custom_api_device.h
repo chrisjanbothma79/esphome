@@ -56,6 +56,13 @@ class CustomAPIDevice {
     auto *service = new CustomAPIDeviceService<T, Ts...>(name, arg_names, (T *) this, callback);  // NOLINT
     global_api_server->register_user_service(service);
   }
+#else
+  template<typename T, typename... Ts>
+  void register_service(void (T::*callback)(Ts...), const std::string &name,
+                        const std::array<std::string, sizeof...(Ts)> &arg_names) {
+    static_assert(
+        false, "register_service() requires 'custom_services: true' in the 'api:' section of your YAML configuration");
+  }
 #endif
 
   /** Register a custom native API service that will show up in Home Assistant.
@@ -80,6 +87,11 @@ class CustomAPIDevice {
   template<typename T> void register_service(void (T::*callback)(), const std::string &name) {
     auto *service = new CustomAPIDeviceService<T>(name, {}, (T *) this, callback);  // NOLINT
     global_api_server->register_user_service(service);
+  }
+#else
+  template<typename T> void register_service(void (T::*callback)(), const std::string &name) {
+    static_assert(
+        false, "register_service() requires 'custom_services: true' in the 'api:' section of your YAML configuration");
   }
 #endif
 
@@ -134,6 +146,20 @@ class CustomAPIDevice {
                                      const std::string &attribute = "") {
     auto f = std::bind(callback, (T *) this, entity_id, std::placeholders::_1);
     global_api_server->subscribe_home_assistant_state(entity_id, optional<std::string>(attribute), f);
+  }
+#else
+  template<typename T>
+  void subscribe_homeassistant_state(void (T::*callback)(std::string), const std::string &entity_id,
+                                     const std::string &attribute = "") {
+    static_assert(false, "subscribe_homeassistant_state() requires 'homeassistant_states: true' in the 'api:' section "
+                         "of your YAML configuration");
+  }
+
+  template<typename T>
+  void subscribe_homeassistant_state(void (T::*callback)(std::string, std::string), const std::string &entity_id,
+                                     const std::string &attribute = "") {
+    static_assert(false, "subscribe_homeassistant_state() requires 'homeassistant_states: true' in the 'api:' section "
+                         "of your YAML configuration");
   }
 #endif
 
@@ -221,6 +247,26 @@ class CustomAPIDevice {
       kv.value = it.second;
     }
     global_api_server->send_homeassistant_service_call(resp);
+  }
+#else
+  void call_homeassistant_service(const std::string &service_name) {
+    static_assert(false, "call_homeassistant_service() requires 'homeassistant_services: true' in the 'api:' section "
+                         "of your YAML configuration");
+  }
+
+  void call_homeassistant_service(const std::string &service_name, const std::map<std::string, std::string> &data) {
+    static_assert(false, "call_homeassistant_service() requires 'homeassistant_services: true' in the 'api:' section "
+                         "of your YAML configuration");
+  }
+
+  void fire_homeassistant_event(const std::string &event_name) {
+    static_assert(false, "fire_homeassistant_event() requires 'homeassistant_services: true' in the 'api:' section of "
+                         "your YAML configuration");
+  }
+
+  void fire_homeassistant_event(const std::string &service_name, const std::map<std::string, std::string> &data) {
+    static_assert(false, "fire_homeassistant_event() requires 'homeassistant_services: true' in the 'api:' section of "
+                         "your YAML configuration");
   }
 #endif
 };
