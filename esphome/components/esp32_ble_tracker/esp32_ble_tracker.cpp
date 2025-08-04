@@ -238,8 +238,10 @@ void ESP32BLETracker::loop() {
         if (this->scanner_state_ == ScannerState::RUNNING) {
           ESP_LOGD(TAG, "Stopping scan to make connection");
           this->stop_scan_();
-          // Don't wait for scan stop complete - promote immediately
-          // The BLE stack processes commands in order through its queue
+          // Don't wait for scan stop complete - promote immediately.
+          // This is safe because ESP-IDF processes BLE commands sequentially through its internal mailbox queue.
+          // This guarantees that the stop scan command will be fully processed before any subsequent connect command,
+          // preventing race conditions or overlapping operations.
         }
 
         ESP_LOGD(TAG, "Promoting client to connect");
