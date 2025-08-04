@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import esphome.codegen as cg
@@ -221,3 +222,19 @@ def upload_program(config: ConfigType, args, host: str) -> bool:
         raise EsphomeError(f"Upload failed with result: {result}")
 
     return handled
+
+
+def show_logs(config, args, port):
+    address = port
+    from .ble_logger import is_mac_address, logger_connect, logger_scan
+
+    if port == "BLE":
+        ble_device = asyncio.run(logger_scan(CORE.config["esphome"]["name"]))
+        if ble_device:
+            address = ble_device.address
+        else:
+            return True
+    if is_mac_address(address):
+        asyncio.run(logger_connect(address))
+        return True
+    return False
