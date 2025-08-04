@@ -1,0 +1,97 @@
+import re
+
+from esphome import pins
+import esphome.codegen as cg
+import esphome.config_validation as cv
+from esphome.const import CONF_ANALOG, CONF_ID, CONF_INVERTED, CONF_MODE, CONF_NUMBER
+from esphome.core import CORE
+
+from . import boards
+from .const import CONF_AF, KEY_BOARD, KEY_GPIO_CLOCK_ENABLED, KEY_STM32, stm32_ns
+
+STM32GPIOPin = stm32_ns.class_("STM32GPIOPin", cg.InternalGPIOPin)
+
+PIN_RE = re.compile("^P([A-P])(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15)$")
+
+
+def _lookup_pin(value):
+    board = CORE.data[KEY_STM32][KEY_BOARD]
+    board_pins = boards.STM32_BOARD_PINS.get(board, {})
+
+    while isinstance(board_pins, str):
+        board_pins = boards.STM32_BOARD_PINS[board_pins]
+
+    if value in board_pins:
+        return board_pins[value]
+    if value in boards.STM32_BASE_PINS:
+        return boards.STM32_BASE_PINS[value]
+    raise cv.Invalid(f"Cannot resolve pin name '{value}' for board {board}.")
+
+
+def _translate_pin(value):
+    if isinstance(value, dict) or value is None:
+        raise cv.Invalid(
+            "This variable only supports pin numbers, not full pin schemas "
+            "(with inverted and mode)."
+        )
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if not isinstance(value, str):
+        raise cv.Invalid(f"Invalid pin number: {value}")
+
+    parsed = PIN_RE.match(value)
+    if parsed:
+        port_nr = ord(parsed[1]) - ord("A")
+        pin = int(parsed[2])
+        return port_nr * 16 + pin
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    if value.startswith("GPIO"):
+        return cv.int_(value[len("GPIO") :].strip())
+    return _lookup_pin(value)
+
+
+def validate_gpio_pin(value):
+    value = _translate_pin(value)
+    if value < 0 or value > 255:
+        raise cv.Invalid(f"STM32: Invalid pin number: {value}")
+    return value
+
+
+def validate_supports(value):
+    return value
+
+
+STM32_PIN_SCHEMA = cv.All(
+    pins.gpio_base_schema(
+        STM32GPIOPin,
+        validate_gpio_pin,
+        modes=pins.GPIO_STANDARD_MODES + (CONF_ANALOG,),
+    ).extend(
+        {
+            cv.Optional(CONF_AF): cv.int_range(0, 15),
+        }
+    ),
+    validate_supports,
+)
+
+
+@pins.PIN_SCHEMA_REGISTRY.register("stm32", STM32_PIN_SCHEMA)
+async def stm32_pin_to_code(config):
+    num = config[CONF_NUMBER]
+    gpio_port_num = num >> 4
+    gpio_port_enabled = CORE.data[KEY_STM32][KEY_GPIO_CLOCK_ENABLED]
+    port_name = f"GPIO{chr(65 + gpio_port_num)}"
+    if gpio_port_num not in gpio_port_enabled:
+        cg.add(cg.RawExpression(f"__HAL_RCC_{port_name}_CLK_ENABLE()"))
+        gpio_port_enabled.add(gpio_port_num)
+    var = cg.new_Pvariable(config[CONF_ID])
+    cg.add(var.set_port(cg.RawExpression(port_name)))
+    cg.add(var.set_pin(num))
+    cg.add(var.set_inverted(config[CONF_INVERTED]))
+    cg.add(var.set_flags(pins.gpio_flags_expr(config[CONF_MODE])))
+    if CONF_AF in config:
+        cg.add(var.set_af(config[CONF_AF]))
+    return var

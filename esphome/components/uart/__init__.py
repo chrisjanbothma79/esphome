@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_DUMMY_RECEIVER,
     CONF_DUMMY_RECEIVER_ID,
     CONF_ID,
+    CONF_INSTANCE,
     CONF_INVERT,
     CONF_INVERTED,
     CONF_LAMBDA,
@@ -28,6 +29,7 @@ from esphome.const import (
     CONF_TX_PIN,
     CONF_UART_ID,
     PLATFORM_HOST,
+    PLATFORM_STM32,
     PlatformFramework,
 )
 from esphome.core import CORE
@@ -42,6 +44,7 @@ IDFUARTComponent = uart_ns.class_("IDFUARTComponent", UARTComponent, cg.Componen
 ESP32ArduinoUARTComponent = uart_ns.class_(
     "ESP32ArduinoUARTComponent", UARTComponent, cg.Component
 )
+STM32UARTComponent = uart_ns.class_("STM32UARTComponent", UARTComponent, cg.Component)
 ESP8266UartComponent = uart_ns.class_(
     "ESP8266UartComponent", UARTComponent, cg.Component
 )
@@ -57,6 +60,7 @@ NATIVE_UART_CLASSES = (
     str(ESP8266UartComponent),
     str(RP2040UartComponent),
     str(LibreTinyUARTComponent),
+    str(STM32UARTComponent),
 )
 
 HOST_BAUD_RATES = [
@@ -159,6 +163,8 @@ def _uart_declare_type(value):
         return cv.declare_id(RP2040UartComponent)(value)
     if CORE.is_libretiny:
         return cv.declare_id(LibreTinyUARTComponent)(value)
+    if CORE.is_stm32:
+        return cv.declare_id(STM32UARTComponent)(value)
     if CORE.is_host:
         return cv.declare_id(HostUartComponent)(value)
     raise NotImplementedError
@@ -209,6 +215,14 @@ def validate_port(value):
     return value
 
 
+def validate_instance(value):
+    if CORE.is_stm32:
+        from esphome.components.stm32.const import KEY_STM32, KEY_UART_INSTANCES
+
+        return cv.one_of(*cv.CORE.data[KEY_STM32][KEY_UART_INSTANCES])(value)
+    return value
+
+
 DEBUG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(UARTDebugger),
@@ -242,6 +256,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
             cv.Optional(CONF_RX_PIN): validate_rx_pin,
             cv.Optional(CONF_PORT): cv.All(validate_port, cv.only_on(PLATFORM_HOST)),
+            cv.Optional(CONF_INSTANCE): cv.All(
+                validate_instance, cv.only_on(PLATFORM_STM32)
+            ),
             cv.Optional(CONF_RX_BUFFER_SIZE, default=256): cv.validate_bytes,
             cv.Optional(CONF_STOP_BITS, default=1): cv.one_of(1, 2, int=True),
             cv.Optional(CONF_DATA_BITS, default=8): cv.int_range(min=5, max=8),
@@ -300,6 +317,11 @@ async def to_code(config):
         cg.add(var.set_rx_pin(rx_pin))
     if CONF_PORT in config:
         cg.add(var.set_name(config[CONF_PORT]))
+    if CORE.is_stm32 and CONF_INSTANCE in config:
+        instance = config[CONF_INSTANCE]
+        cg.add(var.set_name(instance))
+        cg.add(var.set_instance(cg.RawExpression(instance)))
+        cg.add(cg.RawExpression(f"__HAL_RCC_{instance}_CLK_ENABLE()"))
     cg.add(var.set_rx_buffer_size(config[CONF_RX_BUFFER_SIZE]))
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
@@ -454,5 +476,6 @@ FILTER_SOURCE_FILES = filter_source_files_from_platform(
             PlatformFramework.RTL87XX_ARDUINO,
             PlatformFramework.LN882X_ARDUINO,
         },
+        "uart_component_stm32.cpp": {PlatformFramework.STM32},
     }
 )

@@ -29,6 +29,10 @@
 #include <driver/uart.h>
 #endif  // USE_ESP_IDF
 
+#ifdef USE_STM32
+#include "esphome/components/uart/uart_component_stm32.h"
+#endif
+
 #ifdef USE_ZEPHYR
 #include <zephyr/kernel.h>
 struct device;
@@ -159,6 +163,10 @@ class Logger : public Component {
                     va_list args);  // NOLINT
 #endif
 
+#ifdef USE_STM32
+  void set_uart_parent(esphome::uart::UARTComponent *uart);
+#endif
+
  protected:
   void process_messages_();
   void write_msg_(const char *msg);
@@ -265,6 +273,9 @@ class Logger : public Component {
   uint8_t current_level_{ESPHOME_LOG_LEVEL_VERY_VERBOSE};
 #if defined(USE_ESP32) || defined(USE_ESP8266) || defined(USE_RP2040) || defined(USE_ZEPHYR)
   UARTSelection uart_{UART_SELECTION_UART0};
+#endif
+#ifdef USE_STM32
+  esphome::uart::UARTComponent *hw_uart_;
 #endif
 #ifdef USE_LIBRETINY
   UARTSelection uart_{UART_SELECTION_DEFAULT};

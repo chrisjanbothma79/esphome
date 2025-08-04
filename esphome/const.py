@@ -24,6 +24,7 @@ class Platform(StrEnum):
     NRF52 = "nrf52"
     RP2040 = "rp2040"
     RTL87XX = "rtl87xx"
+    STM32 = "stm32"
 
 
 class Framework(StrEnum):
@@ -32,6 +33,7 @@ class Framework(StrEnum):
     ARDUINO = "arduino"
     ESP_IDF = "esp-idf"
     NATIVE = "host"
+    STM32CUBE = "stm32cube"
     ZEPHYR = "zephyr"
 
 
@@ -49,6 +51,8 @@ class PlatformFramework(Enum):
     # ESP32 variants
     ESP32_ARDUINO = (Platform.ESP32, Framework.ARDUINO)
     ESP32_IDF = (Platform.ESP32, Framework.ESP_IDF)
+
+    STM32 = (Platform.STM32, Framework.STM32CUBE)
 
     # Arduino framework platforms
     ESP8266_ARDUINO = (Platform.ESP8266, Framework.ARDUINO)
@@ -74,6 +78,7 @@ PLATFORM_LN882X = Platform.LN882X
 PLATFORM_NRF52 = Platform.NRF52
 PLATFORM_RP2040 = Platform.RP2040
 PLATFORM_RTL87XX = Platform.RTL87XX
+PLATFORM_STM32 = Platform.STM32
 
 
 SOURCE_FILE_EXTENSIONS = {".cpp", ".hpp", ".h", ".c", ".tcc", ".ino"}
@@ -476,6 +481,7 @@ CONF_INITIAL_OPTION = "initial_option"
 CONF_INITIAL_STATE = "initial_state"
 CONF_INITIAL_VALUE = "initial_value"
 CONF_INPUT = "input"
+CONF_INSTANCE = "instance"
 CONF_INT_DATAPOINT = "int_datapoint"
 CONF_INTEGRATION_TIME = "integration_time"
 CONF_INTENSITY = "intensity"

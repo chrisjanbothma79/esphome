@@ -3,6 +3,7 @@ import re
 from esphome import automation
 from esphome.automation import LambdaAction
 import esphome.codegen as cg
+from esphome.components import uart
 from esphome.components.esp32 import add_idf_sdkconfig_option, get_esp32_variant
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
@@ -42,6 +43,7 @@ from esphome.const import (
     CONF_TAG,
     CONF_TRIGGER_ID,
     CONF_TX_BUFFER_SIZE,
+    CONF_UART_ID,
     PLATFORM_BK72XX,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
@@ -49,9 +51,12 @@ from esphome.const import (
     PLATFORM_NRF52,
     PLATFORM_RP2040,
     PLATFORM_RTL87XX,
+    PLATFORM_STM32,
     PlatformFramework,
 )
 from esphome.core import CORE, Lambda, coroutine_with_priority
+
+DEPENDENCIES = ["uart"] if CORE.is_stm32 else []
 
 CODEOWNERS = ["@esphome/core"]
 logger_ns = cg.esphome_ns.namespace("logger")
@@ -177,6 +182,8 @@ def uart_selection(value):
         raise cv.Invalid("Uart selection not valid for host platform")
     if CORE.is_nrf52:
         return cv.one_of(*UART_SELECTION_NRF52, upper=True)(value)
+    if CORE.is_stm32:
+        raise cv.Invalid("Uart selection is done via uart_id")
     raise NotImplementedError
 
 
@@ -202,6 +209,10 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(Logger),
+            cv.GenerateID(CONF_UART_ID): cv.Any(
+                cv.All(cv.only_on(PLATFORM_STM32), cv.use_id(uart.UARTComponent)),
+                None,
+            ),
             cv.Optional(CONF_BAUD_RATE, default=115200): cv.positive_int,
             cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.All(
                 cv.validate_bytes, cv.int_range(min=160, max=65535)
@@ -378,6 +389,9 @@ async def to_code(config):
         if config[CONF_HARDWARE_UART] == USB_CDC:
             zephyr_add_prj_conf("UART_LINE_CTRL", True)
             zephyr_add_cdc_acm(config, 0)
+
+    if config.get(CONF_UART_ID):
+        await uart.register_uart_device(log, config)
 
     # Register at end for safe mode
     await cg.register_component(log, config)
