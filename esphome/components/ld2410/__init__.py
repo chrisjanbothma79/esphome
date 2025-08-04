@@ -3,7 +3,7 @@ from esphome.automation import maybe_simple_id
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_PASSWORD, CONF_TIMEOUT
+from esphome.const import CONF_ID, CONF_PASSWORD, CONF_THROTTLE, CONF_TIMEOUT
 
 AUTO_LOAD = ["ld24xx"]
 DEPENDENCIES = ["uart"]
@@ -22,6 +22,9 @@ CONF_STILL_THRESHOLDS = [f"g{x}_still_threshold" for x in range(9)]
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(LD2410Component),
+        cv.Optional(CONF_THROTTLE): cv.invalid(
+            f"{CONF_THROTTLE} has been removed; use per-sensor filters, instead"
+        ),
         cv.Optional(CONF_MAX_MOVE_DISTANCE): cv.invalid(
             f"The '{CONF_MAX_MOVE_DISTANCE}' option has been moved to the '{CONF_MAX_MOVE_DISTANCE}'"
             f" number component"
