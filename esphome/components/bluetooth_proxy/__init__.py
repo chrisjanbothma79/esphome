@@ -62,7 +62,10 @@ def validate_connections(config):
                 "      type: esp-idf\n"
                 "\n"
                 "For detailed migration instructions, see:\n"
-                f"{color(AnsiFore.BLUE, 'https://esphome.io/guides/esp32_arduino_to_idf.html')}"
+                "%s",
+                color(
+                    AnsiFore.BLUE, "https://esphome.io/guides/esp32_arduino_to_idf.html"
+                ),
             )
 
         return {
