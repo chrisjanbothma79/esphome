@@ -7,13 +7,13 @@ from esphome.const import (
     CONF_FROM,
     CONF_ID,
     CONF_LAMBDA,
-    INTERVAL_NEVER_SECONDS,
     CONF_PAGE_ID,
     CONF_PAGES,
     CONF_ROTATION,
     CONF_TO,
     CONF_TRIGGER_ID,
     CONF_UPDATE_INTERVAL,
+    INTERVAL_NEVER_SECONDS,
 )
 from esphome.core import coroutine_with_priority
 
