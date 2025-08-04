@@ -430,14 +430,7 @@ void ESP32BLETracker::gap_scan_event_handler(const BLEScanResult &scan_result) {
       }
     }
     // Scan completed naturally, perform cleanup and transition to IDLE
-    ESP_LOGD(TAG, "Scan completed, set scanner state to IDLE.");
-    this->already_discovered_.clear();
-    this->cancel_timeout("scan");
-
-    for (auto *listener : this->listeners_)
-      listener->on_scan_end();
-
-    this->set_scanner_state_(ScannerState::IDLE);
+    this->cleanup_scan_state_(false);
   }
 }
 
@@ -494,14 +487,7 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
   }
 
   // Perform cleanup and transition to IDLE
-  ESP_LOGD(TAG, "Scan stop complete, set scanner state to IDLE.");
-  this->already_discovered_.clear();
-  this->cancel_timeout("scan");
-
-  for (auto *listener : this->listeners_)
-    listener->on_scan_end();
-
-  this->set_scanner_state_(ScannerState::IDLE);
+  this->cleanup_scan_state_(true);
 }
 
 void ESP32BLETracker::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
@@ -874,6 +860,17 @@ bool ESPBTDevice::resolve_irk(const uint8_t *irk) const {
          ecb_ciphertext[13] == ((addr64 >> 16) & 0xff);
 }
 #endif  // USE_ESP32_BLE_DEVICE
+
+void ESP32BLETracker::cleanup_scan_state_(bool is_stop_complete) {
+  ESP_LOGD(TAG, "Scan %scomplete, set scanner state to IDLE.", is_stop_complete ? "stop " : "");
+  this->already_discovered_.clear();
+  this->cancel_timeout("scan");
+
+  for (auto *listener : this->listeners_)
+    listener->on_scan_end();
+
+  this->set_scanner_state_(ScannerState::IDLE);
+}
 
 }  // namespace esphome::esp32_ble_tracker
 

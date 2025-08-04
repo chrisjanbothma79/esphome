@@ -270,6 +270,8 @@ class ESP32BLETracker : public Component,
   void gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_scan_stop_cmpl_evt_param &param);
   /// Called to set the scanner state. Will also call callbacks to let listeners know when state is changed.
   void set_scanner_state_(ScannerState state);
+  /// Common cleanup logic when transitioning scanner to IDLE state
+  void cleanup_scan_state_(bool is_stop_complete);
 
   uint8_t app_id_{0};
 
