@@ -748,7 +748,7 @@ def _set_default_framework(config):
             config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ARDUINO
             # Show the migration message
             _show_framework_migration_message(
-                config.get(CONF_NAME, "Your device"), variant
+                config.get(CONF_NAME, "This device"), variant
             )
         else:
             config[CONF_FRAMEWORK] = ESP_IDF_FRAMEWORK_SCHEMA({})

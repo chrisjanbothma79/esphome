@@ -425,7 +425,7 @@ void AsyncEventSourceResponse::destroy(void *ptr) {
 void AsyncEventSourceResponse::deq_push_back_with_dedup_(void *source, message_generator_t *message_generator) {
   DeferredEvent item(source, message_generator);
 
-  // Replace std::find_if with simple loop to reduce binary size
+  // Use range-based for loop instead of std::find_if to reduce template instantiation overhead and binary size
   for (auto &event : this->deferred_queue_) {
     if (event == item) {
       event = item;
