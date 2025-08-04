@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <limits>
 #include "esphome/core/hal.h"
 
 namespace esphome {
@@ -18,11 +19,17 @@ namespace gpio_expander {
 template<typename T, T N> class CachedGpioExpander {
  public:
   bool digital_read(T pin) {
-    uint8_t bank = pin / (sizeof(T) * BITS_PER_BYTE);
-    if (this->read_cache_invalidated_[bank]) {
-      this->read_cache_invalidated_[bank] = false;
+    const uint8_t bank = pin / BANK_SIZE;
+    // Check if specific pin cache is valid
+    if (this->read_cache_valid_[bank] & (1 << (pin % BANK_SIZE))) {
+      // Invalidate pin
+      this->read_cache_valid_[bank] &= ~(1 << (pin % BANK_SIZE));
+    } else {
+      // Read whole bank from hardware
       if (!this->digital_read_hw(pin))
         return false;
+      // Mark bank cache as valid except the pin that is being returned now
+      this->read_cache_valid_[bank] = std::numeric_limits<T>::max() & ~(1 << (pin % BANK_SIZE));
     }
     return this->digital_read_cache(pin);
   }
@@ -36,17 +43,16 @@ template<typename T, T N> class CachedGpioExpander {
   virtual bool digital_read_cache(T pin) = 0;
   /// @brief Call component low level function to write GPIO state to device
   virtual void digital_write_hw(T pin, bool value) = 0;
-  const uint8_t cache_byte_size_ = N / (sizeof(T) * BITS_PER_BYTE);
 
   /// @brief Invalidate cache. This function should be called in component loop().
-  void reset_pin_cache_() {
-    for (T i = 0; i < this->cache_byte_size_; i++) {
-      this->read_cache_invalidated_[i] = true;
-    }
-  }
+  void reset_pin_cache_() { memset(this->read_cache_valid_, 0x00, CACHE_SIZE_BYTES); }
 
-  static const uint8_t BITS_PER_BYTE = 8;
-  std::array<bool, N / (sizeof(T) * BITS_PER_BYTE)> read_cache_invalidated_{};
+  static constexpr uint8_t BITS_PER_BYTE = 8;
+  static constexpr uint8_t BANK_SIZE = sizeof(T) * BITS_PER_BYTE;
+  static constexpr size_t BANKS = N / BANK_SIZE;
+  static constexpr size_t CACHE_SIZE_BYTES = BANKS * sizeof(T);
+
+  T read_cache_valid_[BANKS]{0};
 };
 
 }  // namespace gpio_expander
