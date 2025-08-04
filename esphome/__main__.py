@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime
 import functools
+import getpass
 import importlib
 import logging
 import os
@@ -276,20 +277,20 @@ def upload_using_esptool(config, port, file, speed):
 
     def run_esptool(baud_rate):
         cmd = [
-            "esptool.py",
+            "esptool",
             "--before",
-            "default_reset",
+            "default-reset",
             "--after",
-            "hard_reset",
+            "hard-reset",
             "--baud",
             str(baud_rate),
             "--port",
             port,
             "--chip",
             mcu,
-            "write_flash",
+            "write-flash",
             "-z",
-            "--flash_size",
+            "--flash-size",
             "detect",
         ]
         for img in flash_images:
@@ -335,7 +336,7 @@ def check_permissions(port):
             raise EsphomeError(
                 "You do not have read or write permission on the selected serial port. "
                 "To resolve this issue, you can add your user to the dialout group "
-                f"by running the following command: sudo usermod -a -G dialout {os.getlogin()}. "
+                f"by running the following command: sudo usermod -a -G dialout {getpass.getuser()}. "
                 "You will need to log out & back in or reboot to activate the new group access."
             )
 
