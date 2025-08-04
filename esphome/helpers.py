@@ -521,4 +521,4 @@ def docs_url(path: str) -> str:
         docs_format = "https://esphome.io/{path}"
 
     path = path.removeprefix("/")
-    return f"{docs_format}{path}"
+    return docs_format.format(path=path)
