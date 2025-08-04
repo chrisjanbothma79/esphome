@@ -13,6 +13,10 @@ static const uint8_t DOOYA_MAX_TILT = 180;
 static const char *const TAG = "dooya_cover.cover";
 
 void DooyaCover::setup() {
+  // This is ugly AF, but no better solution as of right now.
+  if (!parent_->is_setup_done())
+    reset_to_construction_state();
+
   // Get current position on setup
   parent_->write_str(("!" + address_ + "r?;").c_str());
 }

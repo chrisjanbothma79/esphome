@@ -1,8 +1,9 @@
 #include <thread>
 
 #include "esphome/core/log.h"
-#include "dooya.h"
+#include "esphome/core/application.h"
 
+#include "dooya.h"
 #include "dooya_bridge.h"
 
 namespace esphome {
@@ -12,67 +13,69 @@ static const char *const TAG = "dooya_bridge.component";
 
 void DooyaBridge::setup() {
   write_str(("!" + DOOYA_ADDRESS_GLOBAL + "v?;").c_str());
-
-  // Wait for response...
-  while (!available())
-    ;
-
-  while (available()) {
-    uint8_t byte = read();
-    if (byte == '!')
-      rx_buf_.clear();
-    rx_buf_ += byte;
-    if (byte == ';') {
-      ESP_LOGD(TAG, "rx_buf_: %s", rx_buf_.c_str());
-      std::string address = rx_buf_.substr(1, 3);
-      if (!address_.empty()) {
-        address_ = address;
-      } else {
-        paired_addresses_.push_back(address);
-      }
-      rx_buf_.clear();
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-  }
-
-  for (DooyaComponent *subcomponent : subcomponents_) {
-    if (std::find(paired_addresses_.begin(), paired_addresses_.end(), subcomponent->get_address()) ==
-        paired_addresses_.end()) {
-      ESP_LOGE(TAG, "No device paired by address: %s", subcomponent->get_address().c_str());
-      subcomponent->mark_failed("Unknown address");
-    }
-  }
+  this->setup_.start_time = App.get_loop_component_start_time();
 }
 
 void DooyaBridge::loop() {
-  if (pairing_.in_progress) {
-    if (!pairing_.req_sent)
-      pairing_.in_progress = std::chrono::high_resolution_clock::now() - pairing_.start < std::chrono::seconds(30);
-
-    if (pairing_.in_progress) {
-      if (!pairing_.req_sent) {
-        write_str(("!" + DOOYA_ADDRESS_GLOBAL + "&;").c_str());
-        pairing_.req_sent = true;
+  if (!this->setup_.is_done) {
+    while (available()) {
+      uint8_t byte = read();
+      if (byte == '!') {
+        this->setup_.start_time = App.get_loop_component_start_time();
+        rx_buf_.clear();
       }
-    } else {
-      ESP_LOGI(TAG, "30s passed, no new device found. Stopping pairing.");
+      rx_buf_ += byte;
+      if (byte == ';') {
+        ESP_LOGD(TAG, "rx_buf_: %s", rx_buf_.c_str());
+        std::string address = rx_buf_.substr(1, 3);
+        if (!address_.empty()) {
+          address_ = address;
+        } else {
+          paired_addresses_.push_back(address);
+        }
+        rx_buf_.clear();
+      }
     }
-  }
 
-  while (available()) {
-    uint8_t byte = read();
-    if (byte == '!')
-      rx_buf_.clear();
-    rx_buf_ += byte;
-    if (byte == ';')
-      parse_packet_();
+    if (App.get_loop_component_start_time() - this->setup_.start_time > 3000)
+    {
+      this->setup_.is_done = true;
+      for (DooyaComponent *subcomponent : subcomponents_) {
+        if (std::find(paired_addresses_.begin(), paired_addresses_.end(), subcomponent->get_address()) ==
+            paired_addresses_.end()) {
+          ESP_LOGE(TAG, "No device paired by address: %s", subcomponent->get_address().c_str());
+          subcomponent->mark_failed("Unknown address");
+        }
+      }
+    }
+  } else {
+    if (pairing_.in_progress) {
+      if (!pairing_.req_sent)
+        pairing_.in_progress = std::chrono::high_resolution_clock::now() - pairing_.start < std::chrono::seconds(30);
+
+      if (pairing_.in_progress) {
+        if (!pairing_.req_sent) {
+          write_str(("!" + DOOYA_ADDRESS_GLOBAL + "&;").c_str());
+          pairing_.req_sent = true;
+        }
+      } else {
+        ESP_LOGI(TAG, "30s passed, no new device found. Stopping pairing.");
+      }
+    }
+
+    while (available()) {
+      uint8_t byte = read();
+      if (byte == '!')
+        rx_buf_.clear();
+      rx_buf_ += byte;
+      if (byte == ';')
+        parse_packet_();
+    }
   }
 }
 
 void DooyaBridge::dump_config() {
-  ESP_LOGCONFIG(TAG, "Dooya bridge");
-  ESP_LOGCONFIG(TAG, "Address: %s", address_.c_str());
-  ESP_LOGCONFIG(TAG, "Paired devices:");
+  ESP_LOGCONFIG(TAG, "Dooya bridge: \nAddress: %s\nPaired devices:", address_.c_str());
   for (const std::string &address : paired_addresses_)
     ESP_LOGCONFIG(TAG, "%s", address.c_str());
 }
