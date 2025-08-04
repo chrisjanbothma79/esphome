@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include "esphome/core/hal.h"
 
