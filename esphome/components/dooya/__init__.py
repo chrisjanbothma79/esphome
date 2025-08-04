@@ -24,6 +24,7 @@ def validate_address(value):
         raise cv.Invalid(f"{value} is not 3 uppercase alphanumeric characters")
     return value
 
+
 DOOYA_CHILD_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_DOOYA_BRIDGE_ID): cv.use_id(DooyaBridge),

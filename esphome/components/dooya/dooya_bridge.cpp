@@ -37,8 +37,7 @@ void DooyaBridge::loop() {
       }
     }
 
-    if (App.get_loop_component_start_time() - this->setup_.start_time > 3000)
-    {
+    if (App.get_loop_component_start_time() - this->setup_.start_time > 3000) {
       this->setup_.is_done = true;
       for (DooyaComponent *subcomponent : subcomponents_) {
         if (std::find(paired_addresses_.begin(), paired_addresses_.end(), subcomponent->get_address()) ==
