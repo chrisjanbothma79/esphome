@@ -35,18 +35,12 @@ class WaveshareIOComponent : public Component,
 
   float get_loop_priority() const override;
 
- protected:
-  /// Mask for the pin mode - 1 means output, 0 means input
-  uint8_t mode_mask_{0x00};
-  /// The mask to write as output state - 1 means HIGH, 0 means LOW
-  uint8_t output_mask_{0x00};
-  /// The state read in digital_read_hw - 1 means HIGH, 0 means LOW
-  uint8_t input_mask_{0x00};
+  uint8_t mode_mask_{0x00};    // Mask for the pin mode - 1 means output, 0 means input
+  uint8_t output_mask_{0x00};  // The mask to write as output state - 1 means HIGH, 0 means LOW
+  uint8_t input_mask_{0x00};   // The state read in digital_read_hw - 1 means HIGH, 0 means LOW
 
   bool write_gpio_modes_();
   bool write_gpio_outputs_();
-  //  bool read_gpio_modes_();
-  //  bool read_gpio_outputs_();
 };
 
 /// Helper class to expose a WaveshareIO pin as a GPIO pin.
@@ -58,7 +52,6 @@ class WaveshareIOGPIOPin : public GPIOPin, public Parented<WaveshareIOComponent>
   void digital_write(bool value) override;
   std::string dump_summary() const override;
 
-  //  void set_parent(WaveshareIOComponent *parent) { parent_ = parent; }
   void set_pin(uint8_t pin) { pin_ = pin; }
   void set_inverted(bool inverted) { inverted_ = inverted; }
   void set_flags(gpio::Flags flags);
@@ -66,7 +59,6 @@ class WaveshareIOGPIOPin : public GPIOPin, public Parented<WaveshareIOComponent>
   gpio::Flags get_flags() const override { return this->flags_; }
 
  protected:
-  //  WaveshareIOComponent *parent_{};
   uint8_t pin_{};
   bool inverted_{};
   gpio::Flags flags_{};

@@ -13,10 +13,6 @@ static const uint8_t IO_EXTENSION_ADC_ADDR = 0x06;
 static const char *const TAG = "waveshare_io";
 
 void WaveshareIOComponent::setup() {
-  // IO_EXTENSION_IO_Mode(0xff); // Set all pins to output mode
-  // // Initialize control flags for IO output enable and open-drain output mode
-  // IO_EXTENSION.Last_io_value = 0xFF; // All pins are initially set to high (output mode)
-  // IO_EXTENSION.Last_od_value = 0xFF; // All pins are initially set to high (open-drain mode)
   this->mode_mask_ = 0xFF;    // Set all pins to output mode
   this->output_mask_ = 0xFF;  // Set all pins to high (output mode)
 
@@ -28,21 +24,13 @@ void WaveshareIOComponent::setup() {
     this->mark_failed();
     return;
   }
-  // // set outputs before mode
-  // this->write_outputs_();
-  // // Set mode and check for errors
-  // if (!this->set_mode_(this->mode_value_) || !this->read_inputs_()) {
-  //   ESP_LOGE(TAG, "WaveshareIO not detected at 0x%02X", this->address_);
-  //   this->mark_failed();
-  //   return;
-  // }
 
   ESP_LOGCONFIG(TAG, "Initialization complete. Warning: %d, Error: %d", this->status_has_warning(),
                 this->status_has_error());
 }
 
 void WaveshareIOComponent::pin_mode(uint8_t pin, gpio::Flags flags) {
-  // bits:  0 = input, 1 = output
+  // bits: 0 = input, 1 = output
   if (flags == gpio::FLAG_INPUT) {
     // Clear mode mask bit
     this->mode_mask_ &= ~(1 << pin);
@@ -50,7 +38,6 @@ void WaveshareIOComponent::pin_mode(uint8_t pin, gpio::Flags flags) {
     // Set mode mask bit
     this->mode_mask_ |= 1 << pin;
   }
-  // Write GPIO to enable input mode
   this->write_gpio_modes_();
 }
 
@@ -160,6 +147,7 @@ bool WaveshareIOGPIOPin::digital_read() { return this->parent_->digital_read(thi
 void WaveshareIOGPIOPin::digital_write(bool value) {
   this->parent_->digital_write(this->pin_, value ^ this->inverted_);
 }
+
 std::string WaveshareIOGPIOPin::dump_summary() const { return str_sprintf("EXIO%u via WaveshareIO", pin_); }
 void WaveshareIOGPIOPin::set_flags(gpio::Flags flags) {
   flags_ = flags;
