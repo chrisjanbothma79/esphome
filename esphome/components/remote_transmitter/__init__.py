@@ -13,6 +13,7 @@ from esphome.const import (
     CONF_PIN,
     CONF_RMT_SYMBOLS,
     CONF_USE_DMA,
+    CONF_VALUE,
     PlatformFramework,
 )
 from esphome.core import CORE
@@ -26,6 +27,11 @@ CONF_ON_COMPLETE = "on_complete"
 remote_transmitter_ns = cg.esphome_ns.namespace("remote_transmitter")
 RemoteTransmitterComponent = remote_transmitter_ns.class_(
     "RemoteTransmitterComponent", remote_base.RemoteTransmitterBase, cg.Component
+)
+DigitalWriteAction = remote_transmitter_ns.class_(
+    "DigitalWriteAction",
+    automation.Action,
+    cg.Parented.template(RemoteTransmitterComponent),
 )
 
 MULTI_CONF = True
@@ -62,6 +68,25 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ON_COMPLETE): automation.validate_automation(single=True),
     }
 ).extend(cv.COMPONENT_SCHEMA)
+
+DIGITAL_WRITE_ACTION_SCHEMA = cv.maybe_simple_value(
+    {
+        cv.GenerateID(): cv.use_id(RemoteTransmitterComponent),
+        cv.Required(CONF_VALUE): cv.templatable(cv.boolean),
+    },
+    key=CONF_VALUE,
+)
+
+
+@automation.register_action(
+    "remote_transmitter.digital_write", DigitalWriteAction, DIGITAL_WRITE_ACTION_SCHEMA
+)
+async def digital_write_action_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    template_ = await cg.templatable(config[CONF_VALUE], args, bool)
+    cg.add(var.set_value(template_))
+    return var
 
 
 async def to_code(config):
