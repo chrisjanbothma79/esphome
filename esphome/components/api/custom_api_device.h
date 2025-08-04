@@ -252,6 +252,28 @@ class CustomAPIDevice {
     }
     global_api_server->send_homeassistant_service_call(resp);
   }
+#else
+  template<typename T = void> void call_homeassistant_service(const std::string &service_name) {
+    static_assert(sizeof(T) == 0, "call_homeassistant_service() requires 'homeassistant_services: true' in the 'api:' "
+                                  "section of your YAML configuration");
+  }
+
+  template<typename T = void>
+  void call_homeassistant_service(const std::string &service_name, const std::map<std::string, std::string> &data) {
+    static_assert(sizeof(T) == 0, "call_homeassistant_service() requires 'homeassistant_services: true' in the 'api:' "
+                                  "section of your YAML configuration");
+  }
+
+  template<typename T = void> void fire_homeassistant_event(const std::string &event_name) {
+    static_assert(sizeof(T) == 0, "fire_homeassistant_event() requires 'homeassistant_services: true' in the 'api:' "
+                                  "section of your YAML configuration");
+  }
+
+  template<typename T = void>
+  void fire_homeassistant_event(const std::string &service_name, const std::map<std::string, std::string> &data) {
+    static_assert(sizeof(T) == 0, "fire_homeassistant_event() requires 'homeassistant_services: true' in the 'api:' "
+                                  "section of your YAML configuration");
+  }
 #endif
 };
 
