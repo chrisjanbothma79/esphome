@@ -1,5 +1,5 @@
 #pragma once
-#ifdef USE_ESP32_FRAMEWORK_ESP_IDF
+#ifdef USE_ESP_IDF
 
 #include "driver/gptimer_types.h"
 

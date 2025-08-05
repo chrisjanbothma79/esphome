@@ -1,4 +1,4 @@
-#ifdef USE_ESP32_FRAMEWORK_ESP_IDF
+#ifdef USE_ESP_IDF
 
 #include "hw_timer_esp_idf.h"
 
@@ -6,13 +6,8 @@
 #include "freertos/semphr.h"
 #include "esphome/core/log.h"
 
-#if SOC_GPTIMER_SUPPORTED
 #include "driver/gptimer.h"
-#if defined __has_include && __has_include("clk_tree.h")
-#include "clk_tree.h"
-#else
 #include "esp_clk_tree.h"
-#endif
 
 static const char *const TAG = "hw_timer_esp_idf";
 
@@ -43,11 +38,7 @@ hw_timer_t *timerBegin(uint32_t frequency) {
   int /*soc_periph_gptimer_clk_src_t*/ gptimer_clks[] = SOC_GPTIMER_CLKS;
   for (size_t i = 0; i < sizeof(gptimer_clks) / sizeof(gptimer_clks[0]); i++) {
     clk = gptimer_clks[i];
-#if defined __has_include && __has_include("clk_tree.h")
-    clk_tree_src_get_freq_hz((soc_module_clk_t) clk, CLK_TREE_SRC_FREQ_PRECISION_CACHED, &counter_src_hz);
-#else
     esp_clk_tree_src_get_freq_hz((soc_module_clk_t) clk, ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED, &counter_src_hz);
-#endif
     divider = counter_src_hz / frequency;
     if ((divider >= 2) && (divider <= 65536)) {
       break;
@@ -143,6 +134,7 @@ void timerDetachInterrupt(hw_timer_t *timer) {
     ESP_LOGE(TAG, "Timer Detach Interrupt failed, error num=%d", err);
   }
 }
+
 void timerAlarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count) {
   if (timer == NULL) {
     ESP_LOGE(TAG, "Timer handle is NULL");
@@ -171,5 +163,4 @@ void timerStart(hw_timer_t *timer) {
 
 }  // namespace ac_dimmer
 }  // namespace esphome
-#endif  // SOC_GPTIMER_SUPPORTED
 #endif
