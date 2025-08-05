@@ -371,8 +371,21 @@ void APIServer::set_batch_delay(uint16_t batch_delay) { this->batch_delay_ = bat
 
 #ifdef USE_API_HOMEASSISTANT_SERVICES
 void APIServer::send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
-  for (auto &client : this->clients_) {
-    client->send_homeassistant_service_call(call);
+  if (call.is_event) {
+    // For events, send to only one client to prevent duplicates
+    // Events represent "something that happened" and should only be sent once total
+    for (auto &client : this->clients_) {
+      if (client->is_authenticated() && client->flags_.service_call_subscription) {
+        client->send_homeassistant_service_call(call);
+        return;  // Send to only the first authenticated client with service call subscription
+      }
+    }
+  } else {
+    // For service calls, send to all clients (existing behavior)
+    // Service calls represent "actions to take" and may need to be sent to multiple Home Assistant instances
+    for (auto &client : this->clients_) {
+      client->send_homeassistant_service_call(call);
+    }
   }
 }
 #endif

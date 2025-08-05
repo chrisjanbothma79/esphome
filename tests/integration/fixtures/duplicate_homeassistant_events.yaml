@@ -1,0 +1,53 @@
+esphome:
+  name: test-duplicate-events
+  friendly_name: Duplicate Events Test
+
+host:
+
+api:
+  services:
+    - service: trigger_doorbell_test
+      then:
+        - logger.log: "Triggering doorbell test event"
+        - homeassistant.event:
+            event: esphome.doorbell_pressed
+            data:
+              device_id: test_device_123
+        - logger.log: "Doorbell event sent"
+
+logger:
+  level: DEBUG
+
+# Simulate the user's binary sensor setup
+binary_sensor:
+  - platform: template
+    name: "Test Doorbell"
+    id: test_doorbell
+    # Simulate doorbell behavior - starts false, becomes true when pressed
+    lambda: |-
+      static bool pressed = false;
+      return pressed;
+    on_press:
+      then:
+        - logger.log: "Doorbell pressed - sending HA event"
+        - homeassistant.event:
+            event: esphome.doorbell_pressed
+            data:
+              device_id: test_device_123
+        - logger.log: "Doorbell HA event sent"
+
+button:
+  # Button to simulate doorbell press for testing
+  - platform: template
+    name: "Simulate Doorbell Press"
+    id: simulate_doorbell
+    on_press:
+      - logger.log: "Simulating doorbell press"
+      - binary_sensor.template.publish:
+          id: test_doorbell
+          state: true
+      - delay: 100ms
+      - binary_sensor.template.publish:
+          id: test_doorbell
+          state: false
+      - logger.log: "Doorbell simulation complete"

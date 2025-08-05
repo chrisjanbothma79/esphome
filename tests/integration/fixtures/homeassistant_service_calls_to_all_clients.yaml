@@ -1,0 +1,33 @@
+esphome:
+  name: test-service-calls
+  friendly_name: Service Calls Test
+
+host:
+
+api:
+  services:
+    - service: trigger_service_call_test
+      then:
+        - logger.log: "Triggering service call test"
+        - homeassistant.service:
+            service: light.turn_on
+            data:
+              entity_id: light.test_light
+              brightness: "255"
+        - logger.log: "Service call sent"
+
+logger:
+  level: DEBUG
+
+button:
+  # Button to trigger a service call for testing
+  - platform: template
+    name: "Test Service Call"
+    id: test_service_call
+    on_press:
+      - logger.log: "Sending homeassistant service call"
+      - homeassistant.service:
+          service: switch.turn_on
+          data:
+            entity_id: switch.test_switch
+      - logger.log: "Service call complete"
