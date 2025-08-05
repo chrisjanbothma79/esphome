@@ -14,21 +14,19 @@ static const char *const TAG = "hw_timer_esp_idf";
 namespace esphome {
 namespace ac_dimmer {
 
-using voidFuncPtr = void (*)(void);
+using voidFuncPtr = void (*)();
 using voidFuncPtrArg = void (*)(void *);
 
-struct interrupt_config_t {
+struct InterruptConfigT {
   voidFuncPtr fn;
   void *arg;
 };
 
-struct timer_struct_t {
+struct TimerStructT {
   gptimer_handle_t timer_handle;
-  interrupt_config_t interrupt_handle;
+  InterruptConfigT interrupt_handle;
   bool timer_started;
 };
-
-interrupt_config_t *timer_intr_config = NULL;
 
 hw_timer_t *timer_begin(uint32_t frequency) {
   esp_err_t err = ESP_OK;
@@ -36,7 +34,7 @@ hw_timer_t *timer_begin(uint32_t frequency) {
   uint32_t divider = 0;
   int /*soc_periph_gptimer_clk_src_t*/ clk;
   int /*soc_periph_gptimer_clk_src_t*/ gptimer_clks[] = SOC_GPTIMER_CLKS;
-  for (size_t i = 0; i < sizeof(gptimer_clks) / sizeof(gptimer_clks[0]); i++) {
+  for (size_t i = 0; i < sizeof(gptimer_clks) / sizeof(gptimer_clks[0]); i++) {  // NOLINT(modernize-loop-convert)
     clk = gptimer_clks[i];
     esp_clk_tree_src_get_freq_hz((soc_module_clk_t) clk, ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED, &counter_src_hz);
     divider = counter_src_hz / frequency;
@@ -59,12 +57,12 @@ hw_timer_t *timer_begin(uint32_t frequency) {
       .flags = {.intr_shared = true},
   };
 
-  hw_timer_t *timer = (hw_timer_t *) malloc(sizeof(hw_timer_t));
+  hw_timer_t *timer = (hw_timer_t *) malloc(sizeof(hw_timer_t));  // NOLINT(cppcoreguidelines-no-malloc)
 
   err = gptimer_new_timer(&config, &timer->timer_handle);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to create a new GPTimer, error num=%d", err);
-    free(timer);
+    free(timer);  // NOLINT(cppcoreguidelines-no-malloc)
     return NULL;
   }
   gptimer_enable(timer->timer_handle);
@@ -74,7 +72,7 @@ hw_timer_t *timer_begin(uint32_t frequency) {
 }
 
 bool IRAM_ATTR timer_fn_wrapper(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *args) {
-  interrupt_config_t *isr = (interrupt_config_t *) args;
+  InterruptConfigT *isr = (InterruptConfigT *) args;
   if (isr->fn) {
     if (isr->arg) {
       ((voidFuncPtrArg) isr->fn)(isr->arg);
@@ -86,7 +84,7 @@ bool IRAM_ATTR timer_fn_wrapper(gptimer_handle_t timer, const gptimer_alarm_even
   return false;
 }
 
-void timer_attach_interrupt_functional_arg(hw_timer_t *timer, void (*userFunc)(void *), void *arg) {
+void timer_attach_interrupt_functional_arg(hw_timer_t *timer, void (*user_func)(void *), void *arg) {
   if (timer == NULL) {
     ESP_LOGE(TAG, "Timer handle is NULL");
     return;
@@ -96,10 +94,10 @@ void timer_attach_interrupt_functional_arg(hw_timer_t *timer, void (*userFunc)(v
       .on_alarm = timer_fn_wrapper,
   };
 
-  timer->interrupt_handle.fn = (voidFuncPtr) userFunc;
+  timer->interrupt_handle.fn = (voidFuncPtr) user_func;
   timer->interrupt_handle.arg = arg;
 
-  if (timer->timer_started == true) {
+  if (timer->timer_started) {
     gptimer_stop(timer->timer_handle);
   }
   gptimer_disable(timer->timer_handle);
@@ -108,17 +106,17 @@ void timer_attach_interrupt_functional_arg(hw_timer_t *timer, void (*userFunc)(v
     ESP_LOGE(TAG, "Timer Attach Interrupt failed, error num=%d", err);
   }
   gptimer_enable(timer->timer_handle);
-  if (timer->timer_started == true) {
+  if (timer->timer_started) {
     gptimer_start(timer->timer_handle);
   }
 }
 
-void timer_attach_interrupt_arg(hw_timer_t *timer, void (*userFunc)(void *), void *arg) {
-  timer_attach_interrupt_functional_arg(timer, userFunc, arg);
+void timer_attach_interrupt_arg(hw_timer_t *timer, void (*user_func)(void *), void *arg) {
+  timer_attach_interrupt_functional_arg(timer, user_func, arg);
 }
 
-void timer_attach_interrupt(hw_timer_t *timer, voidFuncPtr userFunc) {
-  timer_attach_interrupt_functional_arg(timer, (voidFuncPtrArg) userFunc, NULL);
+void timer_attach_interrupt(hw_timer_t *timer, voidFuncPtr user_func) {
+  timer_attach_interrupt_functional_arg(timer, (voidFuncPtrArg) user_func, NULL);
 }
 
 void timer_detach_interrupt(hw_timer_t *timer) {

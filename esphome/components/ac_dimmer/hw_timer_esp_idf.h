@@ -6,12 +6,12 @@
 namespace esphome {
 namespace ac_dimmer {
 
-struct timer_struct_t;
-using hw_timer_t = struct timer_struct_t;
+struct TimerStructT;
+using hw_timer_t = struct TimerStructT;
 
 hw_timer_t *timer_begin(uint32_t frequency);
 
-void timer_attach_interrupt(hw_timer_t *timer, void (*userFunc)(void));
+void timer_attach_interrupt(hw_timer_t *timer, void (*user_func)());
 void timer_alarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count);
 void timer_start(hw_timer_t *timer);
 
