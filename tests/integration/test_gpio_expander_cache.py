@@ -1,4 +1,4 @@
-"""Integration test for API custom services using CustomAPIDevice."""
+"""Integration test for CachedGPIOExpander to ensure correct behavior."""
 
 from __future__ import annotations
 
