@@ -1,4 +1,4 @@
-#ifdef USE_ESP_IDF
+#ifdef USE_ESP32
 
 #include "hw_timer_esp_idf.h"
 
@@ -14,13 +14,13 @@ static const char *const TAG = "hw_timer_esp_idf";
 namespace esphome {
 namespace ac_dimmer {
 
-typedef void (*voidFuncPtr)(void);
-typedef void (*voidFuncPtrArg)(void *);
+using voidFuncPtr = void (*)(void);
+using voidFuncPtrArg = void (*)(void *);
 
-typedef struct {
+struct interrupt_config_t {
   voidFuncPtr fn;
   void *arg;
-} interrupt_config_t;
+};
 
 struct timer_struct_t {
   gptimer_handle_t timer_handle;
@@ -30,7 +30,7 @@ struct timer_struct_t {
 
 interrupt_config_t *timer_intr_config = NULL;
 
-hw_timer_t *timerBegin(uint32_t frequency) {
+hw_timer_t *timer_begin(uint32_t frequency) {
   esp_err_t err = ESP_OK;
   uint32_t counter_src_hz = 0;
   uint32_t divider = 0;
@@ -73,7 +73,7 @@ hw_timer_t *timerBegin(uint32_t frequency) {
   return timer;
 }
 
-bool IRAM_ATTR timerFnWrapper(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *args) {
+bool IRAM_ATTR timer_fn_wrapper(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *args) {
   interrupt_config_t *isr = (interrupt_config_t *) args;
   if (isr->fn) {
     if (isr->arg) {
@@ -86,14 +86,14 @@ bool IRAM_ATTR timerFnWrapper(gptimer_handle_t timer, const gptimer_alarm_event_
   return false;
 }
 
-void timerAttachInterruptFunctionalArg(hw_timer_t *timer, void (*userFunc)(void *), void *arg) {
+void timer_attach_interrupt_functional_arg(hw_timer_t *timer, void (*userFunc)(void *), void *arg) {
   if (timer == NULL) {
     ESP_LOGE(TAG, "Timer handle is NULL");
     return;
   }
   esp_err_t err = ESP_OK;
   gptimer_event_callbacks_t cbs = {
-      .on_alarm = timerFnWrapper,
+      .on_alarm = timer_fn_wrapper,
   };
 
   timer->interrupt_handle.fn = (voidFuncPtr) userFunc;
@@ -113,15 +113,15 @@ void timerAttachInterruptFunctionalArg(hw_timer_t *timer, void (*userFunc)(void 
   }
 }
 
-void timerAttachInterruptArg(hw_timer_t *timer, void (*userFunc)(void *), void *arg) {
-  timerAttachInterruptFunctionalArg(timer, userFunc, arg);
+void timer_attach_interrupt_arg(hw_timer_t *timer, void (*userFunc)(void *), void *arg) {
+  timer_attach_interrupt_functional_arg(timer, userFunc, arg);
 }
 
-void timerAttachInterrupt(hw_timer_t *timer, voidFuncPtr userFunc) {
-  timerAttachInterruptFunctionalArg(timer, (voidFuncPtrArg) userFunc, NULL);
+void timer_attach_interrupt(hw_timer_t *timer, voidFuncPtr userFunc) {
+  timer_attach_interrupt_functional_arg(timer, (voidFuncPtrArg) userFunc, NULL);
 }
 
-void timerDetachInterrupt(hw_timer_t *timer) {
+void timer_detach_interrupt(hw_timer_t *timer) {
   if (timer == NULL) {
     ESP_LOGE(TAG, "Timer handle is NULL");
     return;
@@ -135,7 +135,7 @@ void timerDetachInterrupt(hw_timer_t *timer) {
   }
 }
 
-void timerAlarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count) {
+void timer_alarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count) {
   if (timer == NULL) {
     ESP_LOGE(TAG, "Timer handle is NULL");
     return;
@@ -152,7 +152,7 @@ void timerAlarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64
   }
 }
 
-void timerStart(hw_timer_t *timer) {
+void timer_start(hw_timer_t *timer) {
   if (timer == NULL) {
     ESP_LOGE(TAG, "Timer handle is NULL");
     return;

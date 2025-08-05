@@ -9,11 +9,7 @@
 #include <core_esp8266_waveform.h>
 #endif
 
-#ifdef USE_ESP32_FRAMEWORK_ARDUINO
-#include <esp32-hal-timer.h>
-#endif
-
-#ifdef USE_ESP32_FRAMEWORK_ESP_IDF
+#ifdef USE_ESP32
 #include "hw_timer_esp_idf.h"
 #endif
 
@@ -199,12 +195,12 @@ void AcDimmer::setup() {
 #endif
 #ifdef USE_ESP32
   // timer frequency of 1mhz
-  dimmer_timer = timerBegin(1000000);
-  timerAttachInterrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr);
+  dimmer_timer = timer_begin(1000000);
+  timer_attach_interrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr);
   // For ESP32, we can't use dynamic interval calculation because the timerX functions
   // are not callable from ISR (placed in flash storage).
   // Here we just use an interrupt firing every 50 µs.
-  timerAlarm(dimmer_timer, 50, true, 0);
+  timer_alarm(dimmer_timer, 50, true, 0);
 #endif
 }
 
