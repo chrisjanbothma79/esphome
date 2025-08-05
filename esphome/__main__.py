@@ -135,9 +135,7 @@ def choose_upload_log_host(
                 if (show_ota and "ota" in CORE.config) or (
                     show_api and "api" in CORE.config
                 ):
-                    resolved.append(
-                        CORE.address
-                    )
+                    resolved.append(CORE.address)
                 elif show_mqtt and has_mqtt_logging():
                     resolved.append("MQTT")
             else:
