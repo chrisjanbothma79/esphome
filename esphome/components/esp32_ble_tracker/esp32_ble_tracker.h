@@ -142,10 +142,12 @@ struct ClientStateCounts {
   uint8_t searching = 0;
   uint8_t disconnecting = 0;
 
-  bool operator!=(const ClientStateCounts &other) const {
-    return connecting != other.connecting || discovered != other.discovered || searching != other.searching ||
-           disconnecting != other.disconnecting;
+  bool operator==(const ClientStateCounts &other) const {
+    return connecting == other.connecting && discovered == other.discovered && searching == other.searching &&
+           disconnecting == other.disconnecting;
   }
+
+  bool operator!=(const ClientStateCounts &other) const { return !(*this == other); }
 };
 
 enum class ClientState : uint8_t {

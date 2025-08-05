@@ -803,6 +803,7 @@ void ESP32BLETracker::handle_scanner_failure_() {
 }
 
 void ESP32BLETracker::try_promote_discovered_clients_() {
+  // Only promote the first discovered client to avoid multiple simultaneous connections
   for (auto *client : this->clients_) {
     if (client->state() != ClientState::DISCOVERED) {
       continue;
