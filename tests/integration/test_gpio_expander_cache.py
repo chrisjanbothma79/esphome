@@ -82,21 +82,21 @@ async def test_gpio_expander_cache(
                 print(f"Received unexpected log line: {clean_line}")
                 logs_done.set()
                 return
-            
+
             pattern, expected_pin = log_order[index]
             match = pattern.search(clean_line)
-            
+
             if not match:
                 print(f"Log line did not match next expected pattern: {clean_line}")
                 logs_done.set()
                 return
-            
+
             pin = int(match.group(1))
             if pin != expected_pin:
                 print(f"Unexpected pin number. Expected {expected_pin}, got {pin}")
                 logs_done.set()
                 return
-            
+
             index += 1
 
         elif "DONE" in clean_line:
