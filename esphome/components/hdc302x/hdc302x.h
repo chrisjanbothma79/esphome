@@ -1,6 +1,13 @@
+//
+//  This module is based on code from https://github.com/adafruit/Adafruit_HDC302x
+//
+//
 // python3 -m venv venv
+// script/setup
+//   and/or
 // venv/bin/pip3 install -r requirements_test.txt -r requirements.txt
-// venv/bin/pytest tests/components/hdc302x
+// source venv/bin/activate
+// script/test_build_components -c hdc302x
 
 #pragma once
 #include "esphome/components/i2c/i2c.h"
@@ -30,8 +37,6 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   void set_last_error_sensor(text_sensor::TextSensor *a_sensor) { last_error_sensor_ = a_sensor; }
   void set_bus_name(std::string name) { bus_name_ = name; }
 
-  // void air_calibration();
-
  protected:
   i2c::ErrorCode readTemperatureHumidityOnDemand(float *temp, float *RH);
 
@@ -40,7 +45,7 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   i2c::ErrorCode writeCommandReadData(uint16_t command, uint16_t *data);
   i2c::ErrorCode sendCommandReadTRH(uint16_t command, float *temp, float *RH);
 
-  // unused
+  // unused.  keeping for whenever someone supports the heater
   i2c::ErrorCode writeCommandData(uint16_t cmd, uint16_t data);
   i2c::ErrorCode readStatus(uint16_t *status);
   i2c::ErrorCode isHeaterOn(bool *isOn);
@@ -50,26 +55,7 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   sensor::Sensor *humidity_sensor_{nullptr};
   text_sensor::TextSensor *last_error_sensor_{nullptr};
   std::string bus_name_;
-  /*
-  enum State : uint8_t {
-    IDLE,
-    READ_TEMPERATURE,
-    READ_HUMIDITY,
-  } state_{IDLE};
-  */
 };
-
-/*
- template<typename... Ts> class PMWCS3AirCalibrationAction : public Action<Ts...> {
- public:
-  PMWCS3AirCalibrationAction(HDC302XComponent *parent) : parent_(parent) {}
-
-  void play(Ts... x) override { this->parent_->air_calibration(); }
-
- protected:
-  HDC302XComponent *parent_;
-};
-*/
 
 }  // namespace hdc302x
 }  // namespace esphome

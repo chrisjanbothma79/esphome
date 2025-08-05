@@ -1,3 +1,4 @@
+//
 // ref: https://github.com/adafruit/Adafruit_HDC302x/blob/main/Adafruit_HDC302x.cpp
 //      https://github.com/esphome/esphome/blob/dev/esphome/components/pmwcs3/pmwcs3.cpp
 //
@@ -8,35 +9,7 @@
 #include "hdc302x.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
-#include <format>
 #include <string>
-//#include <type_traits>
-
-// so std::format("{}", some_enum) works.  Needs to be outside esphome namespace so format() can find it
-#define emac(x) \
-  case esphome::i2c::x: \
-    v = #x; \
-    break;
-template<> struct std::formatter<esphome::i2c::ErrorCode> : std::formatter<string> {
-  auto format(const esphome::i2c::ErrorCode &value, auto &ctx) const {
-    string v;
-    switch (value) {
-      emac(ERROR_OK);
-      emac(ERROR_INVALID_ARGUMENT);
-      emac(ERROR_NOT_ACKNOWLEDGED);
-      emac(ERROR_TIMEOUT);
-      emac(ERROR_NOT_INITIALIZED);
-      emac(ERROR_TOO_LARGE);
-      emac(ERROR_UNKNOWN);
-      emac(ERROR_CRC);
-      default:
-        v = "unknown";
-    };
-    v = std::format("{}({})", v, static_cast<int>(value));
-    return std::formatter<string>::format(v, ctx);
-  }
-};
-#undef emac
 
 namespace esphome {
 namespace hdc302x {
@@ -68,16 +41,21 @@ typedef enum {
   TRIGGERMODE_LP3 = 0x24FF   // Trigger-On Demand Mode, Low Power Mode 3
 } hdcTriggerMode_t;
 
-#define WARN(...) \
+// I wish we could use std::format here, but the esp8266 platform apparently isn't compiled with c++20 yet,
+// so we need to do the snprintf route.  And, incase ESP_LOGW can handle more than 256 chars, we
+// separate out the calls to ESP_LOGW from the snprintf code.
+#define WARN(format, ...) \
   { \
-    std::string err = std::format(__VA_ARGS__); \
+    char msg[256] = ""; \
     if (bus_name_.empty()) { \
-      ESP_LOGW(TAG, err.c_str()); \
+      snprintf(msg, 256, format, __VA_ARGS__); \
+      ESP_LOGW(TAG, format, __VA_ARGS__); \
     } else { \
-      ESP_LOGW(TAG, "%s %s", bus_name_.c_str(), err.c_str()); \
+      snprintf(msg, 256, "%s " format, bus_name_.c_str(), __VA_ARGS__); \
+      ESP_LOGW(TAG, "%s " format, bus_name_.c_str(), __VA_ARGS__); \
     } \
     if (last_error_sensor_) { \
-      last_error_sensor_->publish_state(err); \
+      last_error_sensor_->publish_state(msg); \
     } \
   }
 
@@ -109,9 +87,7 @@ static uint8_t calculateCRC8(const uint8_t *data, int len) {
 void HDC302XComponent::setup() {
   i2c::ErrorCode ec = writeCommand(HDC302x_Commands::SOFT_RESET);
   if (ec != i2c::NO_ERROR) {
-    std::string foo = std::format("foo {}", ec);
-
-    WARN("setup: Reset command failed (i2c::ErrorCode {})", ec);
+    WARN("setup: Reset command failed (i2c::ErrorCode %d)", ec);
     return;
   }
   clearStatusRegister();
@@ -119,9 +95,9 @@ void HDC302XComponent::setup() {
   uint16_t manufacturerID = 0;
   ec = writeCommandReadData(HDC302x_Commands::READ_MANUFACTURER_ID, &manufacturerID);
   if (ec != i2c::NO_ERROR) {
-    WARN("setup: Read manufacturerID failed (i2c::ErrorCode {})", ec);
+    WARN("setup: Read manufacturerID failed (i2c::ErrorCode %d)", ec);
   } else if (manufacturerID != 0x3000) {
-    WARN("setup: Wrong manufacturer ID (got 0x{:X} expected 0x{:X})", manufacturerID, 0x3000);
+    WARN("setup: Wrong manufacturer ID (got 0x%x expected 0x%x)", manufacturerID, 0x3000);
   }
 
   // setAutoMode(EXIT_AUTO_MODE);
@@ -131,7 +107,7 @@ void HDC302XComponent::update() {
   float temp, rh;
   i2c::ErrorCode ec = readTemperatureHumidityOnDemand(&temp, &rh);
   if (ec != i2c::NO_ERROR) {
-    WARN("update: Read temp/humidity failed (i2c::ErrorCode {})", ec);
+    WARN("update: Read temp/humidity failed (i2c::ErrorCode %d)", ec);
     return;
   }
   if (temperature_sensor_)
@@ -160,7 +136,7 @@ i2c::ErrorCode HDC302XComponent::readTemperatureHumidityOnDemand(float *temp, fl
 void HDC302XComponent::clearStatusRegister() {
   i2c::ErrorCode ec = writeCommand(HDC302x_Commands::CLEAR_STATUS_REGISTER);
   if (ec != i2c::NO_ERROR) {
-    WARN("Clear status reg command failed (i2c::ErrorCode {})", ec);
+    WARN("Clear status reg command failed (i2c::ErrorCode %d)", ec);
   }
 }
 
