@@ -10,9 +10,7 @@ AUTO_LOAD = ["climate_ir"]
 samsung_ns = cg.esphome_ns.namespace("samsung")
 SamsungClimate = samsung_ns.class_("SamsungClimate", climate_ir.ClimateIR)
 
-CONFIG_SCHEMA = climate_ir.CLIMATE_IR_WITH_RECEIVER_SCHEMA.extend(
-    {cv.GenerateID(): cv.declare_id(SamsungClimate)}
-)
+CONFIG_SCHEMA = climate_ir.climare_ir_with_receiver_schema(SamsungClimate)
 
 
 async def to_code(config):
