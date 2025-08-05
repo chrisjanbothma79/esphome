@@ -225,12 +225,6 @@ void ESPNowComponent::disable() {
   esp_now_unregister_recv_cb();
   esp_now_unregister_send_cb();
 
-  for (auto peer : this->peers_) {
-    if (esp_now_is_peer_exist(peer.address)) {
-      esp_now_del_peer(peer.address);
-    }
-  }
-
   esp_err_t err = esp_now_deinit();
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "esp_now_deinit failed! 0x%x", err);
