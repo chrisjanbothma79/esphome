@@ -178,8 +178,7 @@ void ESPNowComponent::enable_() {
 
     this->apply_wifi_channel();
   }
-  wifi_second_chan_t dummy;
-  esp_wifi_get_channel(&this->wifi_channel_, &dummy);
+  this->get_wifi_channel();
 
   esp_err_t err = esp_now_init();
   if (err != ESP_OK) {
