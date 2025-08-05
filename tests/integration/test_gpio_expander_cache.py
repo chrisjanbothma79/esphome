@@ -1,4 +1,4 @@
-"""Integration test for API custom services using CustomAPIDevice."""
+"""Integration test for CachedGPIOExpander to ensure correct behavior."""
 
 from __future__ import annotations
 
@@ -78,25 +78,26 @@ async def test_gpio_expander_cache(
         clean_line = re.sub(r"\x1b\[[0-9;]*m", "", line)
 
         if "digital_read" in clean_line:
-            if index < len(log_order):
-                pattern, expected_pin = log_order[index]
-                match = pattern.search(line)
-                if match:
-                    pin = int(match.group(1))
-                    if pin == expected_pin:
-                        index += 1
-                    else:
-                        print(
-                            f"Unexpected pin number. Expected {expected_pin}, got {pin}"
-                        )
-                        logs_done.set()
-                else:
-                    print(f"Log line did not match next expected pattern: {clean_line}")
-                    logs_done.set()
-            else:
+            if index >= len(log_order):
                 print(f"Received unexpected log line: {clean_line}")
-                index += 1
                 logs_done.set()
+                return
+
+            pattern, expected_pin = log_order[index]
+            match = pattern.search(clean_line)
+
+            if not match:
+                print(f"Log line did not match next expected pattern: {clean_line}")
+                logs_done.set()
+                return
+
+            pin = int(match.group(1))
+            if pin != expected_pin:
+                print(f"Unexpected pin number. Expected {expected_pin}, got {pin}")
+                logs_done.set()
+                return
+
+            index += 1
 
         elif "DONE" in clean_line:
             # Check if we reached the end of the expected log entries
