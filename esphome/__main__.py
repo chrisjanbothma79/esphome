@@ -122,9 +122,13 @@ def choose_upload_log_host(
         resolved: list[str] = []
         for device in defaults:
             if device == "SERIAL":
+                serial_ports = get_serial_ports()
+                if not serial_ports:
+                    _LOGGER.warning("No serial ports found, skipping SERIAL device")
+                    continue
                 options = [
                     (f"{port.path} ({port.description})", port.path)
-                    for port in get_serial_ports()
+                    for port in serial_ports
                 ]
                 resolved.append(choose_prompt(options, purpose=purpose))
             elif device == "OTA":
