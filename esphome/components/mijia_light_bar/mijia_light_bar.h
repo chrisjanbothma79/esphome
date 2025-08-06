@@ -142,25 +142,25 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
    * @param command Command to send
    * @param value Optional command value
    */
-  void create_packet(uint8_t *data, uint8_t size, uint8_t command, uint8_t value = 0);
+  void create_packet_(uint8_t *data, uint8_t size, uint8_t command, uint8_t value = 0);
 
   /** @brief Send a command to the light bar
    * @param command Command to send
    * @param value Optional command value
    */
-  void send_command(uint8_t command, uint8_t value = 0);
+  void send_command_(uint8_t command, uint8_t value = 0);
 
   /** @brief Convert brightness to device level
    * @param brightness Brightness value (0.0-1.0)
    * @return Device brightness level (1-15)
    */
-  uint8_t brightness_to_level(float brightness) { return static_cast<uint8_t>(brightness * 14.0f) + 1; }
+  uint8_t brightness_to_level_(float brightness) { return static_cast<uint8_t>(brightness * 14.0f) + 1; }
 
   /** @brief Convert color temperature to device level
    * @param color_temp Color temperature value (0.0-1.0)
    * @return Device color temperature level (1-15)
    */
-  uint8_t color_temp_to_level(float color_temp) { return static_cast<uint8_t>((1.0f - color_temp) * 14.0f + 1.0f); }
+  uint8_t color_temp_to_level_(float color_temp) { return static_cast<uint8_t>((1.0f - color_temp) * 14.0f + 1.0f); }
 
   uint32_t remote_id_{0};
   uint8_t repetitions_{20};
@@ -213,12 +213,12 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
    * @param value Optional command value
    * @return true if command was queued, false if queue is full
    */
-  bool queue_command(uint8_t cmd, uint8_t value = 0);
+  bool queue_command_(uint8_t cmd, uint8_t value = 0);
 
   /** @brief Process the next command in the queue
    * @return true if a command was processed, false if queue is empty
    */
-  bool process_next_command();
+  bool process_next_command_();
 
   /** @brief Initialize a packet for sending
    * @param packet Packet to initialize
@@ -226,27 +226,27 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
    * @param value Command value
    * @param counter Command counter
    */
-  void init_packet(Packet &packet, uint8_t command, uint8_t value, uint8_t counter);
+  void init_packet_(Packet &packet, uint8_t command, uint8_t value, uint8_t counter);
 
   /** @brief Calculate CRC for packet data
    * @param data Data to calculate CRC for
    * @param length Length of data
    * @return Calculated CRC value
    */
-  uint16_t calculate_crc(const uint8_t *data, size_t length);
+  uint16_t calculate_crc_(const uint8_t *data, size_t length);
 
   /** @brief Handle pairing mode
    *
    * Called periodically to check if the light bar is in pairing mode and
    * respond to commands from the remote.
    */
-  void handle_pairing_mode();
+  void handle_pairing_mode_();
 
   /** @brief Check if a received packet is a pairing packet
    * @param data Data to check
    * @return true if the packet is a pairing packet, false otherwise
    */
-  bool check_pairing_packet(const uint8_t *data);
+  bool check_pairing_packet_(const uint8_t *data);
 
   ESPPreferenceObject remote_id_preference_;
 };

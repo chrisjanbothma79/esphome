@@ -49,14 +49,14 @@ void MijiaLightBarComponent::dump_config() {
   nrf24::NRF24Device::dump_config();
 }
 
-bool MijiaLightBarComponent::queue_command(uint8_t cmd, uint8_t value) {
+bool MijiaLightBarComponent::queue_command_(uint8_t cmd, uint8_t value) {
   if (command_queue_.size() >= MAX_QUEUE_SIZE) {
     ESP_LOGW(TAG, "Command queue full, dropping command 0x%02X", cmd);
     return false;
   }
 
   Command cmd_entry;
-  init_packet(cmd_entry.packet, cmd, value, ++counter_);
+  init_packet_(cmd_entry.packet, cmd, value, ++counter_);
   cmd_entry.remaining_repetitions = repetitions_;
   cmd_entry.last_sent = 0;
 
@@ -66,7 +66,7 @@ bool MijiaLightBarComponent::queue_command(uint8_t cmd, uint8_t value) {
   return true;
 }
 
-bool MijiaLightBarComponent::process_next_command() {
+bool MijiaLightBarComponent::process_next_command_() {
   if (command_queue_.empty()) {
     return false;
   }
@@ -109,12 +109,12 @@ bool MijiaLightBarComponent::process_next_command() {
 void MijiaLightBarComponent::loop() {
   // Handle pairing mode if active
   if (pairing_mode_) {
-    handle_pairing_mode();
+    handle_pairing_mode_();
     return;
   }
 
   // Process commands in the queue
-  while (process_next_command()) {
+  while (process_next_command_()) {
     ESP_LOGV(TAG, "Processed command, queue size: %d", command_queue_.size());
   }
 }
@@ -141,7 +141,7 @@ void MijiaLightBarComponent::exit_pairing_mode() {
   pairing_mode_ = false;
 }
 
-void MijiaLightBarComponent::handle_pairing_mode() {
+void MijiaLightBarComponent::handle_pairing_mode_() {
   // Check if pairing mode has timed out
   if (millis() - pairing_start_time_ >= PAIRING_TIMEOUT_MS) {
     exit_pairing_mode();
@@ -153,13 +153,13 @@ void MijiaLightBarComponent::handle_pairing_mode() {
   if (radio_->available()) {
     uint8_t raw_data[18];
     radio_->read(raw_data, sizeof(raw_data));
-    if (check_pairing_packet(raw_data)) {
+    if (check_pairing_packet_(raw_data)) {
       exit_pairing_mode();
     }
   }
 }
 
-bool MijiaLightBarComponent::check_pairing_packet(const uint8_t *raw_data) {
+bool MijiaLightBarComponent::check_pairing_packet_(const uint8_t *raw_data) {
   byte data[17] = {0x5};
   for (int i = 0; i < 17; i++) {
     if (i == 0) {
@@ -179,7 +179,7 @@ bool MijiaLightBarComponent::check_pairing_packet(const uint8_t *raw_data) {
 
   // Check CRC
   uint16_t received_crc = (data[15] << 8) | data[16];
-  uint16_t calculated_crc = calculate_crc(data, 15);
+  uint16_t calculated_crc = calculate_crc_(data, 15);
 
   if (received_crc == calculated_crc) {
     // Extract remote ID from packet
@@ -211,8 +211,8 @@ void MijiaLightBarComponent::write_state(light::LightState *state) {
     state->current_values_as_ct(&color_temp, &brightness);
 
     // Convert values to device levels
-    uint8_t brightness_level = brightness_to_level(brightness);
-    uint8_t color_temp_level = color_temp_to_level(color_temp);
+    uint8_t brightness_level = brightness_to_level_(brightness);
+    uint8_t color_temp_level = color_temp_to_level_(color_temp);
 
     ESP_LOGD(TAG, "Brightness: %.2f -> %d, Color Temp: %.2f -> %d", brightness, brightness_level, color_temp,
              color_temp_level);
@@ -233,45 +233,45 @@ void MijiaLightBarComponent::write_state(light::LightState *state) {
 
 bool MijiaLightBarComponent::toggle() {
   ESP_LOGD(TAG, "Toggling");
-  return queue_command(CMD_TOGGLE);
+  return queue_command_(CMD_TOGGLE);
 }
 
 bool MijiaLightBarComponent::reset() {
   ESP_LOGD(TAG, "Resetting");
-  return queue_command(CMD_RESET);
+  return queue_command_(CMD_RESET);
 }
 
 bool MijiaLightBarComponent::cooler() {
   ESP_LOGD(TAG, "Cooler");
-  return queue_command(CMD_COOLER);
+  return queue_command_(CMD_COOLER);
 }
 
 bool MijiaLightBarComponent::warmer() {
   ESP_LOGD(TAG, "Warmer");
-  return queue_command(CMD_WARMER);
+  return queue_command_(CMD_WARMER);
 }
 
 bool MijiaLightBarComponent::brighter() {
   ESP_LOGD(TAG, "Brighter");
-  return queue_command(CMD_BRIGHTER);
+  return queue_command_(CMD_BRIGHTER);
 }
 
 bool MijiaLightBarComponent::dimmer() {
   ESP_LOGD(TAG, "Dimmer");
-  return queue_command(CMD_DIMMER);
+  return queue_command_(CMD_DIMMER);
 }
 
 bool MijiaLightBarComponent::set_brightness(uint8_t brightness) {
   ESP_LOGD(TAG, "Setting brightness: %d", brightness);
-  return queue_command(CMD_DIMMER, 0xF0) && queue_command(CMD_BRIGHTER, brightness);
+  return queue_command_(CMD_DIMMER, 0xF0) && queue_command_(CMD_BRIGHTER, brightness);
 }
 
 bool MijiaLightBarComponent::set_color_temp(uint8_t color_temp) {
   ESP_LOGD(TAG, "Setting color temperature: %d", color_temp);
-  return queue_command(CMD_WARMER, 0xF0) && queue_command(CMD_COOLER, color_temp);
+  return queue_command_(CMD_WARMER, 0xF0) && queue_command_(CMD_COOLER, color_temp);
 }
 
-void MijiaLightBarComponent::init_packet(Packet &packet, uint8_t command, uint8_t value, uint8_t counter) {
+void MijiaLightBarComponent::init_packet_(Packet &packet, uint8_t command, uint8_t value, uint8_t counter) {
   ESP_LOGV(TAG, "Initializing packet - Command: 0x%02X, Value: 0x%02X, Counter: %d", command, value, counter);
 
   // Initialize static parts
@@ -285,14 +285,14 @@ void MijiaLightBarComponent::init_packet(Packet &packet, uint8_t command, uint8_
   packet.value = value;
 
   // Calculate and set CRC
-  uint16_t crc = calculate_crc(reinterpret_cast<const uint8_t *>(&packet), 15);
+  uint16_t crc = calculate_crc_(reinterpret_cast<const uint8_t *>(&packet), 15);
   packet.crc[0] = (crc & 0xFF00) >> 8;
   packet.crc[1] = crc & 0x00FF;
 
   ESP_LOGV(TAG, "Packet initialized with CRC: 0x%04X", crc);
 }
 
-uint16_t MijiaLightBarComponent::calculate_crc(const uint8_t *data, size_t length) {
+uint16_t MijiaLightBarComponent::calculate_crc_(const uint8_t *data, size_t length) {
   uint16_t crc = crc16be(data, length, 0xFFFE, 0x1021, false, false);
   return crc;
 }
