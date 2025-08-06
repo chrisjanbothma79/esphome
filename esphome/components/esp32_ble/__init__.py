@@ -15,13 +15,6 @@ CODEOWNERS = ["@jesserockz", "@Rapsssito", "@bdraco"]
 DOMAIN = "esp32_ble"
 
 
-def FILTER_SOURCE_FILES() -> list[str]:
-    """Filter out ble_advertising.cpp when advertising is not enabled."""
-    if "USE_ESP32_BLE_ADVERTISING" not in CORE.defines:
-        return ["ble_advertising.cpp"]
-    return []
-
-
 class BTLoggers(Enum):
     """Bluetooth logger categories available in ESP-IDF.
 
