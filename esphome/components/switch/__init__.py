@@ -81,7 +81,9 @@ _SWITCH_SCHEMA = (
             ),
             cv.Optional(CONF_ON_STATE_CHANGED): automation.validate_automation(
                 {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(SwitchStateChangedTrigger),
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
+                        SwitchStateChangedTrigger
+                    ),
                 }
             ),
             cv.Optional(CONF_ON_TURN_ON): automation.validate_automation(
