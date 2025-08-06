@@ -2,7 +2,7 @@ from esphome import pins
 import esphome.codegen as cg
 from esphome.components import spi
 import esphome.config_validation as cv
-from esphome.const import CONF_CHANNEL
+from esphome.const import CONF_ADDRESS, CONF_CHANNEL
 
 DEPENDENCIES = ["spi"]
 CODEOWNERS = ["@tylerwowen"]
@@ -13,12 +13,11 @@ CONF_PA_LEVEL = "pa_level"
 CONF_PAYLOAD_SIZE = "payload_size"
 CONF_CRC = "crc"
 CONF_RETRIES = "retries"
-CONF_RETRY_DELAY = "delay"
-CONF_RETRY_COUNT = "count"
-CONF_ADDRESS = "address"
+CONF_RETRY_DELAY = "retry_delay"
+CONF_RETRY_COUNT = "retry_count"
 CONF_AUTO_ACK = "auto_ack"
 CONF_READ_PIPES = "read_pipes"
-CONF_PIPE_NUMBER = "pipe"
+CONF_PIPE_NUMBER = "pipe_number"
 CONF_WRITE_ADDRESS = "write_address"
 CONF_RF_DATA_RATE = "rf_data_rate"
 
