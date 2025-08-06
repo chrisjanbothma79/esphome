@@ -582,23 +582,7 @@ void ESP32BLETracker::dump_config() {
                 "  Continuous Scanning: %s",
                 this->scan_duration_, this->scan_interval_ * 0.625f, this->scan_window_ * 0.625f,
                 this->scan_active_ ? "ACTIVE" : "PASSIVE", YESNO(this->scan_continuous_));
-  switch (this->scanner_state_) {
-    case ScannerState::IDLE:
-      ESP_LOGCONFIG(TAG, "  Scanner State: IDLE");
-      break;
-    case ScannerState::STARTING:
-      ESP_LOGCONFIG(TAG, "  Scanner State: STARTING");
-      break;
-    case ScannerState::RUNNING:
-      ESP_LOGCONFIG(TAG, "  Scanner State: RUNNING");
-      break;
-    case ScannerState::STOPPING:
-      ESP_LOGCONFIG(TAG, "  Scanner State: STOPPING");
-      break;
-    case ScannerState::FAILED:
-      ESP_LOGCONFIG(TAG, "  Scanner State: FAILED");
-      break;
-  }
+  ESP_LOGCONFIG(TAG, "  Scanner State: %s", this->scanner_state_to_string_(this->scanner_state_));
   ESP_LOGCONFIG(TAG, "  Connecting: %d, discovered: %d, searching: %d, disconnecting: %d",
                 this->client_state_counts_.connecting, this->client_state_counts_.discovered,
                 this->client_state_counts_.searching, this->client_state_counts_.disconnecting);
@@ -796,17 +780,17 @@ void ESP32BLETracker::try_promote_discovered_clients_() {
 const char *ESP32BLETracker::scanner_state_to_string_(ScannerState state) const {
   switch (state) {
     case ScannerState::IDLE:
-      return "idle";
+      return "IDLE";
     case ScannerState::STARTING:
-      return "starting";
+      return "STARTING";
     case ScannerState::RUNNING:
-      return "running";
+      return "RUNNING";
     case ScannerState::STOPPING:
-      return "stopping";
+      return "STOPPING";
     case ScannerState::FAILED:
-      return "failed";
+      return "FAILED";
     default:
-      return "unknown";
+      return "UNKNOWN";
   }
 }
 
