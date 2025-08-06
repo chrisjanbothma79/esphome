@@ -1,4 +1,6 @@
+import importlib
 import logging
+import pkgutil
 
 from esphome import pins
 import esphome.codegen as cg
@@ -23,6 +25,7 @@ from esphome.components.mipi import (
     power_of_two,
     requires_buffer,
 )
+from esphome.components.psram import DOMAIN as PSRAM_DOMAIN
 from esphome.components.spi import TYPE_OCTAL, TYPE_QUAD, TYPE_SINGLE
 import esphome.config_validation as cv
 from esphome.config_validation import ALLOW_EXTRA
@@ -52,8 +55,7 @@ from esphome.core import CORE
 from esphome.cpp_generator import TemplateArguments
 from esphome.final_validate import full_config
 
-from . import CONF_BUS_MODE, CONF_SPI_16, DOMAIN
-from .models import adafruit, amoled, cyd, ili, jc, lanbon, lilygo, waveshare
+from . import CONF_BUS_MODE, CONF_SPI_16, DOMAIN, models
 
 DEPENDENCIES = ["spi"]
 
@@ -91,10 +93,11 @@ BusTypes = {
 
 DriverChip("CUSTOM")
 
-MODELS = DriverChip.models
-# This loop is a noop, but suppresses linting of side-effect-only imports
-for _ in (ili, jc, amoled, lilygo, lanbon, cyd, waveshare, adafruit):
-    pass
+# Import all models dynamically from the models package
+for module_info in pkgutil.iter_modules(models.__path__):
+    importlib.import_module(f".models.{module_info.name}", package=__package__)
+
+MODELS = DriverChip.get_models()
 
 
 DISPLAY_18BIT = "18bit"
@@ -290,7 +293,7 @@ def _final_validate(config):
         # If no drawing methods are configured, and LVGL is not enabled, show a test card
         config[CONF_SHOW_TEST_CARD] = True
 
-    if "psram" not in global_config and CONF_BUFFER_SIZE not in config:
+    if PSRAM_DOMAIN not in global_config and CONF_BUFFER_SIZE not in config:
         if not requires_buffer(config):
             return config  # No buffer needed, so no need to set a buffer size
         # If PSRAM is not enabled, choose a small buffer size by default
