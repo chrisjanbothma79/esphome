@@ -315,7 +315,7 @@ CONFIG_SCHEMA = cv.All(
             ): cv.enum(WIFI_POWER_SAVE_MODES, upper=True),
             cv.Optional(CONF_FAST_CONNECT, default=False): cv.boolean,
             cv.Optional(CONF_USE_ADDRESS): cv.string_strict,
-            cv.SplitDefault(CONF_OUTPUT_POWER, esp8266=20.0): cv.All(
+            cv.SplitDefault(CONF_OUTPUT_POWER, esp8266=20.0, bk72xx=17.0): cv.All(
                 cv.decibel, cv.float_range(min=8.5, max=20.5)
             ),
             cv.SplitDefault(CONF_ENABLE_BTM, esp32_idf=False): cv.All(
