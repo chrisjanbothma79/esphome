@@ -334,72 +334,13 @@ def obj_schema(widget_type: WidgetType):
     :param widget_type:
     :return:
     """
-    return (
-        part_schema(widget_type.parts)
-        .extend(LAYOUT_SCHEMA)
-        .extend(ALIGN_TO_SCHEMA)
-        .extend(automation_schema(widget_type.w_type))
-        .extend(
-            cv.Schema(
-                {
-                    cv.Optional(CONF_STATE): SET_STATE_SCHEMA,
-                    cv.Optional(CONF_GROUP): cv.use_id(lv_group_t),
-                }
-            )
-        )
-    )
-
-
-def validate_grid_layout(config):
-    layout = config[df.CONF_LAYOUT]
-    rows = len(layout[df.CONF_GRID_ROWS])
-    columns = len(layout[df.CONF_GRID_COLUMNS])
-    used_cells = [[None] * columns for _ in range(rows)]
-    for index, widget in enumerate(config[df.CONF_WIDGETS]):
-        _, w = next(iter(widget.items()))
-        if (df.CONF_GRID_CELL_COLUMN_POS in w) != (df.CONF_GRID_CELL_ROW_POS in w):
-            # pylint: disable=raise-missing-from
-            raise cv.Invalid(
-                "Both row and column positions must be specified, or both omitted",
-                [df.CONF_WIDGETS, index],
-            )
-        if df.CONF_GRID_CELL_ROW_POS in w:
-            row = w[df.CONF_GRID_CELL_ROW_POS]
-            column = w[df.CONF_GRID_CELL_COLUMN_POS]
-        else:
-            try:
-                row, column = next(
-                    (r_idx, c_idx)
-                    for r_idx, row in enumerate(used_cells)
-                    for c_idx, value in enumerate(row)
-                    if value is None
-                )
-            except StopIteration:
-                # pylint: disable=raise-missing-from
-                raise cv.Invalid(
-                    "No free cells available in grid layout", [df.CONF_WIDGETS, index]
-                )
-            w[df.CONF_GRID_CELL_ROW_POS] = row
-            w[df.CONF_GRID_CELL_COLUMN_POS] = column
-
-        for i in range(w[df.CONF_GRID_CELL_ROW_SPAN]):
-            for j in range(w[df.CONF_GRID_CELL_COLUMN_SPAN]):
-                if row + i >= rows or column + j >= columns:
-                    # pylint: disable=raise-missing-from
-                    raise cv.Invalid(
-                        f"Cell at {row}/{column} span {w[df.CONF_GRID_CELL_ROW_SPAN]}x{w[df.CONF_GRID_CELL_COLUMN_SPAN]} "
-                        f"exceeds grid size {rows}x{columns}",
-                        [df.CONF_WIDGETS, index],
-                    )
-                if used_cells[row + i][column + j] is not None:
-                    # pylint: disable=raise-missing-from
-                    raise cv.Invalid(
-                        f"Cell span {row + i}/{column + j} already occupied by widget at index {used_cells[row + i][column + j]}",
-                        [df.CONF_WIDGETS, index],
-                    )
-                used_cells[row + i][column + j] = index
-
-    return config
+    return {
+        **part_schema(widget_type.parts),
+        **ALIGN_TO_SCHEMA,
+        **automation_schema(widget_type.w_type),
+        cv.Optional(CONF_STATE): SET_STATE_SCHEMA,
+        cv.Optional(CONF_GROUP): cv.use_id(lv_group_t),
+    }
 
 
 ALIGN_TO_SCHEMA = {
@@ -446,13 +387,6 @@ LAYOUTS = {
         cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
         cv.Optional(df.CONF_FLEX_GROW): cv.int_,
     },
-}
-
-LAYOUT_SCHEMA = {
-    cv.Optional(df.CONF_LAYOUT): cv.typed_schema(
-        LAYOUTS,
-        lower=True,
-    )
 }
 
 GRID_CELL_SCHEMA = {
@@ -552,7 +486,7 @@ def container_validator(schema, widget_type: WidgetType):
         )
         result = result.extend(w_sch)
         value = result(value)
-        if value.get(df.CONF_LAYOUT, {}).get(CONF_TYPE) == df.TYPE_GRID:
+        if layout := value.get(df.CONF_LAYOUT, {}).get(CONF_TYPE):
             value = validate_grid_layout(value)
         return value
 
@@ -563,12 +497,15 @@ def container_schema(widget_type: WidgetType, extras=None):
     """
     Create a schema for a container widget of a given type. All obj properties are available, plus
     the extras passed in, plus any defined for the specific widget being specified.
-    :param widget_type:     The widget type, e.g. "img"
+    :param widget_type:     The widget type, e.g. "image"
     :param extras:  Additional options to be made available, e.g. layout properties for children
     :return: The schema for this type of widget.
     """
-    schema = obj_schema(widget_type).extend(
-        {cv.GenerateID(): cv.declare_id(widget_type.w_type)}
+    schema = cv.Schema(
+        {
+            **obj_schema(widget_type),
+            cv.GenerateID(): cv.declare_id(widget_type.w_type),
+        }
     )
     if extras:
         schema = schema.extend(extras)
