@@ -306,4 +306,4 @@ async def to_code(config):
     cg.add(var.set_frame_size(config[CONF_RESOLUTION]))
 
     if CORE.using_esp_idf:
-        add_idf_component(name="espressif/esp32-camera", ref="2.1.0")
+        add_idf_component(name="espressif/esp32-camera", ref="2.1.1")
