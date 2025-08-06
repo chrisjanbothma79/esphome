@@ -375,8 +375,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (this->conn_id_ != param->search_res.conn_id)
         return false;
       this->service_count_++;
-      if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE ||
-          this->connection_type_ == espbt::ConnectionType::V3_WITH_CACHE) {
+      if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
         // V3 clients don't need services initialized since
         // as they use the ESP APIs to get services.
         break;
