@@ -1161,11 +1161,10 @@ class MemoryAnalyzer:
             if component_name in ESPHOME_COMPONENTS:
                 return f"[esphome]{component_name}"
             # Check if this is a known external component from the config
-            elif component_name in self.external_components:
+            if component_name in self.external_components:
                 return f"[external]{component_name}"
-            else:
-                # Everything else in esphome:: namespace is core
-                return "[esphome]core"
+            # Everything else in esphome:: namespace is core
+            return "[esphome]core"
 
         # Check for esphome core namespace (no component namespace)
         if "esphome::" in demangled:
@@ -1188,8 +1187,7 @@ class MemoryAnalyzer:
         if "spi_" in symbol_name or "SPI" in symbol_name:
             if "spi_flash" in symbol_name:
                 return "spi_flash"
-            else:
-                return "spi_driver"
+            return "spi_driver"
 
         # libc special printf variants
         if symbol_name.startswith("_") and symbol_name[1:].replace("_r", "").replace(
@@ -1487,7 +1485,7 @@ class MemoryAnalyzer:
         ]
         top_esphome_components = sorted(
             esphome_components, key=lambda x: x[1].flash_total, reverse=True
-        )[:5]
+        )[:10]
 
         # Check if API component exists and ensure it's included
         api_component = None
