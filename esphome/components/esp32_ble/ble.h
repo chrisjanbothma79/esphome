@@ -1,5 +1,7 @@
 #pragma once
 
+#include "esphome/core/defines.h"  // Must be included before conditional includes
+
 #include "ble_uuid.h"
 #include "ble_scan_result.h"
 #ifdef USE_ESP32_BLE_ADVERTISING
@@ -10,7 +12,6 @@
 
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
-#include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 
 #include "ble_event.h"
