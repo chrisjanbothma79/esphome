@@ -26,7 +26,7 @@ CONF_RF_DATA_RATE = "rf_data_rate"
 nrf24_ns = cg.esphome_ns.namespace("nrf24")
 NRF24Device = nrf24_ns.class_("NRF24Device", cg.Component, spi.SPIDevice)
 
-NRF24DeviceCompmonent = nrf24_ns.class_(
+NRF24DeviceComponent = nrf24_ns.class_(
     "NRF24DeviceComponent", cg.Component, spi.SPIDevice
 )
 

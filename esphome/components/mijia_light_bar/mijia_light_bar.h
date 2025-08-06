@@ -55,7 +55,7 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   /** @brief Get setup priority
    * @return Priority level for component setup
    */
-  float get_setup_priority() const { return setup_priority::IO; }
+  override float get_setup_priority() const { return setup_priority::IO; }
 
   /** @brief Get supported light traits
    * @return Light traits supported by this component
@@ -124,8 +124,8 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
 
   /** @brief Start pairing mode
    *
-   * Enters pairing mode for 2 minutes. During this time, the model will try
-   * to capature commands from the remote.
+   * Enters pairing mode for 2 minutes. During this time, the module will try
+   * to capture commands from the remote.
    */
   void start_pairing();
 

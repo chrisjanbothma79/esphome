@@ -17,13 +17,13 @@ static const uint8_t PREAMBLE[8] = {0x53, 0x39, 0x14, 0xDD, 0x1C, 0x49, 0x34, 0x
 void MijiaLightBarComponent::setup() {
   ESP_LOGD(TAG, "Setting up Mijia Light Bar");
 
-  remote_id_preference_ = global_preferences->make_preference<uint32_t>(fnv1_hash("mijiao_lightbar_remote_id"));
+  remote_id_preference_ = global_preferences->make_preference<uint32_t>(fnv1_hash("mijia_lightbar_remote_id"));
   if (remote_id_ == 0) {
     remote_id_preference_.load(&remote_id_);
     if (remote_id_ != 0) {
       ESP_LOGI(TAG, "Loaded saved remote ID: 0x%06X", remote_id_);
     } else {
-      ESP_LOGW(TAG, "No saved remote ID found, use paring mode to capture one");
+      ESP_LOGW(TAG, "No saved remote ID found, use pairing mode to capture one");
     }
   }
 
