@@ -4,7 +4,7 @@ i2c:
     sda: ${sda_pin}
 
 display:
-  - platform: ht16k33
+  - platform: i2c_htk16k33
     id: ht16k33_display
     i2c_id: i2c_bus
     intensity: 15

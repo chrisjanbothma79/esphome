@@ -225,7 +225,7 @@ void HT16K33Component::command_all_(uint8_t value) {
 void HT16K33Component::update() {
   this->update_ = true;
   this->clear();
-  if (this->writer_.has_value())  // insert Labda function if available
+  if (this->writer_.has_value())  // insert Lambda function if available
     (*this->writer_)(*this);
 }
 
