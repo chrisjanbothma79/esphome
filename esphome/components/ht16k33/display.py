@@ -3,24 +3,24 @@ import esphome.codegen as cg
 from esphome.components import display, i2c
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_FLIP_X,
     CONF_ID,
     CONF_INTENSITY,
     CONF_LAMBDA,
     CONF_NUM_CHIPS,
     CONF_RESET_PIN,
+    CONF_REVERSED,
 )
 
 CODEOWNERS = ["@tylerwowen"]
 DEPENDENCIES = ["i2c"]
 
 CONF_ROTATE_CHIP = "rotate_chip"
-CONF_FLIP_X = "flip_x"
 CONF_SCROLL_SPEED = "scroll_speed"
 CONF_SCROLL_DWELL = "scroll_dwell"
 CONF_SCROLL_DELAY = "scroll_delay"
 CONF_SCROLL_ENABLE = "scroll_enable"
 CONF_SCROLL_MODE = "scroll_mode"
-CONF_REVERSE_ENABLE = "reverse_enable"
 CONF_NUM_CHIP_LINES = "num_chip_lines"
 CONF_CHIP_LINES_STYLE = "chip_lines_style"
 CONF_BLINK_RATE = "blink_rate"
@@ -82,7 +82,7 @@ CONFIG_SCHEMA = (
             cv.Optional(
                 CONF_SCROLL_DWELL, default="1000ms"
             ): cv.positive_time_period_milliseconds,
-            cv.Optional(CONF_REVERSE_ENABLE, default=False): cv.boolean,
+            cv.Optional(CONF_REVERSED, default=False): cv.boolean,
             cv.Optional(CONF_FLIP_X, default=False): cv.boolean,
             cv.Optional(CONF_BLINK_RATE, default="OFF"): cv.enum(
                 BLINK_RATES, upper=True
@@ -109,7 +109,7 @@ async def to_code(config):
     cg.add(var.set_scroll_delay(config[CONF_SCROLL_DELAY]))
     cg.add(var.set_scroll(config[CONF_SCROLL_ENABLE]))
     cg.add(var.set_scroll_mode(config[CONF_SCROLL_MODE]))
-    cg.add(var.set_reverse(config[CONF_REVERSE_ENABLE]))
+    cg.add(var.set_reversed(config[CONF_REVERSED]))
     cg.add(var.set_flip_x(config[CONF_FLIP_X]))
     cg.add(var.set_blink_rate(config[CONF_BLINK_RATE]))
 
