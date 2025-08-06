@@ -136,13 +136,7 @@ void ESP32BLETracker::ble_before_disabled_event_handler() { this->stop_scan_(); 
 
 void ESP32BLETracker::stop_scan_() {
   if (this->scanner_state_ != ScannerState::RUNNING && this->scanner_state_ != ScannerState::FAILED) {
-    if (this->scanner_state_ == ScannerState::IDLE) {
-      ESP_LOGE(TAG, "Scan is already stopped while trying to stop.");
-    } else if (this->scanner_state_ == ScannerState::STARTING) {
-      ESP_LOGE(TAG, "Scan is starting while trying to stop.");
-    } else if (this->scanner_state_ == ScannerState::STOPPING) {
-      ESP_LOGE(TAG, "Scan is already stopping while trying to stop.");
-    }
+    ESP_LOGE(TAG, "Cannot stop scan: %s", this->scanner_state_to_string_(this->scanner_state_));
     return;
   }
   this->cancel_timeout("scan");
@@ -160,15 +154,7 @@ void ESP32BLETracker::start_scan_(bool first) {
     return;
   }
   if (this->scanner_state_ != ScannerState::IDLE) {
-    if (this->scanner_state_ == ScannerState::STARTING) {
-      ESP_LOGE(TAG, "Cannot start scan while already starting.");
-    } else if (this->scanner_state_ == ScannerState::RUNNING) {
-      ESP_LOGE(TAG, "Cannot start scan while already running.");
-    } else if (this->scanner_state_ == ScannerState::STOPPING) {
-      ESP_LOGE(TAG, "Cannot start scan while already stopping.");
-    } else if (this->scanner_state_ == ScannerState::FAILED) {
-      ESP_LOGE(TAG, "Cannot start scan while already failed.");
-    }
+    this->log_unexpected_state_("start scan", ScannerState::IDLE);
     return;
   }
   this->set_scanner_state_(ScannerState::STARTING);
@@ -275,15 +261,7 @@ void ESP32BLETracker::gap_scan_event_handler(const BLEScanResult &scan_result) {
   } else if (scan_result.search_evt == ESP_GAP_SEARCH_INQ_CMPL_EVT) {
     // Scan finished on its own
     if (this->scanner_state_ != ScannerState::RUNNING) {
-      if (this->scanner_state_ == ScannerState::STOPPING) {
-        ESP_LOGE(TAG, "Scan was not running when scan completed.");
-      } else if (this->scanner_state_ == ScannerState::STARTING) {
-        ESP_LOGE(TAG, "Scan was not started when scan completed.");
-      } else if (this->scanner_state_ == ScannerState::FAILED) {
-        ESP_LOGE(TAG, "Scan was in failed state when scan completed.");
-      } else if (this->scanner_state_ == ScannerState::IDLE) {
-        ESP_LOGE(TAG, "Scan was idle when scan completed.");
-      }
+      this->log_unexpected_state_("scan complete", ScannerState::RUNNING);
     }
     // Scan completed naturally, perform cleanup and transition to IDLE
     this->cleanup_scan_state_(false);
@@ -305,15 +283,7 @@ void ESP32BLETracker::gap_scan_start_complete_(const esp_ble_gap_cb_param_t::ble
   ESP_LOGV(TAG, "gap_scan_start_complete - status %d", param.status);
   this->scan_start_failed_ = param.status;
   if (this->scanner_state_ != ScannerState::STARTING) {
-    if (this->scanner_state_ == ScannerState::RUNNING) {
-      ESP_LOGE(TAG, "Scan was already running when start complete.");
-    } else if (this->scanner_state_ == ScannerState::STOPPING) {
-      ESP_LOGE(TAG, "Scan was stopping when start complete.");
-    } else if (this->scanner_state_ == ScannerState::FAILED) {
-      ESP_LOGE(TAG, "Scan was in failed state when start complete.");
-    } else if (this->scanner_state_ == ScannerState::IDLE) {
-      ESP_LOGE(TAG, "Scan was idle when start complete.");
-    }
+    this->log_unexpected_state_("start complete", ScannerState::STARTING);
   }
   if (param.status == ESP_BT_STATUS_SUCCESS) {
     this->scan_start_fail_count_ = 0;
@@ -331,15 +301,7 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
   // This allows us to safely transition to IDLE state and perform cleanup without race conditions
   ESP_LOGV(TAG, "gap_scan_stop_complete - status %d", param.status);
   if (this->scanner_state_ != ScannerState::STOPPING) {
-    if (this->scanner_state_ == ScannerState::RUNNING) {
-      ESP_LOGE(TAG, "Scan was not running when stop complete.");
-    } else if (this->scanner_state_ == ScannerState::STARTING) {
-      ESP_LOGE(TAG, "Scan was not started when stop complete.");
-    } else if (this->scanner_state_ == ScannerState::FAILED) {
-      ESP_LOGE(TAG, "Scan was in failed state when stop complete.");
-    } else if (this->scanner_state_ == ScannerState::IDLE) {
-      ESP_LOGE(TAG, "Scan was idle when stop complete.");
-    }
+    this->log_unexpected_state_("stop complete", ScannerState::STOPPING);
   }
 
   // Perform cleanup and transition to IDLE
@@ -829,6 +791,28 @@ void ESP32BLETracker::try_promote_discovered_clients_() {
     client->set_state(ClientState::READY_TO_CONNECT);
     break;
   }
+}
+
+const char *ESP32BLETracker::scanner_state_to_string_(ScannerState state) const {
+  switch (state) {
+    case ScannerState::IDLE:
+      return "idle";
+    case ScannerState::STARTING:
+      return "starting";
+    case ScannerState::RUNNING:
+      return "running";
+    case ScannerState::STOPPING:
+      return "stopping";
+    case ScannerState::FAILED:
+      return "failed";
+    default:
+      return "unknown";
+  }
+}
+
+void ESP32BLETracker::log_unexpected_state_(const char *operation, ScannerState expected_state) const {
+  ESP_LOGE(TAG, "Unexpected state: %s on %s, expected: %s", this->scanner_state_to_string_(this->scanner_state_),
+           operation, this->scanner_state_to_string_(expected_state));
 }
 
 #ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
