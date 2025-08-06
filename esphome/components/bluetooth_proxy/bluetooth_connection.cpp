@@ -336,6 +336,14 @@ void BluetoothConnection::log_gatt_operation_error_(const char *operation, uint1
            operation, handle, status);
 }
 
+esp_err_t BluetoothConnection::check_and_log_error_(const char *operation, esp_err_t err) {
+  if (err != ESP_OK) {
+    this->log_connection_warning_(operation, err);
+    return err;
+  }
+  return ESP_OK;
+}
+
 bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                               esp_ble_gattc_cb_param_t *param) {
   if (!BLEClientBase::gattc_event_handler(event, gattc_if, param))
@@ -470,11 +478,7 @@ esp_err_t BluetoothConnection::read_characteristic(uint16_t handle) {
            handle);
 
   esp_err_t err = esp_ble_gattc_read_char(this->gattc_if_, this->conn_id_, handle, ESP_GATT_AUTH_REQ_NONE);
-  if (err != ERR_OK) {
-    this->log_connection_warning_("esp_ble_gattc_read_char", err);
-    return err;
-  }
-  return ESP_OK;
+  return this->check_and_log_error_("esp_ble_gattc_read_char", err);
 }
 
 esp_err_t BluetoothConnection::write_characteristic(uint16_t handle, const std::string &data, bool response) {
@@ -488,11 +492,7 @@ esp_err_t BluetoothConnection::write_characteristic(uint16_t handle, const std::
   esp_err_t err =
       esp_ble_gattc_write_char(this->gattc_if_, this->conn_id_, handle, data.size(), (uint8_t *) data.data(),
                                response ? ESP_GATT_WRITE_TYPE_RSP : ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
-  if (err != ERR_OK) {
-    this->log_connection_warning_("esp_ble_gattc_write_char", err);
-    return err;
-  }
-  return ESP_OK;
+  return this->check_and_log_error_("esp_ble_gattc_write_char", err);
 }
 
 esp_err_t BluetoothConnection::read_descriptor(uint16_t handle) {
@@ -504,11 +504,7 @@ esp_err_t BluetoothConnection::read_descriptor(uint16_t handle) {
            handle);
 
   esp_err_t err = esp_ble_gattc_read_char_descr(this->gattc_if_, this->conn_id_, handle, ESP_GATT_AUTH_REQ_NONE);
-  if (err != ERR_OK) {
-    this->log_connection_warning_("esp_ble_gattc_read_char_descr", err);
-    return err;
-  }
-  return ESP_OK;
+  return this->check_and_log_error_("esp_ble_gattc_read_char_descr", err);
 }
 
 esp_err_t BluetoothConnection::write_descriptor(uint16_t handle, const std::string &data, bool response) {
@@ -522,11 +518,7 @@ esp_err_t BluetoothConnection::write_descriptor(uint16_t handle, const std::stri
   esp_err_t err = esp_ble_gattc_write_char_descr(
       this->gattc_if_, this->conn_id_, handle, data.size(), (uint8_t *) data.data(),
       response ? ESP_GATT_WRITE_TYPE_RSP : ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
-  if (err != ERR_OK) {
-    this->log_connection_warning_("esp_ble_gattc_write_char_descr", err);
-    return err;
-  }
-  return ESP_OK;
+  return this->check_and_log_error_("esp_ble_gattc_write_char_descr", err);
 }
 
 esp_err_t BluetoothConnection::notify_characteristic(uint16_t handle, bool enable) {
@@ -539,20 +531,13 @@ esp_err_t BluetoothConnection::notify_characteristic(uint16_t handle, bool enabl
     ESP_LOGV(TAG, "[%d] [%s] Registering for GATT characteristic notifications handle %d", this->connection_index_,
              this->address_str_.c_str(), handle);
     esp_err_t err = esp_ble_gattc_register_for_notify(this->gattc_if_, this->remote_bda_, handle);
-    if (err != ESP_OK) {
-      this->log_connection_warning_("esp_ble_gattc_register_for_notify", err);
-      return err;
-    }
-  } else {
-    ESP_LOGV(TAG, "[%d] [%s] Unregistering for GATT characteristic notifications handle %d", this->connection_index_,
-             this->address_str_.c_str(), handle);
-    esp_err_t err = esp_ble_gattc_unregister_for_notify(this->gattc_if_, this->remote_bda_, handle);
-    if (err != ESP_OK) {
-      this->log_connection_warning_("esp_ble_gattc_unregister_for_notify", err);
-      return err;
-    }
+    return this->check_and_log_error_("esp_ble_gattc_register_for_notify", err);
   }
-  return ESP_OK;
+
+  ESP_LOGV(TAG, "[%d] [%s] Unregistering for GATT characteristic notifications handle %d", this->connection_index_,
+           this->address_str_.c_str(), handle);
+  esp_err_t err = esp_ble_gattc_unregister_for_notify(this->gattc_if_, this->remote_bda_, handle);
+  return this->check_and_log_error_("esp_ble_gattc_unregister_for_notify", err);
 }
 
 esp32_ble_tracker::AdvertisementParserType BluetoothConnection::get_advertisement_parser_type() {
