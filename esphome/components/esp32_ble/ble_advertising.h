@@ -1,5 +1,7 @@
 #pragma once
 
+#include "esphome/core/defines.h"
+
 #include <array>
 #include <functional>
 #include <vector>
