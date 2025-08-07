@@ -13,7 +13,7 @@ from esphome.const import (
     CONF_TO,
     CONF_TRIGGER_ID,
     CONF_UPDATE_INTERVAL,
-    SCHEDULER_DONT_RUN
+    SCHEDULER_DONT_RUN,
 )
 from esphome.core import coroutine_with_priority
 
