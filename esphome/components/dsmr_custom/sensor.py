@@ -20,14 +20,18 @@ from esphome.const import (
     UNIT_VOLT,
 )
 
-from . import CONF_DSMR_ID, Dsmr
+# Importamos la nueva clase DsmrCustom
+from . import DsmrCustom
+
+# Definimos un ID único para nuestro componente custom
+CONF_DSMR_CUSTOM_ID = "dsmr_custom_id"
 
 AUTO_LOAD = ["dsmr"]
 
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_DSMR_ID): cv.use_id(Dsmr),
+        cv.GenerateID(CONF_DSMR_CUSTOM_ID): cv.use_id(DsmrCustom),
         cv.Optional("energy_delivered_lux"): sensor.sensor_schema(
             unit_of_measurement=UNIT_KILOWATT_HOURS,
             accuracy_decimals=3,
@@ -273,7 +277,7 @@ CONFIG_SCHEMA = cv.Schema(
 
 
 async def to_code(config):
-    hub = await cg.get_variable(config[CONF_DSMR_ID])
+    hub = await cg.get_variable(config[CONF_DSMR_CUSTOM_ID])
 
     sensors = []
     for key, conf in config.items():

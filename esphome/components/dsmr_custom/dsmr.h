@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace esphome {
-namespace dsmr {
+namespace dsmr_custom {
 
 using namespace ::dsmr::fields;
 
@@ -132,5 +132,5 @@ class Dsmr : public Component, public uart::UARTDevice {
   std::vector<uint8_t> decryption_key_{};
   bool crc_check_;
 };
-}  // namespace dsmr
+}  // namespace dsmr_custom
 }  // namespace esphome

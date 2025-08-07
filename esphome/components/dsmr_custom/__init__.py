@@ -4,7 +4,7 @@ from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_RECEIVE_TIMEOUT, CONF_UART_ID
 
-CODEOWNERS = ["@glmnet", "@zuidwijk"]
+CODEOWNERS = ["@glmnet", "@zuidwijk", "@jorgeal94"]
 
 MULTI_CONF = True
 
@@ -20,9 +20,10 @@ CONF_MAX_TELEGRAM_LENGTH = "max_telegram_length"
 CONF_REQUEST_INTERVAL = "request_interval"
 CONF_REQUEST_PIN = "request_pin"
 
-# Hack to prevent compile error due to ambiguity with lib namespace
-dsmr_ns = cg.esphome_ns.namespace("esphome::dsmr")
-Dsmr = dsmr_ns.class_("Dsmr", cg.Component, uart.UARTDevice)
+# Declaramos el nuevo espacio de nombres para el código C++
+dsmr_custom_ns = cg.esphome_ns.namespace("dsmr_custom")
+# Declaramos la nueva clase C++
+DsmrCustom = dsmr_custom_ns.class_("DsmrCustom", cg.Component, uart.UARTDevice)
 
 
 def _validate_key(value):
@@ -46,7 +47,7 @@ def _validate_key(value):
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(Dsmr),
+            cv.GenerateID(): cv.declare_id(DsmrCustom),
             cv.Optional(CONF_DECRYPTION_KEY): _validate_key,
             cv.Optional(CONF_CRC_CHECK, default=True): cv.boolean,
             cv.Optional(CONF_GAS_MBUS_ID, default=1): cv.int_,
@@ -61,7 +62,7 @@ CONFIG_SCHEMA = cv.All(
             ): cv.positive_time_period_milliseconds,
         }
     ).extend(uart.UART_DEVICE_SCHEMA),
-    cv.only_with_arduino,
+    # cv.only_with_arduino,
 )
 
 
@@ -83,7 +84,7 @@ async def to_code(config):
     cg.add_build_flag("-DDSMR_WATER_MBUS_ID=" + str(config[CONF_WATER_MBUS_ID]))
 
     # DSMR Parser
-    cg.add_library("glmnet/Dsmr", "0.8")
+    # cg.add_library("glmnet/Dsmr", "0.8") #TODO change library
 
     # Crypto
-    cg.add_library("rweather/Crypto", "0.4.0")
+    # cg.add_library("rweather/Crypto", "0.4.0")

@@ -343,18 +343,18 @@
 #include "mbedtls/gcm.h"
 
 namespace esphome {
-namespace dsmr {
+namespace dsmr_custom {
 
-static const char *const TAG = "dsmr";
+static const char *const TAG = "dsmr_custom";
 
-void Dsmr::setup() {
+void DsmrCustom::setup() {
   this->telegram_ = new char[this->max_telegram_len_];  // NOLINT
   if (this->request_pin_ != nullptr) {
     this->request_pin_->setup();
   }
 }
 
-void Dsmr::loop() {
+void DsmrCustom::loop() {
   if (this->ready_to_request_data_()) {
     if (this->decryption_key_.empty()) {
       this->receive_telegram_();
@@ -364,7 +364,7 @@ void Dsmr::loop() {
   }
 }
 
-bool Dsmr::ready_to_request_data_() {
+bool DsmrCustom::ready_to_request_data_() {
   // When using a request pin, then wait for the next request interval.
   if (this->request_pin_ != nullptr) {
     if (!this->requesting_data_ && this->request_interval_reached_()) {
@@ -386,18 +386,18 @@ bool Dsmr::ready_to_request_data_() {
 }
 
 // Reemplazo de millis() para ESP-IDF
-uint32_t Dsmr::millis_() { return esp_log_timestamp(); }
+uint32_t DsmrCustom::millis_() { return esp_log_timestamp(); }
 
-bool Dsmr::request_interval_reached_() {
+bool DsmrCustom::request_interval_reached_() {
   if (this->last_request_time_ == 0) {
     return true;
   }
   return this->millis_() - this->last_request_time_ > this->request_interval_;
 }
 
-bool Dsmr::receive_timeout_reached_() { return this->millis_() - this->last_read_time_ > this->receive_timeout_; }
+bool DsmrCustom::receive_timeout_reached_() { return this->millis_() - this->last_read_time_ > this->receive_timeout_; }
 
-bool Dsmr::available_within_timeout_() {
+bool DsmrCustom::available_within_timeout_() {
   if (this->available()) {
     this->last_read_time_ = this->millis_();
     return true;
@@ -426,7 +426,7 @@ bool Dsmr::available_within_timeout_() {
   return false;
 }
 
-void Dsmr::start_requesting_data_() {
+void DsmrCustom::start_requesting_data_() {
   if (!this->requesting_data_) {
     if (this->request_pin_ != nullptr) {
       ESP_LOGV(TAG, "Start requesting data from P1 port");
@@ -439,7 +439,7 @@ void Dsmr::start_requesting_data_() {
   }
 }
 
-void Dsmr::stop_requesting_data_() {
+void DsmrCustom::stop_requesting_data_() {
   if (this->requesting_data_) {
     if (this->request_pin_ != nullptr) {
       ESP_LOGV(TAG, "Stop requesting data from P1 port");
@@ -454,7 +454,7 @@ void Dsmr::stop_requesting_data_() {
   }
 }
 
-void Dsmr::reset_telegram_() {
+void DsmrCustom::reset_telegram_() {
   this->header_found_ = false;
   this->footer_found_ = false;
   this->bytes_read_ = 0;
@@ -463,7 +463,7 @@ void Dsmr::reset_telegram_() {
   this->last_read_time_ = 0;
 }
 
-void Dsmr::receive_telegram_() {
+void DsmrCustom::receive_telegram_() {
   while (this->available_within_timeout_()) {
     const char c = this->read();
 
@@ -508,7 +508,7 @@ void Dsmr::receive_telegram_() {
   }
 }
 
-void Dsmr::receive_encrypted_telegram_() {
+void DsmrCustom::receive_encrypted_telegram_() {
   while (this->available_within_timeout_()) {
     const uint8_t c = this->read();
 
@@ -588,13 +588,13 @@ void Dsmr::receive_encrypted_telegram_() {
   }
 }
 
-bool Dsmr::parse_telegram() {
+bool DsmrCustom::parse_telegram() {
   MyData data;
   ESP_LOGV(TAG, "Trying to parse telegram");
   this->stop_requesting_data_();
 
-  ::dsmr::ParseResult<void> res =
-      ::dsmr::P1Parser::parse(&data, this->telegram_, this->bytes_read_, false, this->crc_check_);
+  ::DsmrCustom::ParseResult<void> res =
+      ::DsmrCustom::P1Parser::parse(&data, this->telegram_, this->bytes_read_, false, this->crc_check_);
   if (res.err) {
     auto err_str = res.fullError(this->telegram_, this->telegram_ + this->bytes_read_);
     ESP_LOGE(TAG, "%s", err_str.c_str());
@@ -610,9 +610,9 @@ bool Dsmr::parse_telegram() {
   }
 }
 
-void Dsmr::dump_config() {
+void DsmrCustom::dump_config() {
   ESP_LOGCONFIG(TAG,
-                "DSMR:\n"
+                "DSMR_Custom:\n"
                 "  Max telegram length: %d\n"
                 "  Receive timeout: %.1fs",
                 this->max_telegram_len_, this->receive_timeout_ / 1e3f);
@@ -630,7 +630,7 @@ void Dsmr::dump_config() {
   DSMR_TEXT_SENSOR_LIST(DSMR_LOG_TEXT_SENSOR, )
 }
 
-void Dsmr::set_decryption_key(const std::string &decryption_key) {
+void DsmrCustom::set_decryption_key(const std::string &decryption_key) {
   if (decryption_key.empty()) {
     ESP_LOGI(TAG, "Disabling decryption");
     this->decryption_key_.clear();
@@ -661,7 +661,7 @@ void Dsmr::set_decryption_key(const std::string &decryption_key) {
   }
 }
 
-}  // namespace dsmr
+}  // namespace dsmr_custom
 }  // namespace esphome
 
 #endif  // USE_ESP_IDF

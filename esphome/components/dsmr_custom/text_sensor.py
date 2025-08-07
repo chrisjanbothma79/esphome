@@ -3,13 +3,17 @@ from esphome.components import text_sensor
 import esphome.config_validation as cv
 from esphome.const import CONF_INTERNAL
 
-from . import CONF_DSMR_ID, Dsmr
+# Importamos la nueva clase DsmrCustom
+from . import DsmrCustom
+
+# Definimos un ID único para nuestro componente custom
+CONF_DSMR_CUSTOM_ID = "dsmr_custom_id"
 
 AUTO_LOAD = ["dsmr"]
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_DSMR_ID): cv.use_id(Dsmr),
+        cv.GenerateID(CONF_DSMR_CUSTOM_ID): cv.use_id(DsmrCustom),
         cv.Optional("identification"): text_sensor.text_sensor_schema(),
         cv.Optional("p1_version"): text_sensor.text_sensor_schema(),
         cv.Optional("p1_version_be"): text_sensor.text_sensor_schema(),
@@ -31,7 +35,7 @@ CONFIG_SCHEMA = cv.Schema(
 
 
 async def to_code(config):
-    hub = await cg.get_variable(config[CONF_DSMR_ID])
+    hub = await cg.get_variable(config[CONF_DSMR_CUSTOM_ID])
 
     text_sensors = []
     for key, conf in config.items():
