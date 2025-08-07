@@ -10,7 +10,7 @@ from esphome.const import (
     CONF_ID,
     CONF_INVERTED,
     CONF_MQTT_ID,
-    CONF_ON_STATE_CHANGED,
+    CONF_ON_STATE,
     CONF_ON_TURN_OFF,
     CONF_ON_TURN_ON,
     CONF_RESTORE_MODE,
@@ -79,7 +79,7 @@ _SWITCH_SCHEMA = (
             cv.Optional(CONF_RESTORE_MODE, default="ALWAYS_OFF"): cv.enum(
                 RESTORE_MODES, upper=True, space="_"
             ),
-            cv.Optional(CONF_ON_STATE_CHANGED): automation.validate_automation(
+            cv.Optional(CONF_ON_STATE): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
                         SwitchStateChangedTrigger
@@ -149,7 +149,7 @@ async def setup_switch_core_(var, config):
 
     if (inverted := config.get(CONF_INVERTED)) is not None:
         cg.add(var.set_inverted(inverted))
-    for conf in config.get(CONF_ON_STATE_CHANGED, []):
+    for conf in config.get(CONF_ON_STATE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(bool, "x")], conf)
     for conf in config.get(CONF_ON_TURN_ON, []):

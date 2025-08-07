@@ -9,7 +9,7 @@ switch:
     name: "Template Switch"
     id: the_switch
     optimistic: true
-    on_state_changed:
+    on_state:
       - if:
           condition:
             - lambda: return x;
