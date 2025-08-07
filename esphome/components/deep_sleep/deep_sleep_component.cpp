@@ -62,6 +62,11 @@ void DeepSleepComponent::begin_sleep(bool manual) {
   if (this->sleep_duration_.has_value()) {
     ESP_LOGI(TAG, "Sleeping for %" PRId64 "us", *this->sleep_duration_);
   }
+
+  if (this->enter_deep_sleep_callback_) {
+    this->enter_deep_sleep_callback_();
+  }
+
   App.run_safe_shutdown_hooks();
   // It's critical to teardown components cleanly for deep sleep to ensure
   // Home Assistant sees a clean disconnect instead of marking the device unavailable

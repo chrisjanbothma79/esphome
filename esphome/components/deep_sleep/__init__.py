@@ -25,11 +25,14 @@ from esphome.const import (
     CONF_SECOND,
     CONF_SLEEP_DURATION,
     CONF_TIME_ID,
+    CONF_TRIGGER_ID,
     CONF_WAKEUP_PIN,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
     PlatformFramework,
 )
+
+CONF_ON_DEEP_SLEEP = "on_deep_sleep"
 
 WAKEUP_PINS = {
     VARIANT_ESP32: [
@@ -162,6 +165,10 @@ EXT1_WAKEUP_MODES = {
 }
 WakeupCauseToRunDuration = deep_sleep_ns.struct("WakeupCauseToRunDuration")
 
+DeepSleepTrigger = deep_sleep_ns.class_(
+    "DeepSleepTrigger", cg.PollingComponent, automation.Trigger.template()
+)
+
 CONF_WAKEUP_PIN_MODE = "wakeup_pin_mode"
 CONF_ESP32_EXT1_WAKEUP = "esp32_ext1_wakeup"
 CONF_TOUCH_WAKEUP = "touch_wakeup"
@@ -218,6 +225,11 @@ CONFIG_SCHEMA = cv.All(
                 ),
                 cv.boolean,
             ),
+            cv.Optional(CONF_ON_DEEP_SLEEP): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(DeepSleepTrigger),
+                }
+            ),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266]),
@@ -271,6 +283,10 @@ async def to_code(config):
 
     if CONF_TOUCH_WAKEUP in config:
         cg.add(var.set_touch_wakeup(config[CONF_TOUCH_WAKEUP]))
+
+    for conf in config.get(CONF_ON_DEEP_SLEEP, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
 
     cg.add_define("USE_DEEP_SLEEP")
 

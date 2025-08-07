@@ -103,6 +103,10 @@ class DeepSleepComponent : public Component {
   void prevent_deep_sleep();
   void allow_deep_sleep();
 
+  void set_enter_deep_sleep_callback(std::function<void()> callback) {
+    this->enter_deep_sleep_callback_ = std::move(callback);
+  }
+
  protected:
   // Returns nullopt if no run duration is set. Otherwise, returns the run
   // duration before entering deep sleep.
@@ -127,6 +131,8 @@ class DeepSleepComponent : public Component {
   optional<uint32_t> run_duration_;
   bool next_enter_deep_sleep_{false};
   bool prevent_{false};
+
+  std::function<void()> enter_deep_sleep_callback_;
 };
 
 extern bool global_has_deep_sleep;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
@@ -213,5 +219,11 @@ template<typename... Ts> class AllowDeepSleepAction : public Action<Ts...>, publ
   void play(Ts... x) override { this->parent_->allow_deep_sleep(); }
 };
 
+class DeepSleepTrigger : public Trigger<>, public Parented<DeepSleepComponent> {
+ public:
+  DeepSleepTrigger(DeepSleepComponent *ds) {
+    ds->set_enter_deep_sleep_callback([this]() { this->trigger(); });
+  }
+};
 }  // namespace deep_sleep
 }  // namespace esphome
