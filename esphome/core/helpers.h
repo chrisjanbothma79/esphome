@@ -135,6 +135,16 @@ template<typename T, size_t N> class StaticVector {
   const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
 };
 
+// std::span from C++20
+#if __cpp_lib_span >= 202002L
+using std::span;
+#else
+}  // namespace esphome
+#include "esphome/core/span.h"
+namespace esphome {
+using nonstd::span;
+#endif
+
 ///@}
 
 /// @name Mathematics
