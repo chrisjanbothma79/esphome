@@ -422,8 +422,8 @@ optional<float> TimeoutFilter::new_value(float value) {
   return value;
 }
 
-TimeoutFilter::TimeoutFilter(uint32_t time_period, TemplatableValue<float> new_value)
-    : time_period_(time_period), value_(std::move(new_value)) {}
+TimeoutFilter::TimeoutFilter(uint32_t time_period, const TemplatableValue<float> &new_value)
+    : time_period_(time_period), value_(new_value) {}
 float TimeoutFilter::get_setup_priority() const { return setup_priority::HARDWARE; }
 
 // DebounceFilter
