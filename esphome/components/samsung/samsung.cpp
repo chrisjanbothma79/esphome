@@ -201,7 +201,8 @@ void SamsungClimate::update_climate_mode_() {
 }
 
 void SamsungClimate::set_temp_(const uint8_t temp) {
-  this->protocol_.temp = esphome::clamp<uint8_t>(temp, K_SAMSUNG_AC_MIN_TEMP, K_SAMSUNG_AC_MAX_TEMP) - K_SAMSUNG_AC_MIN_TEMP;
+  this->protocol_.temp =
+      esphome::clamp<uint8_t>(temp, K_SAMSUNG_AC_MIN_TEMP, K_SAMSUNG_AC_MAX_TEMP) - K_SAMSUNG_AC_MIN_TEMP;
 }
 
 void SamsungClimate::update_temp_() { this->target_temperature = this->protocol_.temp; }
