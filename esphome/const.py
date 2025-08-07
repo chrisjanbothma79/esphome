@@ -1331,7 +1331,7 @@ ENTITY_CATEGORY_CONFIG = "config"
 # The entity category for read only diagnostic values, for example RSSI, uptime or MAC Address
 ENTITY_CATEGORY_DIAGNOSTIC = "diagnostic"
 
-# when update_interval is set to never, it becomes this many seconds.
-INTERVAL_NEVER_SECONDS = 4294967295
-# The corresponding constant in c++ is SCHEDULER_DONT_RUN but that would not be findable
+# The corresponding constant exists in c++
 SCHEDULER_DONT_RUN = 4294967295
+# when update_interval is set to never, it becomes this many seconds.
+INTERVAL_NEVER_SECONDS = SCHEDULER_DONT_RUN
