@@ -171,8 +171,8 @@ class ESP32TouchComponent : public Component {
   // based on the filter configuration
   uint32_t read_touch_value(touch_pad_t pad) const;
 
-  // Helper to update touch state with a known state
-  void update_touch_state_(ESP32TouchBinarySensor *child, bool is_touched);
+  // Helper to update touch state with a known state and value
+  void update_touch_state_(ESP32TouchBinarySensor *child, bool is_touched, uint32_t value);
 
   // Helper to read touch value and update state for a given child
   bool check_and_update_touch_state_(ESP32TouchBinarySensor *child);

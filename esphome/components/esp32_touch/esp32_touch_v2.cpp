@@ -10,8 +10,11 @@ namespace esp32_touch {
 
 static const char *const TAG = "esp32_touch";
 
-// Helper to update touch state with a known state
-void ESP32TouchComponent::update_touch_state_(ESP32TouchBinarySensor *child, bool is_touched) {
+// Helper to update touch state with a known state and value
+void ESP32TouchComponent::update_touch_state_(ESP32TouchBinarySensor *child, bool is_touched, uint32_t value) {
+  // Store the value for get_value() access in lambdas
+  child->value_ = value;
+
   // Always update timer when touched
   if (is_touched) {
     child->last_touch_time_ = App.get_loop_component_start_time();
@@ -21,9 +24,8 @@ void ESP32TouchComponent::update_touch_state_(ESP32TouchBinarySensor *child, boo
     child->last_state_ = is_touched;
     child->publish_state(is_touched);
     if (is_touched) {
-      // Use stored value for logging (should be updated by caller)
       ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 " > threshold: %" PRIu32 ")", child->get_name().c_str(),
-               child->value_, child->threshold_ + child->benchmark_);
+               value, child->threshold_ + child->benchmark_);
     } else {
       ESP_LOGV(TAG, "Touch Pad '%s' state: OFF", child->get_name().c_str());
     }
@@ -35,16 +37,13 @@ bool ESP32TouchComponent::check_and_update_touch_state_(ESP32TouchBinarySensor *
   // Read current touch value
   uint32_t value = this->read_touch_value(child->touch_pad_);
 
-  // Store the value for get_value() access in lambdas
-  child->value_ = value;
-
   // ESP32-S2/S3 v2: Touch is detected when value > threshold + benchmark
   ESP_LOGV(TAG,
            "Checking touch state for '%s' (T%d): value = %" PRIu32 ", threshold = %" PRIu32 ", benchmark = %" PRIu32,
            child->get_name().c_str(), child->touch_pad_, value, child->threshold_, child->benchmark_);
   bool is_touched = value > child->benchmark_ + child->threshold_;
 
-  this->update_touch_state_(child, is_touched);
+  this->update_touch_state_(child, is_touched, value);
   return is_touched;
 }
 
@@ -299,9 +298,9 @@ void ESP32TouchComponent::loop() {
           this->check_and_update_touch_state_(child);
         } else if (event.intr_mask & TOUCH_PAD_INTR_MASK_ACTIVE) {
           // We only get ACTIVE interrupts now, releases are detected by timeout
-          // Read and store the value for get_value() access
-          child->value_ = this->read_touch_value(child->touch_pad_);
-          this->update_touch_state_(child, true);  // Always touched for ACTIVE interrupts
+          // Read the current value
+          uint32_t value = this->read_touch_value(child->touch_pad_);
+          this->update_touch_state_(child, true, value);  // Always touched for ACTIVE interrupts
         }
         break;
       }
