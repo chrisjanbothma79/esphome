@@ -16,7 +16,7 @@ namespace hdc302x {
 
 static const char *const TAG = "hdc302x";
 
-enum HDC302x_Commands {
+enum HDC302xCommands {
   SOFT_RESET = 0x30A2,
   READ_MANUFACTURER_ID = 0x3781,
   READ_NIST_ID_SERIAL_BYTES_5_4 = 0x3683,  // Command to read bytes 5 and 4 of the NIST ID
@@ -34,12 +34,12 @@ enum HDC302x_Commands {
   CLR_LOW_ALERT = 0x610B,                  // Configure ALERT Thresholds for Clear Low Alert
   CLR_HIGH_ALERT = 0x6116                  // Configure ALERT Thresholds for Clear High Alert
 };
-typedef enum {
+enum HdcTriggerMode {
   TRIGGERMODE_LP0 = 0x2400,  // Trigger-On Demand Mode, Low Power Mode 0
   TRIGGERMODE_LP1 = 0x240B,  // Trigger-On Demand Mode, Low Power Mode 1
   TRIGGERMODE_LP2 = 0x2416,  // Trigger-On Demand Mode, Low Power Mode 2
   TRIGGERMODE_LP3 = 0x24FF   // Trigger-On Demand Mode, Low Power Mode 3
-} hdcTriggerMode_t;
+};
 
 // I wish we could use std::format here, but the esp8266 platform apparently isn't compiled with c++20 yet,
 // so we need to do the snprintf route.  And, incase ESP_LOGW can handle more than 256 chars, we
@@ -47,15 +47,15 @@ typedef enum {
 #define WARN(format, ...) \
   { \
     char msg[256] = ""; \
-    if (bus_name_.empty()) { \
+    if (this->bus_name_.empty()) { \
       snprintf(msg, 256, format, __VA_ARGS__); \
       ESP_LOGW(TAG, format, __VA_ARGS__); \
     } else { \
-      snprintf(msg, 256, "%s " format, bus_name_.c_str(), __VA_ARGS__); \
-      ESP_LOGW(TAG, "%s " format, bus_name_.c_str(), __VA_ARGS__); \
+      snprintf(msg, 256, "%s " format, this->bus_name_.c_str(), __VA_ARGS__); \
+      ESP_LOGW(TAG, "%s " format, this->bus_name_.c_str(), __VA_ARGS__); \
     } \
-    if (last_error_sensor_) { \
-      last_error_sensor_->publish_state(msg); \
+    if (this->last_error_sensor_) { \
+      this->last_error_sensor_->publish_state(msg); \
     } \
   }
 
@@ -69,7 +69,7 @@ typedef enum {
  * @param len Length of the data array.
  * @return uint8_t The calculated CRC-8 value.
  */
-static uint8_t calculateCRC8(const uint8_t *data, int len) {
+static uint8_t calculate_CRC8(const uint8_t *data, int len) {
   uint8_t crc = 0xFF;  // Typical initial value
   for (int i = 0; i < len; i++) {
     crc ^= data[i];                // XOR byte into least sig. byte of crc
@@ -85,15 +85,15 @@ static uint8_t calculateCRC8(const uint8_t *data, int len) {
 }
 
 void HDC302XComponent::setup() {
-  i2c::ErrorCode ec = writeCommand(HDC302x_Commands::SOFT_RESET);
+  i2c::ErrorCode ec = this->write_command(HDC302xCommands::SOFT_RESET);
   if (ec != i2c::NO_ERROR) {
     WARN("setup: Reset command failed (i2c::ErrorCode %d)", ec);
     return;
   }
-  clearStatusRegister();
+  this->clear_status_register();
 
   uint16_t manufacturerID = 0;
-  ec = writeCommandReadData(HDC302x_Commands::READ_MANUFACTURER_ID, &manufacturerID);
+  ec = this->write_command_read_data(HDC302xCommands::READ_MANUFACTURER_ID, &manufacturerID);
   if (ec != i2c::NO_ERROR) {
     WARN("setup: Read manufacturerID failed (i2c::ErrorCode %d)", ec);
   } else if (manufacturerID != 0x3000) {
@@ -103,18 +103,9 @@ void HDC302XComponent::setup() {
   // setAutoMode(EXIT_AUTO_MODE);
 }
 void HDC302XComponent::update() {
-  ESP_LOGI(TAG, "Update starting on %s", bus_name_.c_str());
-  float temp, rh;
-  i2c::ErrorCode ec = readTemperatureHumidityOnDemand(&temp, &rh);
-  if (ec != i2c::NO_ERROR) {
-    WARN("update: Read temp/humidity failed (i2c::ErrorCode %d)", ec);
-    return;
-  }
-  if (temperature_sensor_)
-    temperature_sensor_->publish_state(temp);
-  if (humidity_sensor_)
-    humidity_sensor_->publish_state(rh);
-  ESP_LOGI(TAG, "Update done. Got temp=%.1f C rh=%.1f %%", temp, rh);
+  // ESP_LOGI(TAG, "Update starting on %s", bus_name_.c_str());
+  this->start_read_temperature_RH();
+  // ESP_LOGI(TAG, "Update done. Got temp=%.1f C rh=%.1f %%", temp, rh);
 }
 void HDC302XComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "HDC302X");
@@ -128,26 +119,70 @@ void HDC302XComponent::dump_config() {
   LOG_TEXT_SENSOR("  ", "last_error", this->last_error_sensor_);
 }
 
-i2c::ErrorCode HDC302XComponent::readTemperatureHumidityOnDemand(float *temp, float *RH) {
-  hdcTriggerMode_t mode = TRIGGERMODE_LP0;  // LP0 is lowest noise
-  return sendCommandReadTRH(static_cast<uint16_t>(mode), temp, RH);
+void HDC302XComponent::start_read_temperature_RH() {
+  HdcTriggerMode mode = TRIGGERMODE_LP0;  // LP0 is lowest noise
+  uint16_t command = static_cast<uint16_t>(mode);
+  // Trigger the temperature and humidity measurement
+  i2c::ErrorCode ec = this->write_command(command);
+  if (ec != i2c::NO_ERROR) {
+    WARN("startReadTemperatureRH: write command (i2c::ErrorCode %d)", ec);
+    return;
+  }
+  // Wait for conversion (tmeas in datasheet table 7.5  LP0 takes 12.5ms.  Add a bit more to be sure)
+  set_timeout("wait_temprh", 20 /*ms*/, [this]() { this->finish_read_temperature_RH(); });
 }
 
-void HDC302XComponent::clearStatusRegister() {
-  i2c::ErrorCode ec = writeCommand(HDC302x_Commands::CLEAR_STATUS_REGISTER);
+void HDC302XComponent::finish_read_temperature_RH() {
+  // Read results
+  uint8_t buffer[6];
+  i2c::ErrorCode ec = this->read(buffer, 6);
+  if (ec != i2c::NO_ERROR) {
+    WARN("finishReadTemperatureRH: read failed (i2c::ErrorCode %d)", ec);
+    return;
+  }
+
+  // Validate CRC for temperature data
+  if (calculate_CRC8(buffer, 2) != buffer[2]) {
+    WARN("finishReadTemperatureRH: temp checksum failed (i2c::ErrorCode %d)", ec);
+    return;
+  }
+
+  // Validate CRC for humidity data
+  if (calculate_CRC8(buffer + 3, 2) != buffer[5]) {
+    WARN("finishReadTemperatureRH: humidity checksum failed (i2c::ErrorCode %d)", ec);
+    return;
+  }
+
+  uint16_t raw_temperature = (buffer[0] << 8) | buffer[1];
+  uint16_t raw_humidity = (buffer[3] << 8) | buffer[4];
+
+  // Convert raw temperature data to degrees C
+  float temp = ((raw_temperature / 65535.0) * 175.0) - 45.0;
+
+  // Convert raw humidity data to percentage
+  float RH = (raw_humidity / 65535.0) * 100.0;
+
+  if (this->temperature_sensor_)
+    this->temperature_sensor_->publish_state(temp);
+  if (this->humidity_sensor_)
+    this->humidity_sensor_->publish_state(RH);
+}
+
+void HDC302XComponent::clear_status_register() {
+  i2c::ErrorCode ec = this->write_command(HDC302xCommands::CLEAR_STATUS_REGISTER);
   if (ec != i2c::NO_ERROR) {
     WARN("Clear status reg command failed (i2c::ErrorCode %d)", ec);
   }
 }
 
-i2c::ErrorCode HDC302XComponent::writeCommand(uint16_t command) {
+i2c::ErrorCode HDC302XComponent::write_command(uint16_t command) {
   uint8_t buffer[2];
   buffer[0] = (uint8_t) (command >> 8);    // High byte
   buffer[1] = (uint8_t) (command & 0xFF);  // Low byte
-  return write(buffer, 2);
+  return this->write(buffer, 2);
 }
 
-i2c::ErrorCode HDC302XComponent::writeCommandReadData(uint16_t command, uint16_t *data) {
+i2c::ErrorCode HDC302XComponent::write_command_read_data(uint16_t command, uint16_t *data) {
   uint8_t cmd_buffer[2];
   uint8_t data_buffer[3];  // Two bytes for data, one for CRC
 
@@ -155,17 +190,17 @@ i2c::ErrorCode HDC302XComponent::writeCommandReadData(uint16_t command, uint16_t
   cmd_buffer[1] = (uint8_t) (command & 0xFF);  // Low byte of the command
 
   // Write the command and read the data + CRC
-  i2c::ErrorCode ec = write(cmd_buffer, 2, false /* stop */);
+  i2c::ErrorCode ec = this->write(cmd_buffer, 2, false /* stop */);
   if (ec != i2c::NO_ERROR) {
     return ec;
   }
-  ec = read(data_buffer, 3);
+  ec = this->read(data_buffer, 3);
   if (ec != i2c::NO_ERROR) {
     return ec;
   }
 
   // Calculate CRC
-  uint8_t calculated_crc = calculateCRC8(data_buffer, 2);
+  uint8_t calculated_crc = calculate_CRC8(data_buffer, 2);
   // Check if calculated CRC matches the received CRC
   if (calculated_crc != data_buffer[2]) {
     return i2c::ERROR_CRC;  // CRC mismatch
@@ -174,85 +209,6 @@ i2c::ErrorCode HDC302XComponent::writeCommandReadData(uint16_t command, uint16_t
   // CRC checks out, return the data
   *data = (uint16_t) (data_buffer[0] << 8 | data_buffer[1]);
   return i2c::NO_ERROR;
-}
-
-i2c::ErrorCode HDC302XComponent::writeCommandData(uint16_t cmd, uint16_t data) {
-  uint8_t buffer[5];
-  buffer[0] = (uint8_t) (cmd >> 8);          // High byte of the command
-  buffer[1] = (uint8_t) (cmd & 0xFF);        // Low byte of the command
-  buffer[2] = (uint8_t) (data >> 8);         // High byte of the data
-  buffer[3] = (uint8_t) (data & 0xFF);       // Low byte of the data
-  buffer[4] = calculateCRC8(buffer + 2, 2);  // Calculate CRC for the data
-
-  i2c::ErrorCode ec = write(buffer, 5);
-  return ec;
-}
-
-i2c::ErrorCode HDC302XComponent::sendCommandReadTRH(uint16_t command, float *temp, float *RH) {
-  // Trigger the temperature and humidity measurement
-  i2c::ErrorCode ec = writeCommand(command);
-  if (ec != i2c::NO_ERROR) {
-    return ec;
-  }
-
-  // Wait for conversion (tmeas in datasheet table 7.5  LP0 takes 12.5ms.  Add a bit more to be sure)
-  delay(20);
-
-  // Read results
-  uint8_t buffer[6];
-  ec = read(buffer, 6);
-  if (ec != i2c::NO_ERROR) {
-    return ec;
-  }
-
-  // Validate CRC for temperature data
-  if (calculateCRC8(buffer, 2) != buffer[2]) {
-    return i2c::ERROR_CRC;  // CRC mismatch
-  }
-
-  // Validate CRC for humidity data
-  if (calculateCRC8(buffer + 3, 2) != buffer[5]) {
-    return i2c::ERROR_CRC;  // CRC mismatch
-  }
-
-  uint16_t rawTemperature = (buffer[0] << 8) | buffer[1];
-  uint16_t rawHumidity = (buffer[3] << 8) | buffer[4];
-
-  // Convert raw temperature data to degrees C
-  *temp = ((rawTemperature / 65535.0) * 175.0) - 45.0;
-
-  // Convert raw humidity data to percentage
-  *RH = (rawHumidity / 65535.0) * 100.0;
-
-  return i2c::NO_ERROR;
-}
-
-i2c::ErrorCode HDC302XComponent::readStatus(uint16_t *status) {
-  i2c::ErrorCode ec = writeCommandReadData(HDC302x_Commands::READ_STATUS_REGISTER, status);
-  return ec;
-}
-
-i2c::ErrorCode HDC302XComponent::isHeaterOn(bool *isOn) {
-  uint16_t status;
-  i2c::ErrorCode ec = readStatus(&status);
-  if (ec != i2c::NO_ERROR) {
-    return ec;
-  }
-  *isOn = (status & (1UL << 13));
-  return ec;
-}
-
-i2c::ErrorCode HDC302XComponent::heaterEnable(HDC302x_HeaterPower power) {
-  if (power == HEATER_OFF) {
-    return writeCommand(HDC302x_Commands::DISABLE_HEATER);
-  } else {
-    i2c::ErrorCode ec;
-    ec = writeCommand(HDC302x_Commands::ENABLE_HEATER);
-    if (ec != i2c::NO_ERROR) {
-      return ec;
-    }
-    return writeCommandData(HDC302x_Commands::SET_HEATER_POWER, power);
-  }
 }
 
 }  // namespace hdc302x

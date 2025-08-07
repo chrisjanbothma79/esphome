@@ -19,13 +19,6 @@
 namespace esphome {
 namespace hdc302x {
 
-typedef enum {
-  HEATER_OFF = 0x0000,
-  HEATER_QUARTER_POWER = 0x009F,
-  HEATER_HALF_POWER = 0x03FF,
-  HEATER_FULL_POWER = 0x3FFF
-} HDC302x_HeaterPower;
-
 class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;
@@ -38,18 +31,13 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   void set_bus_name(std::string name) { bus_name_ = name; }
 
  protected:
-  i2c::ErrorCode readTemperatureHumidityOnDemand(float *temp, float *RH);
+  void start_read_temperature_RH();
+  void finish_read_temperature_RH();
 
-  void clearStatusRegister();
-  i2c::ErrorCode writeCommand(uint16_t comm);
-  i2c::ErrorCode writeCommandReadData(uint16_t command, uint16_t *data);
-  i2c::ErrorCode sendCommandReadTRH(uint16_t command, float *temp, float *RH);
-
-  // unused.  keeping for whenever someone supports the heater
-  i2c::ErrorCode writeCommandData(uint16_t cmd, uint16_t data);
-  i2c::ErrorCode readStatus(uint16_t *status);
-  i2c::ErrorCode isHeaterOn(bool *isOn);
-  i2c::ErrorCode heaterEnable(HDC302x_HeaterPower power);
+  void clear_status_register();
+  i2c::ErrorCode write_command(uint16_t comm);
+  i2c::ErrorCode write_command_read_data(uint16_t command, uint16_t *data);
+  i2c::ErrorCode send_command_read_TRH(uint16_t command, float *temp, float *RH);
 
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
