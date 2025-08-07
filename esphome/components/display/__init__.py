@@ -13,7 +13,7 @@ from esphome.const import (
     CONF_TO,
     CONF_TRIGGER_ID,
     CONF_UPDATE_INTERVAL,
-    INTERVAL_NEVER_SECONDS,
+    SCHEDULER_DONT_RUN
 )
 from esphome.core import coroutine_with_priority
 
@@ -73,7 +73,7 @@ BASIC_DISPLAY_SCHEMA = cv.Schema(
 def _validate_test_card(config):
     if (
         config.get(CONF_SHOW_TEST_CARD, False)
-        and config.get(CONF_UPDATE_INTERVAL, False) == INTERVAL_NEVER_SECONDS
+        and config.get(CONF_UPDATE_INTERVAL, False) == SCHEDULER_DONT_RUN
     ):
         raise cv.Invalid(
             f"`{CONF_SHOW_TEST_CARD}: True` cannot be used with `{CONF_UPDATE_INTERVAL}: never` because this combination will not show a test_card."

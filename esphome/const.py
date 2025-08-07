@@ -1332,6 +1332,5 @@ ENTITY_CATEGORY_CONFIG = "config"
 ENTITY_CATEGORY_DIAGNOSTIC = "diagnostic"
 
 # The corresponding constant exists in c++
+# when update_interval is set to never, it becomes SCHEDULER_DONT_RUN milliseconds
 SCHEDULER_DONT_RUN = 4294967295
-# when update_interval is set to never, it becomes this many seconds.
-INTERVAL_NEVER_SECONDS = SCHEDULER_DONT_RUN
