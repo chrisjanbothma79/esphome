@@ -26,6 +26,8 @@ from esphome.const import (
 
 from . import bl0940_ns
 
+DEPENDENCIES = ["uart"]
+
 BL0940 = bl0940_ns.class_("BL0940", cg.PollingComponent, uart.UARTDevice)
 
 CONF_LEGACY_MODE = "legacy_mode"
