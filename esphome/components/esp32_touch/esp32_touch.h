@@ -234,7 +234,13 @@ class ESP32TouchBinarySensor : public binary_sensor::BinarySensor {
   touch_pad_t get_touch_pad() const { return this->touch_pad_; }
   uint32_t get_threshold() const { return this->threshold_; }
   void set_threshold(uint32_t threshold) { this->threshold_ = threshold; }
+
+  /// Get the raw touch measurement value.
+  /// @note Although this method may appear unused within the component, it is a public API
+  /// used by lambdas in user configurations for custom touch value processing.
+  /// @return The current raw touch sensor reading
   uint32_t get_value() const { return this->value_; }
+
   uint32_t get_wakeup_threshold() const { return this->wakeup_threshold_; }
 
  protected:
@@ -243,6 +249,7 @@ class ESP32TouchBinarySensor : public binary_sensor::BinarySensor {
   touch_pad_t touch_pad_{TOUCH_PAD_MAX};
   uint32_t threshold_{0};
   uint32_t benchmark_{};
+  /// Stores the last raw touch measurement value.
   uint32_t value_{0};
   bool last_state_{false};
   const uint32_t wakeup_threshold_{0};
