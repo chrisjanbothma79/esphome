@@ -149,12 +149,8 @@ _LOGGER = logging.getLogger(__name__)
 SERVER_COURTESY_RESPONSE_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(ServerCourtesyResponse),
-        cv.Optional(CONF_REGISTER_COUNT, default=0xFFFF): cv.All(
-            cv.positive_int, cv.Range(min=0, max=0xFFFF)
-        ),
-        cv.Optional(CONF_REGISTER_VALUE, default=0): cv.All(
-            cv.positive_int, cv.Range(min=0, max=0xFFFF)
-        ),
+        cv.Optional(CONF_REGISTER_COUNT, default=0xFFFF): cv.hex_uint16_t,
+        cv.Optional(CONF_REGISTER_VALUE, default=0): cv.hex_uint16_t
     }
 )
 

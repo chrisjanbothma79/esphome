@@ -114,7 +114,7 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
 
   if (number_of_registers == 0 || number_of_registers > modbus::MAX_NUM_OF_REGISTERS_TO_READ) {
     ESP_LOGW(TAG, "Invalid number of registers %d. Sending exception response.", number_of_registers);
-    send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_ADDRESS);
+    this->send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_ADDRESS);
     return;
   }
 
@@ -154,7 +154,7 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
         ESP_LOGW(TAG,
                  "Could not match any register to address 0x%02X and default not allowed. Sending exception response.",
                  current_address);
-        send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_ADDRESS);
+        this->send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_ADDRESS);
         return;
       }
     }
@@ -178,14 +178,14 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
     number_of_registers = uint16_t(data[3]) | (uint16_t(data[2]) << 8);
     if (number_of_registers == 0 || number_of_registers > modbus::MAX_NUM_OF_REGISTERS_TO_WRITE) {
       ESP_LOGW(TAG, "Invalid number of registers %d. Sending exception response.", number_of_registers);
-      send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_VALUE);
+      this->send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_VALUE);
       return;
     }
     uint16_t payload_size = data[4];
     if (payload_size != number_of_registers * 2) {
       ESP_LOGW(TAG, "Payload size of %d bytes is not 2 times the number of registers (%d). Sending exception response.",
                payload_size, number_of_registers);
-      send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_VALUE);
+      this->send_error(function_code, ModbusExceptionCode::ILLEGAL_DATA_VALUE);
       return;
     }
     payload_offset = 5;
@@ -194,7 +194,7 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
     payload_offset = 2;
   } else {
     ESP_LOGW(TAG, "Invalid function code 0x%X. Sending exception response.", function_code);
-    send_error(function_code, ModbusExceptionCode::ILLEGAL_FUNCTION);
+    this->send_error(function_code, ModbusExceptionCode::ILLEGAL_FUNCTION);
     return;
   }
 
@@ -229,7 +229,7 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
   if (!for_each_register([](ServerRegister *server_register, uint16_t offset) -> bool {
         return server_register->write_lambda != nullptr;
       })) {
-    send_error(function_code, ModbusExceptionCode::ILLEGAL_FUNCTION);
+    this->send_error(function_code, ModbusExceptionCode::ILLEGAL_FUNCTION);
     return;
   }
 
@@ -238,7 +238,7 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
         int64_t number = payload_to_number(data, server_register->value_type, offset, 0xFFFFFFFF);
         return server_register->write_lambda(number);
       })) {
-    send_error(function_code, ModbusExceptionCode::SERVICE_DEVICE_FAILURE);
+    this->send_error(function_code, ModbusExceptionCode::SERVICE_DEVICE_FAILURE);
     return;
   }
 
@@ -449,13 +449,13 @@ void ModbusController::dump_config() {
                 "ModbusController:\n"
                 "  Address: 0x%02X\n"
                 "  Max Command Retries: %d\n"
-                "  Offline Skip Updates: %d\n",
+                "  Offline Skip Updates: %d",
                 this->address_, this->max_cmd_retries_, this->offline_skip_updates_);
   if (this->server_courtesy_response_ != nullptr) {
     ESP_LOGCONFIG(TAG,
                   "  Server Courtesy Response:\n"
                   "    Register Count: %d\n"
-                  "    Register Value: %d\n",
+                  "    Register Value: %d",
                   this->server_courtesy_response_->register_count, this->server_courtesy_response_->register_value);
   }
 
