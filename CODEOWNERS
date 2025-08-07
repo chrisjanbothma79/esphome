@@ -540,6 +540,7 @@ esphome/components/xiaomi_mhoc401/* @vevsvevs
 esphome/components/xiaomi_rtcgq02lm/* @jesserockz
 esphome/components/xiaomi_xmwsdj04mmc/* @medusalix
 esphome/components/xl9535/* @mreditor97
+esphome/components/xl_tanksensor_wr/* @jalla2000 @netmikey
 esphome/components/xpt2046/touchscreen/* @nielsnl68 @numo68
 esphome/components/xxtea/* @clydebarrow
 esphome/components/zephyr/* @tomaszduda23
