@@ -21,7 +21,7 @@ void ESP32TouchComponent::update_touch_state_(ESP32TouchBinarySensor *child, boo
     child->last_state_ = is_touched;
     child->publish_state(is_touched);
     if (is_touched) {
-      // For logging, show the current value if available, otherwise show just the state
+      // Use stored value for logging (should be updated by caller)
       ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 " > threshold: %" PRIu32 ")", child->get_name().c_str(),
                child->value_, child->threshold_ + child->benchmark_);
     } else {
