@@ -150,7 +150,7 @@ SERVER_COURTESY_RESPONSE_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(ServerCourtesyResponse),
         cv.Optional(CONF_REGISTER_COUNT, default=0xFFFF): cv.hex_uint16_t,
-        cv.Optional(CONF_REGISTER_VALUE, default=0): cv.hex_uint16_t
+        cv.Optional(CONF_REGISTER_VALUE, default=0): cv.hex_uint16_t,
     }
 )
 
