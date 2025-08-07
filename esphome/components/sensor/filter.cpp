@@ -417,7 +417,8 @@ void OrFilter::initialize(Sensor *parent, Filter *next) {
 
 // TimeoutFilter
 optional<float> TimeoutFilter::new_value(float value) {
-  this->set_timeout("timeout", this->time_period_, [this]() { this->output(this->value_.value()); });
+  this->set_timeout("timeout", this->time_period_,
+                    [this, value]() { this->output(this->value_.has_value() ? this->value_.value().value() : value); });
   return value;
 }
 
