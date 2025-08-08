@@ -107,7 +107,7 @@ bool BLEClientBase::parse_device(const espbt::ESPBTDevice &device) {
 #endif
 
 void BLEClientBase::connect() {
-  ESP_LOGI(TAG, "[%d] [%s] 0x%02x Attempting BLE connection", this->connection_index_, this->address_str_.c_str(),
+  ESP_LOGI(TAG, "[%d] [%s] 0x%02x Connecting", this->connection_index_, this->address_str_.c_str(),
            this->remote_addr_type_);
   this->paired_ = false;
 
@@ -137,7 +137,7 @@ void BLEClientBase::connect() {
     ESP_LOGW(TAG, "[%d] [%s] esp_ble_gap_set_prefer_conn_params failed: %d", this->connection_index_,
              this->address_str_.c_str(), param_ret);
   } else {
-    ESP_LOGD(TAG, "[%d] [%s] Set %s conn params", this->connection_index_, this->address_str_.c_str(), param_type);
+    this->log_connection_params_(param_type);
   }
 
   // Now open the connection
@@ -153,14 +153,9 @@ void BLEClientBase::connect() {
 esp_err_t BLEClientBase::pair() { return esp_ble_set_encryption(this->remote_bda_, ESP_BLE_SEC_ENCRYPT); }
 
 void BLEClientBase::disconnect() {
-  if (this->state_ == espbt::ClientState::IDLE) {
-    ESP_LOGI(TAG, "[%d] [%s] Disconnect requested, but already idle.", this->connection_index_,
-             this->address_str_.c_str());
-    return;
-  }
-  if (this->state_ == espbt::ClientState::DISCONNECTING) {
-    ESP_LOGI(TAG, "[%d] [%s] Disconnect requested, but already disconnecting.", this->connection_index_,
-             this->address_str_.c_str());
+  if (this->state_ == espbt::ClientState::IDLE || this->state_ == espbt::ClientState::DISCONNECTING) {
+    ESP_LOGI(TAG, "[%d] [%s] Disconnect requested, but already %s", this->connection_index_, this->address_str_.c_str(),
+             espbt::client_state_to_string(this->state_));
     return;
   }
   if (this->state_ == espbt::ClientState::CONNECTING || this->conn_id_ == UNSET_CONN_ID) {
@@ -195,8 +190,7 @@ void BLEClientBase::unconditional_disconnect() {
     // In the future we might consider App.reboot() here since
     // the BLE stack is in an indeterminate state.
     //
-    ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_close error, err=%d", this->connection_index_, this->address_str_.c_str(),
-             err);
+    this->log_gattc_warning_("esp_ble_gattc_close", err);
   }
 
   if (this->state_ == espbt::ClientState::SEARCHING || this->state_ == espbt::ClientState::READY_TO_CONNECT ||
@@ -209,9 +203,11 @@ void BLEClientBase::unconditional_disconnect() {
 }
 
 void BLEClientBase::release_services() {
+#ifdef USE_ESP32_BLE_DEVICE
   for (auto &svc : this->services_)
     delete svc;  // NOLINT(cppcoreguidelines-owning-memory)
   this->services_.clear();
+#endif
 #ifndef CONFIG_BT_GATTC_CACHE_NVS_FLASH
   esp_ble_gattc_cache_clean(this->remote_bda_);
 #endif
@@ -234,6 +230,10 @@ void BLEClientBase::log_gattc_warning_(const char *operation, esp_err_t err) {
   ESP_LOGW(TAG, "[%d] [%s] %s error, status=%d", this->connection_index_, this->address_str_.c_str(), operation, err);
 }
 
+void BLEClientBase::log_connection_params_(const char *param_type) {
+  ESP_LOGD(TAG, "[%d] [%s] %s conn params", this->connection_index_, this->address_str_.c_str(), param_type);
+}
+
 void BLEClientBase::restore_medium_conn_params_() {
   // Restore to medium connection parameters after initial connection phase
   // This balances performance with bandwidth usage for normal operation
@@ -243,7 +243,7 @@ void BLEClientBase::restore_medium_conn_params_() {
   conn_params.max_int = MEDIUM_MAX_CONN_INTERVAL;
   conn_params.latency = 0;
   conn_params.timeout = MEDIUM_CONN_TIMEOUT;
-  ESP_LOGD(TAG, "[%d] [%s] Restoring medium conn params", this->connection_index_, this->address_str_.c_str());
+  this->log_connection_params_("medium");
   esp_ble_gap_update_conn_params(&conn_params);
 }
 
@@ -301,11 +301,8 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       this->set_state(espbt::ClientState::CONNECTED);
       ESP_LOGI(TAG, "[%d] [%s] Connection open", this->connection_index_, this->address_str_.c_str());
       if (this->connection_type_ == espbt::ConnectionType::V3_WITH_CACHE) {
-        ESP_LOGI(TAG, "[%d] [%s] Using cached services", this->connection_index_, this->address_str_.c_str());
-
         // Restore to medium connection parameters for cached connections too
         this->restore_medium_conn_params_();
-
         // only set our state, subclients might have more stuff to do yet.
         this->state_ = espbt::ClientState::ESTABLISHED;
         break;
@@ -325,8 +322,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       // This saves ~3ms in the connection process.
       auto ret = esp_ble_gattc_send_mtu_req(this->gattc_if_, param->connect.conn_id);
       if (ret) {
-        ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_send_mtu_req failed, status=%x", this->connection_index_,
-                 this->address_str_.c_str(), ret);
+        this->log_gattc_warning_("esp_ble_gattc_send_mtu_req", ret);
       }
       break;
     }
@@ -376,36 +372,39 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       this->service_count_++;
       if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
         // V3 clients don't need services initialized since
-        // they only request by handle after receiving the services.
+        // as they use the ESP APIs to get services.
         break;
       }
+#ifdef USE_ESP32_BLE_DEVICE
       BLEService *ble_service = new BLEService();  // NOLINT(cppcoreguidelines-owning-memory)
       ble_service->uuid = espbt::ESPBTUUID::from_uuid(param->search_res.srvc_id.uuid);
       ble_service->start_handle = param->search_res.start_handle;
       ble_service->end_handle = param->search_res.end_handle;
       ble_service->client = this;
       this->services_.push_back(ble_service);
+#endif
       break;
     }
     case ESP_GATTC_SEARCH_CMPL_EVT: {
       if (this->conn_id_ != param->search_cmpl.conn_id)
         return false;
       this->log_gattc_event_("SEARCH_CMPL");
-      for (auto &svc : this->services_) {
-        ESP_LOGV(TAG, "[%d] [%s] Service UUID: %s", this->connection_index_, this->address_str_.c_str(),
-                 svc->uuid.to_string().c_str());
-        ESP_LOGV(TAG, "[%d] [%s]  start_handle: 0x%x  end_handle: 0x%x", this->connection_index_,
-                 this->address_str_.c_str(), svc->start_handle, svc->end_handle);
-      }
-      ESP_LOGI(TAG, "[%d] [%s] Service discovery complete", this->connection_index_, this->address_str_.c_str());
-
       // For V3 connections, restore to medium connection parameters after service discovery
       // This balances performance with bandwidth usage after the critical discovery phase
       if (this->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE ||
           this->connection_type_ == espbt::ConnectionType::V3_WITH_CACHE) {
         this->restore_medium_conn_params_();
+      } else {
+#ifdef USE_ESP32_BLE_DEVICE
+        for (auto &svc : this->services_) {
+          ESP_LOGV(TAG, "[%d] [%s] Service UUID: %s", this->connection_index_, this->address_str_.c_str(),
+                   svc->uuid.to_string().c_str());
+          ESP_LOGV(TAG, "[%d] [%s]  start_handle: 0x%x  end_handle: 0x%x", this->connection_index_,
+                   this->address_str_.c_str(), svc->start_handle, svc->end_handle);
+        }
+#endif
       }
-
+      ESP_LOGI(TAG, "[%d] [%s] Service discovery complete", this->connection_index_, this->address_str_.c_str());
       this->state_ = espbt::ClientState::ESTABLISHED;
       break;
     }
@@ -582,6 +581,7 @@ float BLEClientBase::parse_char_value(uint8_t *value, uint16_t length) {
   return NAN;
 }
 
+#ifdef USE_ESP32_BLE_DEVICE
 BLEService *BLEClientBase::get_service(espbt::ESPBTUUID uuid) {
   for (auto *svc : this->services_) {
     if (svc->uuid == uuid)
@@ -658,6 +658,7 @@ BLEDescriptor *BLEClientBase::get_descriptor(uint16_t handle) {
   }
   return nullptr;
 }
+#endif  // USE_ESP32_BLE_DEVICE
 
 }  // namespace esphome::esp32_ble_client
 
