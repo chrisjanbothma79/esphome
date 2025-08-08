@@ -5,7 +5,6 @@ from esphome.const import (
     CONF_ARGS,
     CONF_FORMAT,
     CONF_GROUP,
-    CONF_HEIGHT,
     CONF_ID,
     CONF_ON_BOOT,
     CONF_ON_VALUE,
@@ -13,8 +12,6 @@ from esphome.const import (
     CONF_TEXT,
     CONF_TIME,
     CONF_TRIGGER_ID,
-    CONF_TYPE,
-    CONF_WIDTH,
     CONF_X,
     CONF_Y,
 )
@@ -22,9 +19,9 @@ from esphome.core import TimePeriod
 from esphome.core.config import StartupTrigger
 
 from . import defines as df, lv_validation as lvalid
-from .defines import CONF_FLEX_FLOW, CONF_TIME_FORMAT, LV_GRAD_DIR
+from .defines import CONF_TIME_FORMAT, LV_GRAD_DIR
 from .helpers import requires_component, validate_printf
-from .lv_validation import lv_color, lv_font, lv_gradient, lv_image, opacity, size
+from .lv_validation import lv_color, lv_font, lv_gradient, lv_image, opacity
 from .lvcode import LvglComponent, lv_event_t_ptr
 from .types import (
     LVEncoderListener,
@@ -433,36 +430,6 @@ ALL_STYLES = {
 }
 
 
-def get_layout_schema(config: dict):
-    """
-    Get the child layout schema for a given widget based on its layout type.
-    :param config: The config to check
-    :return: The schema to apply to children of this layout
-    """
-    layout = config.get(df.CONF_LAYOUT, {})
-    ltype = layout.get(CONF_TYPE, df.TYPE_NONE)
-    schema = {}
-    if ltype == df.TYPE_GRID:
-        schema = GRID_CELL_SCHEMA
-    elif ltype == df.TYPE_FLEX:
-        if grow := layout[df.CONF_FLEX_GROW]:
-            schema = {cv.Optional(df.CONF_FLEX_GROW, default=grow): cv.int_}
-        else:
-            schema = FLEX_OBJ_SCHEMA
-        # Polyfill to implement stretch alignment for flex containers
-        # LVGL does not support this natively, so we add a 100% size property to the children in the cross-axis
-        if layout[df.CONF_FLEX_ALIGN_CROSS] == "LV_FLEX_ALIGN_STRETCH":
-            dimension = (
-                CONF_WIDTH
-                if "COLUMN" in layout[CONF_FLEX_FLOW].upper()
-                else CONF_HEIGHT
-            )
-            schema[cv.Optional(dimension, default="100%")] = size
-        # Pass through the default flex grow value if specified
-
-    return schema
-
-
 def container_validator(schema, widget_type: WidgetType):
     """
     Create a validator for a container given the widget type
@@ -477,17 +444,8 @@ def container_validator(schema, widget_type: WidgetType):
             w_sch = cv.Schema(w_sch)
         # Apply any defaults from the widget schema
         value = w_sch.extend({}, extra=True)(value)
-        result = schema.extend(
-            {
-                cv.Optional(df.CONF_WIDGETS): cv.ensure_list(
-                    any_widget_schema(get_layout_schema(value))
-                )
-            }
-        )
-        result = result.extend(w_sch)
+        result = schema.extend(get_layout_schema(value)).extend(w_sch)
         value = result(value)
-        if layout := value.get(df.CONF_LAYOUT, {}).get(CONF_TYPE):
-            value = validate_grid_layout(value)
         return value
 
     return validator
@@ -516,7 +474,7 @@ def container_schema(widget_type: WidgetType, extras=None):
 def widget_schema(widget_type: WidgetType, extras=None):
     """
     Create a schema for a given widget type
-    :param widget_type: The name of the widget
+    :param widget_type: The type of widget
     :param extras:
     :return:
     """
