@@ -298,7 +298,7 @@ def angle(value):
 lv_angle = LValidator(angle, uint32, retmapper=lambda x: int(x * 10))
 
 # Validator for angles in LVGL expressed in whole degrees
-lv_angle_degrees = LValidator(angle, uint32, retmapper=lambda x: int(x))
+lv_angle_degrees = LValidator(angle, uint32, retmapper=int)
 
 
 @schema_extractor("one_of")
