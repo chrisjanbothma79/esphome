@@ -13,9 +13,9 @@
 // results making successive requests; the current implementation makes 3 attempts with a delay of 30ms each time.
 
 #include "aht10.h"
-#include "esphome/core/log.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace aht10 {
@@ -38,8 +38,6 @@ static const uint8_t AHT10_STATUS_BUSY = 0x80;
 static const float AHT10_DIVISOR = 1048576.0f;  // 2^20, used for temperature and humidity calculations
 
 void AHT10Component::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
-
   if (this->write(AHT10_SOFTRESET_CMD, sizeof(AHT10_SOFTRESET_CMD)) != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "Reset failed");
   }
@@ -80,8 +78,6 @@ void AHT10Component::setup() {
     this->mark_failed();
     return;
   }
-
-  ESP_LOGV(TAG, "Initialization complete");
 }
 
 void AHT10Component::restart_read_() {
@@ -115,7 +111,7 @@ void AHT10Component::read_data_() {
     if (this->humidity_sensor_ == nullptr) {
       ESP_LOGV(TAG, "Invalid humidity (reading not required)");
     } else {
-      ESP_LOGD(TAG, "Invalid humidity, retrying...");
+      ESP_LOGD(TAG, "Invalid humidity, retrying");
       if (this->write(AHT10_MEASURE_CMD, sizeof(AHT10_MEASURE_CMD)) != i2c::ERROR_OK) {
         this->status_set_warning(ESP_LOG_MSG_COMM_FAIL);
       }

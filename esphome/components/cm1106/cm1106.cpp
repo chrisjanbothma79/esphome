@@ -20,7 +20,6 @@ uint8_t cm1106_checksum(const uint8_t *response, size_t len) {
 }
 
 void CM1106Component::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   uint8_t response[8] = {0};
   if (!this->cm1106_write_command_(C_M1106_CMD_GET_CO2, sizeof(C_M1106_CMD_GET_CO2), response, sizeof(response))) {
     ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
@@ -38,7 +37,7 @@ void CM1106Component::update() {
   }
 
   if (response[0] != 0x16 || response[1] != 0x05 || response[2] != 0x01) {
-    ESP_LOGW(TAG, "Got wrong UART response from CM1106: %02X %02X %02X %02X...", response[0], response[1], response[2],
+    ESP_LOGW(TAG, "Got wrong UART response from CM1106: %02X %02X %02X %02X", response[0], response[1], response[2],
              response[3]);
     this->status_set_warning();
     return;

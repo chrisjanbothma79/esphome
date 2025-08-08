@@ -57,7 +57,6 @@ static const char *iir_filter_to_str(BMP280IIRFilter filter) {
 }
 
 void BMP280Component::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
   uint8_t chip_id = 0;
 
   // Read the chip id twice, to work around a bug where the first read is 0.
@@ -155,7 +154,7 @@ inline uint8_t oversampling_to_time(BMP280Oversampling over_sampling) { return (
 
 void BMP280Component::update() {
   // Enable sensor
-  ESP_LOGV(TAG, "Sending conversion request...");
+  ESP_LOGV(TAG, "Sending conversion request");
   uint8_t meas_value = 0;
   meas_value |= (this->temperature_oversampling_ & 0b111) << 5;
   meas_value |= (this->pressure_oversampling_ & 0b111) << 2;

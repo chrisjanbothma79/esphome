@@ -9,9 +9,6 @@ static const char *const TAG = "veml3235.sensor";
 
 void VEML3235Sensor::setup() {
   uint8_t device_id[] = {0, 0};
-
-  ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->name_.c_str());
-
   if (!this->refresh_config_reg()) {
     ESP_LOGE(TAG, "Unable to write configuration");
     this->mark_failed();
@@ -217,13 +214,17 @@ void VEML3235Sensor::dump_config() {
   LOG_UPDATE_INTERVAL(this);
   ESP_LOGCONFIG(TAG, "  Auto-gain enabled: %s", YESNO(this->auto_gain_));
   if (this->auto_gain_) {
-    ESP_LOGCONFIG(TAG, "  Auto-gain upper threshold: %f%%", this->auto_gain_threshold_high_ * 100.0);
-    ESP_LOGCONFIG(TAG, "  Auto-gain lower threshold: %f%%", this->auto_gain_threshold_low_ * 100.0);
-    ESP_LOGCONFIG(TAG, "  Values below will be used as initial values only");
+    ESP_LOGCONFIG(TAG,
+                  "  Auto-gain upper threshold: %f%%\n"
+                  "  Auto-gain lower threshold: %f%%\n"
+                  "  Values below will be used as initial values only",
+                  this->auto_gain_threshold_high_ * 100.0, this->auto_gain_threshold_low_ * 100.0);
   }
-  ESP_LOGCONFIG(TAG, "  Digital gain: %uX", digital_gain);
-  ESP_LOGCONFIG(TAG, "  Gain: %uX", gain);
-  ESP_LOGCONFIG(TAG, "  Integration time: %ums", integration_time);
+  ESP_LOGCONFIG(TAG,
+                "  Digital gain: %uX\n"
+                "  Gain: %uX\n"
+                "  Integration time: %ums",
+                digital_gain, gain, integration_time);
 }
 
 }  // namespace veml3235
