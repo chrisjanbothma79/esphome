@@ -21,6 +21,14 @@ from esphome.core.config import StartupTrigger
 from . import defines as df, lv_validation as lvalid
 from .defines import CONF_TIME_FORMAT, LV_GRAD_DIR
 from .helpers import requires_component, validate_printf
+from .layout import (
+    FLEX_OBJ_SCHEMA,
+    GRID_CELL_SCHEMA,
+    flex_alignments,
+    get_layout_schema,
+    grid_alignments,
+    grid_spec,
+)
 from .lv_validation import lv_color, lv_font, lv_gradient, lv_image, opacity
 from .lvcode import LvglComponent, lv_event_t_ptr
 from .types import (
@@ -134,7 +142,7 @@ STYLE_PROPS = {
     "arc_opa": lvalid.opacity,
     "arc_color": lvalid.lv_color,
     "arc_rounded": lvalid.lv_bool,
-    "arc_width": lvalid.lv_positive_int,
+    "arc_width": lvalid.pixels,
     "anim_time": lvalid.lv_milliseconds,
     "bg_color": lvalid.lv_color,
     "bg_grad": lv_gradient,
@@ -221,10 +229,6 @@ STYLE_REMAP = {
     "image_recolor_opa": "img_recolor_opa",
 }
 
-cell_alignments = df.LV_CELL_ALIGNMENTS.one_of
-grid_alignments = df.LV_GRID_ALIGNMENTS.one_of
-flex_alignments = df.LV_FLEX_ALIGNMENTS.one_of
-
 # Complete object style schema
 STYLE_SCHEMA = cv.Schema({cv.Optional(k): v for k, v in STYLE_PROPS.items()}).extend(
     {
@@ -264,10 +268,8 @@ def part_schema(parts):
     :param parts:  The parts to include
     :return: The schema
     """
-    return (
-        cv.Schema({cv.Optional(part): STATE_SCHEMA for part in parts})
-        .extend(STATE_SCHEMA)
-        .extend(FLAG_SCHEMA)
+    return STATE_SCHEMA.extend(FLAG_SCHEMA).extend(
+        {cv.Optional(part): STATE_SCHEMA for part in parts}
     )
 
 
@@ -275,10 +277,10 @@ def automation_schema(typ: LvType):
     events = df.LV_EVENT_TRIGGERS + df.SWIPE_TRIGGERS
     if typ.has_on_value:
         events = events + (CONF_ON_VALUE,)
-    args = typ.get_arg_type() if isinstance(typ, LvType) else []
+    args = typ.get_arg_type()
     args.append(lv_event_t_ptr)
-    return cv.Schema(
-        {
+    return {
+        **{
             cv.Optional(event): validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
@@ -287,14 +289,11 @@ def automation_schema(typ: LvType):
                 }
             )
             for event in events
-        }
-    ).extend(
-        {
-            cv.Optional(CONF_ON_BOOT): validate_automation(
-                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(StartupTrigger)}
-            )
-        }
-    )
+        },
+        cv.Optional(CONF_ON_BOOT): validate_automation(
+            {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(StartupTrigger)}
+        ),
+    }
 
 
 def base_update_schema(widget_type, parts):
@@ -331,13 +330,17 @@ def obj_schema(widget_type: WidgetType):
     :param widget_type:
     :return:
     """
-    return {
-        **part_schema(widget_type.parts),
-        **ALIGN_TO_SCHEMA,
-        **automation_schema(widget_type.w_type),
-        cv.Optional(CONF_STATE): SET_STATE_SCHEMA,
-        cv.Optional(CONF_GROUP): cv.use_id(lv_group_t),
-    }
+    return (
+        part_schema(widget_type.parts)
+        .extend(ALIGN_TO_SCHEMA)
+        .extend(automation_schema(widget_type.w_type))
+        .extend(
+            {
+                cv.Optional(CONF_STATE): SET_STATE_SCHEMA,
+                cv.Optional(CONF_GROUP): cv.use_id(lv_group_t),
+            }
+        )
+    )
 
 
 ALIGN_TO_SCHEMA = {
@@ -351,18 +354,6 @@ ALIGN_TO_SCHEMA = {
     )
 }
 
-
-def grid_free_space(value):
-    value = cv.Upper(value)
-    if value.startswith("FR(") and value.endswith(")"):
-        value = value.removesuffix(")").removeprefix("FR(")
-        return f"LV_GRID_FR({cv.positive_int(value)})"
-    raise cv.Invalid("must be a size in pixels, CONTENT or FR(nn)")
-
-
-grid_spec = cv.Any(
-    lvalid.size, df.LvConstant("LV_GRID_", "CONTENT").one_of, grid_free_space
-)
 
 LAYOUTS = {
     df.TYPE_GRID: {
@@ -384,19 +375,6 @@ LAYOUTS = {
         cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
         cv.Optional(df.CONF_FLEX_GROW): cv.int_,
     },
-}
-
-GRID_CELL_SCHEMA = {
-    cv.Optional(df.CONF_GRID_CELL_ROW_POS): cv.positive_int,
-    cv.Optional(df.CONF_GRID_CELL_COLUMN_POS): cv.positive_int,
-    cv.Optional(df.CONF_GRID_CELL_ROW_SPAN, default=1): cv.positive_int,
-    cv.Optional(df.CONF_GRID_CELL_COLUMN_SPAN, default=1): cv.positive_int,
-    cv.Optional(df.CONF_GRID_CELL_X_ALIGN): grid_alignments,
-    cv.Optional(df.CONF_GRID_CELL_Y_ALIGN): grid_alignments,
-}
-
-FLEX_OBJ_SCHEMA = {
-    cv.Optional(df.CONF_FLEX_GROW): cv.int_,
 }
 
 DISP_BG_SCHEMA = cv.Schema(
@@ -445,8 +423,7 @@ def container_validator(schema, widget_type: WidgetType):
         # Apply any defaults from the widget schema
         value = w_sch.extend({}, extra=True)(value)
         result = schema.extend(get_layout_schema(value)).extend(w_sch)
-        value = result(value)
-        return value
+        return result(value)
 
     return validator
 
@@ -459,11 +436,8 @@ def container_schema(widget_type: WidgetType, extras=None):
     :param extras:  Additional options to be made available, e.g. layout properties for children
     :return: The schema for this type of widget.
     """
-    schema = cv.Schema(
-        {
-            **obj_schema(widget_type),
-            cv.GenerateID(): cv.declare_id(widget_type.w_type),
-        }
+    schema = obj_schema(widget_type).extend(
+        {cv.GenerateID(): cv.declare_id(widget_type.w_type)}
     )
     if extras:
         schema = schema.extend(extras)
@@ -478,6 +452,8 @@ def widget_schema(widget_type: WidgetType, extras=None):
     :param extras:
     :return:
     """
+    if widget_type.name == "arc":
+        print(f"Creating widget schema for {widget_type.name}, extras={extras}")
     validator = container_schema(widget_type, extras=extras)
     if required := widget_type.required_component:
         validator = cv.All(validator, requires_component(required))

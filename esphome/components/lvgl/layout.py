@@ -1,6 +1,10 @@
 import re
 
-from esphome.components.lvgl.defines import (
+from esphome.components.lvgl.lv_validation import padding, size
+import esphome.config_validation as cv
+from esphome.const import CONF_HEIGHT, CONF_TYPE, CONF_WIDTH
+
+from .defines import (
     CONF_FLEX_ALIGN_CROSS,
     CONF_FLEX_ALIGN_MAIN,
     CONF_FLEX_ALIGN_TRACK,
@@ -21,21 +25,43 @@ from esphome.components.lvgl.defines import (
     CONF_PAD_ROW,
     CONF_WIDGETS,
     FLEX_FLOWS,
+    LV_CELL_ALIGNMENTS,
+    LV_FLEX_ALIGNMENTS,
     LV_FLEX_CROSS_ALIGNMENTS,
+    LV_GRID_ALIGNMENTS,
     TYPE_FLEX,
     TYPE_GRID,
     TYPE_NONE,
+    LvConstant,
 )
-from esphome.components.lvgl.lv_validation import padding, size
-from esphome.components.lvgl.schemas import (
-    FLEX_OBJ_SCHEMA,
-    GRID_CELL_SCHEMA,
-    flex_alignments,
-    grid_alignments,
-    grid_spec,
-)
-import esphome.config_validation as cv
-from esphome.const import CONF_HEIGHT, CONF_TYPE, CONF_WIDTH
+
+cell_alignments = LV_CELL_ALIGNMENTS.one_of
+grid_alignments = LV_GRID_ALIGNMENTS.one_of
+flex_alignments = LV_FLEX_ALIGNMENTS.one_of
+
+
+def grid_free_space(value):
+    value = cv.Upper(value)
+    if value.startswith("FR(") and value.endswith(")"):
+        value = value.removesuffix(")").removeprefix("FR(")
+        return f"LV_GRID_FR({cv.positive_int(value)})"
+    raise cv.Invalid("must be a size in pixels, CONTENT or FR(nn)")
+
+
+grid_spec = cv.Any(size, LvConstant("LV_GRID_", "CONTENT").one_of, grid_free_space)
+
+FLEX_OBJ_SCHEMA = {
+    cv.Optional(CONF_FLEX_GROW): cv.int_,
+}
+
+GRID_CELL_SCHEMA = {
+    cv.Optional(CONF_GRID_CELL_ROW_POS): cv.positive_int,
+    cv.Optional(CONF_GRID_CELL_COLUMN_POS): cv.positive_int,
+    cv.Optional(CONF_GRID_CELL_ROW_SPAN, default=1): cv.positive_int,
+    cv.Optional(CONF_GRID_CELL_COLUMN_SPAN, default=1): cv.positive_int,
+    cv.Optional(CONF_GRID_CELL_X_ALIGN): grid_alignments,
+    cv.Optional(CONF_GRID_CELL_Y_ALIGN): grid_alignments,
+}
 
 
 class Layout:
@@ -51,19 +77,11 @@ class Layout:
         return TYPE_NONE
 
     @classmethod
-    def layout_schema(cls, config: dict):
+    def get_layout_schemas(cls, config: dict) -> tuple | None:
         """
-        Get the schema for this layout to validate the `layout:` key data
+        Get the layout and child schema for a given widget based on its layout type.
         """
-        return
-
-    @classmethod
-    def child_schema(cls, config: dict):
-        """
-        Get additional options for child object in the layout
-        :return:
-        """
-        return {}
+        return None, {}
 
     @classmethod
     def validate(cls, config):
@@ -81,32 +99,37 @@ class FlexLayout(Layout):
         return TYPE_FLEX
 
     @classmethod
-    def layout_schema(cls, config: dict):
+    def get_layout_schemas(cls, config: dict) -> tuple:
         layout = config.get(CONF_LAYOUT)
-        if isinstance(layout, str):
-            if str.lower(layout) == TYPE_FLEX:
-                return TYPE_FLEX
-            # Not a valid flex layout string
-            return None
-
         if not isinstance(layout, dict) or layout.get(CONF_TYPE) != TYPE_FLEX:
-            return None
-        return {
-            cv.Required(CONF_TYPE): cv.one_of(TYPE_FLEX, lower=True),
-            cv.Optional(CONF_FLEX_FLOW, default="row_wrap"): FLEX_FLOWS.one_of,
-            cv.Optional(CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
-            cv.Optional(
-                CONF_FLEX_ALIGN_CROSS, default="start"
-            ): LV_FLEX_CROSS_ALIGNMENTS.one_of,
-            cv.Optional(CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
-            cv.Optional(CONF_PAD_ROW): padding,
-            cv.Optional(CONF_PAD_COLUMN): padding,
-            cv.Optional(CONF_FLEX_GROW): cv.int_,
-        }
-
-    @classmethod
-    def child_schema(cls, config: dict):
-        return FLEX_OBJ_SCHEMA
+            return None, {}
+        child_schema = FLEX_OBJ_SCHEMA
+        if grow := layout.get(CONF_FLEX_GROW):
+            child_schema = {cv.Optional(CONF_FLEX_GROW, default=grow): cv.int_}
+        # Polyfill to implement stretch alignment for flex containers
+        # LVGL does not support this natively, so we add a 100% size property to the children in the cross-axis
+        if layout.get(CONF_FLEX_ALIGN_CROSS) == "LV_FLEX_ALIGN_STRETCH":
+            dimension = (
+                CONF_WIDTH
+                if "COLUMN" in layout[CONF_FLEX_FLOW].upper()
+                else CONF_HEIGHT
+            )
+            child_schema[cv.Optional(dimension, default="100%")] = size
+        return (
+            {
+                cv.Required(CONF_TYPE): cv.one_of(TYPE_FLEX, lower=True),
+                cv.Optional(CONF_FLEX_FLOW, default="row_wrap"): FLEX_FLOWS.one_of,
+                cv.Optional(CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
+                cv.Optional(
+                    CONF_FLEX_ALIGN_CROSS, default="start"
+                ): LV_FLEX_CROSS_ALIGNMENTS.one_of,
+                cv.Optional(CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
+                cv.Optional(CONF_PAD_ROW): padding,
+                cv.Optional(CONF_PAD_COLUMN): padding,
+                cv.Optional(CONF_FLEX_GROW): cv.int_,
+            },
+            child_schema,
+        )
 
     @classmethod
     def validate(cls, config):
@@ -124,37 +147,53 @@ class GridLayout(Layout):
         return TYPE_GRID
 
     @classmethod
-    def layout_schema(cls, config: dict):
+    def get_layout_schemas(cls, config: dict) -> tuple | None:
         layout = config.get(CONF_LAYOUT)
         if isinstance(layout, str):
-            match = Layout._GRID_LAYOUT_REGEX.match(layout)
-            if match:
-                return cv.string
+            if Layout._GRID_LAYOUT_REGEX.match(layout):
+                return (
+                    cv.string,
+                    {
+                        cv.Optional(CONF_GRID_CELL_ROW_POS): cv.positive_int,
+                        cv.Optional(CONF_GRID_CELL_COLUMN_POS): cv.positive_int,
+                        cv.Optional(
+                            CONF_GRID_CELL_ROW_SPAN, default=1
+                        ): cv.positive_int,
+                        cv.Optional(
+                            CONF_GRID_CELL_COLUMN_SPAN, default=1
+                        ): cv.positive_int,
+                        cv.Optional(
+                            CONF_GRID_CELL_X_ALIGN, default="center"
+                        ): grid_alignments,
+                        cv.Optional(
+                            CONF_GRID_CELL_Y_ALIGN, default="center"
+                        ): grid_alignments,
+                    },
+                )
             # Not a valid grid layout string
-            return None
+            return None, {}
 
         if not isinstance(layout, dict) or layout.get(CONF_TYPE) != TYPE_GRID:
-            return None
-        return {
-            cv.Required(CONF_TYPE): cv.one_of(TYPE_GRID, lower=True),
-            cv.Required(CONF_GRID_ROWS): [grid_spec],
-            cv.Required(CONF_GRID_COLUMNS): [grid_spec],
-            cv.Optional(CONF_GRID_COLUMN_ALIGN): grid_alignments,
-            cv.Optional(CONF_GRID_ROW_ALIGN): grid_alignments,
-            cv.Optional(CONF_PAD_ROW): padding,
-            cv.Optional(CONF_PAD_COLUMN): padding,
-        }
-
-    @classmethod
-    def child_schema(cls, config: dict):
-        return {
-            cv.Optional(CONF_GRID_CELL_ROW_POS): cv.positive_int,
-            cv.Optional(CONF_GRID_CELL_COLUMN_POS): cv.positive_int,
-            cv.Optional(CONF_GRID_CELL_ROW_SPAN, default=1): cv.positive_int,
-            cv.Optional(CONF_GRID_CELL_COLUMN_SPAN, default=1): cv.positive_int,
-            cv.Optional(CONF_GRID_CELL_X_ALIGN): grid_alignments,
-            cv.Optional(CONF_GRID_CELL_Y_ALIGN): grid_alignments,
-        }
+            return None, {}
+        return (
+            {
+                cv.Required(CONF_TYPE): cv.one_of(TYPE_GRID, lower=True),
+                cv.Required(CONF_GRID_ROWS): [grid_spec],
+                cv.Required(CONF_GRID_COLUMNS): [grid_spec],
+                cv.Optional(CONF_GRID_COLUMN_ALIGN): grid_alignments,
+                cv.Optional(CONF_GRID_ROW_ALIGN): grid_alignments,
+                cv.Optional(CONF_PAD_ROW): padding,
+                cv.Optional(CONF_PAD_COLUMN): padding,
+            },
+            {
+                cv.Optional(CONF_GRID_CELL_ROW_POS): cv.positive_int,
+                cv.Optional(CONF_GRID_CELL_COLUMN_POS): cv.positive_int,
+                cv.Optional(CONF_GRID_CELL_ROW_SPAN, default=1): cv.positive_int,
+                cv.Optional(CONF_GRID_CELL_COLUMN_SPAN, default=1): cv.positive_int,
+                cv.Optional(CONF_GRID_CELL_X_ALIGN): grid_alignments,
+                cv.Optional(CONF_GRID_CELL_Y_ALIGN): grid_alignments,
+            },
+        )
 
     @classmethod
     def validate(self, config: dict):
@@ -176,8 +215,9 @@ class GridLayout(Layout):
                 rows = int(match.group(1))
                 cols = int(match.group(2))
                 layout = {
-                    CONF_GRID_ROWS: ["LV_GRID_CONTENT"] * rows,
-                    CONF_GRID_COLUMNS: ["LV_GRID_CONTENT"] * cols,
+                    CONF_TYPE: TYPE_GRID,
+                    CONF_GRID_ROWS: ["LV_GRID_FR(1)"] * rows,
+                    CONF_GRID_COLUMNS: ["LV_GRID_FR(1)"] * cols,
                 }
                 config[CONF_LAYOUT] = layout
             else:
@@ -194,7 +234,6 @@ class GridLayout(Layout):
         for index, widget in enumerate(config.get(CONF_WIDGETS, [])):
             _, w = next(iter(widget.items()))
             if (CONF_GRID_CELL_COLUMN_POS in w) != (CONF_GRID_CELL_ROW_POS in w):
-                # pylint: disable=raise-missing-from
                 raise cv.Invalid(
                     "Both row and column positions must be specified, or both omitted",
                     [CONF_WIDGETS, index],
@@ -221,14 +260,12 @@ class GridLayout(Layout):
             for i in range(w[CONF_GRID_CELL_ROW_SPAN]):
                 for j in range(w[CONF_GRID_CELL_COLUMN_SPAN]):
                     if row + i >= rows or column + j >= columns:
-                        # pylint: disable=raise-missing-from
                         raise cv.Invalid(
                             f"Cell at {row}/{column} span {w[CONF_GRID_CELL_ROW_SPAN]}x{w[CONF_GRID_CELL_COLUMN_SPAN]} "
                             f"exceeds grid size {rows}x{columns}",
                             [CONF_WIDGETS, index],
                         )
                     if used_cells[row + i][column + j] is not None:
-                        # pylint: disable=raise-missing-from
                         raise cv.Invalid(
                             f"Cell span {row + i}/{column + j} already occupied by widget at index {used_cells[row + i][column + j]}",
                             [CONF_WIDGETS, index],
@@ -239,6 +276,7 @@ class GridLayout(Layout):
 
 
 LAYOUT_CLASSES = (Layout, FlexLayout, GridLayout)
+LAYOUT_CHOICES = [x.get_type() for x in LAYOUT_CLASSES]
 
 
 def get_layout_schema(config: dict):
@@ -247,45 +285,27 @@ def get_layout_schema(config: dict):
     :param config: The config to check
     :return: A schema for the layout including a widgets key
     """
+    # Local import to avoid circular dependencies
+    from .schemas import any_widget_schema
+
     for layout_class in LAYOUT_CLASSES:
-        schema = layout_class.layout_schema(config)
+        schema, child_schema = layout_class.get_layout_schemas(config)
         if schema:
-            return cv.Schema(
+            schema = cv.Schema(
                 {
-                    cv.Optional(CONF_LAYOUT, default=layout_class.TYPE_NONE): schema,
+                    cv.Required(CONF_LAYOUT): schema,
                     cv.Required(CONF_WIDGETS): cv.ensure_list(
-                        cv.Schema(layout_class.child_schema())
+                        any_widget_schema(child_schema)
                     ),
                 }
             )
-    layout = config.get(CONF_LAYOUT, {})
-    ltype = layout.get(CONF_TYPE, TYPE_NONE)
-    schema = {}
-    if ltype == TYPE_GRID:
-        schema = GRID_CELL_SCHEMA
-    elif ltype == TYPE_FLEX:
-        if grow := layout[CONF_FLEX_GROW]:
-            schema = {cv.Optional(CONF_FLEX_GROW, default=grow): cv.int_}
-        else:
-            schema = FLEX_OBJ_SCHEMA
-        # Polyfill to implement stretch alignment for flex containers
-        # LVGL does not support this natively, so we add a 100% size property to the children in the cross-axis
-        if layout[CONF_FLEX_ALIGN_CROSS] == "LV_FLEX_ALIGN_STRETCH":
-            dimension = (
-                CONF_WIDTH
-                if "COLUMN" in layout[CONF_FLEX_FLOW].upper()
-                else CONF_HEIGHT
-            )
-            schema[cv.Optional(dimension, default="100%")] = size
-        # Pass through the default flex grow value if specified
+            schema.add_extra(layout_class.validate)
+            return schema
 
-    return schema
-
-
-def get_layout_class(config):
-    layout = config.get(CONF_LAYOUT, TYPE_NONE)
-    if isinstance(layout, dict):
-        layout_type = layout.get(CONF_TYPE, TYPE_NONE)
-    for layout_class in LAYOUT_CLASSES:
-        if layout_class.parse_shorthand(layout) is not None:
-            return layout_class
+    # If no layout class matched, return a default schema
+    return cv.Schema(
+        {
+            cv.Optional(CONF_LAYOUT): cv.one_of(*LAYOUT_CHOICES, lower=True),
+            cv.Optional(CONF_WIDGETS): cv.ensure_list(any_widget_schema()),
+        }
+    )

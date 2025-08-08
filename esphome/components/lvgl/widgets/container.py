@@ -11,13 +11,14 @@ from ..defines import (
     CONF_FLEX_GROW,
     CONF_LAYOUT,
     CONF_MAIN,
+    CONF_OBJ,
     CONF_PAD_COLUMN,
     CONF_PAD_ROW,
     CONF_SCROLLBAR,
     TYPE_FLEX,
 )
 from ..lv_validation import size
-from ..lvcode import lv, lv_expr
+from ..lvcode import lv
 from ..schemas import LAYOUTS
 from ..types import WidgetType, lv_obj_t
 
@@ -85,11 +86,9 @@ class ContainerType(WidgetType):
             (CONF_MAIN, CONF_SCROLLBAR),
             schema=CONTAINER_SCHEMA,
             modify_schema={},
+            lv_name=CONF_OBJ,
         )
         self.styles = {}
-
-    def obj_creator(self, parent: MockObjClass, config: dict):
-        return lv_expr.obj_create(parent)
 
     def on_create(self, var: MockObjClass, config: dict):
         lv.obj_remove_style_all(var)
