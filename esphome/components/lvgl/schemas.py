@@ -452,8 +452,6 @@ def widget_schema(widget_type: WidgetType, extras=None):
     :param extras:
     :return:
     """
-    if widget_type.name == "arc":
-        print(f"Creating widget schema for {widget_type.name}, extras={extras}")
     validator = container_schema(widget_type, extras=extras)
     if required := widget_type.required_component:
         validator = cv.All(validator, requires_component(required))
