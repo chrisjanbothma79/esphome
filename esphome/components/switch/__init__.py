@@ -57,8 +57,8 @@ TurnOnAction = switch_ns.class_("TurnOnAction", automation.Action)
 SwitchPublishAction = switch_ns.class_("SwitchPublishAction", automation.Action)
 
 SwitchCondition = switch_ns.class_("SwitchCondition", Condition)
-SwitchStateChangedTrigger = switch_ns.class_(
-    "SwitchStateChangedTrigger", automation.Trigger.template(bool)
+SwitchStateTrigger = switch_ns.class_(
+    "SwitchStateTrigger", automation.Trigger.template(bool)
 )
 SwitchTurnOnTrigger = switch_ns.class_(
     "SwitchTurnOnTrigger", automation.Trigger.template()
@@ -83,9 +83,7 @@ _SWITCH_SCHEMA = (
             ),
             cv.Optional(CONF_ON_STATE): automation.validate_automation(
                 {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                        SwitchStateChangedTrigger
-                    ),
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(SwitchStateTrigger),
                 }
             ),
             cv.Optional(CONF_ON_TURN_ON): automation.validate_automation(

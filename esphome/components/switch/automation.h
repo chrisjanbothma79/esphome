@@ -64,9 +64,9 @@ template<typename... Ts> class SwitchCondition : public Condition<Ts...> {
   bool state_;
 };
 
-class SwitchStateChangedTrigger : public Trigger<bool> {
+class SwitchStateTrigger : public Trigger<bool> {
  public:
-  SwitchStateChangedTrigger(Switch *a_switch) {
+  SwitchStateTrigger(Switch *a_switch) {
     a_switch->add_on_state_callback([this](bool state) { this->trigger(state); });
   }
 };
