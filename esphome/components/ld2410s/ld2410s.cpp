@@ -792,11 +792,11 @@ void LD2410S::process_data_frame_(uint8_t *data, size_t data_size) {
 
       for (auto &listener : this->listeners_) {
         if (progress == 100) {
-          listener->on_calibration_progress(0);
+          // listener->on_calibration_progress(0);
           listener->on_calibration_update(false);
           this->read_all_thresholds_();
         } else {
-          listener->on_calibration_progress(progress);
+          // listener->on_calibration_progress(progress);
           listener->on_calibration_update(true);
         }
       }
