@@ -160,7 +160,7 @@ class WidgetType:
         :param config: Its configuration
         :return: Generated code as a list of text lines
         """
-        return []
+        pass
 
     async def obj_creator(self, parent: MockObjClass, config: dict):
         """

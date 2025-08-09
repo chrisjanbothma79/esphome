@@ -25,9 +25,7 @@ from .layout import (
     FLEX_OBJ_SCHEMA,
     GRID_CELL_SCHEMA,
     append_layout_schema,
-    flex_alignments,
     grid_alignments,
-    grid_spec,
 )
 from .lv_validation import lv_color, lv_font, lv_gradient, lv_image, opacity
 from .lvcode import LvglComponent, lv_event_t_ptr
@@ -353,28 +351,6 @@ ALIGN_TO_SCHEMA = {
 }
 
 
-LAYOUTS = {
-    df.TYPE_GRID: {
-        cv.Required(df.CONF_GRID_ROWS): [grid_spec],
-        cv.Required(df.CONF_GRID_COLUMNS): [grid_spec],
-        cv.Optional(df.CONF_GRID_COLUMN_ALIGN): grid_alignments,
-        cv.Optional(df.CONF_GRID_ROW_ALIGN): grid_alignments,
-        cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
-        cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
-    },
-    df.TYPE_FLEX: {
-        cv.Optional(df.CONF_FLEX_FLOW, default="row_wrap"): df.FLEX_FLOWS.one_of,
-        cv.Optional(df.CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
-        cv.Optional(
-            df.CONF_FLEX_ALIGN_CROSS, default="start"
-        ): df.LV_FLEX_CROSS_ALIGNMENTS.one_of,
-        cv.Optional(df.CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
-        cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
-        cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
-        cv.Optional(df.CONF_FLEX_GROW): cv.int_,
-    },
-}
-
 DISP_BG_SCHEMA = cv.Schema(
     {
         cv.Optional(df.CONF_DISP_BG_IMAGE): cv.Any(
@@ -421,7 +397,7 @@ def container_schema(widget_type: WidgetType, extras=None):
         schema = schema.extend(extras)
     # Delayed evaluation for recursion
 
-    schema = widget_type.schema.extend(schema)
+    schema = schema.extend(widget_type.schema)
 
     def validator(value):
         return append_layout_schema(schema, value)(value)
@@ -440,8 +416,8 @@ def any_widget_schema(extras=None):
 
     def validator(value):
         if isinstance(value, dict):
-            # If a single widget is specified, convert it to a list
-            value = [value] if len(value) == 1 else [{k: v} for k, v in value.items()]
+            # Convert to list
+            value = [{k: v} for k, v in value.items()]
         if not isinstance(value, list):
             raise cv.Invalid("Expected a list of widgets")
         result = []
@@ -450,16 +426,18 @@ def any_widget_schema(extras=None):
                 raise cv.Invalid(
                     "Each widget must be a dictionary with a single key", path=[index]
                 )
-            key, value = entry.popitem()
-            value = value or {}
-            if key not in WIDGET_TYPES:
-                raise cv.Invalid(f"Unknown widget type: {key}", path=[index])
+            [(key, value)] = entry.items()
             # Validate the widget against its schema
-            widget_type = WIDGET_TYPES[key]
-            validator = container_schema(widget_type, extras=extras)
+            widget_type = WIDGET_TYPES.get(key)
+            if not widget_type:
+                raise cv.Invalid(f"Unknown widget type: {key}", path=[index])
+            container_validator = container_schema(widget_type, extras=extras)
             if required := widget_type.required_component:
-                validator = cv.All(validator, requires_component(required))
-            result.append({key: validator(value)})
+                container_validator = cv.All(
+                    container_validator, requires_component(required)
+                )
+            value = value or {}
+            result.append({key: container_validator(value)})
         return result
 
     return validator

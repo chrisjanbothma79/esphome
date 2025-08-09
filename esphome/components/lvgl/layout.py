@@ -39,6 +39,34 @@ cell_alignments = LV_CELL_ALIGNMENTS.one_of
 grid_alignments = LV_GRID_ALIGNMENTS.one_of
 flex_alignments = LV_FLEX_ALIGNMENTS.one_of
 
+FLEX_LAYOUT_SCHEMA = {
+    cv.Required(CONF_TYPE): cv.one_of(TYPE_FLEX, lower=True),
+    cv.Optional(CONF_FLEX_FLOW, default="row_wrap"): FLEX_FLOWS.one_of,
+    cv.Optional(CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
+    cv.Optional(
+        CONF_FLEX_ALIGN_CROSS, default="start"
+    ): LV_FLEX_CROSS_ALIGNMENTS.one_of,
+    cv.Optional(CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
+    cv.Optional(CONF_PAD_ROW): padding,
+    cv.Optional(CONF_PAD_COLUMN): padding,
+    cv.Optional(CONF_FLEX_GROW): cv.int_,
+}
+
+FLEX_HV_STYLE = {
+    CONF_FLEX_ALIGN_MAIN: "LV_FLEX_ALIGN_SPACE_EVENLY",
+    CONF_FLEX_ALIGN_TRACK: "LV_FLEX_ALIGN_CENTER",
+    CONF_FLEX_ALIGN_CROSS: "LV_FLEX_ALIGN_CENTER",
+    CONF_TYPE: TYPE_FLEX,
+}
+
+FLEX_OBJ_SCHEMA = {
+    cv.Optional(CONF_FLEX_GROW): cv.int_,
+}
+
+FLEX_HV_SCHEMA = {
+    cv.Optional(CONF_FLEX_GROW, default=1): cv.int_,
+}
+
 
 def grid_free_space(value):
     value = cv.Upper(value)
@@ -49,10 +77,6 @@ def grid_free_space(value):
 
 
 grid_spec = cv.Any(size, LvConstant("LV_GRID_", "CONTENT").one_of, grid_free_space)
-
-FLEX_OBJ_SCHEMA = {
-    cv.Optional(CONF_FLEX_GROW): cv.int_,
-}
 
 GRID_CELL_SCHEMA = {
     cv.Optional(CONF_GRID_CELL_ROW_POS): cv.positive_int,
@@ -70,19 +94,16 @@ class Layout:
     The base class is layout "none"
     """
 
-    @classmethod
-    def get_type(cls):
+    def get_type(self):
         return TYPE_NONE
 
-    @classmethod
-    def get_layout_schemas(cls, config: dict) -> tuple | None:
+    def get_layout_schemas(self, config: dict) -> tuple | None:
         """
         Get the layout and child schema for a given widget based on its layout type.
         """
         return None, {}
 
-    @classmethod
-    def validate(cls, config):
+    def validate(self, config):
         """
         Validate the layout configuration. This is called late in the schema validation
         :param config: The input configuration
@@ -92,12 +113,10 @@ class Layout:
 
 
 class FlexLayout(Layout):
-    @classmethod
-    def get_type(cls):
+    def get_type(self):
         return TYPE_FLEX
 
-    @classmethod
-    def get_layout_schemas(cls, config: dict) -> tuple:
+    def get_layout_schemas(self, config: dict) -> tuple:
         layout = config.get(CONF_LAYOUT)
         if not isinstance(layout, dict) or layout.get(CONF_TYPE) != TYPE_FLEX:
             return None, {}
@@ -113,24 +132,9 @@ class FlexLayout(Layout):
                 else CONF_HEIGHT
             )
             child_schema[cv.Optional(dimension, default="100%")] = size
-        return (
-            {
-                cv.Required(CONF_TYPE): cv.one_of(TYPE_FLEX, lower=True),
-                cv.Optional(CONF_FLEX_FLOW, default="row_wrap"): FLEX_FLOWS.one_of,
-                cv.Optional(CONF_FLEX_ALIGN_MAIN, default="start"): flex_alignments,
-                cv.Optional(
-                    CONF_FLEX_ALIGN_CROSS, default="start"
-                ): LV_FLEX_CROSS_ALIGNMENTS.one_of,
-                cv.Optional(CONF_FLEX_ALIGN_TRACK, default="start"): flex_alignments,
-                cv.Optional(CONF_PAD_ROW): padding,
-                cv.Optional(CONF_PAD_COLUMN): padding,
-                cv.Optional(CONF_FLEX_GROW): cv.int_,
-            },
-            child_schema,
-        )
+        return (child_schema,)
 
-    @classmethod
-    def validate(cls, config):
+    def validate(self, config):
         """
         Perform validation on the container and its children for this layout
         :param config:
@@ -139,15 +143,40 @@ class FlexLayout(Layout):
         return config
 
 
+class DirectionalLayout(FlexLayout):
+    def __init__(self, direction: str, flow):
+        """
+        :param direction: "horizontal" or "vertical"
+        :param flow: "row" or "column"
+        """
+        super().__init__()
+        self.direction = direction
+        self.flow = flow
+
+    def get_type(self):
+        return self.direction
+
+    def get_layout_schemas(self, config: dict) -> tuple:
+        if config.get(CONF_LAYOUT, "").lower() != self.direction:
+            return None, {}
+        return cv.one_of(self.direction, lower=True), FLEX_HV_SCHEMA
+
+    def validate(self, config):
+        assert config[CONF_LAYOUT].lower() == self.direction
+        config[CONF_LAYOUT] = {
+            **FLEX_HV_STYLE,
+            CONF_FLEX_FLOW: "LV_FLEX_FLOW_" + self.flow.upper(),
+        }
+        return config
+
+
 class GridLayout(Layout):
     _GRID_LAYOUT_REGEX = re.compile(r"^\s*(\d+)\s*x\s*(\d+)\s*$")
 
-    @classmethod
-    def get_type(cls):
+    def get_type(self):
         return TYPE_GRID
 
-    @classmethod
-    def get_layout_schemas(cls, config: dict) -> tuple | None:
+    def get_layout_schemas(self, config: dict) -> tuple | None:
         layout = config.get(CONF_LAYOUT)
         if isinstance(layout, str):
             if GridLayout._GRID_LAYOUT_REGEX.match(layout):
@@ -195,7 +224,6 @@ class GridLayout(Layout):
             },
         )
 
-    @classmethod
     def validate(self, config: dict):
         """
         Validate the grid layout.
@@ -275,7 +303,12 @@ class GridLayout(Layout):
         return config
 
 
-LAYOUT_CLASSES = (FlexLayout, GridLayout)
+LAYOUT_CLASSES = (
+    FlexLayout(),
+    GridLayout(),
+    DirectionalLayout("horizontal", "row"),
+    DirectionalLayout("vertical", "column"),
+)
 LAYOUT_CHOICES = [x.get_type() for x in LAYOUT_CLASSES]
 
 
@@ -303,14 +336,14 @@ def append_layout_schema(schema, config: dict):
     for layout_class in LAYOUT_CLASSES:
         layout_schema, child_schema = layout_class.get_layout_schemas(config)
         if layout_schema:
-            schema = schema.extend(
+            layout_schema = cv.Schema(
                 {
                     cv.Required(CONF_LAYOUT): layout_schema,
                     cv.Required(CONF_WIDGETS): any_widget_schema(child_schema),
                 }
             )
-            schema.add_extra(layout_class.validate)
-            return schema
+            layout_schema.add_extra(layout_class.validate)
+            return layout_schema.extend(schema)
 
     # If no layout class matched, return a default schema
     return cv.Schema(
