@@ -1,6 +1,5 @@
 import re
 
-from esphome.components.lvgl.lv_validation import padding, size
 import esphome.config_validation as cv
 from esphome.const import CONF_HEIGHT, CONF_TYPE, CONF_WIDTH
 
@@ -34,6 +33,7 @@ from .defines import (
     TYPE_NONE,
     LvConstant,
 )
+from .lv_validation import padding, size
 
 cell_alignments = LV_CELL_ALIGNMENTS.one_of
 grid_alignments = LV_GRID_ALIGNMENTS.one_of
@@ -132,7 +132,7 @@ class FlexLayout(Layout):
                 else CONF_HEIGHT
             )
             child_schema[cv.Optional(dimension, default="100%")] = size
-        return (child_schema,)
+        return FLEX_LAYOUT_SCHEMA, child_schema
 
     def validate(self, config):
         """
