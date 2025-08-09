@@ -763,7 +763,12 @@ void LD2410S::process_short_data_frame_(uint8_t *data) {
 
   for (auto &listener : this->listeners_) {
     listener->on_presence(presence_state);
-    listener->on_distance(distance);
+    // listener->on_distance(distance);
+  }
+
+  if (this->distance_sensor_ != nullptr) {
+    ESP_LOGD(TAG, "distance_sensor_ existis, publishing...");
+    this->distance_sensor_->publish_state(distance);
   }
 }
 void LD2410S::process_data_frame_(uint8_t *data, size_t data_size) {
@@ -778,7 +783,12 @@ void LD2410S::process_data_frame_(uint8_t *data, size_t data_size) {
 
       for (auto &listener : this->listeners_) {
         listener->on_presence(presence_state);
-        listener->on_distance(distance);
+        // listener->on_distance(distance);
+      }
+
+      if (this->distance_sensor_ != nullptr) {
+        ESP_LOGD(TAG, "distance_sensor_ existis, publishing...");
+        this->distance_sensor_->publish_state(distance);
       }
 
       this->process_data_energy_values_read_(&data[6]);
