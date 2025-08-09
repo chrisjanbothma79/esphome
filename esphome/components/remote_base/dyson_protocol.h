@@ -10,7 +10,7 @@ namespace remote_base {
 struct DysonData {
   uint16_t code;  // the button, e.g. power, swing, fan++, ...
   uint8_t index;  // the rolling index counter
-  bool operator==(const DysonData &rhs) const { return code == rhs.code; }
+  bool operator==(const DysonData &rhs) const { return code == rhs.code && index == rhs.index; }
 };
 
 class DysonProtocol : public RemoteProtocol<DysonData> {
