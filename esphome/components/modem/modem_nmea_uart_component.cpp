@@ -5,7 +5,7 @@
 #include "helpers.h"
 #include <cmath>
 #include <cstring>
-
+#ifdef USE_ESP_IDF
 namespace esphome {
 namespace modem {
 
@@ -17,7 +17,7 @@ struct GnssInfo {
   double alt_m = NAN;
   double hdop = NAN;
   double cog_deg = NAN;
-  double spd = NAN;
+  double spd = NAN;  // knots (normalized)
   int sat_used = 0;
   bool fix_valid = false;
   int hh = 0, mm = 0, ss = 0;
@@ -36,8 +36,8 @@ static inline bool to_int(const char *s, int &v) {
   if (s == nullptr || *s == '\0')
     return false;
   char *end = nullptr;
-  long t = std::strtol(s, &end, 10);
-  if (!(end && end != s))
+  int32_t t = std::strtol(s, &end, 10);
+  if (!end || end == s)
     return false;
   v = static_cast<int>(t);
   return true;
@@ -47,10 +47,11 @@ static inline void deg_to_ddmm_mmmm(double deg, char *out, size_t n, bool is_lon
   double a = std::fabs(deg);
   int d = static_cast<int>(a);
   double m = (a - d) * 60.0;
-  if (is_lon)
+  if (is_lon) {
     std::snprintf(out, n, "%03d%07.4f", d, m);
-  else
+  } else {
     std::snprintf(out, n, "%02d%07.4f", d, m);
+  }
 }
 
 static inline uint8_t nmea_checksum(const char *s) {
@@ -69,8 +70,8 @@ static bool parse_time_hhmmss(const char *s, int &hh, int &mm, int &ss) {
   char *dot = std::strchr(buf, '.');
   if (dot)
     *dot = '\0';
-  size_t L = std::strlen(buf);
-  if (L < 6)
+  size_t l = std::strlen(buf);
+  if (l < 6)
     return false;
   hh = (buf[0] - '0') * 10 + (buf[1] - '0');
   mm = (buf[2] - '0') * 10 + (buf[3] - '0');
@@ -92,7 +93,7 @@ static bool parse_cgnssinfo(const std::string &line, GnssInfo &gi) {
   const char *p = std::strchr(line.c_str(), ':');
   if (!p)
     return false;
-  const char *start = p + 1;
+  const char *start __attribute__((unused)) = p + 1;
 
 #ifdef USE_MODEM_GNSS_PARSER_CGNSSINFO16
   // 16 tokens: mode, sat_used, sat_view, fix_status, lat, N/S, lon, E/W, date, time, alt, spd, cog, hdop, vdop, pdop
@@ -160,7 +161,7 @@ static bool parse_cgnssinfo(const std::string &line, GnssInfo &gi) {
   const char *tok[EXPECT] = {0};
   char *save = nullptr;
   int i = 0;
-  for (char *t = std::strtok_r(buf, ",", &save); t && i < EXPECT; t = std::strtok_r(nullptr, ",", &save)) {
+  for (char *t = strtok_r(buf, ",", &save); t && i < EXPECT; t = strtok_r(nullptr, ",", &save)) {
     tok[i++] = t;
   }
   if (i < 15)
@@ -196,6 +197,70 @@ static bool parse_cgnssinfo(const std::string &line, GnssInfo &gi) {
   return std::isfinite(gi.lat_deg) && std::isfinite(gi.lon_deg);
 #endif
 
+#ifdef USE_MODEM_GNSS_PARSER_CGNSINF21
+  // +CGNSINF:
+  // <run>,<fix>,<UTC>,<lat>,<lon>,<msl_alt>,<spd_kmh>,<cog>,<fix_mode>,<rsv1>,<hdop>,<pdop>,<vdop>,<rsv2>,<sv_view>,<sv_used>,<glo_view>,<rsv3>,<cn0_max>,<hpa>,<vpa>
+  static constexpr double KMH_TO_KNOT = 0.539956803;
+
+  char buf[384];
+  std::strncpy(buf, start, sizeof(buf));
+  buf[sizeof(buf) - 1] = '\0';
+
+  const int MAXTOK = 32;
+  const char *tok[MAXTOK] = {0};
+  char *save = nullptr;
+  int n = 0;
+  for (char *t = strtok_r(buf, ",", &save); t && n < MAXTOK; t = strtok_r(nullptr, ",", &save)) {
+    tok[n++] = t;
+  }
+
+  auto S = [&](int idx) -> const char * { return (idx >= 1 && idx <= n) ? tok[idx - 1] : ""; };
+
+  // lat/lon degrees
+  (void) to_double(S(4), gi.lat_deg);
+  (void) to_double(S(5), gi.lon_deg);
+
+  // altitude
+  (void) to_double(S(6), gi.alt_m);
+
+  // speed: km/h → knots
+  double spd_kmh = NAN;
+  if (to_double(S(7), spd_kmh))
+    gi.spd = spd_kmh * KMH_TO_KNOT;
+
+  // course
+  (void) to_double(S(8), gi.cog_deg);
+
+  // hdop
+  (void) to_double(S(11), gi.hdop);
+
+  // sats used (16), or 0
+  int used = 0;
+  (void) to_int(S(16), used);
+  gi.sat_used = used;
+
+  // time/date if provided (3)
+  // format UTC: yyyyMMddhhmmss.sss
+  const char *utc = S(3);
+  if (utc && std::strlen(utc) >= 14) {
+    // date
+    int yyyy = (utc[0] - '0') * 1000 + (utc[1] - '0') * 100 + (utc[2] - '0') * 10 + (utc[3] - '0');
+    gi.yy = (yyyy % 100);
+    gi.mo = (utc[4] - '0') * 10 + (utc[5] - '0');
+    gi.dd = (utc[6] - '0') * 10 + (utc[7] - '0');
+    // time
+    gi.hh = (utc[8] - '0') * 10 + (utc[9] - '0');
+    gi.mm = (utc[10] - '0') * 10 + (utc[11] - '0');
+    gi.ss = (utc[12] - '0') * 10 + (utc[13] - '0');
+  }
+  // fix status (2): 1 = valid
+  int fix = 0;
+  (void) to_int(S(2), fix);
+  gi.fix_valid = (fix == 1) && std::isfinite(gi.lat_deg) && std::isfinite(gi.lon_deg);
+
+  return std::isfinite(gi.lat_deg) && std::isfinite(gi.lon_deg);
+#endif
+
   (void) gi;
   return false;
 }
@@ -209,11 +274,11 @@ bool ModemNMEAUARTComponent::read_array(uint8_t *data, size_t len) {
 }
 
 void ModemNMEAUARTComponent::update() {
-  if (!(modem::global_modem_component->modem_handler && modem::global_modem_component->modem_handler->dce &&
-        modem::global_modem_component->modem_handler->dce->sync() == command_result::OK))
+  if (!(global_modem_component->modem_handler && global_modem_component->modem_handler->dce &&
+        global_modem_component->modem_handler->dce->sync() == esp_modem::command_result::OK))
     return;
 
-  std::string resp = modem::global_modem_component->modem_handler->send_at(this->gnss_command_).output;
+  std::string resp = global_modem_component->modem_handler->send_at(this->gnss_command_).output;
   ESP_LOGI(TAG, "GNSS command result: '%s'", resp.c_str());
 
   GnssInfo gi;
@@ -280,3 +345,4 @@ void ModemNMEAUARTComponent::update() {
 
 }  // namespace modem
 }  // namespace esphome
+#endif  // USE_ESP_IDF

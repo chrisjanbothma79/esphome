@@ -27,8 +27,11 @@ ICON_SATELLITE = "mdi:satellite-variant"
 
 GnssSwitch = modem_ns.class_("GnssSwitch", switch.Switch, cg.Component)
 
-# SIM70xx doesn't support AT+CGNSSINFO, so gnss is not available
-MODEM_MODELS_GNSS_COMMAND = {"SIM7600": "AT+CGPS", "SIM7670": "AT+CGNSSPWR"}
+MODEM_MODELS_GNSS_COMMAND = {
+    "SIM7600": "AT+CGPS",
+    "SIM7670": "AT+CGNSSPWR",
+    "SIM7080": "AT+CGNSPWR",
+}
 
 
 CONF_GNSS_SWITCH_ID = "gnss_switch_id"

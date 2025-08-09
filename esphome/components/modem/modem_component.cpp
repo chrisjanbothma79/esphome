@@ -205,7 +205,6 @@ void ModemComponent::loop() {
       this->handle_state_powering_off_();
       break;
   }
-  // this->nmea_uart_->update();
 }
 
 void ModemComponent::handle_state_disabled_() {
@@ -371,14 +370,6 @@ void ModemComponent::handle_state_init_network_() {
 }
 
 void ModemComponent::handle_state_start_ppp_() {
-  // this->modem_handler->update_network_state();
-  // ESP_LOGI(TAG, "%s", this->modem_handler->modem_network_status_string().c_str());
-  // if (!this->modem_handler->modem_connected) {
-  //   this->component_state_ = ModemComponentState::INIT_NETWORK;
-  //   this->loop_delay_(1000);
-  //   return;
-  // }
-
   this->status_set_warning("Starting connection");
 
   // ESP_LOGI(TAG, "%s", this->modem_handler->modem_network_status_string().c_str());
@@ -392,8 +383,8 @@ void ModemComponent::handle_state_start_ppp_() {
   }
 
   if (!status) {
-    ESP_LOGE(TAG, "Failed to enter PPP");
-    this->component_state_ = ModemComponentState::SYNCING;
+    ESP_LOGE(TAG, "Failed to enter PPP. Resetting modem.");
+    this->reset();
     this->loop_delay_(1000);
   } else {
     this->component_state_ = ModemComponentState::WAIT_IP;
@@ -438,12 +429,12 @@ void ModemComponent::handle_state_connected_() {
     return;
   }
   // If CMUX, we can log status
-  if (this->modem_handler->cmux) {
-    if ((millis() - this->last_health_check_) > 30000) {
-      this->last_health_check_ = millis();
-      this->modem_handler->modem_log_status();
-    }
-  }
+  // if (this->modem_handler->cmux) {
+  //   if ((millis() - this->last_health_check_) > 30000) {
+  //     this->last_health_check_ = millis();
+  //     this->modem_handler->modem_log_status();
+  //   }
+  // }
   this->loop_delay_(2000);
 }
 

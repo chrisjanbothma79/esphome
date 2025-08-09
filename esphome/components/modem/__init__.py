@@ -58,7 +58,7 @@ CONF_NMEA = "nmea"
 CONF_GNSS_COMMAND = "gnss_command"
 CONF_GNSS_PARSER = "gnss_parser"
 
-MODEM_MODELS = ["BG96", "SIM800", "SIM7000", "SIM7600", "SIM7670", "GENERIC"]
+MODEM_MODELS = ["BG96", "SIM800", "SIM7000", "SIM7080", "SIM7600", "SIM7670", "GENERIC"]
 MODEM_MODELS_POWER = {
     "BG96": {
         CONF_TON_PULSE_DELAY: 600,
@@ -76,6 +76,12 @@ MODEM_MODELS_POWER = {
         CONF_TON_PULSE_DELAY: 1100,
         CONF_TON_DELAY: 4500,
         CONF_TOFF_PULSE_DELAY: 1300,
+        CONF_TOFF_DELAY: 1800,
+    },
+    "SIM7080": {
+        CONF_TON_PULSE_DELAY: 1000,
+        CONF_TON_DELAY: 2500,
+        CONF_TOFF_PULSE_DELAY: 1200,
         CONF_TOFF_DELAY: 1800,
     },
     "SIM7600": {
@@ -97,6 +103,7 @@ MODEM_MODELS_POWER["SIM7670"] = MODEM_MODELS_POWER["SIM7600"]
 MODEM_MODELS_GNSS_QUERY = {
     "SIM7600": {"command": "AT+CGNSSINFO", "parser": "CGNSSINFO16"},
     "SIM7670": {"command": "AT+CGNSSINFO", "parser": "CGNSSINFO18"},
+    "SIM7080": {"command": "AT+CGNSINF", "parser": "CGNSINF21"},
 }
 
 
@@ -266,10 +273,10 @@ def _final_validate(config):
         )
 
     if CONF_NMEA in config:
-        fconf = fv.full_config.get()
-        modem_path = fconf.get_path_for_id(config[CONF_MODEM_ID])[:-1]
-        modem_config = fconf.get_config_for_path(modem_path)
-        model = modem_config.get(CONF_MODEL, None)
+        # fconf = fv.full_config.get()
+        # modem_path = fconf.get_path_for_id(config[CONF_MODEM_ID])[:-1]
+        # modem_config = fconf.get_config_for_path(modem_path)
+        model = config.get(CONF_MODEL, None)
 
         if model not in MODEM_MODELS_GNSS_QUERY:
             raise cv.Invalid(
