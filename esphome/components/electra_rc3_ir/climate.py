@@ -9,17 +9,6 @@ ElectraRC3IR = electra_rc3_ir_ns.class_("ElectraRC3IR", climate_ir.ClimateIR)
 
 CONFIG_SCHEMA = climate_ir.climate_ir_with_receiver_schema(ElectraRC3IR)
 
-# .extend(
-#     {
-#         cv.GenerateID(): cv.declare_id(ElectraRC3IR),
-#     }
-# )
-
 
 async def to_code(config):
     await climate_ir.new_climate_ir(config)
-
-
-# async def to_code(config):
-#     var = cg.new_Pvariable(config[CONF_ID])
-#     await climate_ir.register_climate_ir(var, config)
