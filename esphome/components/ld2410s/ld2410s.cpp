@@ -611,7 +611,7 @@ void LD2410S::receive_() {
     // Payload size = frame size - header - footer
 
     if (type != PackageType::UNKNOWN && start_pos != this->rcv_end_pos_ && payload_size > 0) {
-      esphome::ld2410s::LD2410S::hex_diag("<", &this->rcv_buffer_[0], this->rcv_end_pos_ + 1 - start_pos);
+      esphome::ld2410s::LD2410S::hex_diag("<", &this->rcv_buffer_[0], this->rcv_end_pos_);
 
       switch (type) {
         case PackageType::SHORT_DATA_FRAME:
