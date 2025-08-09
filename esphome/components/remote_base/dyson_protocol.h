@@ -9,7 +9,7 @@ namespace remote_base {
 
 struct DysonData {
   uint16_t code;  // the button, e.g. power, swing, fan++, ...
-  uint8_t roll;   // the rolling index counter
+  uint8_t index;  // the rolling index counter
   bool operator==(const DysonData &rhs) const { return code == rhs.code; }
 };
 
@@ -25,12 +25,12 @@ DECLARE_REMOTE_PROTOCOL(Dyson)
 template<typename... Ts> class DysonAction : public RemoteTransmitterActionBase<Ts...> {
  public:
   TEMPLATABLE_VALUE(uint16_t, code)
-  TEMPLATABLE_VALUE(uint8_t, roll)
+  TEMPLATABLE_VALUE(uint8_t, index)
 
   void encode(RemoteTransmitData *dst, Ts... x) override {
     DysonData data{};
     data.code = this->code_.value(x...);
-    data.roll = this->roll_.value(x...);
+    data.index = this->index_.value(x...);
     DysonProtocol().encode(dst, data);
   }
 };
