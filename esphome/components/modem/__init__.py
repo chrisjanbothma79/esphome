@@ -2,9 +2,10 @@ import logging
 
 from esphome import automation, pins
 import esphome.codegen as cg
-from esphome.components.esp32 import add_idf_component, add_idf_sdkconfig_option
 
 # from esphome.components.wifi import wifi_has_sta  # uncomment after PR #4091 is merged
+from esphome.components import uart
+from esphome.components.esp32 import add_idf_component, add_idf_sdkconfig_option
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BAUD_RATE,
@@ -33,7 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 
 CODEOWNERS = ["@oarcher"]
 DEPENDENCIES = ["esp32"]
-AUTO_LOAD = ["network", "watchdog"]
+AUTO_LOAD = ["network", "uart"]
 CONFLICTS_WITH = ["captive_portal", "ethernet"]
 
 CONF_MODEM = "modem"
@@ -53,6 +54,9 @@ CONF_ON_POWERON = "on_poweron"
 CONF_ON_ENABLE = "on_enable"
 CONF_ENABLE_CMUX = "enable_cmux"
 CONF_DTE_BUFFER_SIZE = "dte_buffer_size"
+CONF_NMEA = "nmea"
+CONF_GNSS_COMMAND = "gnss_command"
+CONF_GNSS_PARSER = "gnss_parser"
 
 MODEM_MODELS = ["BG96", "SIM800", "SIM7000", "SIM7600", "SIM7670", "GENERIC"]
 MODEM_MODELS_POWER = {
@@ -90,8 +94,17 @@ MODEM_MODELS_POWER = {
 
 MODEM_MODELS_POWER["SIM7670"] = MODEM_MODELS_POWER["SIM7600"]
 
+MODEM_MODELS_GNSS_QUERY = {
+    "SIM7600": {"command": "AT+CGNSSINFO", "parser": "CGNSSINFO16"},
+    "SIM7670": {"command": "AT+CGNSSINFO", "parser": "CGNSSINFO18"},
+}
+
+
 modem_ns = cg.esphome_ns.namespace("modem")
 ModemComponent = modem_ns.class_("ModemComponent", cg.Component)
+ModemNMEAUARTComponent = modem_ns.class_(
+    "ModemNMEAUARTComponent", uart.UARTComponent, cg.PollingComponent
+)
 
 # Triggers
 ModemComponentState = modem_ns.enum("ModemComponentState")
@@ -157,6 +170,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_REBOOT_TIMEOUT, default="10min"
             ): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_NMEA): cv.Schema(
+                {cv.GenerateID(CONF_ID): cv.declare_id(ModemNMEAUARTComponent)}
+            ).extend(cv.polling_component_schema("60s")),
             cv.Optional(CONF_ON_NOT_RESPONDING): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
@@ -248,6 +264,23 @@ def _final_validate(config):
             CONF_SAFE_MODE,
             CONF_MODEM,
         )
+
+    if CONF_NMEA in config:
+        fconf = fv.full_config.get()
+        modem_path = fconf.get_path_for_id(config[CONF_MODEM_ID])[:-1]
+        modem_config = fconf.get_config_for_path(modem_path)
+        model = modem_config.get(CONF_MODEL, None)
+
+        if model not in MODEM_MODELS_GNSS_QUERY:
+            raise cv.Invalid(
+                f"NMEA not supported for modem '{model}'. Supported models: {', '.join(MODEM_MODELS_GNSS_QUERY)}"
+            )
+
+        gnss = MODEM_MODELS_GNSS_QUERY[model]
+        config[CONF_GNSS_COMMAND] = gnss["command"]
+        config[CONF_GNSS_PARSER] = gnss["parser"]
+
+    return config
 
 
 FINAL_VALIDATE_SCHEMA = _final_validate
@@ -395,6 +428,19 @@ async def to_code(config):
 
     if dte_buffer_size := config.get(CONF_DTE_BUFFER_SIZE, None):
         cg.add(var.set_dte_buffer_size(dte_buffer_size))
+
+    if nmea := config.get(CONF_NMEA, None):
+        cg.add_define("USE_MODEM_NMEA")
+        AUTO_LOAD.append("uart")
+        nmea_uart = cg.new_Pvariable(nmea[CONF_ID])
+
+        cg.add(nmea_uart.set_gnss_command(config[CONF_GNSS_COMMAND]))
+        parser_flag = f"USE_MODEM_GNSS_PARSER_{config[CONF_GNSS_PARSER].upper()}"
+        cg.add_define(parser_flag)
+
+        await cg.register_component(nmea_uart, nmea)
+
+        cg.add(var.set_nmea_uart(nmea_uart))
 
     for conf_key in [
         CONF_ON_NOT_RESPONDING,

@@ -22,8 +22,6 @@ class ModemTextSensor : public PollingComponent {
   void set_signal_strength_text_sensor(text_sensor::TextSensor *signal_strength_text_sensor) {
     this->signal_strength_text_sensor_ = signal_strength_text_sensor;
   }
-  void set_nmea_text_sensor(text_sensor::TextSensor *nmea_text_sensor) { this->nmea_text_sensor_ = nmea_text_sensor; }
-  void set_gnss_command(const std::string &gnss_command) { this->gnss_command_ = gnss_command; }
 
   // ========== INTERNAL METHODS ==========
   // (In most use cases you won't need these)
@@ -39,9 +37,6 @@ class ModemTextSensor : public PollingComponent {
   text_sensor::TextSensor *nmea_text_sensor_{nullptr};
   void update_network_type_text_sensor_();
   void update_signal_strength_text_sensor_();
-  void update_nmea_text_sensor_();
-
-  std::string gnss_command_;
 };
 
 }  // namespace modem

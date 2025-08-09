@@ -155,8 +155,6 @@ void ModemComponent::setup() {
 }
 
 void ModemComponent::loop() {
-  // static ModemComponentState last_state = this->component_state_;
-
   if ((millis() < this->next_loop_millis_)) {
     // Some commands require a delay.
     delay(10);
@@ -207,6 +205,7 @@ void ModemComponent::loop() {
       this->handle_state_powering_off_();
       break;
   }
+  // this->nmea_uart_->update();
 }
 
 void ModemComponent::handle_state_disabled_() {
