@@ -131,8 +131,6 @@ for w_type in (
 ):
     WIDGET_TYPES[w_type.name] = w_type
 
-WIDGET_SCHEMA = any_widget_schema()
-
 for w_type in WIDGET_TYPES.values():
     register_action(
         f"lvgl.{w_type.name}.update",
@@ -392,7 +390,7 @@ def display_schema(config):
 def add_hello_world(config):
     if df.CONF_WIDGETS not in config and CONF_PAGES not in config:
         LOGGER.info("No pages or widgets configured, creating default hello_world page")
-        config[df.CONF_WIDGETS] = cv.ensure_list(WIDGET_SCHEMA)(get_hello_world())
+        config[df.CONF_WIDGETS] = any_widget_schema()(get_hello_world())
     return config
 
 
@@ -442,12 +440,7 @@ LVGL_SCHEMA = cv.All(
                         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PauseTrigger),
                     }
                 ),
-                cv.Exclusive(df.CONF_WIDGETS, CONF_PAGES): cv.ensure_list(
-                    WIDGET_SCHEMA
-                ),
-                cv.Exclusive(CONF_PAGES, CONF_PAGES): cv.ensure_list(
-                    container_schema(page_spec)
-                ),
+                cv.Optional(CONF_PAGES): cv.ensure_list(container_schema(page_spec)),
                 cv.Optional(df.CONF_MSGBOXES): cv.ensure_list(MSGBOX_SCHEMA),
                 cv.Optional(df.CONF_PAGE_WRAP, default=True): lv_bool,
                 cv.Optional(df.CONF_TOP_LAYER): container_schema(obj_spec),

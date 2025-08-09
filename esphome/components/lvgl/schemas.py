@@ -24,8 +24,8 @@ from .helpers import requires_component, validate_printf
 from .layout import (
     FLEX_OBJ_SCHEMA,
     GRID_CELL_SCHEMA,
+    append_layout_schema,
     flex_alignments,
-    get_layout_schema,
     grid_alignments,
     grid_spec,
 )
@@ -78,11 +78,9 @@ def _validate_text(value):
 
 
 # A schema for text properties
-TEXT_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_TEXT): _validate_text,
-    }
-)
+TEXT_SCHEMA = {
+    cv.Optional(CONF_TEXT): _validate_text,
+}
 
 LIST_ACTION_SCHEMA = cv.ensure_list(
     cv.maybe_simple_value(
@@ -408,26 +406,6 @@ ALL_STYLES = {
 }
 
 
-def container_validator(schema, widget_type: WidgetType):
-    """
-    Create a validator for a container given the widget type
-    :param schema: Base schema to extend
-    :param widget_type:
-    :return:
-    """
-
-    def validator(value):
-        w_sch = widget_type.schema
-        if not isinstance(w_sch, cv.Schema):
-            w_sch = cv.Schema(w_sch)
-        # Apply any defaults from the widget schema
-        value = w_sch.extend({}, extra=True)(value)
-        result = schema.extend(get_layout_schema(value)).extend(w_sch)
-        return result(value)
-
-    return validator
-
-
 def container_schema(widget_type: WidgetType, extras=None):
     """
     Create a schema for a container widget of a given type. All obj properties are available, plus
@@ -442,31 +420,46 @@ def container_schema(widget_type: WidgetType, extras=None):
     if extras:
         schema = schema.extend(extras)
     # Delayed evaluation for recursion
-    return container_validator(schema, widget_type)
 
+    schema = widget_type.schema.extend(schema)
 
-def widget_schema(widget_type: WidgetType, extras=None):
-    """
-    Create a schema for a given widget type
-    :param widget_type: The type of widget
-    :param extras:
-    :return:
-    """
-    validator = container_schema(widget_type, extras=extras)
-    if required := widget_type.required_component:
-        validator = cv.All(validator, requires_component(required))
-    return cv.Exclusive(widget_type.name, df.CONF_WIDGETS), validator
+    def validator(value):
+        return append_layout_schema(schema, value)(value)
 
-
-# All widget schemas must be defined before this is called.
+    return validator
 
 
 def any_widget_schema(extras=None):
     """
-    Generate schemas for all possible LVGL widgets. This is what implements the ability to have a list of any kind of
+    Dynamically generate schemas for all possible LVGL widgets. This is what implements the ability to have a list of any kind of
     widget under the widgets: key.
 
     :param extras: Additional schema to be applied to each generated one
-    :return:
+    :return: A validator for the Widgets key
     """
-    return cv.Any(dict(widget_schema(wt, extras) for wt in WIDGET_TYPES.values()))
+
+    def validator(value):
+        if isinstance(value, dict):
+            # If a single widget is specified, convert it to a list
+            value = [value] if len(value) == 1 else [{k: v} for k, v in value.items()]
+        if not isinstance(value, list):
+            raise cv.Invalid("Expected a list of widgets")
+        result = []
+        for index, entry in enumerate(value):
+            if not isinstance(entry, dict) or len(entry) != 1:
+                raise cv.Invalid(
+                    "Each widget must be a dictionary with a single key", path=[index]
+                )
+            key, value = entry.popitem()
+            value = value or {}
+            if key not in WIDGET_TYPES:
+                raise cv.Invalid(f"Unknown widget type: {key}", path=[index])
+            # Validate the widget against its schema
+            widget_type = WIDGET_TYPES[key]
+            validator = container_schema(widget_type, extras=extras)
+            if required := widget_type.required_component:
+                validator = cv.All(validator, requires_component(required))
+            result.append({key: validator(value)})
+        return result
+
+    return validator

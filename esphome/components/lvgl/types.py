@@ -1,6 +1,7 @@
 import sys
 
 from esphome import automation, codegen as cg
+from esphome.config_validation import Schema
 from esphome.const import CONF_MAX_VALUE, CONF_MIN_VALUE, CONF_TEXT, CONF_VALUE
 from esphome.cpp_generator import MockObj, MockObjClass
 
@@ -131,14 +132,14 @@ class WidgetType:
         self.lv_name = lv_name or name
         self.w_type = w_type
         self.parts = parts
-        if schema is None:
-            self.schema = {}
-        else:
-            self.schema = schema
+        if not isinstance(schema, Schema):
+            schema = Schema(schema or {})
+        self.schema = schema
         if modify_schema is None:
-            self.modify_schema = self.schema
-        else:
-            self.modify_schema = modify_schema
+            modify_schema = schema
+        if not isinstance(modify_schema, Schema):
+            modify_schema = Schema(modify_schema)
+        self.modify_schema = modify_schema
         self.mock_obj = MockObj(f"lv_{self.lv_name}", "_")
 
     @property

@@ -70,8 +70,6 @@ class Layout:
     The base class is layout "none"
     """
 
-    _GRID_LAYOUT_REGEX = re.compile(r"^\s*(\d+)\s*x\s*(\d+)\s*$")
-
     @classmethod
     def get_type(cls):
         return TYPE_NONE
@@ -142,6 +140,8 @@ class FlexLayout(Layout):
 
 
 class GridLayout(Layout):
+    _GRID_LAYOUT_REGEX = re.compile(r"^\s*(\d+)\s*x\s*(\d+)\s*$")
+
     @classmethod
     def get_type(cls):
         return TYPE_GRID
@@ -150,7 +150,7 @@ class GridLayout(Layout):
     def get_layout_schemas(cls, config: dict) -> tuple | None:
         layout = config.get(CONF_LAYOUT)
         if isinstance(layout, str):
-            if Layout._GRID_LAYOUT_REGEX.match(layout):
+            if GridLayout._GRID_LAYOUT_REGEX.match(layout):
                 return (
                     cv.string,
                     {
@@ -210,7 +210,7 @@ class GridLayout(Layout):
             # If the layout is a string, assume it is in the format "rows x columns", implying
             # a grid layout with the specified number of rows and columns each with CONTENT sizing.
             layout = layout.strip()
-            match = Layout._GRID_LAYOUT_REGEX.match(layout)
+            match = GridLayout._GRID_LAYOUT_REGEX.match(layout)
             if match:
                 rows = int(match.group(1))
                 cols = int(match.group(2))
@@ -275,28 +275,38 @@ class GridLayout(Layout):
         return config
 
 
-LAYOUT_CLASSES = (Layout, FlexLayout, GridLayout)
+LAYOUT_CLASSES = (FlexLayout, GridLayout)
 LAYOUT_CHOICES = [x.get_type() for x in LAYOUT_CLASSES]
 
 
-def get_layout_schema(config: dict):
+def append_layout_schema(schema, config: dict):
     """
     Get the child layout schema for a given widget based on its layout type.
     :param config: The config to check
     :return: A schema for the layout including a widgets key
     """
     # Local import to avoid circular dependencies
+    if CONF_WIDGETS not in config:
+        if CONF_LAYOUT in config:
+            raise cv.Invalid(
+                f"Layout {config[CONF_LAYOUT]} requires a {CONF_WIDGETS} key",
+                [CONF_LAYOUT],
+            )
+        return schema
+
     from .schemas import any_widget_schema
 
+    if CONF_LAYOUT not in config:
+        # If no layout is specified, return the schema as is
+        return schema.extend({cv.Optional(CONF_WIDGETS): any_widget_schema()})
+
     for layout_class in LAYOUT_CLASSES:
-        schema, child_schema = layout_class.get_layout_schemas(config)
-        if schema:
-            schema = cv.Schema(
+        layout_schema, child_schema = layout_class.get_layout_schemas(config)
+        if layout_schema:
+            schema = schema.extend(
                 {
-                    cv.Required(CONF_LAYOUT): schema,
-                    cv.Required(CONF_WIDGETS): cv.ensure_list(
-                        any_widget_schema(child_schema)
-                    ),
+                    cv.Required(CONF_LAYOUT): layout_schema,
+                    cv.Required(CONF_WIDGETS): any_widget_schema(child_schema),
                 }
             )
             schema.add_extra(layout_class.validate)
@@ -306,6 +316,6 @@ def get_layout_schema(config: dict):
     return cv.Schema(
         {
             cv.Optional(CONF_LAYOUT): cv.one_of(*LAYOUT_CHOICES, lower=True),
-            cv.Optional(CONF_WIDGETS): cv.ensure_list(any_widget_schema()),
+            cv.Optional(CONF_WIDGETS): any_widget_schema(),
         }
     )
