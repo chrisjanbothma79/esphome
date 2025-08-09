@@ -50,7 +50,6 @@ template<typename... Ts> class ElectraRC3Action : public RemoteTransmitterAction
 
   void encode(RemoteTransmitData *dst, Ts... x) {
     ElectraRC3Data data{};
-    data.mode = 0;
     data.power = this->power_.value(x...);
     data.mode = this->mode_.value(x...);
     data.fan = this->fan_.value(x...);

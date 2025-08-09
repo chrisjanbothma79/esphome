@@ -81,7 +81,7 @@ void ElectraRC3IR::transmit_state() {
   data.temperature = temp - 15;
 
   data.sleep = (this->preset == climate::CLIMATE_PRESET_SLEEP) ? 1 : 0;
-  ;
+  data.ifeel = 0;  //(this->preset == climate::CLIMATE_PRESET_I_FEEL) ? 1 : 0; //Keep it off for now, for future use
   data.swing = (this->swing_mode == climate::CLIMATE_SWING_VERTICAL) ? 1 : 0;
 
   ESP_LOGD(TAG,

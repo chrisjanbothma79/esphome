@@ -12,13 +12,13 @@ static const uint16_t ELECTRA_RC3_HEADER_MARK = (3 * ELECTRA_RC3_UNIT);
 static const uint16_t ELECTRA_RC3_HEADER_SPACE = (3 * ELECTRA_RC3_UNIT);
 static const uint16_t ELECTRA_RC3_FOOTER_MARK = (4 * ELECTRA_RC3_UNIT);
 static const uint16_t ELECTRA_RC3_NUM_BITS = 34;
-static const uint16_t ELECTRA_RC3_RETEATS = 3;
+static const uint16_t ELECTRA_RC3_REPEATS = 3;
 
 void ElectraRC3Protocol::encode(RemoteTransmitData *dst, const ElectraRC3Data &data) {
   dst->reserve(44);
   dst->set_carrier_frequency(ELECTRA_RC3_FREQ);
 
-  for (uint8_t i = 0; i < ELECTRA_RC3_RETEATS; ++i) {
+  for (uint8_t i = 0; i < ELECTRA_RC3_REPEATS; ++i) {
     // Encode header
     dst->mark(ELECTRA_RC3_HEADER_MARK);
     uint16_t next_value = ELECTRA_RC3_HEADER_SPACE;
@@ -63,9 +63,9 @@ void ElectraRC3Protocol::encode(RemoteTransmitData *dst, const ElectraRC3Data &d
 }
 
 optional<ElectraRC3Data> ElectraRC3Protocol::decode(RemoteReceiveData src) {
-  ElectraRC3Data data;
+  // Decoding not implemented; return empty optiona
 
-  return data;
+  return {};
 }
 
 void ElectraRC3Protocol::dump(const ElectraRC3Data &data) {
