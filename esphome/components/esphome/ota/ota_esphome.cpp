@@ -20,6 +20,8 @@ namespace esphome {
 
 static const char *const TAG = "esphome.ota";
 static constexpr u_int16_t OTA_BLOCK_SIZE = 8192;
+static constexpr uint32_t OTA_SOCKET_TIMEOUT_HANDSHAKE = 10000;  // milliseconds for initial handshake
+static constexpr uint32_t OTA_SOCKET_TIMEOUT_DATA = 90000;       // milliseconds for data transfer
 
 void ESPHomeOTAComponent::setup() {
 #ifdef USE_OTA_STATE_CALLBACK
@@ -407,12 +409,12 @@ error:
 #endif
 }
 
-bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len, uint32_t timeout) {
+bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len) {
   uint32_t start = millis();
   uint32_t at = 0;
   while (len - at > 0) {
     uint32_t now = millis();
-    if (now - start > timeout) {
+    if (now - start > OTA_SOCKET_TIMEOUT_DATA) {
       ESP_LOGW(TAG, "Timeout reading %d bytes", len);
       return false;
     }
@@ -438,12 +440,12 @@ bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len, uint32_t timeout) {
 
   return true;
 }
-bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len, uint32_t timeout) {
+bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len) {
   uint32_t start = millis();
   uint32_t at = 0;
   while (len - at > 0) {
     uint32_t now = millis();
-    if (now - start > timeout) {
+    if (now - start > OTA_SOCKET_TIMEOUT_DATA) {
       ESP_LOGW(TAG, "Timeout writing %d bytes", len);
       return false;
     }
