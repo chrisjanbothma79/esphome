@@ -1171,6 +1171,15 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     time_t utc_timestamp = date_time_utc.timestamp + ESPTime::timezone_offset();
     stream->print(static_cast<int64_t>(utc_timestamp));
     stream->print(F("\n"));
+    // Get the entity's state as ESPTime (should be local time)
+    ESPTime date_time_local = obj->state_as_esptime();
+    // Convert from local to UTC by getting local timestamp then converting
+    date_time_local.recalc_timestamp_local();
+    // Now convert local timestamp to UTC by subtracting timezone offset
+    time_t local_timestamp = date_time_local.timestamp;
+    time_t utc_timestamp_local = local_timestamp - ESPTime::timezone_offset();
+    stream->print(static_cast<int64_t>(utc_timestamp_local));
+    stream->print(F("\n"));
   } else {
     // Invalid state
     stream->print(F("esphome_datetime_failed{id=\""));
