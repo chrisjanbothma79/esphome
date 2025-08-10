@@ -172,7 +172,7 @@ void ESPHomeOTAComponent::handle_data_() {
 #endif
 
   // Read remaining 4 bytes of magic (we already read the first byte 0x6C in handle_handshake_)
-  if (!this->readall_(buf, 4, OTA_SOCKET_TIMEOUT_DATA)) {
+  if (!this->readall_(buf, 4)) {
     ESP_LOGW(TAG, "Read magic bytes failed");
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
@@ -407,7 +407,7 @@ error:
 #endif
 }
 
-bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len, uint16_t timeout) {
+bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len, uint32_t timeout) {
   uint32_t start = millis();
   uint32_t at = 0;
   while (len - at > 0) {
@@ -438,7 +438,7 @@ bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len, uint16_t timeout) {
 
   return true;
 }
-bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len, uint16_t timeout) {
+bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len, uint32_t timeout) {
   uint32_t start = millis();
   uint32_t at = 0;
   while (len - at > 0) {
