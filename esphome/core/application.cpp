@@ -34,6 +34,44 @@ namespace esphome {
 
 static const char *const TAG = "app";
 
+// Helper function for insertion sort of components by setup priority
+// Using insertion sort instead of std::stable_sort saves ~1.3KB of flash
+// by avoiding template instantiations (std::rotate, std::stable_sort, lambdas)
+// IMPORTANT: This sort is stable (preserves relative order of equal elements),
+// which is necessary to maintain user-defined component order for same priority
+template<typename Iterator> static void insertion_sort_by_setup_priority(Iterator first, Iterator last) {
+  for (auto it = first + 1; it != last; ++it) {
+    auto key = *it;
+    float key_priority = key->get_actual_setup_priority();
+    auto j = it - 1;
+
+    // Using '<' (not '<=') ensures stability - equal priority components keep their order
+    while (j >= first && (*j)->get_actual_setup_priority() < key_priority) {
+      *(j + 1) = *j;
+      j--;
+    }
+    *(j + 1) = key;
+  }
+}
+
+// Helper function for insertion sort of components by loop priority
+// IMPORTANT: This sort is stable (preserves relative order of equal elements),
+// which is required when components are re-sorted during setup() if they block
+template<typename Iterator> static void insertion_sort_by_loop_priority(Iterator first, Iterator last) {
+  for (auto it = first + 1; it != last; ++it) {
+    auto key = *it;
+    float key_priority = key->get_loop_priority();
+    auto j = it - 1;
+
+    // Using '<' (not '<=') ensures stability - equal priority components keep their order
+    while (j >= first && (*j)->get_loop_priority() < key_priority) {
+      *(j + 1) = *j;
+      j--;
+    }
+    *(j + 1) = key;
+  }
+}
+
 void Application::register_component_(Component *comp) {
   if (comp == nullptr) {
     ESP_LOGW(TAG, "Tried to register null component!");
@@ -51,9 +89,12 @@ void Application::register_component_(Component *comp) {
 void Application::setup() {
   ESP_LOGI(TAG, "Running through setup()");
   ESP_LOGV(TAG, "Sorting components by setup priority");
-  std::stable_sort(this->components_.begin(), this->components_.end(), [](const Component *a, const Component *b) {
-    return a->get_actual_setup_priority() > b->get_actual_setup_priority();
-  });
+
+  // Sort by setup priority using our helper function
+  insertion_sort_by_setup_priority(this->components_.begin(), this->components_.end());
+
+  // Initialize looping_components_ early so enable_pending_loops_() works during setup
+  this->calculate_looping_components_();
 
   for (uint32_t i = 0; i < this->components_.size(); i++) {
     Component *component = this->components_[i];
@@ -66,13 +107,16 @@ void Application::setup() {
     if (component->can_proceed())
       continue;
 
-    std::stable_sort(this->components_.begin(), this->components_.begin() + i + 1,
-                     [](Component *a, Component *b) { return a->get_loop_priority() > b->get_loop_priority(); });
+    // Sort components 0 through i by loop priority
+    insertion_sort_by_loop_priority(this->components_.begin(), this->components_.begin() + i + 1);
 
     do {
       uint8_t new_app_state = STATUS_LED_WARNING;
-      this->scheduler.call(millis());
-      this->feed_wdt();
+      uint32_t now = millis();
+
+      // Process pending loop enables to handle GPIO interrupts during setup
+      this->before_loop_tasks_(now);
+
       for (uint32_t j = 0; j <= i; j++) {
         // Update loop_component_start_time_ right before calling each component
         this->loop_component_start_time_ = millis();
@@ -81,6 +125,8 @@ void Application::setup() {
         this->app_state_ |= new_app_state;
         this->feed_wdt();
       }
+
+      this->after_loop_tasks_();
       this->app_state_ = new_app_state;
       yield();
     } while (!component->can_proceed());
@@ -92,7 +138,6 @@ void Application::setup() {
   clear_setup_priority_overrides();
 
   this->schedule_dump_config();
-  this->calculate_looping_components_();
 }
 void Application::loop() {
   uint8_t new_app_state = 0;
@@ -100,27 +145,7 @@ void Application::loop() {
   // Get the initial loop time at the start
   uint32_t last_op_end_time = millis();
 
-  this->scheduler.call(last_op_end_time);
-
-  // Feed WDT with time
-  this->feed_wdt(last_op_end_time);
-
-  // Process any pending enable_loop requests from ISRs
-  // This must be done before marking in_loop_ = true to avoid race conditions
-  if (this->has_pending_enable_loop_requests_) {
-    // Clear flag BEFORE processing to avoid race condition
-    // If ISR sets it during processing, we'll catch it next loop iteration
-    // This is safe because:
-    // 1. Each component has its own pending_enable_loop_ flag that we check
-    // 2. If we can't process a component (wrong state), enable_pending_loops_()
-    //    will set this flag back to true
-    // 3. Any new ISR requests during processing will set the flag again
-    this->has_pending_enable_loop_requests_ = false;
-    this->enable_pending_loops_();
-  }
-
-  // Mark that we're in the loop for safe reentrant modifications
-  this->in_loop_ = true;
+  this->before_loop_tasks_(last_op_end_time);
 
   for (this->current_loop_index_ = 0; this->current_loop_index_ < this->looping_components_active_end_;
        this->current_loop_index_++) {
@@ -141,7 +166,7 @@ void Application::loop() {
     this->feed_wdt(last_op_end_time);
   }
 
-  this->in_loop_ = false;
+  this->after_loop_tasks_();
   this->app_state_ = new_app_state;
 
 #ifdef USE_RUNTIME_STATS
@@ -284,7 +309,9 @@ void Application::calculate_looping_components_() {
   // Pre-reserve vector to avoid reallocations
   this->looping_components_.reserve(total_looping);
 
-  // First add all active components
+  // Add all components with loop override that aren't already LOOP_DONE
+  // Some components (like logger) may call disable_loop() during initialization
+  // before setup runs, so we need to respect their LOOP_DONE state
   for (auto *obj : this->components_) {
     if (obj->has_overridden_loop() &&
         (obj->get_component_state() & COMPONENT_STATE_MASK) != COMPONENT_STATE_LOOP_DONE) {
@@ -294,8 +321,8 @@ void Application::calculate_looping_components_() {
 
   this->looping_components_active_end_ = this->looping_components_.size();
 
-  // Then add all inactive (LOOP_DONE) components
-  // This handles components that called disable_loop() during setup, before this method runs
+  // Then add any components that are already LOOP_DONE to the inactive section
+  // This handles components that called disable_loop() during initialization
   for (auto *obj : this->components_) {
     if (obj->has_overridden_loop() &&
         (obj->get_component_state() & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP_DONE) {
@@ -411,6 +438,36 @@ void Application::enable_pending_loops_() {
   }
 }
 
+void Application::before_loop_tasks_(uint32_t loop_start_time) {
+  // Process scheduled tasks
+  this->scheduler.call(loop_start_time);
+
+  // Feed the watchdog timer
+  this->feed_wdt(loop_start_time);
+
+  // Process any pending enable_loop requests from ISRs
+  // This must be done before marking in_loop_ = true to avoid race conditions
+  if (this->has_pending_enable_loop_requests_) {
+    // Clear flag BEFORE processing to avoid race condition
+    // If ISR sets it during processing, we'll catch it next loop iteration
+    // This is safe because:
+    // 1. Each component has its own pending_enable_loop_ flag that we check
+    // 2. If we can't process a component (wrong state), enable_pending_loops_()
+    //    will set this flag back to true
+    // 3. Any new ISR requests during processing will set the flag again
+    this->has_pending_enable_loop_requests_ = false;
+    this->enable_pending_loops_();
+  }
+
+  // Mark that we're in the loop for safe reentrant modifications
+  this->in_loop_ = true;
+}
+
+void Application::after_loop_tasks_() {
+  // Clear the in_loop_ flag to indicate we're done processing components
+  this->in_loop_ = false;
+}
+
 #ifdef USE_SOCKET_SELECT_SUPPORT
 bool Application::register_socket_fd(int fd) {
   // WARNING: This function is NOT thread-safe and must only be called from the main loop
@@ -440,24 +497,25 @@ void Application::unregister_socket_fd(int fd) {
   if (fd < 0)
     return;
 
-  auto it = std::find(this->socket_fds_.begin(), this->socket_fds_.end(), fd);
-  if (it != this->socket_fds_.end()) {
+  for (size_t i = 0; i < this->socket_fds_.size(); i++) {
+    if (this->socket_fds_[i] != fd)
+      continue;
+
     // Swap with last element and pop - O(1) removal since order doesn't matter
-    if (it != this->socket_fds_.end() - 1) {
-      std::swap(*it, this->socket_fds_.back());
-    }
+    if (i < this->socket_fds_.size() - 1)
+      this->socket_fds_[i] = this->socket_fds_.back();
     this->socket_fds_.pop_back();
     this->socket_fds_changed_ = true;
 
     // Only recalculate max_fd if we removed the current max
     if (fd == this->max_fd_) {
-      if (this->socket_fds_.empty()) {
-        this->max_fd_ = -1;
-      } else {
-        // Find new max using std::max_element
-        this->max_fd_ = *std::max_element(this->socket_fds_.begin(), this->socket_fds_.end());
+      this->max_fd_ = -1;
+      for (int sock_fd : this->socket_fds_) {
+        if (sock_fd > this->max_fd_)
+          this->max_fd_ = sock_fd;
       }
     }
+    return;
   }
 }
 
