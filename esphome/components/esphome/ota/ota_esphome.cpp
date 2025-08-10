@@ -182,7 +182,7 @@ void ESPHomeOTAComponent::handle_data_() {
 
   // Read remaining 4 bytes of magic (we already read the first byte 0x6C in handle_handshake_)
   if (!this->readall_(buf, 4)) {
-    ESP_LOGW(TAG, "Read magic bytes failed");
+    this->log_socket_error_("reading magic bytes");
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
   // Check remaining magic bytes: 0x26, 0xF7, 0x5C, 0x45
