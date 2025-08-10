@@ -194,7 +194,25 @@ class Component {
 
   bool is_failed() const;
 
-  bool is_ready() const;
+  /** Indicates whether the component is fully initialized and ready for use.
+   *
+   * This method can be overridden if additional asynchronous steps are required.
+   * It allows dependent components to check for readiness before attempting to
+   * interact with this component.
+   *
+   * @note The default implementation returns `true`. Override this in components where
+   *       readiness may be delayed due to asynchronous operations such as timeouts,
+   *       hardware communication, or staged initialization—either during or after setup.
+   *
+   * @note This does not block `setup()` or `loop()` execution. It is intended to be used
+   *       by dependent components to defer their own behavior until the parent component
+   *       becomes operational.
+   *
+   * @warning If a component is marked as failed, this method will always return `false`.
+   *
+   * @return `true` if the component is ready for use, `false` otherwise.
+   */
+  virtual bool is_ready() const;
 
   virtual bool can_proceed();
 

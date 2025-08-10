@@ -273,6 +273,9 @@ void Component::set_retry(uint32_t initial_wait_time, uint8_t max_attempts, std:
 }
 bool Component::is_failed() const { return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_FAILED; }
 bool Component::is_ready() const {
+  if (this->is_failed()) {
+    return false;
+  }
   return (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP ||
          (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_LOOP_DONE ||
          (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_SETUP;
