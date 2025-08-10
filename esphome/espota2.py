@@ -247,7 +247,7 @@ def perform_ota(
         receive_exactly(sock, 1, "auth result", RESPONSE_AUTH_OK)
 
     # Set higher timeout during upload
-    sock.settimeout(30.0)
+    sock.settimeout(600.0)
 
     upload_size = len(upload_contents)
     upload_size_encoded = [
