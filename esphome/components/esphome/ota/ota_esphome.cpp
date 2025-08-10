@@ -329,8 +329,7 @@ void ESPHomeOTAComponent::handle_data_() {
     ssize_t read = this->client_->read(buf, requested);
     if (read == -1) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        App.feed_wdt();
-        delay(1);
+        this->yield_and_feed_watchdog_();
         continue;
       }
       ESP_LOGW(TAG, "Read error, errno %d", errno);
@@ -366,8 +365,7 @@ void ESPHomeOTAComponent::handle_data_() {
       this->state_callback_.call(ota::OTA_IN_PROGRESS, percentage, 0);
 #endif
       // feed watchdog and give other tasks a chance to run
-      App.feed_wdt();
-      yield();
+      this->yield_and_feed_watchdog_();
     }
   }
 
@@ -429,8 +427,7 @@ bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len) {
     ssize_t read = this->client_->read(buf + at, len - at);
     if (read == -1) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        App.feed_wdt();
-        delay(1);
+        this->yield_and_feed_watchdog_();
         continue;
       }
       ESP_LOGW(TAG, "Error reading %d bytes, errno %d", len, errno);
@@ -441,8 +438,7 @@ bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len) {
     } else {
       at += read;
     }
-    App.feed_wdt();
-    delay(1);
+    this->yield_and_feed_watchdog_();
   }
 
   return true;
@@ -460,8 +456,7 @@ bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len) {
     ssize_t written = this->client_->write(buf + at, len - at);
     if (written == -1) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        App.feed_wdt();
-        delay(1);
+        this->yield_and_feed_watchdog_();
         continue;
       }
       ESP_LOGW(TAG, "Error writing %d bytes, errno %d", len, errno);
@@ -469,8 +464,7 @@ bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len) {
     } else {
       at += written;
     }
-    App.feed_wdt();
-    delay(1);
+    this->yield_and_feed_watchdog_();
   }
   return true;
 }
@@ -491,6 +485,11 @@ void ESPHomeOTAComponent::cleanup_connection_() {
   this->client_->close();
   this->client_ = nullptr;
   this->client_connect_time_ = 0;
+}
+
+void ESPHomeOTAComponent::yield_and_feed_watchdog_() {
+  App.feed_wdt();
+  delay(1);
 }
 
 }  // namespace esphome
