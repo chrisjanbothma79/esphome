@@ -145,7 +145,7 @@ void ESPHomeOTAComponent::handle_handshake_() {
     this->handle_data_();
   } else if (read == -1) {
     if (errno != EAGAIN && errno != EWOULDBLOCK) {
-      ESP_LOGW(TAG, "Error reading first byte, errno %d", errno);
+      this->log_socket_error_("reading first byte");
       this->cleanup_connection_();
     }
     // For EAGAIN/EWOULDBLOCK, just return and try again next loop
