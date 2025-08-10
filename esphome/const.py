@@ -35,6 +35,14 @@ class Framework(StrEnum):
     ZEPHYR = "zephyr"
 
 
+class ThreadModel(StrEnum):
+    """Threading model identifiers for ESPHome scheduler."""
+
+    SINGLE = "ESPHOME_THREAD_SINGLE"
+    MULTI_NO_ATOMICS = "ESPHOME_THREAD_MULTI_NO_ATOMICS"
+    MULTI_ATOMICS = "ESPHOME_THREAD_MULTI_ATOMICS"
+
+
 class PlatformFramework(Enum):
     """Combined platform-framework identifiers with tuple values."""
 
@@ -375,6 +383,8 @@ CONF_FINGER_ID = "finger_id"
 CONF_FINGERPRINT_COUNT = "fingerprint_count"
 CONF_FLASH_LENGTH = "flash_length"
 CONF_FLASH_TRANSITION_LENGTH = "flash_transition_length"
+CONF_FLIP_X = "flip_x"
+CONF_FLIP_Y = "flip_y"
 CONF_FLOW = "flow"
 CONF_FLOW_CONTROL_PIN = "flow_control_pin"
 CONF_FONT = "font"
@@ -513,6 +523,7 @@ CONF_LOADED_INTEGRATIONS = "loaded_integrations"
 CONF_LOCAL = "local"
 CONF_LOCK_ACTION = "lock_action"
 CONF_LOG = "log"
+CONF_LOG_LEVEL = "log_level"
 CONF_LOG_TOPIC = "log_topic"
 CONF_LOGGER = "logger"
 CONF_LOGS = "logs"
