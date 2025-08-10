@@ -152,7 +152,7 @@ void ESPHomeOTAComponent::handle_handshake_() {
     }
     // For EAGAIN/EWOULDBLOCK, just return and try again next loop
   } else if (read == 0) {
-    ESP_LOGW(TAG, "Remote closed connection during handshake");
+    ESP_LOGW(TAG, "Remote closed during handshake");
     this->cleanup_connection_();
   }
 }
