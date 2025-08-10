@@ -1142,7 +1142,7 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
-    // Manually construct ESPTime and treat values as UTC
+    // Manually construct ESPTime and convert from PST to UTC
     ESPTime date_time = {};
     date_time.year = obj->year;
     date_time.month = obj->month;
@@ -1152,9 +1152,12 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     date_time.second = obj->second;
     date_time.day_of_week = 1;
     date_time.day_of_year = 1;
-    date_time.is_dst = false;  // Assume no DST for UTC
-    date_time.recalc_timestamp_utc();
-    stream->print(static_cast<int64_t>(date_time.timestamp));
+    date_time.is_dst = false;
+    // First get local timestamp
+    date_time.recalc_timestamp_local();
+    // Convert PST to UTC by adding 8 hours (28800 seconds)
+    time_t utc_timestamp = date_time.timestamp + (8 * 3600);
+    stream->print(static_cast<int64_t>(utc_timestamp));
     stream->print(F("\n"));
   } else {
     // Invalid state
