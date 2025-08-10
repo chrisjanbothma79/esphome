@@ -328,6 +328,15 @@ def run_ota_impl_(remote_host, remote_port, password, filename):
         sock = socket.socket(af, socktype)
         sock.settimeout(10.0)
         try:
+            # Clamp TCP MSS so more packets fit into the small
+            # receive window of the embedded devices.
+            # This allows to keep more than ≥4 segments in flight,
+            # making fast retransmit more likely and reducing
+            # the amount of RTO backoffs on loss.
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_MAXSEG, 536)
+        except (AttributeError, OSError) as err:
+            _LOGGER.debug("Could not set TCP MSS: %s", err)
+        try:
             sock.connect(sa)
         except OSError as err:
             sock.close()
