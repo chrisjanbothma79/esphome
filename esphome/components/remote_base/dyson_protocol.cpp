@@ -9,7 +9,7 @@ namespace remote_base {
 static const char *const TAG = "remote.dyson";
 
 // pulsewidth [µs]
-constexpr uint32_t PW_MARK_US = 777;
+constexpr uint32_t PW_MARK_US = 780;
 constexpr uint32_t PW_SHORT_US = 720;
 constexpr uint32_t PW_LONG_US = 1500;
 constexpr uint32_t PW_START_US = 2280;
