@@ -118,24 +118,41 @@ void DeferredUpdateEventSource::deq_push_back_with_dedup_(void *source, message_
   }
 }
 
+/**
+ * @brief Processes the deferred event queue with time-based throttling.
+ *
+ * The previous implementation used a greedy `while` loop, which could flood the client
+ * with events. This new implementation sends at most one event per call, and only if
+ * a minimum interval (MIN_SEND_INTERVAL_MS) has passed since the last event was sent.
+ * This ensures a stable event rate and prevents 'Event message queue overflow' errors.
+ * Fixes #10169.
+ */
 void DeferredUpdateEventSource::process_deferred_queue_() {
-  while (!deferred_queue_.empty()) {
-    DeferredEvent &de = deferred_queue_.front();
-    std::string message = de.message_generator_(web_server_, de.source_);
-    if (this->send(message.c_str(), "state") != DISCARDED) {
-      // O(n) but memory efficiency is more important than speed here which is why std::vector was chosen
-      deferred_queue_.erase(deferred_queue_.begin());
-      this->consecutive_send_failures_ = 0;  // Reset failure count on successful send
-    } else {
-      this->consecutive_send_failures_++;
-      if (this->consecutive_send_failures_ >= MAX_CONSECUTIVE_SEND_FAILURES) {
-        // Too many failures, connection is likely dead
-        ESP_LOGW(TAG, "Closing stuck EventSource connection after %" PRIu16 " failed sends",
-                 this->consecutive_send_failures_);
-        this->close();
-        this->deferred_queue_.clear();
-      }
-      break;
+  static const uint32_t MIN_SEND_INTERVAL_MS = 100;
+
+  if (this->deferred_queue_.empty()) {
+    return;
+  }
+
+  uint32_t now = millis();
+  if (now - this->last_send_time_ < MIN_SEND_INTERVAL_MS) {
+    return;  // Too soon to send the next event.
+  }
+
+  DeferredEvent &de = this->deferred_queue_.front();
+  std::string message = de.message_generator_(this->web_server_, de.source_);
+
+  if (this->send(message.c_str(), "state") != DISCARDED) {
+    this->last_send_time_ = now;
+    this->consecutive_send_failures_ = 0;
+    this->deferred_queue_.erase(this->deferred_queue_.begin());
+  } else {
+    this->consecutive_send_failures_++;
+    if (this->consecutive_send_failures_ >= MAX_CONSECUTIVE_SEND_FAILURES) {
+      ESP_LOGW(TAG, "Closing stuck EventSource connection after %" PRIu16 " failed sends",
+               this->consecutive_send_failures_);
+      this->close();
+      this->deferred_queue_.clear();
     }
   }
 }
@@ -146,6 +163,18 @@ void DeferredUpdateEventSource::loop() {
     this->entities_iterator_.advance();
 }
 
+/**
+ * @brief Queues a state update to be sent to the client, with deduplication.
+ *
+ * This function now always pushes events into the deferred queue. The previous logic
+ * attempted to send immediately if the queue was empty, which bypassed the throttling
+ * mechanism in process_deferred_queue_(). By always queueing, we ensure every state
+ * event goes through the central throttle, preventing event floods.
+ *
+ * @param source A pointer to the source entity, used for deduplication.
+ * @param event_type The type of event (e.g., "state").
+ * @param message_generator A function that generates the event payload.
+ */
 void DeferredUpdateEventSource::deferrable_send_state(void *source, const char *event_type,
                                                       message_generator_t *message_generator) {
   // allow all json "details_all" to go through before publishing bare state events, this avoids unnamed entries showing
@@ -164,19 +193,7 @@ void DeferredUpdateEventSource::deferrable_send_state(void *source, const char *
     ESP_LOGE(TAG, "Can't defer non-state event");
   }
 
-  if (!deferred_queue_.empty())
-    process_deferred_queue_();
-  if (!deferred_queue_.empty()) {
-    // deferred queue still not empty which means downstream event queue full, no point trying to send first
-    deq_push_back_with_dedup_(source, message_generator);
-  } else {
-    std::string message = message_generator(web_server_, source);
-    if (this->send(message.c_str(), "state") == DISCARDED) {
-      deq_push_back_with_dedup_(source, message_generator);
-    } else {
-      this->consecutive_send_failures_ = 0;  // Reset failure count on successful send
-    }
-  }
+  deq_push_back_with_dedup_(source, message_generator);
 }
 
 // used for logs plus the initial ping/config

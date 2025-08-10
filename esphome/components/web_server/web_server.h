@@ -122,6 +122,14 @@ class DeferredUpdateEventSource : public AsyncEventSource {
   std::vector<DeferredEvent> deferred_queue_;
   WebServer *web_server_;
   uint16_t consecutive_send_failures_{0};
+  /**
+   * @brief Timestamp of the last event sent from the deferred queue.
+   *
+   * This is used to implement time-based throttling of the event queue to prevent
+   * flooding the client and causing an 'Event message queue overflow' error with
+   * high-frequency update components.
+   */
+  uint32_t last_send_time_{0};
   static constexpr uint16_t MAX_CONSECUTIVE_SEND_FAILURES = 2500;  // ~20 seconds at 125Hz loop rate
 
   // helper for allowing only unique entries in the queue
