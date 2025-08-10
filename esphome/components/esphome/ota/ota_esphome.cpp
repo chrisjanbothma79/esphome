@@ -182,7 +182,7 @@ void ESPHomeOTAComponent::handle_data_() {
 
   // Read remaining 4 bytes of magic (we already read the first byte 0x6C in handle_handshake_)
   if (!this->readall_(buf, 4)) {
-    this->log_socket_error_("reading magic bytes");
+    this->log_read_error_("magic bytes");
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
   // Check remaining magic bytes: 0x26, 0xF7, 0x5C, 0x45
@@ -201,7 +201,7 @@ void ESPHomeOTAComponent::handle_data_() {
 
   // Read features - 1 byte
   if (!this->readall_(buf, 1)) {
-    this->log_socket_error_("reading features");
+    this->log_read_error_("features");
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
   ota_features = buf[0];  // NOLINT
@@ -280,7 +280,7 @@ void ESPHomeOTAComponent::handle_data_() {
 
   // Read size, 4 bytes MSB first
   if (!this->readall_(buf, 4)) {
-    ESP_LOGW(TAG, "Read size failed");
+    this->log_read_error_("size");
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
   ota_size = 0;
@@ -312,7 +312,7 @@ void ESPHomeOTAComponent::handle_data_() {
 
   // Read binary MD5, 32 bytes
   if (!this->readall_(buf, 32)) {
-    ESP_LOGW(TAG, "Read MD5 checksum failed");
+    this->log_read_error_("MD5 checksum");
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
   sbuf[32] = '\0';
@@ -387,7 +387,7 @@ void ESPHomeOTAComponent::handle_data_() {
 
   // Read ACK
   if (!this->readall_(buf, 1) || buf[0] != ota::OTA_RESPONSE_OK) {
-    ESP_LOGW(TAG, "Read ack failed");
+    this->log_read_error_("ack");
     // do not go to error, this is not fatal
   }
 
@@ -480,6 +480,8 @@ uint16_t ESPHomeOTAComponent::get_port() const { return this->port_; }
 void ESPHomeOTAComponent::set_port(uint16_t port) { this->port_ = port; }
 
 void ESPHomeOTAComponent::log_socket_error_(const char *msg) { ESP_LOGW(TAG, "Socket %s: errno %d", msg, errno); }
+
+void ESPHomeOTAComponent::log_read_error_(const char *what) { ESP_LOGW(TAG, "Read %s failed", what); }
 
 void ESPHomeOTAComponent::log_start_(const char *phase) {
   ESP_LOGD(TAG, "Starting %s from %s", phase, this->client_->getpeername().c_str());

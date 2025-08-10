@@ -32,6 +32,7 @@ class ESPHomeOTAComponent : public ota::OTAComponent {
   bool readall_(uint8_t *buf, size_t len);
   bool writeall_(const uint8_t *buf, size_t len);
   void log_socket_error_(const char *msg);
+  void log_read_error_(const char *what);
   void log_start_(const char *phase);
   void cleanup_connection_();
 
