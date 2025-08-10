@@ -137,25 +137,31 @@ void ESPHomeOTAComponent::handle_handshake_() {
   // Try to read first byte of magic bytes
   uint8_t first_byte;
   ssize_t read = this->client_->read(&first_byte, 1);
-  if (read == 1) {
-    // Got the first byte, check if it's the magic byte
-    if (first_byte != 0x6C) {
-      ESP_LOGW(TAG, "Invalid initial byte: 0x%02X", first_byte);
-      this->cleanup_connection_();
-      return;
-    }
-    // First byte is valid, continue with data handling
-    this->handle_data_();
-  } else if (read == -1) {
-    if (errno != EAGAIN && errno != EWOULDBLOCK) {
-      this->log_socket_error_("reading first byte");
-      this->cleanup_connection_();
-    }
-    // For EAGAIN/EWOULDBLOCK, just return and try again next loop
-  } else if (read == 0) {
-    ESP_LOGW(TAG, "Remote closed during handshake");
-    this->cleanup_connection_();
+
+  if (read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+    return;  // No data yet, try again next loop
   }
+
+  if (read <= 0) {
+    // Error or connection closed
+    if (read == -1) {
+      this->log_socket_error_("reading first byte");
+    } else {
+      ESP_LOGW(TAG, "Remote closed during handshake");
+    }
+    this->cleanup_connection_();
+    return;
+  }
+
+  // Got first byte, check if it's the magic byte
+  if (first_byte != 0x6C) {
+    ESP_LOGW(TAG, "Invalid initial byte: 0x%02X", first_byte);
+    this->cleanup_connection_();
+    return;
+  }
+
+  // First byte is valid, continue with data handling
+  this->handle_data_();
 }
 
 void ESPHomeOTAComponent::handle_data_() {
