@@ -1152,9 +1152,24 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     date_time.second = obj->second;
     date_time.day_of_week = 1;
     date_time.day_of_year = 1;
-    date_time.recalc_timestamp_utc(false);
+    date_time.recalc_timestamp_local();
     stream->print(static_cast<int64_t>(date_time.timestamp));
     stream->print(F("\n"));
+    ESPTime date_time_utc = {};
+    date_time_utc.year = obj->year;
+    date_time_utc.month = obj->month;
+    date_time_utc.day_of_month = obj->day;
+    date_time_utc.hour = obj->hour;
+    date_time_utc.minute = obj->minute;
+    date_time_utc.second = obj->second;
+    date_time_utc.day_of_week = 1;
+    date_time_utc.day_of_year = 1;
+    date_time_utc.is_dst = false;
+    // First get local timestamp
+    date_time_utc.recalc_timestamp_local();
+    // Convert local to UTC by adding the current timezone offset
+    time_t utc_timestamp = date_time_utc.timestamp + ESPTime::timezone_offset();
+    ESP_LOGD("test", "UTC timestamp: %ld", utc_timestamp);
   } else {
     // Invalid state
     stream->print(F("esphome_datetime_failed{id=\""));
