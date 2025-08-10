@@ -1046,14 +1046,14 @@ void PrometheusHandler::date_row_(AsyncResponseStream *stream, datetime::DateEnt
     // Construct a date time object
     ESPTime date_time = obj->state_as_esptime();
     // Set time to midnight UTC for date
-    // date_time.hour = 0;
-    // date_time.minute = 0;
-    // date_time.second = 0;
+    date_time.hour = 0;
+    date_time.minute = 0;
+    date_time.second = 0;
     // Set these to valid value for  recalc_timestamp_utc - it's not used for calculation
-    // date_time.day_of_week = 1;
-    // date_time.day_of_year = 1;
+    date_time.day_of_week = 1;
+    date_time.day_of_year = 1;
     // date_time.recalc_timestamp_utc(false);
-    // date_time.recalc_timestamp_local();
+    date_time.recalc_timestamp_local();
     stream->print(static_cast<int64_t>(date_time.timestamp));
     stream->print(F("\n"));
   } else {
@@ -1144,7 +1144,10 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(F("\"} "));
     // Construct a date time object
     ESPTime date_time = obj->state_as_esptime();
-    // date_time.recalc_timestamp_local();
+    // Set these to valid value for  recalc_timestamp_utc - it's not used for calculation
+    date_time.day_of_week = 1;
+    date_time.day_of_year = 1;
+    date_time.recalc_timestamp_local();
     stream->print(static_cast<int64_t>(date_time.timestamp));
     stream->print(F("\n"));
   } else {
