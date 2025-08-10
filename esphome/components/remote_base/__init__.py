@@ -655,9 +655,9 @@ def dyson_dumper(var, config):
 @register_action("dyson", DysonAction, DYSON_SCHEMA)
 async def dyson_action(var, config, args):
     template_ = await cg.templatable(config[CONF_CODE], args, cg.uint16)
-    cg.add(var.set_source(template_))
+    cg.add(var.set_code(template_))
     template_ = await cg.templatable(config[CONF_INDEX], args, cg.uint8)
-    cg.add(var.set_command(template_))
+    cg.add(var.set_index(template_))
 
 
 # JVC
