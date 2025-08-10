@@ -95,7 +95,9 @@ void T6615Component::loop() {
     }
     case T6615Command::GET_SERIAL: {
       /* GET_SERIAL reply is 4+15 bytes long, read remaining 15 bytes*/
-      this->read_array(response_buffer + 4, 15);
+      /* do not read last byte, should be \0 */
+      this->read_array(response_buffer + 4, 14);
+
       ESP_LOGD(TAG, "T6615 Received serial=%s", response_buffer + 4);
       break;
     }
