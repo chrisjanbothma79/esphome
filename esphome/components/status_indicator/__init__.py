@@ -1,20 +1,16 @@
-import esphome.config_validation as cv
-import esphome.codegen as cg
 import esphome.automation as auto
+import esphome.codegen as cg
+import esphome.config_validation as cv
 from esphome.const import (
-    CONF_ID,
-    CONF_PRIORITY,
     CONF_GROUP,
-    CONF_TRIGGER_ID,
+    CONF_ID,
     CONF_ON_TURN_OFF,
+    CONF_PRIORITY,
+    CONF_TRIGGER_ID,
     CONF_VALUE,
 )
-from esphome.schema_extractors import (
-    SCHEMA_EXTRACT,
-    schema_extractor,
-)
-
 from esphome.core import coroutine_with_priority
+from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
 
 CODEOWNERS = ["@nielsnl68"]
 
