@@ -243,16 +243,16 @@ def final_validation(configs):
                 raise cv.Invalid(
                     f"Widget '{w}' does not have any templated properties to refresh",
                 )
-        if any(config.get(key) for key in (df.CONF_ENCODERS, df.CONF_KEYPADS)):
-            if not config.get(df.CONF_GROUPS):
-                raise cv.Invalid(
-                    "When using encoders or keypads, at least one group must be defined"
-                )
+        if any(
+            config.get(key) for key in (df.CONF_ENCODERS, df.CONF_KEYPADS)
+        ) and not config.get(df.CONF_GROUPS):
+            raise cv.Invalid(
+                "When using encoders or keypads, at least one group must be defined"
+            )
 
 
 def get_default_group(config):
-    default_group = cg.Pvariable(config[df.CONF_DEFAULT_GROUP], lv_expr.group_create())
-    return default_group
+    return cg.Pvariable(config[df.CONF_DEFAULT_GROUP], lv_expr.group_create())
 
 
 async def to_code(configs):
