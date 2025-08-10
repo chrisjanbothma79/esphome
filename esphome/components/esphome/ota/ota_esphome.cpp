@@ -20,7 +20,6 @@ namespace esphome {
 
 static const char *const TAG = "esphome.ota";
 static constexpr u_int16_t OTA_BLOCK_SIZE = 8192;
-static constexpr uint16_t OTA_SOCKET_TIMEOUT_HANDSHAKE = 1000;  // milliseconds for initial handshake
 
 void ESPHomeOTAComponent::setup() {
 #ifdef USE_OTA_STATE_CALLBACK
@@ -88,13 +87,76 @@ void ESPHomeOTAComponent::loop() {
   // This optimization reduces idle loop overhead when OTA is not active
   // Note: No need to check server_ for null as the component is marked failed in setup() if server_ creation fails
   if (this->client_ != nullptr || this->server_->ready()) {
-    this->handle_();
+    this->handle_handshake_();
   }
 }
 
 static const uint8_t FEATURE_SUPPORTS_COMPRESSION = 0x01;
 
-void ESPHomeOTAComponent::handle_() {
+void ESPHomeOTAComponent::handle_handshake_() {
+  // This method does the initial handshake with the client
+  // and will not block the loop until we receive the first byte
+  // of the magic bytes
+
+  if (this->client_ == nullptr) {
+    // We already checked server_->ready() in loop(), so we can accept directly
+    struct sockaddr_storage source_addr;
+    socklen_t addr_len = sizeof(source_addr);
+    int enable = 1;
+
+    this->client_ = this->server_->accept_loop_monitored((struct sockaddr *) &source_addr, &addr_len);
+    if (this->client_ == nullptr)
+      return;
+    int err = this->client_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
+    if (err != 0) {
+      this->log_socket_error_("nodelay");
+      this->cleanup_connection_();
+      return;
+    }
+    err = this->client_->setblocking(false);
+    if (err != 0) {
+      this->log_socket_error_("non-blocking");
+      this->cleanup_connection_();
+      return;
+    }
+    this->log_start_("handshake");
+    this->client_connect_time_ = App.get_loop_component_start_time();
+  }
+
+  // Check for handshake timeout
+  uint32_t now = App.get_loop_component_start_time();
+  if (now - this->client_connect_time_ > OTA_SOCKET_TIMEOUT_HANDSHAKE) {
+    ESP_LOGW(TAG, "Handshake timeout");
+    this->cleanup_connection_();
+    return;
+  }
+
+  // Try to read first byte of magic bytes
+  uint8_t first_byte;
+  ssize_t read = this->client_->read(&first_byte, 1);
+  if (read == 1) {
+    // Got the first byte, check if it's the magic byte
+    if (first_byte != 0x6C) {
+      ESP_LOGW(TAG, "Invalid initial byte: 0x%02X", first_byte);
+      this->cleanup_connection_();
+      return;
+    }
+    // First byte is valid, continue with data handling
+    this->handle_data_();
+  } else if (read == -1) {
+    if (errno != EAGAIN && errno != EWOULDBLOCK) {
+      ESP_LOGW(TAG, "Error reading first byte, errno %d", errno);
+      this->cleanup_connection_();
+    }
+    // For EAGAIN/EWOULDBLOCK, just return and try again next loop
+  } else if (read == 0) {
+    ESP_LOGW(TAG, "Remote closed connection during handshake");
+    this->cleanup_connection_();
+  }
+}
+
+void ESPHomeOTAComponent::handle_data_() {
+  // This method blocks the main loop until the OTA update is complete
   ota::OTAResponseTypes error_code = ota::OTA_RESPONSE_ERROR_UNKNOWN;
   bool update_started = false;
   size_t total = 0;
@@ -109,38 +171,14 @@ void ESPHomeOTAComponent::handle_() {
   size_t size_acknowledged = 0;
 #endif
 
-  if (this->client_ == nullptr) {
-    // We already checked server_->ready() in loop(), so we can accept directly
-    struct sockaddr_storage source_addr;
-    socklen_t addr_len = sizeof(source_addr);
-    this->client_ = this->server_->accept((struct sockaddr *) &source_addr, &addr_len);
-    if (this->client_ == nullptr)
-      return;
-  }
-
-  int enable = 1;
-  int err = this->client_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
-  if (err != 0) {
-    this->log_socket_error_("nodelay");
-    this->cleanup_connection_();
-    return;
-  }
-  err = this->client_->setblocking(false);
-  if (err != 0) {
-    this->log_socket_error_("non-blocking");
-    this->cleanup_connection_();
-    return;
-  }
-
-  this->log_start_("handshake");
-
-  if (!this->readall_(buf, 5, OTA_SOCKET_TIMEOUT_HANDSHAKE)) {
+  // Read remaining 4 bytes of magic (we already read the first byte 0x6C in handle_handshake_)
+  if (!this->readall_(buf, 4)) {
     ESP_LOGW(TAG, "Read magic bytes failed");
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
-  // 0x6C, 0x26, 0xF7, 0x5C, 0x45
-  if (buf[0] != 0x6C || buf[1] != 0x26 || buf[2] != 0xF7 || buf[3] != 0x5C || buf[4] != 0x45) {
-    ESP_LOGW(TAG, "Magic bytes mismatch! 0x%02X-0x%02X-0x%02X-0x%02X-0x%02X", buf[0], buf[1], buf[2], buf[3], buf[4]);
+  // Check remaining magic bytes: 0x26, 0xF7, 0x5C, 0x45
+  if (buf[0] != 0x26 || buf[1] != 0xF7 || buf[2] != 0x5C || buf[3] != 0x45) {
+    ESP_LOGW(TAG, "Magic bytes mismatch! 0x6C-0x%02X-0x%02X-0x%02X-0x%02X", buf[0], buf[1], buf[2], buf[3]);
     error_code = ota::OTA_RESPONSE_ERROR_MAGIC;
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
@@ -369,7 +407,7 @@ error:
 #endif
 }
 
-bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len, uint16_t timeout) {
+bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len, uint32_t timeout) {
   uint32_t start = millis();
   uint32_t at = 0;
   while (len - at > 0) {
@@ -400,7 +438,7 @@ bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len, uint16_t timeout) {
 
   return true;
 }
-bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len, uint16_t timeout) {
+bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len, uint32_t timeout) {
   uint32_t start = millis();
   uint32_t at = 0;
   while (len - at > 0) {
@@ -441,6 +479,7 @@ void ESPHomeOTAComponent::log_start_(const char *phase) {
 void ESPHomeOTAComponent::cleanup_connection_() {
   this->client_->close();
   this->client_ = nullptr;
+  this->client_connect_time_ = 0;
 }
 
 }  // namespace esphome
