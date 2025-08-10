@@ -129,6 +129,27 @@ void PrometheusHandler::add_friendly_name_label_(AsyncResponseStream *stream, st
   }
 }
 
+// Escape Prometheus label values per exposition format:
+// backslash, double quote and line feed.
+void PrometheusHandler::add_escaped_label_value_(AsyncResponseStream *stream, std::string &value) {
+  for (char c : value) {
+    switch (c) {
+      case '\\':
+        stream->print(F("\\\\"));
+        break;
+      case '\"':
+        stream->print(F("\\\""));
+        break;
+      case '\n':
+        stream->print(F("\\n"));
+        break;
+      default:
+        stream->print(c);
+        break;
+    }
+  }
+}
+
 // Type-specific implementation
 #ifdef USE_SENSOR
 void PrometheusHandler::sensor_type_(AsyncResponseStream *stream) {
@@ -529,7 +550,7 @@ void PrometheusHandler::text_sensor_row_(AsyncResponseStream *stream, text_senso
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\",value=\""));
-    stream->print(obj->state.c_str());
+    add_escaped_label_value_(stream, obj->state);
     stream->print(F("\"} "));
     stream->print(F("1.0"));
     stream->print(F("\n"));

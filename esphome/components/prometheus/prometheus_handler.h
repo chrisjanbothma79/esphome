@@ -40,6 +40,13 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
    */
   void add_label_name(EntityBase *obj, const std::string &value) { relabel_map_name_.insert({obj, value}); }
 
+  /** Escape Prometheus label values per exposition format
+   *
+   * @param obj The entity for which to escape the label value
+   * @param value The value which should be escaped
+   */
+  void add_escaped_label_value(EntityBase *obj, const std::string &value) { relabel_map_name_.insert({obj, value}); }
+
   bool canHandle(AsyncWebServerRequest *request) const override {
     if (request->method() == HTTP_GET) {
       if (request->url() == "/metrics")
@@ -66,6 +73,7 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
   void add_area_label_(AsyncResponseStream *stream, std::string &area);
   void add_node_label_(AsyncResponseStream *stream, std::string &node);
   void add_friendly_name_label_(AsyncResponseStream *stream, std::string &friendly_name);
+  void add_escaped_label_value_(AsyncResponseStream *stream, std::string &value);
 
 #ifdef USE_SENSOR
   /// Return the type for prometheus
