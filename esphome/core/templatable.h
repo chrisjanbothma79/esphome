@@ -2,6 +2,9 @@
 
 namespace esphome {
 
+using std::enable_if_t;
+using std::is_invocable;
+
 template<typename T> class Templatable {
  public:
   Templatable() : type_(NONE) {}
