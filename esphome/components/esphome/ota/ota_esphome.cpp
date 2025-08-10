@@ -97,9 +97,11 @@ void ESPHomeOTAComponent::loop() {
 static const uint8_t FEATURE_SUPPORTS_COMPRESSION = 0x01;
 
 void ESPHomeOTAComponent::handle_handshake_() {
-  // This method does the initial handshake with the client
-  // and will not block the loop until we receive the first byte
-  // of the magic bytes
+  /// Handle the initial OTA handshake.
+  ///
+  /// This method is non-blocking and will return immediately if no data is available.
+  /// It waits for the first magic byte (0x6C) before proceeding to handle_data_().
+  /// A 10-second timeout is enforced from initial connection.
 
   if (this->client_ == nullptr) {
     // We already checked server_->ready() in loop(), so we can accept directly
@@ -165,7 +167,11 @@ void ESPHomeOTAComponent::handle_handshake_() {
 }
 
 void ESPHomeOTAComponent::handle_data_() {
-  // This method blocks the main loop until the OTA update is complete
+  /// Handle the OTA data transfer and update process.
+  ///
+  /// This method is blocking and will not return until the OTA update completes,
+  /// fails, or times out. It handles authentication, receives the firmware data,
+  /// writes it to flash, and reboots on success.
   ota::OTAResponseTypes error_code = ota::OTA_RESPONSE_ERROR_UNKNOWN;
   bool update_started = false;
   size_t total = 0;
