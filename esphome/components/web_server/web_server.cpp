@@ -635,7 +635,7 @@ void WebServer::handle_fan_request(AsyncWebServerRequest *request, const UrlMatc
     } else if (match.method_equals("turn_on") || match.method_equals("turn_off")) {
       auto call = match.method_equals("turn_on") ? obj->turn_on() : obj->turn_off();
 
-      parse_int_param(request, "speed_level", call, &decltype(call)::set_speed);
+      parse_int_param_(request, "speed_level", call, &decltype(call)::set_speed);
 
       if (request->hasParam("oscillation")) {
         auto speed = request->getParam("oscillation")->value();
@@ -710,24 +710,24 @@ void WebServer::handle_light_request(AsyncWebServerRequest *request, const UrlMa
       auto call = obj->turn_on();
 
       // Parse color parameters
-      parse_light_param(request, "brightness", call, &decltype(call)::set_brightness, 255.0f);
-      parse_light_param(request, "r", call, &decltype(call)::set_red, 255.0f);
-      parse_light_param(request, "g", call, &decltype(call)::set_green, 255.0f);
-      parse_light_param(request, "b", call, &decltype(call)::set_blue, 255.0f);
-      parse_light_param(request, "white_value", call, &decltype(call)::set_white, 255.0f);
-      parse_light_param(request, "color_temp", call, &decltype(call)::set_color_temperature);
+      parse_light_param_(request, "brightness", call, &decltype(call)::set_brightness, 255.0f);
+      parse_light_param_(request, "r", call, &decltype(call)::set_red, 255.0f);
+      parse_light_param_(request, "g", call, &decltype(call)::set_green, 255.0f);
+      parse_light_param_(request, "b", call, &decltype(call)::set_blue, 255.0f);
+      parse_light_param_(request, "white_value", call, &decltype(call)::set_white, 255.0f);
+      parse_light_param_(request, "color_temp", call, &decltype(call)::set_color_temperature);
 
       // Parse timing parameters
-      parse_light_param_uint(request, "flash", call, &decltype(call)::set_flash_length, 1000);
-      parse_light_param_uint(request, "transition", call, &decltype(call)::set_transition_length, 1000);
+      parse_light_param_uint_(request, "flash", call, &decltype(call)::set_flash_length, 1000);
+      parse_light_param_uint_(request, "transition", call, &decltype(call)::set_transition_length, 1000);
 
-      parse_string_param(request, "effect", call, &decltype(call)::set_effect);
+      parse_string_param_(request, "effect", call, &decltype(call)::set_effect);
 
       this->defer([call]() mutable { call.perform(); });
       request->send(200);
     } else if (match.method_equals("turn_off")) {
       auto call = obj->turn_off();
-      parse_light_param_uint(request, "transition", call, &decltype(call)::set_transition_length, 1000);
+      parse_light_param_uint_(request, "transition", call, &decltype(call)::set_transition_length, 1000);
       this->defer([call]() mutable { call.perform(); });
       request->send(200);
     } else {
@@ -800,8 +800,8 @@ void WebServer::handle_cover_request(AsyncWebServerRequest *request, const UrlMa
       return;
     }
 
-    parse_float_param(request, "position", call, &decltype(call)::set_position);
-    parse_float_param(request, "tilt", call, &decltype(call)::set_tilt);
+    parse_float_param_(request, "position", call, &decltype(call)::set_position);
+    parse_float_param_(request, "tilt", call, &decltype(call)::set_tilt);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -855,7 +855,7 @@ void WebServer::handle_number_request(AsyncWebServerRequest *request, const UrlM
     }
 
     auto call = obj->make_call();
-    parse_float_param(request, "value", call, &decltype(call)::set_value);
+    parse_float_param_(request, "value", call, &decltype(call)::set_value);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -927,7 +927,7 @@ void WebServer::handle_date_request(AsyncWebServerRequest *request, const UrlMat
       return;
     }
 
-    parse_string_param(request, "value", call, &decltype(call)::set_date);
+    parse_string_param_(request, "value", call, &decltype(call)::set_date);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -983,7 +983,7 @@ void WebServer::handle_time_request(AsyncWebServerRequest *request, const UrlMat
       return;
     }
 
-    parse_string_param(request, "value", call, &decltype(call)::set_time);
+    parse_string_param_(request, "value", call, &decltype(call)::set_time);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -1038,7 +1038,7 @@ void WebServer::handle_datetime_request(AsyncWebServerRequest *request, const Ur
       return;
     }
 
-    parse_string_param(request, "value", call, &decltype(call)::set_datetime);
+    parse_string_param_(request, "value", call, &decltype(call)::set_datetime);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -1089,7 +1089,7 @@ void WebServer::handle_text_request(AsyncWebServerRequest *request, const UrlMat
     }
 
     auto call = obj->make_call();
-    parse_string_param(request, "value", call, &decltype(call)::set_value);
+    parse_string_param_(request, "value", call, &decltype(call)::set_value);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -1148,7 +1148,7 @@ void WebServer::handle_select_request(AsyncWebServerRequest *request, const UrlM
     }
 
     auto call = obj->make_call();
-    parse_string_param(request, "option", call, &decltype(call)::set_option);
+    parse_string_param_(request, "option", call, &decltype(call)::set_option);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -1205,14 +1205,14 @@ void WebServer::handle_climate_request(AsyncWebServerRequest *request, const Url
     auto call = obj->make_call();
 
     // Parse string mode parameters
-    parse_string_param(request, "mode", call, &decltype(call)::set_mode);
-    parse_string_param(request, "fan_mode", call, &decltype(call)::set_fan_mode);
-    parse_string_param(request, "swing_mode", call, &decltype(call)::set_swing_mode);
+    parse_string_param_(request, "mode", call, &decltype(call)::set_mode);
+    parse_string_param_(request, "fan_mode", call, &decltype(call)::set_fan_mode);
+    parse_string_param_(request, "swing_mode", call, &decltype(call)::set_swing_mode);
 
     // Parse temperature parameters
-    parse_float_param(request, "target_temperature_high", call, &decltype(call)::set_target_temperature_high);
-    parse_float_param(request, "target_temperature_low", call, &decltype(call)::set_target_temperature_low);
-    parse_float_param(request, "target_temperature", call, &decltype(call)::set_target_temperature);
+    parse_float_param_(request, "target_temperature_high", call, &decltype(call)::set_target_temperature_high);
+    parse_float_param_(request, "target_temperature_low", call, &decltype(call)::set_target_temperature_low);
+    parse_float_param_(request, "target_temperature", call, &decltype(call)::set_target_temperature);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -1403,7 +1403,7 @@ void WebServer::handle_valve_request(AsyncWebServerRequest *request, const UrlMa
       return;
     }
 
-    parse_float_param(request, "position", call, &decltype(call)::set_position);
+    parse_float_param_(request, "position", call, &decltype(call)::set_position);
 
     this->defer([call]() mutable { call.perform(); });
     request->send(200);
@@ -1451,7 +1451,7 @@ void WebServer::handle_alarm_control_panel_request(AsyncWebServerRequest *reques
     }
 
     auto call = obj->make_call();
-    parse_string_param(request, "code", call, &decltype(call)::set_code);
+    parse_string_param_(request, "code", call, &decltype(call)::set_code);
 
     if (match.method_equals("disarm")) {
       call.disarm();
