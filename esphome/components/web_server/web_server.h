@@ -552,7 +552,8 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   void parse_string_param_(AsyncWebServerRequest *request, const char *param_name, T &call,
                            Ret (T::*setter)(const std::string &)) {
     if (request->hasParam(param_name)) {
-      std::string value = request->getParam(param_name)->value().c_str();
+      // .c_str() is required for Arduino framework where value() returns Arduino String instead of std::string
+      std::string value = request->getParam(param_name)->value().c_str();  // NOLINT(readability-redundant-string-cstr)
       (call.*setter)(value);
     }
   }
