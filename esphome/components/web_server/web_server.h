@@ -552,7 +552,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   void parse_string_param_(AsyncWebServerRequest *request, const char *param_name, T &call,
                            Ret (T::*setter)(const std::string &)) {
     if (request->hasParam(param_name)) {
-      std::string value = request->getParam(param_name)->value().c_str();
+      std::string value = request->getParam(param_name)->value();
       (call.*setter)(value);
     }
   }
