@@ -9,8 +9,8 @@
 
 namespace esphome {
 
-static constexpr uint16_t OTA_SOCKET_TIMEOUT_HANDSHAKE = 10000;  // milliseconds for initial handshake
-static constexpr uint16_t OTA_SOCKET_TIMEOUT_DATA = 90000;       // milliseconds for data transfer
+static constexpr uint32_t OTA_SOCKET_TIMEOUT_HANDSHAKE = 10000;  // milliseconds for initial handshake
+static constexpr uint32_t OTA_SOCKET_TIMEOUT_DATA = 90000;       // milliseconds for data transfer
 
 /// ESPHomeOTAComponent provides a simple way to integrate Over-the-Air updates into your app using ArduinoOTA.
 class ESPHomeOTAComponent : public ota::OTAComponent {
@@ -32,8 +32,8 @@ class ESPHomeOTAComponent : public ota::OTAComponent {
  protected:
   void handle_handshake_();
   void handle_data_();
-  bool readall_(uint8_t *buf, size_t len, uint16_t timeout = OTA_SOCKET_TIMEOUT_DATA);
-  bool writeall_(const uint8_t *buf, size_t len, uint16_t timeout = OTA_SOCKET_TIMEOUT_DATA);
+  bool readall_(uint8_t *buf, size_t len, uint32_t timeout = OTA_SOCKET_TIMEOUT_DATA);
+  bool writeall_(const uint8_t *buf, size_t len, uint32_t timeout = OTA_SOCKET_TIMEOUT_DATA);
   void log_socket_error_(const char *msg);
   void log_start_(const char *phase);
   void cleanup_connection_();
