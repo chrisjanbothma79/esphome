@@ -1152,7 +1152,7 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     date_time.second = obj->second;
     date_time.day_of_week = 1;
     date_time.day_of_year = 1;
-    date_time.recalc_timestamp_utc();
+    date_time.recalc_timestamp_utc(false);
     stream->print(static_cast<int64_t>(date_time.timestamp));
     stream->print(F("\n"));
   } else {
