@@ -201,7 +201,7 @@ void ESPHomeOTAComponent::handle_data_() {
 
   // Read features - 1 byte
   if (!this->readall_(buf, 1)) {
-    ESP_LOGW(TAG, "Read features failed");
+    this->log_socket_error_("reading features");
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
   ota_features = buf[0];  // NOLINT
