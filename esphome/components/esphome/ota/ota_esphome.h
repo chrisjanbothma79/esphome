@@ -35,6 +35,7 @@ class ESPHomeOTAComponent : public ota::OTAComponent {
   void log_read_error_(const char *what);
   void log_start_(const char *phase);
   void cleanup_connection_();
+  void yield_and_feed_watchdog_();
 
 #ifdef USE_OTA_PASSWORD
   std::string password_;
