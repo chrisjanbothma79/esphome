@@ -326,7 +326,7 @@ def run_ota_impl_(remote_host, remote_port, password, filename):
         af, socktype, _, _, sa = r
         _LOGGER.info("Connecting to %s port %s...", sa[0], sa[1])
         sock = socket.socket(af, socktype)
-        sock.settimeout(10.0)
+        sock.settimeout(60.0)
         try:
             sock.connect(sa)
         except OSError as err:
