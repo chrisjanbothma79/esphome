@@ -111,19 +111,18 @@ void T6615Component::loop() {
 }
 
 void T6615Component::update() {
-  switch (bootup_state) {
+  switch (bootup_state % 3) {
     case 0:
       this->send_serial_command_();
-      bootup_state++;
       break;
     case 1:
       this->send_status_command_();
-      bootup_state++;
       break;
-    default:
+    case 2:
       this->query_ppm_();
       break;
   }
+  bootup_state = (bootup_state + 1) % 3;
 }
 
 void T6615Component::query_ppm_() {
