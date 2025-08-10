@@ -51,8 +51,9 @@ void T6615Component::send_status_command_() {
 }
 
 void T6615Component::loop() {
-  if (this->available() < 5) {
+  if (this->available() < 4) {
     if (this->command_ == T6615Command::GET_PPM && millis() - this->command_time_ > T6615_TIMEOUT) {
+      ESP_LOGW(TAG, "timeout receiving answer, clearing buffer and request PPM again.");
       /* command got eaten, clear the buffer and fire another */
       while (this->available())
         this->read();
@@ -93,7 +94,7 @@ void T6615Component::loop() {
       break;
     }
     case T6615Command::GET_SERIAL: {
-      /* GET_SERIAL reply is 4+15 bytes long, read last byte */
+      /* GET_SERIAL reply is 4+15 bytes long, read remaining 15 bytes*/
       this->read_array(response_buffer + 4, 15);
       ESP_LOGD(TAG, "T6615 Received serial=%s", response_buffer + 4);
       break;
@@ -106,6 +107,9 @@ void T6615Component::loop() {
     default:
       break;
   }
+  /* make sure the buffer is empty */
+  while (this->available())
+    this->read();
   this->command_time_ = 0;
   this->command_ = T6615Command::NONE;
 }
