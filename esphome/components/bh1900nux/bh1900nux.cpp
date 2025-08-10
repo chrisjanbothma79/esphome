@@ -16,13 +16,13 @@ static const uint8_t SOFT_RESET_REG = 0x04;
 static const uint8_t SOFT_RESET_PAYLOAD = 0x01;  // Soft Reset value
 
 void BH1900NUXSensor::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up BH1900NUX '%s'...", this->name_.c_str());
+  ESP_LOGCONFIG(TAG, "Setting up '%s'...", this->name_.c_str());
 
   // Initialize I2C device
   i2c::ErrorCode result_code =
       this->write_register(SOFT_RESET_REG, &SOFT_RESET_PAYLOAD, 1);  // Software Reset to check communication
   if (result_code != i2c::ERROR_OK) {
-    this->mark_failed();
+    this->mark_failed("Communication failed");
     return;
   }
 }
@@ -56,10 +56,6 @@ void BH1900NUXSensor::update() {
 void BH1900NUXSensor::dump_config() {
   LOG_SENSOR("", "BH1900NUX", this);
   LOG_I2C_DEVICE(this);
-  if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with BH1900NUX failed!");
-  }
-
   LOG_UPDATE_INTERVAL(this);
 }
 
