@@ -1267,7 +1267,7 @@ class FixedArrayWithLengthRepeatedType(FixedArrayRepeatedType):
         # Dump only the active elements
         o = f"for (uint16_t i = 0; i < this->{self.field_name}_len; i++) {{\n"
         # Check if underlying type can use dump_field
-        if type(self._ti).can_use_dump_field():
+        if self._ti.can_use_dump_field():
             o += f'  dump_field(out, "{self.name}", {self._ti.dump_field_value(f"this->{self.field_name}[i]")}, 4);\n'
         else:
             o += f'  out.append("  {self.name}: ");\n'
