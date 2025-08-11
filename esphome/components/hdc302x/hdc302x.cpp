@@ -69,7 +69,7 @@ enum HdcTriggerMode {
  * @param len Length of the data array.
  * @return uint8_t The calculated CRC-8 value.
  */
-static uint8_t calculate_CRC8(const uint8_t *data, int len) {
+static uint8_t calculate_crc8(const uint8_t *data, int len) {
   uint8_t crc = 0xFF;  // Typical initial value
   for (int i = 0; i < len; i++) {
     crc ^= data[i];                // XOR byte into least sig. byte of crc
@@ -85,26 +85,26 @@ static uint8_t calculate_CRC8(const uint8_t *data, int len) {
 }
 
 void HDC302XComponent::setup() {
-  i2c::ErrorCode ec = this->write_command(HDC302xCommands::SOFT_RESET);
+  i2c::ErrorCode ec = this->write_command_(HDC302xCommands::SOFT_RESET);
   if (ec != i2c::NO_ERROR) {
     WARN("setup: Reset command failed (i2c::ErrorCode %d)", ec);
     return;
   }
-  this->clear_status_register();
+  this->clear_status_register_();
 
-  uint16_t manufacturerID = 0;
-  ec = this->write_command_read_data(HDC302xCommands::READ_MANUFACTURER_ID, &manufacturerID);
+  uint16_t manufacturer_id = 0;
+  ec = this->write_command_read_data_(HDC302xCommands::READ_MANUFACTURER_ID, &manufacturer_id);
   if (ec != i2c::NO_ERROR) {
-    WARN("setup: Read manufacturerID failed (i2c::ErrorCode %d)", ec);
-  } else if (manufacturerID != 0x3000) {
-    WARN("setup: Wrong manufacturer ID (got 0x%x expected 0x%x)", manufacturerID, 0x3000);
+    WARN("setup: Read manufacturer_id failed (i2c::ErrorCode %d)", ec);
+  } else if (manufacturer_id != 0x3000) {
+    WARN("setup: Wrong manufacturer ID (got 0x%x expected 0x%x)", manufacturer_id, 0x3000);
   }
 
   // setAutoMode(EXIT_AUTO_MODE);
 }
 void HDC302XComponent::update() {
   // ESP_LOGI(TAG, "Update starting on %s", bus_name_.c_str());
-  this->start_read_temperature_RH();
+  this->start_read_temperature_rh_();
   // ESP_LOGI(TAG, "Update done. Got temp=%.1f C rh=%.1f %%", temp, rh);
 }
 void HDC302XComponent::dump_config() {
@@ -119,20 +119,20 @@ void HDC302XComponent::dump_config() {
   LOG_TEXT_SENSOR("  ", "last_error", this->last_error_sensor_);
 }
 
-void HDC302XComponent::start_read_temperature_RH() {
+void HDC302XComponent::start_read_temperature_rh_() {
   HdcTriggerMode mode = TRIGGERMODE_LP0;  // LP0 is lowest noise
   uint16_t command = static_cast<uint16_t>(mode);
   // Trigger the temperature and humidity measurement
-  i2c::ErrorCode ec = this->write_command(command);
+  i2c::ErrorCode ec = this->write_command_(command);
   if (ec != i2c::NO_ERROR) {
     WARN("startReadTemperatureRH: write command (i2c::ErrorCode %d)", ec);
     return;
   }
   // Wait for conversion (tmeas in datasheet table 7.5  LP0 takes 12.5ms.  Add a bit more to be sure)
-  set_timeout("wait_temprh", 20 /*ms*/, [this]() { this->finish_read_temperature_RH(); });
+  set_timeout("wait_temprh", 20 /*ms*/, [this]() { this->finish_read_temperature_rh_(); });
 }
 
-void HDC302XComponent::finish_read_temperature_RH() {
+void HDC302XComponent::finish_read_temperature_rh_() {
   // Read results
   uint8_t buffer[6];
   i2c::ErrorCode ec = this->read(buffer, 6);
@@ -142,13 +142,13 @@ void HDC302XComponent::finish_read_temperature_RH() {
   }
 
   // Validate CRC for temperature data
-  if (calculate_CRC8(buffer, 2) != buffer[2]) {
+  if (calculate_crc8(buffer, 2) != buffer[2]) {
     WARN("finishReadTemperatureRH: temp checksum failed (i2c::ErrorCode %d)", ec);
     return;
   }
 
   // Validate CRC for humidity data
-  if (calculate_CRC8(buffer + 3, 2) != buffer[5]) {
+  if (calculate_crc8(buffer + 3, 2) != buffer[5]) {
     WARN("finishReadTemperatureRH: humidity checksum failed (i2c::ErrorCode %d)", ec);
     return;
   }
@@ -160,29 +160,29 @@ void HDC302XComponent::finish_read_temperature_RH() {
   float temp = ((raw_temperature / 65535.0) * 175.0) - 45.0;
 
   // Convert raw humidity data to percentage
-  float RH = (raw_humidity / 65535.0) * 100.0;
+  float rh = (raw_humidity / 65535.0) * 100.0;
 
   if (this->temperature_sensor_)
     this->temperature_sensor_->publish_state(temp);
   if (this->humidity_sensor_)
-    this->humidity_sensor_->publish_state(RH);
+    this->humidity_sensor_->publish_state(rh);
 }
 
-void HDC302XComponent::clear_status_register() {
-  i2c::ErrorCode ec = this->write_command(HDC302xCommands::CLEAR_STATUS_REGISTER);
+void HDC302XComponent::clear_status_register_() {
+  i2c::ErrorCode ec = this->write_command_(HDC302xCommands::CLEAR_STATUS_REGISTER);
   if (ec != i2c::NO_ERROR) {
     WARN("Clear status reg command failed (i2c::ErrorCode %d)", ec);
   }
 }
 
-i2c::ErrorCode HDC302XComponent::write_command(uint16_t command) {
+i2c::ErrorCode HDC302XComponent::write_command_(uint16_t command) {
   uint8_t buffer[2];
   buffer[0] = (uint8_t) (command >> 8);    // High byte
   buffer[1] = (uint8_t) (command & 0xFF);  // Low byte
   return this->write(buffer, 2);
 }
 
-i2c::ErrorCode HDC302XComponent::write_command_read_data(uint16_t command, uint16_t *data) {
+i2c::ErrorCode HDC302XComponent::write_command_read_data_(uint16_t command, uint16_t *data) {
   uint8_t cmd_buffer[2];
   uint8_t data_buffer[3];  // Two bytes for data, one for CRC
 
@@ -200,7 +200,7 @@ i2c::ErrorCode HDC302XComponent::write_command_read_data(uint16_t command, uint1
   }
 
   // Calculate CRC
-  uint8_t calculated_crc = calculate_CRC8(data_buffer, 2);
+  uint8_t calculated_crc = calculate_crc8(data_buffer, 2);
   // Check if calculated CRC matches the received CRC
   if (calculated_crc != data_buffer[2]) {
     return i2c::ERROR_CRC;  // CRC mismatch
