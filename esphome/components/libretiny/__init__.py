@@ -278,6 +278,10 @@ async def component_to_code(config):
     # decrease web server stack size (16k words -> 4k words)
     cg.add_build_flag("-DCONFIG_ASYNC_TCP_STACK_SIZE=4096")
 
+    # enable TCP SACK for rtl87xx boards
+    if config[CONF_COMPONENT_ID] == "rtl87xx":
+        cg.add_build_flag("-DLWIP_TCP_SACK_OUT=1")
+
     # build framework version
     # if platform version is a valid version constraint, prefix the default package
     framework = config[CONF_FRAMEWORK]
