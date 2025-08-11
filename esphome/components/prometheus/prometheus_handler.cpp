@@ -1151,9 +1151,9 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     date_time.day_of_week = 1;
     date_time.day_of_year = 1;
     date_time.recalc_timestamp_local();
+    int64_t date_timestamp = static_cast<int64_t>(date_time.timestamp);
     uint32_t seconds_since_midnight = obj->hour * 3600 + obj->minute * 60 + obj->second;
-    int final_timestamp = date_time.timestamp + seconds_since_midnight;
-    stream->print(static_cast<int64_t>(final_timestamp));
+    stream->print(static_cast<int64_t>(date_timestamp + static_cast<int64_t>(seconds_since_midnight)));
     stream->print(F("\n"));
   } else {
     // Invalid state
