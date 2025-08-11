@@ -230,12 +230,9 @@ class SensorItem {
   bool force_new_range{false};
 };
 
-class ServerCourtesyResponse {
- public:
-  ServerCourtesyResponse() = default;
-  ServerCourtesyResponse(uint16_t register_count, uint16_t register_value)
-      : register_count(register_count), register_value(register_value) {}
-  uint16_t register_count{0};
+struct ServerCourtesyResponse {
+  bool enabled{false};
+  uint16_t register_last_address{0xFFFF};
   uint16_t register_value{0};
 };
 
@@ -514,11 +511,11 @@ class ModbusController : public PollingComponent, public modbus::ModbusDevice {
   /// get how many times a command will be (re)sent if no response is received
   uint8_t get_max_cmd_retries() { return this->max_cmd_retries_; }
   /// Called by esphome generated code to set the server courtesy response object
-  void set_server_courtesy_response(const ServerCourtesyResponse *server_courtesy_response) {
+  void set_server_courtesy_response(const ServerCourtesyResponse &server_courtesy_response) {
     this->server_courtesy_response_ = server_courtesy_response;
   }
   /// Get the server courtesy response object
-  const ServerCourtesyResponse *get_server_courtesy_response() const { return this->server_courtesy_response_; }
+  ServerCourtesyResponse get_server_courtesy_response() const { return this->server_courtesy_response_; }
 
  protected:
   /// parse sensormap_ and create range of sequential addresses
@@ -562,7 +559,8 @@ class ModbusController : public PollingComponent, public modbus::ModbusDevice {
   /// Server offline callback
   CallbackManager<void(int, int)> offline_callback_{};
   /// Server courtesy response
-  const ServerCourtesyResponse *server_courtesy_response_{nullptr};
+  ServerCourtesyResponse server_courtesy_response_{
+      .enabled = false, .register_last_address = 0xFFFF, .register_value = 0};
 };
 
 /** Convert vector<uint8_t> response payload to float.

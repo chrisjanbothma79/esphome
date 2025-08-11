@@ -142,13 +142,13 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
     }
 
     if (!found) {
-      if ((this->server_courtesy_response_ != nullptr) &&
-          (current_address <= this->server_courtesy_response_->register_count)) {
+      if (this->server_courtesy_response_.enabled &&
+          (current_address <= this->server_courtesy_response_.register_last_address)) {
         ESP_LOGD(TAG,
                  "Could not match any register to address 0x%02X, but default allowed. "
-                 "Returning default value: 0x%04X.",
-                 current_address, this->server_courtesy_response_->register_value);
-        sixteen_bit_response.push_back(this->server_courtesy_response_->register_value);
+                 "Returning default value: %d.",
+                 current_address, this->server_courtesy_response_.register_value);
+        sixteen_bit_response.push_back(this->server_courtesy_response_.register_value);
         current_address += 1;  // Just increment by 1, as the default response is a single register
       } else {
         ESP_LOGW(TAG,
@@ -449,15 +449,14 @@ void ModbusController::dump_config() {
                 "ModbusController:\n"
                 "  Address: 0x%02X\n"
                 "  Max Command Retries: %d\n"
-                "  Offline Skip Updates: %d",
-                this->address_, this->max_cmd_retries_, this->offline_skip_updates_);
-  if (this->server_courtesy_response_ != nullptr) {
-    ESP_LOGCONFIG(TAG,
-                  "  Server Courtesy Response:\n"
-                  "    Register Count: %d\n"
-                  "    Register Value: %d",
-                  this->server_courtesy_response_->register_count, this->server_courtesy_response_->register_value);
-  }
+                "  Offline Skip Updates: %d\n"
+                "  Server Courtesy Response:\n"
+                "    Enabled: %s\n"
+                "    Register Last Address: 0x%02X\n"
+                "    Register Value: %d",
+                this->address_, this->max_cmd_retries_, this->offline_skip_updates_,
+                this->server_courtesy_response_.enabled ? "true" : "false",
+                this->server_courtesy_response_.register_last_address, this->server_courtesy_response_.register_value);
 
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
   ESP_LOGCONFIG(TAG, "sensormap");
