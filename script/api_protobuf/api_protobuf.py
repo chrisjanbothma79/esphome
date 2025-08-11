@@ -1057,7 +1057,7 @@ def _generate_array_dump_content(
     """
     o = f"for (const auto {'' if is_bool else '&'}it : {field_name}) {{\n"
     # Check if underlying type can use dump_field
-    if type(ti).can_use_dump_field():
+    if ti.can_use_dump_field():
         # For types that have dump_field overloads, use them with extra indent
         o += f'  dump_field(out, "{name}", {ti.dump_field_value("it")}, 4);\n'
     else:
