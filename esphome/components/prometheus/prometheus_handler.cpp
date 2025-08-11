@@ -1143,18 +1143,6 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
     // Construct a date time object manually to ensure UTC interpretation
-    ESPTime date_time = {};
-    date_time.year = obj->year;
-    date_time.month = obj->month;
-    date_time.day_of_month = obj->day;
-    date_time.hour = obj->hour;
-    date_time.minute = obj->minute;
-    date_time.second = obj->second;
-    date_time.day_of_week = 1;
-    date_time.day_of_year = 1;
-    date_time.recalc_timestamp_local();
-    stream->print(static_cast<int64_t>(date_time.timestamp));
-    stream->print(F("\n"));
     ESPTime date_time_utc = {};
     date_time_utc.year = obj->year;
     date_time_utc.month = obj->month;
