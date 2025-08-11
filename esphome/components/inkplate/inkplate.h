@@ -17,7 +17,7 @@ enum InkplateModel : uint8_t {
   INKPLATE_5_V2 = 5,
 };
 
-class Inkplate6 : public display::DisplayBuffer, public i2c::I2CDevice {
+class Inkplate : public display::DisplayBuffer, public i2c::I2CDevice {
  public:
   const uint8_t LUT2[16] = {0xAA, 0xA9, 0xA6, 0xA5, 0x9A, 0x99, 0x96, 0x95,
                             0x6A, 0x69, 0x66, 0x65, 0x5A, 0x59, 0x56, 0x55};
@@ -29,7 +29,7 @@ class Inkplate6 : public display::DisplayBuffer, public i2c::I2CDevice {
   const uint8_t pixelMaskLUT[8] = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80};
   const uint8_t pixelMaskGLUT[2] = {0x0F, 0xF0};
 
-  const uint8_t waveform3BitAll[6][8][9] = {// INKPLATE_6
+  uint8_t waveform3BitAll[6][8][9] = {// INKPLATE_6
                                             {{0, 1, 1, 0, 0, 1, 1, 0, 0},
                                              {0, 1, 2, 1, 1, 2, 1, 0, 0},
                                              {1, 1, 1, 2, 2, 1, 0, 0, 0},
@@ -84,12 +84,67 @@ class Inkplate6 : public display::DisplayBuffer, public i2c::I2CDevice {
                                              {1, 1, 1, 2, 2, 2, 1, 2, 0},
                                              {0, 0, 0, 0, 0, 0, 0, 0, 0}}};
 
+
+
+  uint8_t Inkplate10CustomWaveform[4][8][9]={{{0, 0, 0, 0, 0, 0, 0, 0, 0}, 
+                                              {0, 0, 0, 2, 1, 2, 1, 1, 0}, 
+                                              {0, 0, 0, 2, 2, 1, 2, 1, 0},
+                                              {0, 0, 2, 2, 1, 2, 2, 1, 0}, 
+                                              {0, 0, 0, 2, 1, 1, 1, 2, 0}, 
+                                              {0, 0, 2, 2, 2, 1, 1, 2, 0},
+                                              {0, 0, 0, 0, 0, 1, 2, 2, 0}, 
+                                              {0, 0, 0, 0, 2, 2, 2, 2, 0}},
+
+                                              {{0, 3, 3, 3, 3, 3, 3, 3, 0}, 
+                                              {0, 1, 2, 1, 1, 2, 2, 1, 0}, 
+                                              {0, 2, 2, 2, 1, 2, 2, 1, 0},
+                                              {0, 0, 2, 2, 2, 2, 2, 1, 0}, 
+                                              {0, 3, 3, 2, 1, 1, 1, 2, 0}, 
+                                              {0, 3, 3, 2, 2, 1, 1, 2, 0},
+                                              {0, 2, 1, 2, 1, 2, 1, 2, 0}, 
+                                              {0, 3, 3, 3, 2, 2, 2, 2, 0}},
+
+                                              {{0, 0, 0, 0, 0, 0, 0, 1, 0}, 
+                                              {0, 0, 0, 2, 2, 2, 1, 1, 0}, 
+                                              {0, 0, 2, 1, 1, 2, 2, 1, 0},
+                                              {1, 1, 2, 2, 1, 2, 2, 1, 0}, 
+                                              {0, 0, 2, 1, 2, 2, 2, 1, 0}, 
+                                              {0, 1, 2, 2, 2, 2, 2, 1, 0},
+                                              {0, 0, 0, 2, 2, 2, 1, 2, 0}, 
+                                              {0, 0, 0, 2, 2, 2, 2, 2, 0}},
+
+                                              {{0, 0, 0, 0, 0, 0, 0, 1, 0}, 
+                                              {0, 0, 0, 2, 2, 2, 1, 1, 0}, 
+                                              {2, 2, 2, 1, 0, 2, 1, 0, 0},
+                                              {2, 1, 1, 2, 1, 1, 1, 2, 0}, 
+                                              {2, 2, 2, 1, 1, 1, 0, 2, 0}, 
+                                              {2, 2, 2, 1, 1, 2, 1, 2, 0},
+                                              {0, 0, 0, 0, 2, 1, 2, 2, 0}, 
+                                              {0, 0, 0, 0, 2, 2, 2, 2, 0}}};
+
+
   void set_greyscale(bool greyscale) {
     this->greyscale_ = greyscale;
     this->block_partial_ = true;
     if (this->is_ready())
       this->initialize_();
   }
+  void set_custom_waveform_inkplate_10(uint8_t waveformType)
+  {
+    if(this->model_ == INKPLATE_10 && (waveformType > 0 && waveformType < 5))
+    {
+      memcpy(waveform3BitAll[1], Inkplate10CustomWaveform[waveformType], sizeof(waveform3BitAll[1]));
+      this->inkplate_10_waveform_type_ = waveformType; 
+    }
+    else
+    {
+      this->inkplate_10_waveform_type_ = 0; 
+    }
+     
+    
+    
+  }
+
   void set_mirror_y(bool mirror_y) { this->mirror_y_ = mirror_y; }
   void set_mirror_x(bool mirror_x) { this->mirror_x_ = mirror_x; }
 
@@ -225,6 +280,7 @@ class Inkplate6 : public display::DisplayBuffer, public i2c::I2CDevice {
   bool mirror_y_{false};
   bool mirror_x_{false};
   bool partial_updating_;
+  uint8_t inkplate_10_waveform_type_;
 
   InkplateModel model_;
 

@@ -334,30 +334,70 @@ void Inkplate::display1b_() {
   uint8_t buffer_value;
   const uint8_t *buffer_ptr;
   eink_on_();
-  if (this->model_ == INKPLATE_6_PLUS) {
-    clean_fast_(0, 1);
-    clean_fast_(1, 15);
-    clean_fast_(2, 1);
-    clean_fast_(0, 5);
-    clean_fast_(2, 1);
-    clean_fast_(1, 15);
-  } else {
-    clean_fast_(0, 1);
-    clean_fast_(1, 21);
-    clean_fast_(2, 1);
-    clean_fast_(0, 12);
-    clean_fast_(2, 1);
-    clean_fast_(1, 21);
-    clean_fast_(2, 1);
-    clean_fast_(0, 12);
-    clean_fast_(2, 1);
+  int rep = 4;
+  switch(this->model_)
+  {
+    case INKPLATE_10:
+        clean_fast_(0, 1);
+        clean_fast_(1, 10);
+        clean_fast_(2, 1);
+        clean_fast_(0, 10);
+        clean_fast_(2, 1);
+        clean_fast_(1, 10);
+        clean_fast_(2, 1);
+        clean_fast_(0, 10);
+        rep=5;
+        break;
+    case INKPLATE_6_PLUS:
+        clean_fast_(0, 1);
+        clean_fast_(1, 15);
+        clean_fast_(2, 1);
+        clean_fast_(0, 5);
+        clean_fast_(2, 1);
+        clean_fast_(1, 15);
+        break;
+    case INKPLATE_6:
+    case INKPLATE_6_V2:
+        clean_fast_(0, 1);
+        clean_fast_(1, 18);
+        clean_fast_(2, 1);
+        clean_fast_(0, 18);
+        clean_fast_(2, 1);
+        clean_fast_(1, 18);
+        clean_fast_(2, 1);
+        clean_fast_(0, 18);
+        clean_fast_(2, 1);
+        if(this->model_ == INKPLATE_6_V2)
+            rep=5;
+        break;
+    case INKPLATE_5:
+        clean_fast_(0, 1);
+        clean_fast_(1, 14);
+        clean_fast_(2, 1);
+        clean_fast_(0, 14);
+        clean_fast_(2, 1);
+        clean_fast_(1, 14);
+        clean_fast_(2, 1);
+        clean_fast_(0, 14);
+        clean_fast_(2, 1);
+        rep=5;
+        break;
+    case INKPLATE_5_V2:
+        clean_fast_(0, 1);
+        clean_fast_(1, 11);
+        clean_fast_(2, 1);
+        clean_fast_(0, 11);
+        clean_fast_(2, 1);
+        clean_fast_(1, 11);
+        clean_fast_(2, 1);
+        clean_fast_(0, 11);
+        rep=3;
+        break;
   }
 
   uint32_t clock = (1 << this->cl_pin_->get_pin());
   uint32_t data_mask = this->get_data_pin_mask_();
   ESP_LOGV(TAG, "Display1b start loops (%ums)", millis() - start_time);
-
-  int rep = (this->model_ == INKPLATE_6_V2) ? 5 : 4;
 
   for (int k = 0; k < rep; k++) {
     buffer_ptr = &this->buffer_[this->get_buffer_length_() - 1];
@@ -379,7 +419,7 @@ void Inkplate::display1b_() {
         GPIO.out_w1ts = this->pin_lut_[data] | clock;
         GPIO.out_w1tc = data_mask | clock;
       }
-      // New Inkplate panel doesn't need last clock
+      // New Inkplate6 panel doesn't need last clock
       if (this->model_ != INKPLATE_6_V2) {
         GPIO.out_w1ts = clock;
         GPIO.out_w1tc = data_mask | clock;
@@ -409,7 +449,7 @@ void Inkplate::display1b_() {
       GPIO.out_w1ts = this->pin_lut_[data] | clock;
       GPIO.out_w1tc = data_mask | clock;
     }
-    // New Inkplate panel doesn't need last clock
+    // New Inkplate6 panel doesn't need last clock
     if (this->model_ != INKPLATE_6_V2) {
       GPIO.out_w1ts = clock;
       GPIO.out_w1tc = data_mask | clock;
@@ -435,7 +475,7 @@ void Inkplate::display1b_() {
         GPIO.out_w1ts = send | clock;
         GPIO.out_w1tc = data_mask | clock;
       }
-      // New Inkplate panel doesn't need last clock
+      // New Inkplate6 panel doesn't need last clock
       if (this->model_ != INKPLATE_6_V2) {
         GPIO.out_w1ts = clock;
         GPIO.out_w1tc = data_mask | clock;
@@ -457,23 +497,72 @@ void Inkplate::display3b_() {
   uint32_t start_time = millis();
 
   eink_on_();
-  if (this->model_ == INKPLATE_6_PLUS) {
-    clean_fast_(0, 1);
-    clean_fast_(1, 15);
-    clean_fast_(2, 1);
-    clean_fast_(0, 5);
-    clean_fast_(2, 1);
-    clean_fast_(1, 15);
-  } else {
-    clean_fast_(0, 1);
-    clean_fast_(1, 21);
-    clean_fast_(2, 1);
-    clean_fast_(0, 12);
-    clean_fast_(2, 1);
-    clean_fast_(1, 21);
-    clean_fast_(2, 1);
-    clean_fast_(0, 12);
-    clean_fast_(2, 1);
+  
+  switch(this->model_)
+  {
+    case INKPLATE_10:
+        if(this->inkplate_10_waveform_type == 0){
+            clean_fast_(1, 1);
+            clean_fast_(0, 10);
+            clean_fast_(2, 1);
+            clean_fast_(1, 10);
+            clean_fast_(2, 1);
+            clean_fast_(0, 10);
+            clean_fast_(2, 1);
+            clean_fast_(1, 10);
+        }
+        else{
+            clean_fast_(1, 1);
+            clean_fast_(0, 7);
+            clean_fast_(2, 1);
+            clean_fast_(1, 12);
+            clean_fast_(2, 1);
+            clean_fast_(0, 7);
+            clean_fast_(2, 1);
+            clean_fast_(1, 12);
+        }
+        break;
+    case INKPLATE_6_PLUS:
+        clean_fast_(0, 1);
+        clean_fast_(1, 15);
+        clean_fast_(2, 1);
+        clean_fast_(0, 5);
+        clean_fast_(2, 1);
+        clean_fast_(1, 15);
+        break;
+    case INKPLATE_6:
+    case INKPLATE_6_V2:
+        clean_fast_(0, 1);
+        clean_fast_(1, 18);
+        clean_fast_(2, 1);
+        clean_fast_(0, 18);
+        clean_fast_(2, 1);
+        clean_fast_(1, 18);
+        clean_fast_(2, 1);
+        clean_fast_(0, 18);
+        clean_fast_(2, 1);
+        break;
+    case INKPLATE_5:
+        clean_fast_(0, 1);
+        clean_fast_(1, 14);
+        clean_fast_(2, 1);
+        clean_fast_(0, 14);
+        clean_fast_(2, 1);
+        clean_fast_(1, 14);
+        clean_fast_(2, 1);
+        clean_fast_(0, 14);
+        clean_fast_(2, 1);
+        break;
+    case INKPLATE_5_V2:
+        clean_fast_(0, 1);
+        clean_fast_(1, 11);
+        clean_fast_(2, 1);
+        clean_fast_(0, 11);
+        clean_fast_(2, 1);
+        clean_fast_(1, 11);
+        clean_fast_(2, 1);
+        clean_fast_(0, 11);
+        break;
   }
 
   uint32_t clock = (1 << this->cl_pin_->get_pin());
@@ -503,8 +592,8 @@ void Inkplate::display3b_() {
         GPIO.out_w1ts = data | clock;
         GPIO.out_w1tc = data_mask | clock;
       }
-      // New Inkplate panel doesn't need last clock
-      if (this->model_ != INKPLATE_6_V2) {
+      // New Inkplate6 panel doesn't need last clock
+      if (this->model_ == INKPLATE_6) {
         GPIO.out_w1ts = clock;
         GPIO.out_w1tc = data_mask | clock;
       }

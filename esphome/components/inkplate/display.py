@@ -44,7 +44,7 @@ CONF_VCOM_PIN = "vcom_pin"
 
 inkplate_ns = cg.esphome_ns.namespace("inkplate")
 Inkplate = inkplate_ns.class_(
-    "inkplate",
+    "Inkplate",
     cg.PollingComponent,
     i2c.I2CDevice,
     display.Display,
@@ -62,12 +62,14 @@ MODELS = {
     "inkplate_5_v2": InkplateModel.INKPLATE_5_V2,
 }
 
+CONF_CUSTOM_WAVEFORM = "custom_waveform"
 
 CONFIG_SCHEMA = cv.All(
     display.FULL_DISPLAY_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(Inkplate),
             cv.Optional(CONF_GREYSCALE, default=False): cv.boolean,
+            cv.Optional(CONF_CUSTOM_WAVEFORM, default=0): cv.uint8_t,
             cv.Optional(CONF_TRANSFORM): cv.Schema(
                 {
                     cv.Optional(CONF_MIRROR_X, default=False): cv.boolean,
@@ -156,6 +158,8 @@ async def to_code(config):
     cg.add(var.set_full_update_every(config[CONF_FULL_UPDATE_EVERY]))
 
     cg.add(var.set_model(config[CONF_MODEL]))
+
+    cg.add(var.set_custom_waveform_inkplate_10(config[CONF_CUSTOM_WAVEFORM]))
 
     ckv = await cg.gpio_pin_expression(config[CONF_CKV_PIN])
     cg.add(var.set_ckv_pin(ckv))
