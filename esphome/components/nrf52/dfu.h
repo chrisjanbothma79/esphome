@@ -12,7 +12,7 @@ class DeviceFirmwareUpdate : public Component {
   void setup() override;
   void loop() override;
   void set_reset_pin(GPIOPin *reset) { this->reset_pin_ = reset; }
-  void dump_config();
+  void dump_config() override;
 
  protected:
   GPIOPin *reset_pin_;
