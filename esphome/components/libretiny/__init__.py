@@ -27,6 +27,7 @@ from esphome.core import CORE
 
 from . import gpio  # noqa
 from .const import (
+    COMPONENT_BK72XX,
     CONF_GPIO_RECOVER,
     CONF_LOGLEVEL,
     CONF_SDK_SILENT,
@@ -262,6 +263,8 @@ async def component_to_code(config):
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_define("ESPHOME_VARIANT", FAMILY_FRIENDLY[config[CONF_FAMILY]])
     cg.add_define(ThreadModel.MULTI_NO_ATOMICS)
+    if config[CONF_COMPONENT_ID] == COMPONENT_BK72XX:
+        cg.add_define("LWIP_TCP_SACK_OUT", 1)
 
     # force using arduino framework
     cg.add_platformio_option("framework", "arduino")
