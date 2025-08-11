@@ -501,7 +501,7 @@ void Inkplate::display3b_() {
   switch(this->model_)
   {
     case INKPLATE_10:
-        if(this->inkplate_10_waveform_type == 0){
+        if(this->inkplate_10_waveform_type_ == 0){
             clean_fast_(1, 1);
             clean_fast_(0, 10);
             clean_fast_(2, 1);
