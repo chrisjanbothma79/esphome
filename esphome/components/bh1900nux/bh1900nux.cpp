@@ -13,7 +13,10 @@ static const uint8_t TEMPERATURE_LOW_REG = 0x02;   // Not used and supported yet
 static const uint8_t TEMPERATURE_HIGH_REG = 0x03;  // Not used and supported yet
 static const uint8_t SOFT_RESET_REG = 0x04;
 
+// I2C Command payloads
 static const uint8_t SOFT_RESET_PAYLOAD = 0x01;  // Soft Reset value
+
+static const float SENSOR_RESOLUTION = 0.0625f;  // Sensor resolution per bit in degrees celsius
 
 void BH1900NUXSensor::setup() {
   // Initialize I2C device
@@ -43,8 +46,7 @@ void BH1900NUXSensor::update() {
     raw_temperature_value |= 0xF000;    // Temperature is negative, sign extension needed
   }
 
-  float sensor_resolution = 0.0625f;  // Sensor resolution per bit in degrees celsius
-  float temperature_value = raw_temperature_value * sensor_resolution;
+  float temperature_value = raw_temperature_value * SENSOR_RESOLUTION;  // Apply sensor resolution
 
   this->publish_state(temperature_value);
 }
