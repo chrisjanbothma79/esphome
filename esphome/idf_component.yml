@@ -20,5 +20,5 @@ dependencies:
   zorxx/multipart-parser:
     version: 1.0.1
   esp-libopus:
-    git: http://homeserver.lan:3001/kevin/esp-libopus.git
+    git: https://github.com/kahrendt/esp-libopus.git
     version: main
