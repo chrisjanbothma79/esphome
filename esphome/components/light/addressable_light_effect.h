@@ -49,9 +49,7 @@ class AddressableLightEffect : public LightEffect {
   uint32_t get_effect_index() const { return this->get_index(); }
 
   /// Check if this is the currently running addressable effect.
-  bool is_current_effect() const {
-    return this->is_active() && this->get_addressable_()->is_effect_active();
-  }
+  bool is_current_effect() const { return this->is_active() && this->get_addressable_()->is_effect_active(); }
 
  protected:
   AddressableLight *get_addressable_() const { return (AddressableLight *) this->state_->get_output(); }
