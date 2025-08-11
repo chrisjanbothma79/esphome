@@ -21,6 +21,10 @@ static const char *const TAG = "mdns";
 #define USE_WEBSERVER_PORT 80  // NOLINT
 #endif
 
+#ifdef USE_RESONATE
+static const uint32_t RESONATE_PORT = 8927;
+#endif
+
 void MDNSComponent::compile_records_() {
   this->hostname_ = App.get_name();
 
@@ -100,6 +104,17 @@ void MDNSComponent::compile_records_() {
     service.service_type = "_http";
     service.proto = "_tcp";
     service.port = USE_WEBSERVER_PORT;
+    this->services_.push_back(service);
+  }
+#endif
+
+#ifdef USE_RESONATE
+  {
+    MDNSService service{};
+    service.service_type = "_resonate";
+    service.proto = "_tcp";
+    service.port = RESONATE_PORT;
+    service.txt_records.push_back({"path", "/resonate"});
     this->services_.push_back(service);
   }
 #endif
