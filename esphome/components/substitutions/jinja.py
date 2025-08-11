@@ -26,7 +26,7 @@ def has_jinja(st):
 
 
 """
-SAFE_GLOBAL_FUNCTIONS defines a whitelist of built-in functions that are considered safe to expose
+SAFE_GLOBAL_FUNCTIONS defines a allowlist of built-in functions that are considered safe to expose
 in Jinja templates or other sandboxed evaluation contexts. Only functions that do not allow
 arbitrary code execution, file access, or other security risks are included.
 
