@@ -219,7 +219,7 @@ template<typename... Ts> class AllowDeepSleepAction : public Action<Ts...>, publ
   void play(Ts... x) override { this->parent_->allow_deep_sleep(); }
 };
 
-class DeepSleepTrigger : public Trigger<>, public Parented<DeepSleepComponent> {
+class DeepSleepTrigger : public Trigger<> {
  public:
   DeepSleepTrigger(DeepSleepComponent *ds) {
     ds->set_enter_deep_sleep_callback([this]() { this->trigger(); });

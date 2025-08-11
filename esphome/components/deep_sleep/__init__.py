@@ -166,7 +166,7 @@ EXT1_WAKEUP_MODES = {
 WakeupCauseToRunDuration = deep_sleep_ns.struct("WakeupCauseToRunDuration")
 
 DeepSleepTrigger = deep_sleep_ns.class_(
-    "DeepSleepTrigger", cg.PollingComponent, automation.Trigger.template()
+    "DeepSleepTrigger", automation.Trigger.template()
 )
 
 CONF_WAKEUP_PIN_MODE = "wakeup_pin_mode"
@@ -228,7 +228,8 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ON_DEEP_SLEEP): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(DeepSleepTrigger),
-                }
+                },
+                single=True,
             ),
         }
     ).extend(cv.COMPONENT_SCHEMA),
@@ -284,7 +285,8 @@ async def to_code(config):
     if CONF_TOUCH_WAKEUP in config:
         cg.add(var.set_touch_wakeup(config[CONF_TOUCH_WAKEUP]))
 
-    for conf in config.get(CONF_ON_DEEP_SLEEP, []):
+    if CONF_ON_DEEP_SLEEP in config:
+        conf = config[CONF_ON_DEEP_SLEEP]
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
 
