@@ -86,6 +86,7 @@ class HttpContainer : public Parented<HttpRequestComponent> {
  public:
   virtual ~HttpContainer() = default;
   size_t content_length;
+  bool chunked;
   int status_code;
   uint32_t duration_ms;
 
@@ -234,8 +235,12 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
       return;
     }
 
-    size_t content_length = container->content_length;
-    size_t max_length = std::min(content_length, this->max_response_buffer_size_);
+    size_t max_length;
+    if (container->chunked) {
+      max_length = this->max_response_buffer_size_;
+    } else {
+      max_length = std::min(container->content_length, this->max_response_buffer_size_);
+    }
 
     std::string response_body;
     if (this->capture_response_.value(x...)) {
@@ -245,8 +250,13 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
         size_t read_index = 0;
         while (container->get_bytes_read() < max_length) {
           int read = container->read(buf + read_index, std::min<size_t>(max_length - read_index, 512));
+          if (read <= 0) {
+            break;
+          }
+
           App.feed_wdt();
           yield();
+
           read_index += read;
         }
         response_body.reserve(read_index);
