@@ -1,0 +1,20 @@
+remote_receiver:
+  id: ir_receiver
+  pin:
+    number: ${rx_pin}
+    inverted: true
+    mode:
+      input: true
+      pullup: true
+  tolerance: 40%
+
+remote_transmitter:
+  id: ir_transmitter
+  pin: ${tx_pin}
+  carrier_duty_percent: 50%
+
+climate:
+  - platform: daikin_3p5939722e
+    name: Daikin AC
+    transmitter_id: ir_transmitter
+    receiver_id: ir_receiver
