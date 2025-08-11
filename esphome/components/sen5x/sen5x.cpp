@@ -112,14 +112,13 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
   uint16_t string_number[16] = {0};
   switch (state) {
     case SM_START:
-      ESP_LOGCONFIG(TAG, "Setting up");
       // the sensor needs 1000 ms to enter the idle state
       this->set_timeout(1000, [this]() { this->internal_setup_(SM_START_1); });
       break;
     case SM_START_1:
       // Check if measurement is ready before reading the value
       if (!this->write_command(CMD_GET_DATA_READY_STATUS)) {
-        ESP_LOGE(TAG, "Communication failed");
+        ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
         this->error_code_ = COMMUNICATION_FAILED;
         this->mark_failed();
         return;
@@ -129,7 +128,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_START_2:
       uint16_t raw_read_status;
       if (!this->read_data(raw_read_status)) {
-        ESP_LOGE(TAG, "Communication failed");
+        ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
         this->error_code_ = COMMUNICATION_FAILED;
         this->mark_failed();
         return;
@@ -139,7 +138,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
       if (raw_read_status) {
         ESP_LOGV(TAG, "Stopping periodic measurement");
         if (!this->stop_measurements_()) {
-          ESP_LOGE(TAG, "Communication failed");
+          ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
@@ -156,7 +155,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
       break;
     case SM_GET_SN:
       if (!this->get_register(CMD_GET_SERIAL_NUMBER, string_number, 16, 20)) {
-        ESP_LOGE(TAG, "Communication failed");
+        ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
         this->error_code_ = SERIAL_NUMBER_IDENTIFICATION_FAILED;
         this->mark_failed();
         return;
@@ -167,7 +166,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
       break;
     case SM_GET_PN:
       if (!this->get_register(CMD_GET_PRODUCT_NAME, string_number, 16, 20)) {
-        ESP_LOGE(TAG, "Communication failed");
+        ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
         this->error_code_ = PRODUCT_NAME_FAILED;
         this->mark_failed();
         return;
@@ -210,7 +209,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_GET_FW:
       uint16_t firmware;
       if (!this->get_register(CMD_GET_FIRMWARE_VERSION, &firmware, 1, 20)) {
-        ESP_LOGE(TAG, "Communication failed");
+        ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
         this->error_code_ = FIRMWARE_FAILED;
         this->mark_failed();
         return;
@@ -252,7 +251,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
           states[3] = voc_baselines_storage_.state1 & 0xFFFF;
 
           if (!this->write_command(CMD_VOC_ALGORITHM_STATE, states, 4)) {
-            ESP_LOGE(TAG, "Communication failed");
+            ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           }
         }
       }
@@ -261,7 +260,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_SET_ACI:
       if (this->auto_cleaning_interval_.has_value()) {
         if (!write_command(SEN5X_CMD_AUTO_CLEANING_INTERVAL, this->auto_cleaning_interval_.value())) {
-          ESP_LOGE(TAG, "Communication failed");
+          ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
@@ -274,7 +273,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_SET_RHTAM:
       if (this->acceleration_mode_.has_value()) {
         if (!this->write_command(SEN5X_CMD_RHT_ACCELERATION_MODE, this->acceleration_mode_.value())) {
-          ESP_LOGE(TAG, "Communication failed");
+          ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
@@ -287,7 +286,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_SET_VOCT:
       if (this->voc_tuning_params_.has_value()) {
         if (!this->write_tuning_parameters_(CMD_VOC_ALGORITHM_TUNING, this->voc_tuning_params_.value())) {
-          ESP_LOGE(TAG, "Communication failed");
+          ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
@@ -300,7 +299,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_SET_NOXT:
       if (this->nox_tuning_params_.has_value()) {
         if (!this->write_tuning_parameters_(CMD_NOX_ALGORITHM_TUNING, this->nox_tuning_params_.value())) {
-          ESP_LOGE(TAG, "Communication failed");
+          ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
@@ -313,7 +312,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_SET_TP:
       if (this->temperature_compensation_.has_value()) {
         if (!this->write_temperature_compensation_(this->temperature_compensation_.value())) {
-          ESP_LOGE(TAG, "Communication failed");
+          ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
@@ -326,7 +325,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_SET_CO2ASC:
       if (this->co2_auto_calibrate_.has_value()) {
         if (!this->write_command(SEN6X_CMD_CO2_SENSOR_AUTO_SELF_CAL, this->co2_auto_calibrate_.value() ? 0x01 : 0x00)) {
-          ESP_LOGE(TAG, "Communication failed");
+          ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
@@ -339,7 +338,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
     case SM_SET_CO2AC:
       if (this->co2_altitude_compensation_.has_value()) {
         if (!this->write_command(SEN6X_CMD_SENSOR_ALTITUDE, this->co2_altitude_compensation_.value())) {
-          ESP_LOGE(TAG, "Communication failed");
+          ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
@@ -382,7 +381,7 @@ void SEN5XComponent::dump_config() {
         ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
         break;
       case MEASUREMENT_INIT_FAILED:
-        ESP_LOGE(TAG, "  Measurement Initialization failed!");
+        ESP_LOGE(TAG, "  Measurement Initialization failed");
         break;
       case SERIAL_NUMBER_IDENTIFICATION_FAILED:
         ESP_LOGE(TAG, "  Unable to read sensor serial number");
@@ -536,7 +535,7 @@ void SEN5XComponent::update() {
 
   if (!this->write_command(cmd)) {
     this->status_set_warning();
-    ESP_LOGD(TAG, "Communication failed");
+    ESP_LOGD(TAG, ESP_LOG_MSG_COMM_FAIL);
     return;
   }
 
@@ -544,7 +543,7 @@ void SEN5XComponent::update() {
     uint16_t measurements[9];
 
     if (!this->read_data(measurements, length)) {
-      ESP_LOGV(TAG, "Read measurement error");
+      ESP_LOGV(TAG, ESP_LOG_MSG_COMM_FAIL);
       this->status_set_warning();
       return;
     }
@@ -672,7 +671,7 @@ bool SEN5XComponent::start_measurements_() {
 
   auto result = this->write_command(cmd);
   if (!result) {
-    ESP_LOGE(TAG, "Communication failed");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   } else {
     this->running_ = true;
   }
@@ -688,7 +687,7 @@ bool SEN5XComponent::stop_measurements_() {
   }
   auto result = this->write_command(cmd);
   if (!result) {
-    ESP_LOGE(TAG, "Communication failed");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   } else {
     this->running_ = false;
   }
@@ -705,7 +704,7 @@ bool SEN5XComponent::write_tuning_parameters_(uint16_t i2c_command, const GasTun
   params[5] = tuning.gain_factor;
   auto result = this->write_command(i2c_command, params, 6);
   if (!result) {
-    ESP_LOGE(TAG, "Communication failed");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
   return result;
 }
@@ -717,7 +716,7 @@ bool SEN5XComponent::write_temperature_compensation_(const TemperatureCompensati
   params[2] = compensation.time_constant;
   auto result = this->write_command(CMD_TEMPERATURE_COMPENSATION, params, 3);
   if (!result) {
-    ESP_LOGE(TAG, "Communication failed");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
   return result;
 }
@@ -726,7 +725,7 @@ bool SEN5XComponent::update_co2_ambient_pressure_compensation_(uint16_t pressure
   auto result =
       this->write_command(SEN6X_CMD_CO2_SENSOR_AUTO_SELF_CAL, this->co2_auto_calibrate_.value() ? 0x01 : 0x00);
   if (!result) {
-    ESP_LOGE(TAG, "Communication failed");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
   return result;
 }
@@ -781,7 +780,7 @@ bool SEN5XComponent::start_fan_cleaning() {
       cmd = CMD_START_CLEANING_FAN;
     }
     if (!this->write_command(cmd)) {
-      ESP_LOGE(TAG, "Communication failed");
+      ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
       if (!this->running_) {
         this->start_measurements_();
         this->set_timeout(50, [this]() {
@@ -817,7 +816,7 @@ bool SEN5XComponent::activate_heater() {
     }
     this->set_timeout(1000, [this]() {
       if (!this->write_command(SEN6X_CMD_ACTIVATE_SHT_HEATER)) {
-        ESP_LOGE(TAG, "Communication failed");
+        ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
         if (!this->running_) {
           this->start_measurements_();
           this->set_timeout(1300, [this]() { this->initialized_ = true; });
@@ -853,7 +852,7 @@ bool SEN5XComponent::perform_forced_co2_calibration(uint16_t co2) {
     }
     this->set_timeout(1000, [this, co2]() {
       if (!this->write_command(SEN6X_CMD_PERFORM_FORCED_CO2_RECAL, co2)) {
-        ESP_LOGE(TAG, "Communication failed");
+        ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
         if (!this->running_) {
           this->start_measurements_();
           ESP_LOGE(TAG, "Perform Forced CO₂ Calibration failed");
@@ -867,7 +866,7 @@ bool SEN5XComponent::perform_forced_co2_calibration(uint16_t co2) {
           } else {
             if (correction == 0xFFFF) {
               this->start_measurements_();
-              ESP_LOGE(TAG, "Perform Forced CO₂ Calibration command reports failure");
+              ESP_LOGE(TAG, "Perform Forced CO₂ Calibration failed");
             } else {
               if (!this->start_measurements_()) {
                 ESP_LOGE(TAG, "Perform Forced CO₂ Calibration failed");
