@@ -33,7 +33,7 @@ void BH1900NUXSensor::update() {
   }
 
   // Combined raw value, unsigned and unaligned 16 bit
-  uint16_t raw_temperatur_register_value = (temperature_raw[0] << 8) | temperature_raw[1];
+  uint16_t raw_temperatur_register_value = encode_uint16(temperature_raw[0], temperature_raw[1]);
 
   // Temperature is represented in just 12 bits, shift needed
   int16_t raw_temperature_value = raw_temperatur_register_value >> 4;
