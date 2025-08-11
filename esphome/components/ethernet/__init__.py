@@ -10,6 +10,7 @@ from esphome.components.esp32.const import (
 )
 from esphome.components.network import IPAddress
 from esphome.components.spi import CONF_INTERFACE_INDEX, get_spi_interface
+from esphome.components.wifi import wifi_has_sta
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADDRESS,
@@ -35,13 +36,14 @@ from esphome.const import (
     CONF_TYPE,
     CONF_USE_ADDRESS,
     CONF_VALUE,
+    CONF_WIFI,
     KEY_CORE,
     KEY_FRAMEWORK_VERSION,
 )
 from esphome.core import CORE, TimePeriodMilliseconds, coroutine_with_priority
 import esphome.final_validate as fv
 
-CONFLICTS_WITH = ["wifi"]
+CONFLICTS_WITH = ["captive_portal"]
 DEPENDENCIES = ["esp32"]
 AUTO_LOAD = ["network"]
 LOGGER = logging.getLogger(__name__)
@@ -248,6 +250,9 @@ CONFIG_SCHEMA = cv.All(
 
 
 def _final_validate(config):
+    if wifi_config := fv.full_config.get().get(CONF_WIFI, None):
+        if wifi_has_sta(wifi_config):
+            raise cv.Invalid("Wifi must be AP only when using ethernet")
     if config[CONF_TYPE] not in SPI_ETHERNET_TYPES:
         return
     if spi_configs := fv.full_config.get().get(CONF_SPI):
