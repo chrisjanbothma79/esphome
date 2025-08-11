@@ -4,6 +4,20 @@
 namespace esphome {
 namespace light {
 
+uint32_t LightEffect::get_index() const {
+  if (this->state_ == nullptr) {
+    return 0;
+  }
+  return this->get_index_in_parent_();
+}
+
+bool LightEffect::is_active() const {
+  if (this->state_ == nullptr) {
+    return false;
+  }
+  return this->get_index() != 0 && this->state_->get_current_effect_index() == this->get_index();
+}
+
 uint32_t LightEffect::get_index_in_parent_() const {
   if (this->state_ == nullptr) {
     return 0;
