@@ -1152,7 +1152,7 @@ void PrometheusHandler::datetime_row_(AsyncResponseStream *stream, datetime::Dat
     date_time_utc.second = obj->second;
     date_time_utc.day_of_week = 1;
     date_time_utc.day_of_year = 1;
-    date_time_utc.is_dst = true;
+    date_time_utc.is_dst = false;
     // First get local timestamp
     date_time_utc.recalc_timestamp_local();
     // Convert local to UTC by adding the current timezone offset
