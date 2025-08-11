@@ -198,16 +198,6 @@ class LightState : public EntityBase, public Component {
     return this->effects_[index - 1]->get_name();
   }
 
-  /// Set effect by index (0 = no effect, 1+ = effect index).
-  /// Returns true if successful, false if index is invalid.
-  bool set_effect_by_index(uint32_t index) {
-    if (index > this->effects_.size()) {
-      return false;  // Invalid index
-    }
-    this->start_effect_(index);
-    return true;
-  }
-
   /// The result of all the current_values_as_* methods have gamma correction applied.
   void current_values_as_binary(bool *binary);
 
