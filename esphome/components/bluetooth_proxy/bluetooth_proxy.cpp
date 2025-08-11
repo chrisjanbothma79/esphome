@@ -71,18 +71,14 @@ bool BluetoothProxy::parse_devices(const esp32_ble::BLEScanResult *scan_results,
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr)
     return false;
 
+  auto &advertisements = this->response_.advertisements;
+
   for (size_t i = 0; i < count; i++) {
     auto &result = scan_results[i];
     uint8_t length = result.adv_data_len + result.scan_rsp_len;
 
-    // Check if we're at capacity
-    if (this->response_.advertisements_len >= BLUETOOTH_PROXY_ADVERTISEMENT_BATCH_SIZE) {
-      // Flush the batch before adding more
-      this->flush_pending_advertisements();
-    }
-
     // Fill in the data directly at current position
-    auto &adv = this->response_.advertisements[this->response_.advertisements_len];
+    auto &adv = advertisements[this->response_.advertisements_len];
     adv.address = esp32_ble::ble_addr_to_uint64(result.bda);
     adv.rssi = result.rssi;
     adv.address_type = result.ble_addr_type;
@@ -93,6 +89,11 @@ bool BluetoothProxy::parse_devices(const esp32_ble::BLEScanResult *scan_results,
 
     ESP_LOGV(TAG, "Queuing raw packet from %02X:%02X:%02X:%02X:%02X:%02X, length %d. RSSI: %d dB", result.bda[0],
              result.bda[1], result.bda[2], result.bda[3], result.bda[4], result.bda[5], length, result.rssi);
+
+    // Flush if we have reached BLUETOOTH_PROXY_ADVERTISEMENT_BATCH_SIZE
+    if (this->response_.advertisements_len >= BLUETOOTH_PROXY_ADVERTISEMENT_BATCH_SIZE) {
+      this->flush_pending_advertisements();
+    }
   }
 
   return true;
