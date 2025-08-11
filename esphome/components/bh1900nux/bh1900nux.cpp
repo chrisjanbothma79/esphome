@@ -16,13 +16,12 @@ static const uint8_t SOFT_RESET_REG = 0x04;
 static const uint8_t SOFT_RESET_PAYLOAD = 0x01;  // Soft Reset value
 
 void BH1900NUXSensor::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up '%s'...", this->name_.c_str());
 
   // Initialize I2C device
   i2c::ErrorCode result_code =
       this->write_register(SOFT_RESET_REG, &SOFT_RESET_PAYLOAD, 1);  // Software Reset to check communication
   if (result_code != i2c::ERROR_OK) {
-    this->mark_failed("Communication failed");
+    this->mark_failed(ESP_LOG_MSG_COMM_FAIL);
     return;
   }
 }
@@ -30,7 +29,7 @@ void BH1900NUXSensor::setup() {
 void BH1900NUXSensor::update() {
   uint8_t temperature_raw[2];
   if (this->read_register(TEMPERATURE_REG, temperature_raw, 2) != i2c::ERROR_OK) {
-    ESP_LOGE(TAG, "Failed to read temperature data");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
     return;
   }
 
@@ -47,8 +46,6 @@ void BH1900NUXSensor::update() {
 
   float sensor_resolution = 0.0625f;  // Sensor resolution per bit in degrees celsius
   float temperature_value = raw_temperature_value * sensor_resolution;
-
-  ESP_LOGV(TAG, "Temperature value read from sensor: %f", temperature_value);
 
   this->publish_state(temperature_value);
 }
