@@ -1089,6 +1089,12 @@ class FixedArrayRepeatedType(TypeInfo):
         validate_field_type(field.type, field.name)
         self._ti: TypeInfo = TYPE_INFO[field.type](field)
 
+    def _encode_element(self, element: str) -> str:
+        """Helper to generate encode statement for a single element."""
+        if isinstance(self._ti, EnumType):
+            return f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>({element}), true);"
+        return f"buffer.{self._ti.encode_func}({self.number}, {element}, true);"
+
     @property
     def cpp_type(self) -> str:
         return f"std::array<{self._ti.cpp_type}, {self.array_size}>"
@@ -1116,19 +1122,13 @@ class FixedArrayRepeatedType(TypeInfo):
 
     @property
     def encode_content(self) -> str:
-        # Helper to generate encode statement for a single element
-        def encode_element(element: str) -> str:
-            if isinstance(self._ti, EnumType):
-                return f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>({element}), true);"
-            return f"buffer.{self._ti.encode_func}({self.number}, {element}, true);"
-
         # If skip_zero is enabled, wrap encoding in a zero check
         if self.skip_zero:
             if self.is_define:
                 # When using a define, we need to use a loop-based approach
                 o = f"for (const auto &it : this->{self.field_name}) {{\n"
                 o += "  if (it != 0) {\n"
-                o += f"    {encode_element('it')}\n"
+                o += f"    {self._encode_element('it')}\n"
                 o += "  }\n"
                 o += "}"
                 return o
@@ -1137,7 +1137,7 @@ class FixedArrayRepeatedType(TypeInfo):
                 [f"this->{self.field_name}[{i}] != 0" for i in range(self.array_size)]
             )
             encode_lines = [
-                f"  {encode_element(f'this->{self.field_name}[{i}]')}"
+                f"  {self._encode_element(f'this->{self.field_name}[{i}]')}"
                 for i in range(self.array_size)
             ]
             return f"if ({non_zero_checks}) {{\n" + "\n".join(encode_lines) + "\n}"
@@ -1145,23 +1145,23 @@ class FixedArrayRepeatedType(TypeInfo):
         # When using a define, always use loop-based approach
         if self.is_define:
             o = f"for (const auto &it : this->{self.field_name}) {{\n"
-            o += f"  {encode_element('it')}\n"
+            o += f"  {self._encode_element('it')}\n"
             o += "}"
             return o
 
         # Unroll small arrays for efficiency
         if self.array_size == 1:
-            return encode_element(f"this->{self.field_name}[0]")
+            return self._encode_element(f"this->{self.field_name}[0]")
         if self.array_size == 2:
             return (
-                encode_element(f"this->{self.field_name}[0]")
+                self._encode_element(f"this->{self.field_name}[0]")
                 + "\n  "
-                + encode_element(f"this->{self.field_name}[1]")
+                + self._encode_element(f"this->{self.field_name}[1]")
             )
 
         # Use loops for larger arrays
         o = f"for (const auto &it : this->{self.field_name}) {{\n"
-        o += f"  {encode_element('it')}\n"
+        o += f"  {self._encode_element('it')}\n"
         o += "}"
         return o
 
@@ -1256,15 +1256,9 @@ class FixedArrayWithLengthRepeatedType(FixedArrayRepeatedType):
 
     @property
     def encode_content(self) -> str:
-        # Helper to generate encode statement for a single element
-        def encode_element(element: str) -> str:
-            if isinstance(self._ti, EnumType):
-                return f"buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>({element}), true);"
-            return f"buffer.{self._ti.encode_func}({self.number}, {element}, true);"
-
         # Always use a loop up to the current length
         o = f"for (uint16_t i = 0; i < this->{self.field_name}_len; i++) {{\n"
-        o += f"  {encode_element(f'this->{self.field_name}[i]')}\n"
+        o += f"  {self._encode_element(f'this->{self.field_name}[i]')}\n"
         o += "}"
         return o
 
