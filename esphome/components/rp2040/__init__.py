@@ -180,6 +180,7 @@ async def to_code(config):
     cg.add_platformio_option("framework", "arduino")
     cg.add_build_flag("-DUSE_ARDUINO")
     cg.add_build_flag("-DUSE_RP2040_FRAMEWORK_ARDUINO")
+    cg.add_build_flag("-DLWIP_TCP_SACK_OUT=1")
     # cg.add_build_flag("-DPICO_BOARD=pico_w")
     cg.add_platformio_option("platform", conf[CONF_PLATFORM_VERSION])
     cg.add_platformio_option(
