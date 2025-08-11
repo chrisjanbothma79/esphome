@@ -215,6 +215,7 @@ async def to_code(config):
     #  - LWIP_FEATURES disabled (because we don't need them)
     # Other projects like Tasmota & ESPEasy also use this
     cg.add_build_flag("-DPIO_FRAMEWORK_ARDUINO_LWIP2_HIGHER_BANDWIDTH_LOW_FLASH")
+    cg.add_define("LWIP_TCP_SACK_OUT", 1)
 
     if config[CONF_RESTORE_FROM_FLASH]:
         cg.add_define("USE_ESP8266_PREFERENCES_FLASH")
