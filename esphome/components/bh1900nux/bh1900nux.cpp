@@ -16,7 +16,6 @@ static const uint8_t SOFT_RESET_REG = 0x04;
 static const uint8_t SOFT_RESET_PAYLOAD = 0x01;  // Soft Reset value
 
 void BH1900NUXSensor::setup() {
-
   // Initialize I2C device
   i2c::ErrorCode result_code =
       this->write_register(SOFT_RESET_REG, &SOFT_RESET_PAYLOAD, 1);  // Software Reset to check communication
