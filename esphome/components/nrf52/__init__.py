@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from esphome import pins
 import esphome.codegen as cg
-from esphome.components import output
 from esphome.components.zephyr import (
     copy_files as zephyr_copy_files,
     zephyr_add_pm_static,
@@ -22,6 +22,7 @@ from esphome.const import (
     CONF_BOARD,
     CONF_FRAMEWORK,
     CONF_ID,
+    CONF_RESET_PIN,
     KEY_CORE,
     KEY_FRAMEWORK_VERSION,
     KEY_TARGET_FRAMEWORK,
@@ -39,7 +40,6 @@ from .const import (
     BOOTLOADER_ADAFRUIT_NRF52_SD132,
     BOOTLOADER_ADAFRUIT_NRF52_SD140_V6,
     BOOTLOADER_ADAFRUIT_NRF52_SD140_V7,
-    CONF_RESET_OUTPUT,
 )
 
 # force import gpio to register pin schema
@@ -101,6 +101,7 @@ DeviceFirmwareUpdate = nrf52_ns.class_("DeviceFirmwareUpdate", cg.Component)
 CONF_DFU = "dfu"
 
 CONFIG_SCHEMA = cv.All(
+    set_core_data,
     cv.Schema(
         {
             cv.Required(CONF_BOARD): cv.string_strict,
@@ -108,13 +109,12 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_DFU): cv.Schema(
                 {
                     cv.GenerateID(): cv.declare_id(DeviceFirmwareUpdate),
-                    cv.Required(CONF_RESET_OUTPUT): cv.use_id(output.BinaryOutput),
+                    cv.Required(CONF_RESET_PIN): pins.gpio_output_pin_schema,
                 }
             ),
         }
     ),
     _detect_bootloader,
-    set_core_data,
 )
 
 
@@ -169,8 +169,8 @@ async def to_code(config: ConfigType) -> None:
     if dfu := config.get(CONF_DFU):
         cg.add_define("USE_NRF52_DFU")
         var = cg.new_Pvariable(dfu[CONF_ID])
-        reset_output = await cg.get_variable(dfu[CONF_RESET_OUTPUT])
-        cg.add(var.set_reset_output(reset_output))
+        pin = await cg.gpio_pin_expression(dfu[CONF_RESET_PIN])
+        cg.add(var.set_reset_pin(pin))
         zephyr_add_prj_conf("CDC_ACM_DTE_RATE_CALLBACK_SUPPORT", True)
         await cg.register_component(var, dfu)
 

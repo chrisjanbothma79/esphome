@@ -1,12 +1,7 @@
 nrf52:
   dfu:
-    reset_output: rest_gpio
-
-output:
-  - platform: gpio
-    pin:
+    reset_pin:
       number: 14
       inverted: true
       mode:
         output: true
-    id: rest_gpio

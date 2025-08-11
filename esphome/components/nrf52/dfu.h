@@ -2,8 +2,8 @@
 
 #include "esphome/core/defines.h"
 #ifdef USE_NRF52_DFU
-#include "esphome/components/output/binary_output.h"
 #include "esphome/core/component.h"
+#include "esphome/core/gpio.h"
 
 namespace esphome {
 namespace nrf52 {
@@ -11,10 +11,11 @@ class DeviceFirmwareUpdate : public Component {
  public:
   void setup() override;
   void loop() override;
-  void set_reset_output(output::BinaryOutput *reset_output) { this->reset_output_ = reset_output; }
+  void set_reset_pin(GPIOPin *reset) { this->reset_pin_ = reset; }
+  void dump_config();
 
  protected:
-  output::BinaryOutput *reset_output_;
+  GPIOPin *reset_pin_;
 };
 
 }  // namespace nrf52
