@@ -25,19 +25,17 @@ def has_jinja(st):
     return detect_jinja_re.search(st) is not None
 
 
-"""
-SAFE_GLOBAL_FUNCTIONS defines a allowlist of built-in functions that are considered safe to expose
-in Jinja templates or other sandboxed evaluation contexts. Only functions that do not allow
-arbitrary code execution, file access, or other security risks are included.
-
-The following functions are considered safe:
-  - ord: Converts a character to its Unicode code point integer.
-  - chr: Converts an integer to its corresponding Unicode character.
-  - len: Returns the length of a sequence or collection.
-
-These functions were chosen because they are pure, have no side effects, and do not provide access
-to the file system, environment, or other potentially sensitive resources.
-"""
+# SAFE_GLOBAL_FUNCTIONS defines a allowlist of built-in functions that are considered safe to expose
+# in Jinja templates or other sandboxed evaluation contexts. Only functions that do not allow
+# arbitrary code execution, file access, or other security risks are included.
+#
+# The following functions are considered safe:
+#   - ord: Converts a character to its Unicode code point integer.
+#   - chr: Converts an integer to its corresponding Unicode character.
+#   - len: Returns the length of a sequence or collection.
+#
+# These functions were chosen because they are pure, have no side effects, and do not provide access
+# to the file system, environment, or other potentially sensitive resources.
 SAFE_GLOBAL_FUNCTIONS = {
     "ord": ord,
     "chr": chr,
