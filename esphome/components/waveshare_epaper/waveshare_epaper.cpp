@@ -2524,6 +2524,75 @@ void GDEY042T81::dump_config() {
   LOG_UPDATE_INTERVAL(this);
 }
 
+// ========================================================
+//   LCMEN2R13EFC1 2.13in e-Paper display
+// Product page:
+//  - https://heltec.org/project/vision-master-e213/
+// Datasheet:
+//  - https://resource.heltec.cn/download/HT-VME213/LCMEN2R13EFC1.pdf
+
+void LCMEN2R13EFC1::initialize() {
+  this->init_display_();
+  ESP_LOGD(TAG, "Initialization complete, set the display to deep sleep");
+  this->deep_sleep();
+}
+
+// https://github.com/todd-herbert/heltec-eink-modules/blob/9207eb6ab2b96f66298e0488740218c17b006af7/src/Platforms/VisionMasterE213/power_controls.cpp#L33
+LCMEN2R13EFC1::LCMEN2R13EFC1() { this->reset_duration_ = 10; }
+
+void LCMEN2R13EFC1::reset_() {
+  if (this->reset_pin_ != nullptr) {
+    this->reset_pin_->digital_write(false);
+    delay(reset_duration_);  // NOLINT
+    this->reset_pin_->digital_write(true);
+    delay(reset_duration_);  // NOLINT
+  }
+}
+
+void LCMEN2R13EFC1::init_display_() {
+  this->reset_();
+
+  this->wait_until_idle_();
+  this->command(0x00);  // Panel setting
+
+  // [7:6] Display Res, [5] LUT, [4] BW / BWR [3] Scan Vert, [2] Shift Horiz, [1] Booster, [0] Reset?
+  this->data(0b11 << 6 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 1 | 1 << 0);
+
+  this->command(0x50);  // VCOM AND DATA INTERVAL SETTING
+
+  // [7:6] Border, [5:4] Data polarity (default), [3:0] VCOM and Data interval (default)
+  this->data(0b10 << 6 | 0b11 << 4 | 0b0111 << 0);
+
+  this->command(0x04);  // Power on
+  this->wait_until_idle_();
+
+  this->command(0x12);  // Refresh
+  this->wait_until_idle_();
+
+  this->command(0x02);  // Power off
+}
+
+void LCMEN2R13EFC1::update_full_() { ESP_LOGD(TAG, "Full update"); }
+
+void LCMEN2R13EFC1::update_part_() { ESP_LOGD(TAG, "Partial update"); }
+
+void HOT LCMEN2R13EFC1::display() { ESP_LOGD(TAG, "Display function called"); }
+
+void LCMEN2R13EFC1::set_full_update_every(uint32_t full_update_every) { this->full_update_every_ = full_update_every; }
+int LCMEN2R13EFC1::get_width_internal() { return 122; }
+int LCMEN2R13EFC1::get_height_internal() { return 250; }
+uint32_t LCMEN2R13EFC1::idle_timeout_() { return 5000; }
+void LCMEN2R13EFC1::dump_config() {
+  LOG_DISPLAY("", "VisionMaster E213 E-Paper", this)
+  ESP_LOGCONFIG(TAG, "  Model: LCMEN2R13EFC1");
+  ESP_LOGCONFIG(TAG, "  Full Update Every: %" PRIu32, this->full_update_every_);
+  LOG_PIN("  CS Pin: ", this->cs_);
+  LOG_PIN("  Reset Pin: ", this->reset_pin_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
+  LOG_PIN("  Busy Pin: ", this->busy_pin_);
+  LOG_UPDATE_INTERVAL(this);
+}
+
 static const uint8_t LUT_VCOM_DC_4_2[] = {
     0x00, 0x17, 0x00, 0x00, 0x00, 0x02, 0x00, 0x17, 0x17, 0x00, 0x00, 0x02, 0x00, 0x0A, 0x01,
     0x00, 0x00, 0x01, 0x00, 0x0E, 0x0E, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

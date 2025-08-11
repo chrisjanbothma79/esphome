@@ -521,6 +521,38 @@ class GDEY042T81 : public WaveshareEPaper {
   void init_display_();
 };
 
+class LCMEN2R13EFC1 : public WaveshareEPaper {
+ public:
+  LCMEN2R13EFC1();
+
+  void initialize() override;
+
+  void display() override;
+
+  void dump_config() override;
+
+  void deep_sleep() override {
+    this->command(0x17); // Auto sequence command
+    this->data(0xA7);  // PON -> DRF -> POF -> DSLP
+  }
+
+  void set_full_update_every(uint32_t full_update_every);
+
+ protected:
+  uint32_t full_update_every_{30};
+  uint32_t at_update_{0};
+
+  int get_width_internal() override;
+  int get_height_internal() override;
+  uint32_t idle_timeout_() override;
+
+ private:
+  void reset_();
+  void update_full_();
+  void update_part_();
+  void init_display_();
+};
+
 class WaveshareEPaper4P2In : public WaveshareEPaper {
  public:
   void initialize() override;
