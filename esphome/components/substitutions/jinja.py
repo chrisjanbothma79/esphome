@@ -25,6 +25,13 @@ def has_jinja(st):
     return detect_jinja_re.search(st) is not None
 
 
+SAFE_GLOBAL_FUNCTIONS = {
+    "ord": ord,
+    "chr": chr,
+    "len": len,
+}
+
+
 class JinjaStr(str):
     """
     Wraps a string containing an unresolved Jinja expression,
@@ -66,7 +73,11 @@ class Jinja:
         self.env.add_extension("jinja2.ext.do")
         self.env.globals["math"] = math  # Inject entire math module
         self.context_vars = {**context_vars}
-        self.env.globals = {**self.env.globals, **self.context_vars}
+        self.env.globals = {
+            **self.env.globals,
+            **self.context_vars,
+            **SAFE_GLOBAL_FUNCTIONS,
+        }
 
     def expand(self, content_str):
         """
