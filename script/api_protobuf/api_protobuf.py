@@ -1057,7 +1057,7 @@ def _generate_array_dump_content(
     """
     o = f"for (const auto {'' if is_bool else '&'}it : {field_name}) {{\n"
     # Check if underlying type can use dump_field
-    if type(ti).can_use_dump_field():
+    if ti.can_use_dump_field():
         # For types that have dump_field overloads, use them with extra indent
         o += f'  dump_field(out, "{name}", {ti.dump_field_value("it")}, 4);\n'
     else:
@@ -1267,7 +1267,7 @@ class FixedArrayWithLengthRepeatedType(FixedArrayRepeatedType):
         # Dump only the active elements
         o = f"for (uint16_t i = 0; i < this->{self.field_name}_len; i++) {{\n"
         # Check if underlying type can use dump_field
-        if type(self._ti).can_use_dump_field():
+        if self._ti.can_use_dump_field():
             o += f'  dump_field(out, "{self.name}", {self._ti.dump_field_value(f"this->{self.field_name}[i]")}, 4);\n'
         else:
             o += f'  out.append("  {self.name}: ");\n'
