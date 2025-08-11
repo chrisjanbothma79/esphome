@@ -432,12 +432,10 @@ bool ESPHomeOTAComponent::readall_(uint8_t *buf, size_t len) {
 
     ssize_t read = this->client_->read(buf + at, len - at);
     if (read == -1) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        this->yield_and_feed_watchdog_();
-        continue;
+      if (errno != EAGAIN && errno != EWOULDBLOCK) {
+        ESP_LOGW(TAG, "Error reading %d bytes, errno %d", len, errno);
+        return false;
       }
-      ESP_LOGW(TAG, "Error reading %d bytes, errno %d", len, errno);
-      return false;
     } else if (read == 0) {
       ESP_LOGW(TAG, "Remote closed connection");
       return false;
@@ -461,12 +459,10 @@ bool ESPHomeOTAComponent::writeall_(const uint8_t *buf, size_t len) {
 
     ssize_t written = this->client_->write(buf + at, len - at);
     if (written == -1) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        this->yield_and_feed_watchdog_();
-        continue;
+      if (errno != EAGAIN && errno != EWOULDBLOCK) {
+        ESP_LOGW(TAG, "Error writing %d bytes, errno %d", len, errno);
+        return false;
       }
-      ESP_LOGW(TAG, "Error writing %d bytes, errno %d", len, errno);
-      return false;
     } else {
       at += written;
     }
