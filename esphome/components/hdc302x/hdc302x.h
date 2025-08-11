@@ -27,7 +27,7 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   void set_temperature_sensor(sensor::Sensor *a_sensor) { temperature_sensor_ = a_sensor; }
   void set_humidity_sensor(sensor::Sensor *a_sensor) { humidity_sensor_ = a_sensor; }
   void set_last_error_sensor(text_sensor::TextSensor *a_sensor) { last_error_sensor_ = a_sensor; }
-  void set_bus_name(std::string name) { bus_name_ = name; }
+  void set_bus_name(std::string name) { bus_name_ = std::move(name); }
 
  protected:
   void start_read_temperature_rh_();
@@ -36,7 +36,6 @@ class HDC302XComponent : public PollingComponent, public i2c::I2CDevice {
   void clear_status_register_();
   i2c::ErrorCode write_command_(uint16_t comm);
   i2c::ErrorCode write_command_read_data_(uint16_t command, uint16_t *data);
-  i2c::ErrorCode send_command_read_TRH(uint16_t command, float *temp, float *RH);
 
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
