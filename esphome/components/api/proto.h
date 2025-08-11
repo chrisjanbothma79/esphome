@@ -16,19 +16,19 @@
 namespace esphome::api {
 
 // Helper functions for ZigZag encoding/decoding
-static constexpr uint32_t encode_zigzag32(int32_t value) {
+inline constexpr uint32_t encode_zigzag32(int32_t value) {
   return (static_cast<uint32_t>(value) << 1) ^ (static_cast<uint32_t>(value >> 31));
 }
 
-static constexpr uint64_t encode_zigzag64(int64_t value) {
+inline constexpr uint64_t encode_zigzag64(int64_t value) {
   return (static_cast<uint64_t>(value) << 1) ^ (static_cast<uint64_t>(value >> 63));
 }
 
-static constexpr int32_t decode_zigzag32(uint32_t value) {
+inline constexpr int32_t decode_zigzag32(uint32_t value) {
   return (value & 1) ? static_cast<int32_t>(~(value >> 1)) : static_cast<int32_t>(value >> 1);
 }
 
-static constexpr int64_t decode_zigzag64(uint64_t value) {
+inline constexpr int64_t decode_zigzag64(uint64_t value) {
   return (value & 1) ? static_cast<int64_t>(~(value >> 1)) : static_cast<int64_t>(value >> 1);
 }
 
