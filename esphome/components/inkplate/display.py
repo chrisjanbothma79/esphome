@@ -42,16 +42,16 @@ CONF_SPH_PIN = "sph_pin"
 CONF_SPV_PIN = "spv_pin"
 CONF_VCOM_PIN = "vcom_pin"
 
-inkplate6_ns = cg.esphome_ns.namespace("inkplate6")
-Inkplate6 = inkplate6_ns.class_(
-    "Inkplate6",
+inkplate_ns = cg.esphome_ns.namespace("inkplate")
+Inkplate = inkplate_ns.class_(
+    "inkplate",
     cg.PollingComponent,
     i2c.I2CDevice,
     display.Display,
     display.DisplayBuffer,
 )
 
-InkplateModel = inkplate6_ns.enum("InkplateModel")
+InkplateModel = inkplate_ns.enum("InkplateModel")
 
 MODELS = {
     "inkplate_6": InkplateModel.INKPLATE_6,
@@ -62,10 +62,11 @@ MODELS = {
     "inkplate_5_v2": InkplateModel.INKPLATE_5_V2,
 }
 
+
 CONFIG_SCHEMA = cv.All(
     display.FULL_DISPLAY_SCHEMA.extend(
         {
-            cv.GenerateID(): cv.declare_id(Inkplate6),
+            cv.GenerateID(): cv.declare_id(Inkplate),
             cv.Optional(CONF_GREYSCALE, default=False): cv.boolean,
             cv.Optional(CONF_TRANSFORM): cv.Schema(
                 {

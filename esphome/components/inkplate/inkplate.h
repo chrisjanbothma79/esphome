@@ -6,7 +6,7 @@
 #include "esphome/core/hal.h"
 
 namespace esphome {
-namespace inkplate6 {
+namespace inkplate {
 
 enum InkplateModel : uint8_t {
   INKPLATE_6 = 0,
@@ -250,5 +250,5 @@ class Inkplate6 : public display::DisplayBuffer, public i2c::I2CDevice {
   GPIOPin *wakeup_pin_;
 };
 
-}  // namespace inkplate6
+}  // namespace inkplate
 }  // namespace esphome
