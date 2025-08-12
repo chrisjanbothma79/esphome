@@ -374,19 +374,10 @@ void ATM90E32Component::dump_config() {
   LOG_SENSOR("  ", "Peak Current C", this->phase_[PHASEC].peak_current_sensor_);
   LOG_SENSOR("  ", "Frequency", this->freq_sensor_);
   LOG_SENSOR("  ", "Chip Temp", this->chip_temperature_sensor_);
-#ifdef USE_API
   if (this->restored_offset_calibration_ || this->restored_power_offset_calibration_ ||
       this->restored_gain_calibration_ || !this->enable_offset_calibration_ || !this->enable_gain_calibration_) {
-    this->set_interval("atm90e32_calibration_log", 1000, [this]() {
-#ifdef USE_NETWORK
-      if (!network::is_connected())
-        return;
-#endif
-      this->log_calibration_status_();
-      this->cancel_interval("atm90e32_calibration_log");
-    });
+    this->log_calibration_status_();
   }
-#endif
 }
 
 float ATM90E32Component::get_setup_priority() const { return setup_priority::IO; }
