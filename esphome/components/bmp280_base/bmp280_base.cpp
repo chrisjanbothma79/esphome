@@ -2,6 +2,10 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
+#define BMP280_ERROR_WRONG_CHIP_ID "Wrong chip ID"
+#define BMP280_ERROR_READING_STATUS_REG "Error reading status register"
+#define BMP280_ERROR_TIMEOUT_LOADING_NVM "Timeout loading NVM"
+
 namespace esphome {
 namespace bmp280_base {
 
@@ -17,10 +21,6 @@ static const uint8_t BMP280_REGISTER_RESET = 0xE0;
 static const uint8_t BMP280_MODE_FORCED = 0b01;
 static const uint8_t BMP280_SOFT_RESET = 0xB6;
 static const uint8_t BMP280_STATUS_IM_UPDATE = 0b01;
-
-#define BMP280_ERROR_WRONG_CHIP_ID "Wrong chip ID"
-#define BMP280_ERROR_READING_STATUS_REG "Error reading status register"
-#define BMP280_ERROR_TIMEOUT_LOADING_NVM "Timeout loading NVM"
 
 inline uint16_t combine_bytes(uint8_t msb, uint8_t lsb) { return ((msb & 0xFF) << 8) | (lsb & 0xFF); }
 

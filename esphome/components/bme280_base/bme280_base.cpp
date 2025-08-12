@@ -7,6 +7,10 @@
 #include <esphome/components/sensor/sensor.h>
 #include <esphome/core/component.h>
 
+#define BME280_ERROR_WRONG_CHIP_ID "Wrong chip ID"
+#define BME280_ERROR_READING_STATUS_REG "Error reading status register"
+#define BME280_ERROR_TIMEOUT_LOADING_NVM "Timeout loading NVM"
+
 namespace esphome {
 namespace bme280_base {
 
@@ -48,10 +52,6 @@ static const uint8_t BME280_REGISTER_HUMIDDATA = 0xFD;
 static const uint8_t BME280_MODE_FORCED = 0b01;
 static const uint8_t BME280_SOFT_RESET = 0xB6;
 static const uint8_t BME280_STATUS_IM_UPDATE = 0b01;
-
-#define BME280_ERROR_WRONG_CHIP_ID "Wrong chip ID"
-#define BME280_ERROR_READING_STATUS_REG "Error reading status register"
-#define BME280_ERROR_TIMEOUT_LOADING_NVM "Timeout loading NVM"
 
 inline uint16_t combine_bytes(uint8_t msb, uint8_t lsb) { return ((msb & 0xFF) << 8) | (lsb & 0xFF); }
 
