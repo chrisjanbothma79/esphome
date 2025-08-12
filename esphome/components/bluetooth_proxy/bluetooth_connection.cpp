@@ -1,6 +1,5 @@
 #include "bluetooth_connection.h"
 
-#include <cstring>
 #include "esphome/components/api/api_pb2.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
