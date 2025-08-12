@@ -1,3 +1,4 @@
+import base64
 import os
 import random
 import string
@@ -193,6 +194,9 @@ def wizard_write(path, **kwargs):
     if type == "empty":
         file_text = ""
         # Will be updated later after editing the file
+        hardware = "UNKNOWN"
+    elif type == "upload":
+        file_text = base64.b64decode(kwargs["file_content"]).decode("utf-8")
         hardware = "UNKNOWN"
     else:  # "basic"
         board = kwargs["board"]
