@@ -49,9 +49,9 @@ static const uint8_t BME280_MODE_FORCED = 0b01;
 static const uint8_t BME280_SOFT_RESET = 0xB6;
 static const uint8_t BME280_STATUS_IM_UPDATE = 0b01;
 
-static const char *const ERROR_WRONG_CHIP_ID = "Wrong chip ID";
-static const char *const ERROR_READING_STATUS_REG = "Error reading status register";
-static const char *const ERROR_TIMEOUT_LOADING_NVM = "Timeout loading NVM";
+#define BME280_ERROR_WRONG_CHIP_ID "Wrong chip ID"
+#define BME280_ERROR_READING_STATUS_REG "Error reading status register"
+#define BME280_ERROR_TIMEOUT_LOADING_NVM "Timeout loading NVM"
 
 inline uint16_t combine_bytes(uint8_t msb, uint8_t lsb) { return ((msb & 0xFF) << 8) | (lsb & 0xFF); }
 
@@ -107,7 +107,7 @@ void BME280Component::setup() {
   }
   if (chip_id != 0x60) {
     this->error_code_ = WRONG_CHIP_ID;
-    this->mark_failed(ERROR_WRONG_CHIP_ID);
+    this->mark_failed(BME280_ERROR_WRONG_CHIP_ID);
     return;
   }
 
@@ -122,14 +122,14 @@ void BME280Component::setup() {
   do {  // NOLINT
     delay(2);
     if (!this->read_byte(BME280_REGISTER_STATUS, &status)) {
-      ESP_LOGW(TAG, ERROR_READING_STATUS_REG);
-      this->mark_failed(ERROR_READING_STATUS_REG);
+      ESP_LOGW(TAG, BME280_ERROR_READING_STATUS_REG);
+      this->mark_failed(BME280_ERROR_READING_STATUS_REG);
       return;
     }
   } while ((status & BME280_STATUS_IM_UPDATE) && (--retry));
   if (status & BME280_STATUS_IM_UPDATE) {
-    ESP_LOGW(TAG, ERROR_TIMEOUT_LOADING_NVM);
-    this->mark_failed(ERROR_TIMEOUT_LOADING_NVM);
+    ESP_LOGW(TAG, BME280_ERROR_TIMEOUT_LOADING_NVM);
+    this->mark_failed(BME280_ERROR_TIMEOUT_LOADING_NVM);
     return;
   }
 
@@ -187,7 +187,7 @@ void BME280Component::dump_config() {
       ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
       break;
     case WRONG_CHIP_ID:
-      ESP_LOGE(TAG, ERROR_WRONG_CHIP_ID);
+      ESP_LOGE(TAG, BME280_ERROR_WRONG_CHIP_ID);
       break;
     case NONE:
     default:
