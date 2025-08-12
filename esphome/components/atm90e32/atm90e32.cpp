@@ -3,9 +3,6 @@
 #include <cmath>
 #include <numbers>
 #include "esphome/core/log.h"
-#ifdef USE_NETWORK
-#include "esphome/components/network/util.h"
-#endif
 
 namespace esphome {
 namespace atm90e32 {
