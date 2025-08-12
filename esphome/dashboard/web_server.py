@@ -493,6 +493,10 @@ class WizardRequestHandler(BaseHandler):
             self.write(json.dumps({"error": "Name is required"}))
             return
 
+        if "type" not in kwargs:
+            # Default to basic wizard type for backwards compatibility
+            kwargs["type"] = "basic"
+
         kwargs["friendly_name"] = kwargs["name"]
         kwargs["name"] = friendly_name_slugify(kwargs["friendly_name"])
         if kwargs["type"] == "basic":
