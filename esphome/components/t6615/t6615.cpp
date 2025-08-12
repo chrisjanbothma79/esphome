@@ -15,10 +15,13 @@ static const uint8_t T6615_COMMAND_GET_PPM[] = {0x02, 0x03};
 static const uint8_t T6615_COMMAND_GET_SERIAL[] = {0x02, 0x01};
 static const uint8_t T6615_COMMAND_GET_VERSION[] = {0x02, 0x0D};
 static const uint8_t T6615_COMMAND_GET_ELEVATION[] = {0x02, 0x0F};
+static const uint8_t T6615_COMMAND_GET_STATUS[] = {0xB6};
 static const uint8_t T6615_COMMAND_GET_ABC[] = {0xB7, 0x00};
 static const uint8_t T6615_COMMAND_ENABLE_ABC[] = {0xB7, 0x01};
 static const uint8_t T6615_COMMAND_DISABLE_ABC[] = {0xB7, 0x02};
 static const uint8_t T6615_COMMAND_SET_ELEVATION[] = {0x03, 0x0F};
+
+static uint8_t bootup_state = 0;
 
 void T6615Component::send_ppm_command_() {
   this->command_time_ = millis();
@@ -29,9 +32,28 @@ void T6615Component::send_ppm_command_() {
   this->write_array(T6615_COMMAND_GET_PPM, sizeof(T6615_COMMAND_GET_PPM));
 }
 
+void T6615Component::send_serial_command_() {
+  this->command_time_ = millis();
+  this->command_ = T6615Command::GET_SERIAL;
+  this->write_byte(T6615_MAGIC);
+  this->write_byte(T6615_ADDR_SENSOR);
+  this->write_byte(sizeof(T6615_COMMAND_GET_SERIAL));
+  this->write_array(T6615_COMMAND_GET_SERIAL, sizeof(T6615_COMMAND_GET_SERIAL));
+}
+
+void T6615Component::send_status_command_() {
+  this->command_time_ = millis();
+  this->command_ = T6615Command::GET_STATUS;
+  this->write_byte(T6615_MAGIC);
+  this->write_byte(T6615_ADDR_SENSOR);
+  this->write_byte(sizeof(T6615_COMMAND_GET_STATUS));
+  this->write_array(T6615_COMMAND_GET_STATUS, sizeof(T6615_COMMAND_GET_STATUS));
+}
+
 void T6615Component::loop() {
-  if (this->available() < 5) {
+  if (this->available() < 4) {
     if (this->command_ == T6615Command::GET_PPM && millis() - this->command_time_ > T6615_TIMEOUT) {
+      ESP_LOGW(TAG, "timeout receiving answer, clearing buffer and request PPM again.");
       /* command got eaten, clear the buffer and fire another */
       while (this->available())
         this->read();
@@ -40,10 +62,11 @@ void T6615Component::loop() {
     return;
   }
 
-  uint8_t response_buffer[6];
+  uint8_t response_buffer[4 + 15];
+  memset(response_buffer, '\0', 4 + 15);
 
-  /* by the time we get here, we know we have at least five bytes in the buffer */
-  this->read_array(response_buffer, 5);
+  /* by the time we get here, we know we have at least four bytes in the buffer */
+  this->read_array(response_buffer, 4);
 
   // Read header
   if (response_buffer[0] != T6615_MAGIC || response_buffer[1] != T6615_ADDR_HOST) {
@@ -62,20 +85,51 @@ void T6615Component::loop() {
 
   switch (this->command_) {
     case T6615Command::GET_PPM: {
+      /* GET_PPM reply is 5 bytes long, read last byte */
+      this->read_array(response_buffer + 4, 1);
       const uint16_t ppm = encode_uint16(response_buffer[3], response_buffer[4]);
       ESP_LOGD(TAG, "T6615 Received CO₂=%uppm", ppm);
       if (this->co2_sensor_ != nullptr)
         this->co2_sensor_->publish_state(ppm);
       break;
     }
+    case T6615Command::GET_SERIAL: {
+      /* GET_SERIAL reply is 4+15 bytes long, read remaining 15 bytes*/
+      /* do not read last byte, should be \0 */
+      this->read_array(response_buffer + 4, 14);
+
+      ESP_LOGD(TAG, "T6615 Received serial=%s", response_buffer + 4);
+      break;
+    }
+    case T6615Command::GET_STATUS: {
+      const uint8_t status = response_buffer[3];
+      ESP_LOGD(TAG, "T6615 Received status=0x%02x", status);
+      break;
+    }
     default:
       break;
   }
+  /* make sure the buffer is empty */
+  while (this->available())
+    this->read();
   this->command_time_ = 0;
   this->command_ = T6615Command::NONE;
 }
 
-void T6615Component::update() { this->query_ppm_(); }
+void T6615Component::update() {
+  switch (bootup_state % 3) {
+    case 0:
+      this->send_serial_command_();
+      break;
+    case 1:
+      this->send_status_command_();
+      break;
+    case 2:
+      this->query_ppm_();
+      break;
+  }
+  bootup_state = (bootup_state + 1) % 3;
+}
 
 void T6615Component::query_ppm_() {
   if (this->co2_sensor_ == nullptr ||
