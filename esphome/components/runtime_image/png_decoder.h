@@ -3,11 +3,12 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "image_decoder.h"
-#ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
+#include "runtime_image.h"
+#ifdef USE_RUNTIME_IMAGE_PNG
 #include <pngle.h>
 
 namespace esphome {
-namespace online_image {
+namespace runtime_image {
 
 /**
  * @brief Image decoder specialization for PNG images.
@@ -17,12 +18,12 @@ class PngDecoder : public ImageDecoder {
   /**
    * @brief Construct a new PNG Decoder object.
    *
-   * @param display The image to decode the stream into.
+   * @param image The RuntimeImage to decode the stream into.
    */
-  PngDecoder(OnlineImage *image);
+  PngDecoder(RuntimeImage *image);
   ~PngDecoder() override;
 
-  int prepare(size_t download_size) override;
+  int prepare(size_t expected_size) override;
   int HOT decode(uint8_t *buffer, size_t size) override;
 
  protected:
@@ -30,7 +31,7 @@ class PngDecoder : public ImageDecoder {
   pngle_t *pngle_;
 };
 
-}  // namespace online_image
+}  // namespace runtime_image
 }  // namespace esphome
 
-#endif  // USE_ONLINE_IMAGE_PNG_SUPPORT
+#endif  // USE_RUNTIME_IMAGE_PNG
