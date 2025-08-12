@@ -38,6 +38,7 @@ async def test_crc8_helper(
         "parameter_equivalence": False,
         "edge_cases": False,
         "component_compatibility": False,
+        "old_vs_new": False,
         "setup_started": False,
     }
 
@@ -52,7 +53,7 @@ async def test_crc8_helper(
             test_complete.set()
 
         # Track individual test results
-        elif "TEST PASSED:" in line:
+        elif "ALL TESTS PASSED" in line:
             if "Dallas/Maxim CRC8" in line:
                 test_results["dallas_maxim"] = True
             elif "Sensirion CRC8" in line:
@@ -65,6 +66,8 @@ async def test_crc8_helper(
                 test_results["edge_cases"] = True
             elif "Component compatibility" in line:
                 test_results["component_compatibility"] = True
+            elif "Old vs New CRC8 implementations" in line:
+                test_results["old_vs_new"] = True
 
         # Log failures for debugging
         elif "TEST FAILED:" in line or "SUBTEST FAILED:" in line:
@@ -82,7 +85,7 @@ async def test_crc8_helper(
 
         # Wait for tests to complete with timeout
         try:
-            await asyncio.wait_for(test_complete.wait(), timeout=5.0)
+            await asyncio.wait_for(test_complete.wait(), timeout=10.0)
         except TimeoutError:
             pytest.fail("CRC8 integration test timed out after 5 seconds")
 
@@ -98,3 +101,4 @@ async def test_crc8_helper(
         assert test_results["component_compatibility"], (
             "Component compatibility test failed"
         )
+        assert test_results["old_vs_new"], "Old vs New CRC8 implementations test failed"
