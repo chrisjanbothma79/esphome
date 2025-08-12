@@ -63,23 +63,23 @@ void BMP280Component::setup() {
   // https://community.st.com/t5/stm32-mcus-products/issue-with-reading-bmp280-chip-id-using-spi/td-p/691855
   if (!this->read_byte(0xD0, &chip_id)) {
     this->error_code_ = COMMUNICATION_FAILED;
-    this->mark_failed();
+    this->mark_failed("communication failed");
     return;
   }
   if (!this->read_byte(0xD0, &chip_id)) {
     this->error_code_ = COMMUNICATION_FAILED;
-    this->mark_failed();
+    this->mark_failed("communication failed");
     return;
   }
   if (chip_id != 0x58) {
     this->error_code_ = WRONG_CHIP_ID;
-    this->mark_failed();
+    this->mark_failed("wrong chip id");
     return;
   }
 
   // Send a soft reset.
   if (!this->write_byte(BMP280_REGISTER_RESET, BMP280_SOFT_RESET)) {
-    this->mark_failed();
+    this->mark_failed("reset failed");
     return;
   }
   // Wait until the NVM data has finished loading.
@@ -89,13 +89,13 @@ void BMP280Component::setup() {
     delay(2);
     if (!this->read_byte(BMP280_REGISTER_STATUS, &status)) {
       ESP_LOGW(TAG, "Error reading status register.");
-      this->mark_failed();
+      this->mark_failed("read status");
       return;
     }
   } while ((status & BMP280_STATUS_IM_UPDATE) && (--retry));
   if (status & BMP280_STATUS_IM_UPDATE) {
     ESP_LOGW(TAG, "Timeout loading NVM.");
-    this->mark_failed();
+    this->mark_failed("timeout loading NVM");
     return;
   }
 
@@ -116,14 +116,14 @@ void BMP280Component::setup() {
 
   uint8_t config_register = 0;
   if (!this->read_byte(BMP280_REGISTER_CONFIG, &config_register)) {
-    this->mark_failed();
+    this->mark_failed("read config");
     return;
   }
   config_register &= ~0b11111100;
   config_register |= 0b000 << 5;  // 0.5 ms standby time
   config_register |= (this->iir_filter_ & 0b111) << 2;
   if (!this->write_byte(BMP280_REGISTER_CONFIG, config_register)) {
-    this->mark_failed();
+    this->mark_failed("write config");
     return;
   }
 }

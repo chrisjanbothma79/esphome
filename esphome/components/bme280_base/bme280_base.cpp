@@ -98,18 +98,18 @@ void BME280Component::setup() {
 
   if (!this->read_byte(BME280_REGISTER_CHIPID, &chip_id)) {
     this->error_code_ = COMMUNICATION_FAILED;
-    this->mark_failed();
+    this->mark_failed("can't communicate");
     return;
   }
   if (chip_id != 0x60) {
     this->error_code_ = WRONG_CHIP_ID;
-    this->mark_failed();
+    this->mark_failed("wrong chip id");
     return;
   }
 
   // Send a soft reset.
   if (!this->write_byte(BME280_REGISTER_RESET, BME280_SOFT_RESET)) {
-    this->mark_failed();
+    this->mark_failed("reset failed");
     return;
   }
   // Wait until the NVM data has finished loading.
@@ -119,13 +119,13 @@ void BME280Component::setup() {
     delay(2);
     if (!this->read_byte(BME280_REGISTER_STATUS, &status)) {
       ESP_LOGW(TAG, "Error reading status register.");
-      this->mark_failed();
+      this->mark_failed("read status");
       return;
     }
   } while ((status & BME280_STATUS_IM_UPDATE) && (--retry));
   if (status & BME280_STATUS_IM_UPDATE) {
     ESP_LOGW(TAG, "Timeout loading NVM.");
-    this->mark_failed();
+    this->mark_failed("timeout loading NVM");
     return;
   }
 
@@ -153,26 +153,26 @@ void BME280Component::setup() {
 
   uint8_t humid_control_val = 0;
   if (!this->read_byte(BME280_REGISTER_CONTROLHUMID, &humid_control_val)) {
-    this->mark_failed();
+    this->mark_failed("read humidity control");
     return;
   }
   humid_control_val &= ~0b00000111;
   humid_control_val |= this->humidity_oversampling_ & 0b111;
   if (!this->write_byte(BME280_REGISTER_CONTROLHUMID, humid_control_val)) {
-    this->mark_failed();
+    this->mark_failed("write humidity control");
     return;
   }
 
   uint8_t config_register = 0;
   if (!this->read_byte(BME280_REGISTER_CONFIG, &config_register)) {
-    this->mark_failed();
+    this->mark_failed("read config");
     return;
   }
   config_register &= ~0b11111100;
   config_register |= 0b101 << 5;  // 1000 ms standby time
   config_register |= (this->iir_filter_ & 0b111) << 2;
   if (!this->write_byte(BME280_REGISTER_CONFIG, config_register)) {
-    this->mark_failed();
+    this->mark_failed("write config");
     return;
   }
 }
