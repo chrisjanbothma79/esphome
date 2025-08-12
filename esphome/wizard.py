@@ -1,4 +1,5 @@
 import base64
+import binascii
 import os
 import random
 import string
@@ -195,7 +196,16 @@ def wizard_write(path, **kwargs):
         # Will be updated later after editing the file
         hardware = "UNKNOWN"
     elif kwargs["type"] == "upload":
-        file_text = base64.b64decode(kwargs["file_content"]).decode("utf-8")
+        try:
+            file_text = base64.b64decode(kwargs["file_content"]).decode("utf-8")
+        except (binascii.Error, UnicodeDecodeError):
+            safe_print(
+                color(
+                    AnsiFore.RED,
+                    "The uploaded file is not correctly encoded.",
+                )
+            )
+            return False
         hardware = "UNKNOWN"
     else:  # "basic"
         board = kwargs["board"]
