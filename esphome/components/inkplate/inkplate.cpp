@@ -398,7 +398,7 @@ void Inkplate::display1b_() {
   uint32_t data_mask = this->get_data_pin_mask_();
   ESP_LOGV(TAG, "Display1b start loops (%ums)", millis() - start_time);
 
-   for (uint8_t k = 0; k < rep; k++) {
+  for (uint8_t k = 0; k < rep; k++) {
     buffer_ptr = &this->buffer_[this->get_buffer_length_() - 1];
     vscan_start_();
     for (int i = 0, im = this->get_height_internal(); i < im; i++) {
