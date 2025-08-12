@@ -17,6 +17,7 @@ import esphome.wizard as wz
 @pytest.fixture
 def default_config():
     return {
+        "type": "basic",
         "name": "test-name",
         "platform": "ESP8266",
         "board": "esp01_1m",
