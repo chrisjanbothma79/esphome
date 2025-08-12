@@ -2530,6 +2530,8 @@ void GDEY042T81::dump_config() {
 //  - https://heltec.org/project/vision-master-e213/
 // Datasheet:
 //  - https://resource.heltec.cn/download/HT-VME213/LCMEN2R13EFC1.pdf
+// Reference code:
+//  - https://github.com/todd-herbert/heltec-eink-modules
 
 // Partial update screen LUT
 static const uint8_t LUT_20_VCOMDC_PARTIAL_LCMEN2R13EFC1[] = {
