@@ -164,9 +164,9 @@ void IDFUARTComponent::dump_config() {
                 this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_);
 
 #if (ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE)
-  uint32_t actual = 0; 
-  if (uart_get_baudrate(this->uart_num_, &actual) == ESP_OK && actual != 0) { 
-    ESP_LOGV(TAG, "  Actual baud rate: %" PRIu32 " bps", actual); 
+  uint32_t actual = 0;
+  if (uart_get_baudrate(this->uart_num_, &actual) == ESP_OK && actual != 0) {
+    ESP_LOGV(TAG, "  Actual baud rate: %" PRIu32 " bps", actual);
   }
 #endif
 
