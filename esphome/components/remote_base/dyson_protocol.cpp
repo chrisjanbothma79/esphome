@@ -14,19 +14,18 @@ constexpr uint32_t PW_SHORT_US = 720;
 constexpr uint32_t PW_LONG_US = 1500;
 constexpr uint32_t PW_START_US = 2280;
 
-// number of data bits of dyson code
-constexpr int32_t N_DYSON_BITS = 15;
+// MSB of 15 bit dyson code
+constexpr uint16_t MSB_DYSON = (1 << 14);
 
-// required symbols in transmit buffer
-constexpr uint32_t N_SYMBOLS_REQ = 2u * (N_DYSON_BITS + 1);
+// required symbols in transmit buffer = (start_symbol + 15 data_symbols)
+constexpr uint32_t N_SYMBOLS_REQ = 2u * (1 + 15);
 
 void DysonProtocol::encode(RemoteTransmitData *dst, const DysonData &data) {
   uint32_t raw_code = (data.code << 2) + (data.index & 3);
-  ESP_LOGI("dyson", "data.code=%04x data.index=%d --> raw_code %04x", data.code, data.index, raw_code);
   dst->set_carrier_frequency(36000);
   dst->reserve(N_SYMBOLS_REQ + 1);
   dst->item(PW_START_US, PW_SHORT_US);
-  for (uint16_t mask = (1 << (N_DYSON_BITS - 1)); mask != 0; mask >>= 1) {
+  for (uint16_t mask = MSB_DYSON; mask != 0; mask >>= 1) {
     if (mask == (mask & raw_code)) {
       dst->item(PW_MARK_US, PW_LONG_US);
     } else {
@@ -47,7 +46,7 @@ optional<DysonData> DysonProtocol::decode(RemoteReceiveData src) {
     return {};  // invalid frame length
   if (!src.expect_item(PW_START_US, PW_SHORT_US))
     return {};  // start not found
-  for (uint16_t mask = (1 << (N_DYSON_BITS - 1)); mask != 0; mask >>= 1) {
+  for (uint16_t mask = MSB_DYSON; mask != 0; mask >>= 1) {
     if (src.expect_item(PW_MARK_US, PW_SHORT_US)) {
       raw_code &= ~mask;  // zero detected
     } else if (src.expect_item(PW_MARK_US, PW_LONG_US)) {
@@ -56,9 +55,9 @@ optional<DysonData> DysonProtocol::decode(RemoteReceiveData src) {
       return {};  // invalid data item
     }
   }
-  data.code = raw_code >> 2;          // extract the button code
-  data.index = raw_code & 3;          // extract the rolling index counter
-  if (src.expect_mark(PW_MARK_US)) {  // the closing mark
+  data.code = raw_code >> 2;          // extract button code
+  data.index = raw_code & 3;          // extract rolling index
+  if (src.expect_mark(PW_MARK_US)) {  // check total length
     return data;
   }
   return {};  // frame not complete
