@@ -126,10 +126,10 @@ class Inkplate : public display::DisplayBuffer, public i2c::I2CDevice {
     if (this->is_ready())
       this->initialize_();
   }
-  void set_custom_waveform_inkplate_10(uint8_t waveformType) {
-    if (this->model_ == INKPLATE_10 && (waveformType > 0 && waveformType < 5)) {
-      memcpy(waveform3BitAll[1], Inkplate10CustomWaveform[waveformType], sizeof(waveform3BitAll[1]));
-      this->inkplate_10_waveform_type_ = waveformType;
+  void set_custom_waveform_inkplate_10(uint8_t waveform_type) {
+    if (this->model_ == INKPLATE_10 && (waveform_type > 0 && waveform_type < 5)) {
+      memcpy(waveform3BitAll[1], Inkplate10CustomWaveform[waveform_type], sizeof(waveform3BitAll[1]));
+      this->inkplate_10_waveform_type_ = waveform_type;
     } else {
       this->inkplate_10_waveform_type_ = 0;
     }
