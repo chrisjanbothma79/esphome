@@ -132,7 +132,7 @@ def _final_validate(config):
 FINAL_VALIDATE_SCHEMA = _final_validate
 
 
-@coroutine_with_priority(90)
+@coroutine_with_priority(1000)
 async def to_code(config: ConfigType) -> None:
     """Convert the configuration to code."""
     cg.add_platformio_option("board", config[CONF_BOARD])
@@ -166,13 +166,18 @@ async def to_code(config: ConfigType) -> None:
 
     zephyr_to_code(config)
 
-    if dfu := config.get(CONF_DFU):
-        cg.add_define("USE_NRF52_DFU")
-        var = cg.new_Pvariable(dfu[CONF_ID])
-        pin = await cg.gpio_pin_expression(dfu[CONF_RESET_PIN])
-        cg.add(var.set_reset_pin(pin))
-        zephyr_add_prj_conf("CDC_ACM_DTE_RATE_CALLBACK_SUPPORT", True)
-        await cg.register_component(var, dfu)
+    if dfu_config := config.get(CONF_DFU):
+        CORE.add_job(_dfu_to_code, dfu_config)
+
+
+@coroutine_with_priority(90)
+async def _dfu_to_code(dfu_config):
+    cg.add_define("USE_NRF52_DFU")
+    var = cg.new_Pvariable(dfu_config[CONF_ID])
+    pin = await cg.gpio_pin_expression(dfu_config[CONF_RESET_PIN])
+    cg.add(var.set_reset_pin(pin))
+    zephyr_add_prj_conf("CDC_ACM_DTE_RATE_CALLBACK_SUPPORT", True)
+    await cg.register_component(var, dfu_config)
 
 
 def copy_files() -> None:
