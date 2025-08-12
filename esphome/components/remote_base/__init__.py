@@ -624,7 +624,7 @@ DysonData, DysonBinarySensor, DysonTrigger, DysonAction, DysonDumper = declare_p
 DYSON_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_CODE): cv.hex_uint16_t,
-        cv.Optional(CONF_INDEX, default=0): cv.hex_uint8_t,
+        cv.Optional(CONF_INDEX, default=0xFF): cv.hex_uint8_t,
     }
 )
 
