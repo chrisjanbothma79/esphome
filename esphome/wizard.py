@@ -190,12 +190,11 @@ def wizard_write(path, **kwargs):
     from esphome.components.rtl87xx import boards as rtl87xx_boards
 
     name = kwargs["name"]
-    type = kwargs["type"]
-    if type == "empty":
+    if kwargs["type"] == "empty":
         file_text = ""
         # Will be updated later after editing the file
         hardware = "UNKNOWN"
-    elif type == "upload":
+    elif kwargs["type"] == "upload":
         file_text = base64.b64decode(kwargs["file_content"]).decode("utf-8")
         hardware = "UNKNOWN"
     else:  # "basic"
