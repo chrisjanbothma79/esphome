@@ -85,7 +85,7 @@ async def test_crc8_helper(
 
         # Wait for tests to complete with timeout
         try:
-            await asyncio.wait_for(test_complete.wait(), timeout=10.0)
+            await asyncio.wait_for(test_complete.wait(), timeout=5.0)
         except TimeoutError:
             pytest.fail("CRC8 integration test timed out after 5 seconds")
 
