@@ -121,12 +121,13 @@ void ESP8266UartComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);  // NOLINT
   }
   ESP_LOGCONFIG(TAG,
-                "  Baud Rate: %u baud\n"
+                "  Baud Rate: %u bps\n"
                 "  Data Bits: %u\n"
                 "  Parity: %s\n"
                 "  Stop bits: %u",
                 this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_);
   if (this->hw_serial_ != nullptr) {
+    ESP_LOGV(TAG, "  Actual baud rate: %u bps", this->hw_serial_->baudRate());
     ESP_LOGCONFIG(TAG, "  Using hardware serial interface.");
   } else {
     ESP_LOGCONFIG(TAG, "  Using software serial");

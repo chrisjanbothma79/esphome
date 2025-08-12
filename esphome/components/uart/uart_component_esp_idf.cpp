@@ -157,11 +157,19 @@ void IDFUARTComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);
   }
   ESP_LOGCONFIG(TAG,
-                "  Baud Rate: %" PRIu32 " baud\n"
+                "  Baud Rate: %" PRIu32 " bps\n"
                 "  Data Bits: %u\n"
                 "  Parity: %s\n"
                 "  Stop bits: %u",
                 this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_);
+
+#if (ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE)
+  uint32_t actual = 0; 
+  if (uart_get_baudrate(this->uart_num_, &actual) == ESP_OK && actual != 0) { 
+    ESP_LOGV(TAG, "  Actual baud rate: %" PRIu32 " bps", actual); 
+  }
+#endif
+
   this->check_logger_conflict();
 }
 
