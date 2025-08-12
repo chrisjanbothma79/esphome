@@ -25,7 +25,8 @@ static const char *const TAG = "dxs238xw";
       value_float = factor - value_float; \
     } \
 \
-    if (this->name##_sensor_->get_raw_state() != value_float || this->get_component_state() == COMPONENT_STATE_SETUP) { \
+    if (this->name##_sensor_->get_raw_state() != value_float || \
+        this->get_component_state() == COMPONENT_STATE_SETUP) { \
       this->name##_sensor_->publish_state(value_float); \
     } \
   }
@@ -42,7 +43,8 @@ static const char *const TAG = "dxs238xw";
 #ifdef USE_TEXT_SENSOR
 #define UPDATE_TEXT_SENSOR(name, value) \
   if (this->name##_text_sensor_ != nullptr) { \
-    if (this->name##_text_sensor_->get_raw_state() != (value) || this->get_component_state() == COMPONENT_STATE_SETUP) { \
+    if (this->name##_text_sensor_->get_raw_state() != (value) || \
+        this->get_component_state() == COMPONENT_STATE_SETUP) { \
       this->name##_text_sensor_->publish_state(value); \
     } \
   }
@@ -86,11 +88,14 @@ static const char *const TAG = "dxs238xw";
 #define LOAD_PREFERENCE(name, preference_string, default_value, data) \
   this->preference_##name##_ = global_preferences->make_preference<uint32_t>(this->hash_##name##_); \
   if (this->name##_number_ != nullptr) { \
-    this->data##_.name = this->read_initial_number_value_(this->preference_##name##_, preference_string, default_value); \
+    this->data##_.name = \
+        this->read_initial_number_value_(this->preference_##name##_, preference_string, default_value); \
   }
 
-#define LOAD_PREFERENCE_MS(name, preference_string, default_value) LOAD_PREFERENCE(name, preference_string, default_value, ms_data)
-#define LOAD_PREFERENCE_LP(name, preference_string, default_value) LOAD_PREFERENCE(name, preference_string, default_value, lp_data)
+#define LOAD_PREFERENCE_MS(name, preference_string, default_value) \
+  LOAD_PREFERENCE(name, preference_string, default_value, ms_data)
+#define LOAD_PREFERENCE_LP(name, preference_string, default_value) \
+  LOAD_PREFERENCE(name, preference_string, default_value, lp_data)
 
 //------------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
@@ -269,7 +274,8 @@ void Dxs238xwComponent::hex_message(std::string message, bool check_crc) {
             ESP_LOGD(TAG, "* Waiting answer:");
 
             if (this->receive_serial_data_(this->receive_array_, HEKR_TYPE_RECEIVE)) {
-              ESP_LOGD(TAG, "* Successful answer: %s", format_hex_pretty(this->receive_array_, this->receive_array_[1]).c_str());
+              ESP_LOGD(TAG, "* Successful answer: %s",
+                       format_hex_pretty(this->receive_array_, this->receive_array_[1]).c_str());
 
               this->process_and_update_data_(this->receive_array_);
 
@@ -358,7 +364,8 @@ void Dxs238xwComponent::set_number_value(SmIdEntity entity, float value) {
 
           this->send_command_(SmCommandSend::SET_LIMIT_DATA);
         } else {
-          ESP_LOGW(TAG, "max_voltage_limit - Value %u must not be less than min_voltage_limit %u", tmp_value, this->lp_data_.min_voltage_limit);
+          ESP_LOGW(TAG, "max_voltage_limit - Value %u must not be less than min_voltage_limit %u", tmp_value,
+                   this->lp_data_.min_voltage_limit);
         }
 
         UPDATE_NUMBER(max_voltage_limit, this->lp_data_.max_voltage_limit)
@@ -370,7 +377,8 @@ void Dxs238xwComponent::set_number_value(SmIdEntity entity, float value) {
 
           this->send_command_(SmCommandSend::SET_LIMIT_DATA);
         } else {
-          ESP_LOGW(TAG, "min_voltage_limit - Value %u must not be greater than max_voltage_limit %u", tmp_value, this->lp_data_.max_voltage_limit);
+          ESP_LOGW(TAG, "min_voltage_limit - Value %u must not be greater than max_voltage_limit %u", tmp_value,
+                   this->lp_data_.max_voltage_limit);
         }
 
         UPDATE_NUMBER(min_voltage_limit, this->lp_data_.min_voltage_limit)
@@ -589,7 +597,9 @@ bool Dxs238xwComponent::receive_serial_data_(uint8_t *array, uint8_t type_messag
   }
 
   if (read_error != SmErrorCode::NO_ERROR) {
-    if (read_error == SmErrorCode::WRONG_BYTES_HEADER || read_error == SmErrorCode::WRONG_BYTES_LENGTH || read_error == SmErrorCode::WRONG_BYTES_TYPE_MESSAGE || read_error == SmErrorCode::WRONG_BYTES_COMMAND || read_error == SmErrorCode::CRC) {
+    if (read_error == SmErrorCode::WRONG_BYTES_HEADER || read_error == SmErrorCode::WRONG_BYTES_LENGTH ||
+        read_error == SmErrorCode::WRONG_BYTES_TYPE_MESSAGE || read_error == SmErrorCode::WRONG_BYTES_COMMAND ||
+        read_error == SmErrorCode::CRC) {
       ESP_LOGD(TAG, "* Message with error received: %s", format_hex_pretty(array, array[1]).c_str());
     }
 
@@ -629,7 +639,8 @@ void Dxs238xwComponent::process_and_update_data_(const uint8_t *receive_array) {
       this->ms_data_.delay_state = receive_array[18];
       this->ms_data_.delay_value_remaining = (receive_array[16] << 8) | receive_array[17];
 
-      this->ms_data_.total_energy = ((receive_array[7] << 24) | (receive_array[8] << 16) | (receive_array[9] << 8) | receive_array[10]) * 0.01;
+      this->ms_data_.total_energy =
+          ((receive_array[7] << 24) | (receive_array[8] << 16) | (receive_array[9] << 8) | receive_array[10]) * 0.01;
 
       if (this->ms_data_.meter_state) {
         this->ms_data_.warning_off_by_over_voltage = false;
@@ -657,7 +668,8 @@ void Dxs238xwComponent::process_and_update_data_(const uint8_t *receive_array) {
       }
 
       if (!this->ms_data_.warning_off_by_end_delay && this->get_component_state() == COMPONENT_STATE_LOOP) {
-        this->ms_data_.warning_off_by_end_delay = (this->ms_data_.delay_value_remaining == 0 && this->ms_data_.delay_state);
+        this->ms_data_.warning_off_by_end_delay =
+            (this->ms_data_.delay_value_remaining == 0 && this->ms_data_.delay_state);
       }
 
       if (this->ms_data_.warning_off_by_end_delay && this->ms_data_.meter_state) {
@@ -670,7 +682,8 @@ void Dxs238xwComponent::process_and_update_data_(const uint8_t *receive_array) {
         ESP_LOGD(TAG, "* New Power State = %s", ONOFF(this->ms_data_.meter_state));
       }
 
-      if ((this->ms_data_.warning_off_by_end_delay && this->ms_data_.delay_state) || (this->get_component_state() == COMPONENT_STATE_SETUP && this->ms_data_.delay_state)) {
+      if ((this->ms_data_.warning_off_by_end_delay && this->ms_data_.delay_state) ||
+          (this->get_component_state() == COMPONENT_STATE_SETUP && this->ms_data_.delay_state)) {
         ESP_LOGD(TAG, "* End Delay, trying to set Delay State to off");
 
         if (this->send_command_(SmCommandSend::SET_DELAY, false, false)) {
@@ -682,7 +695,8 @@ void Dxs238xwComponent::process_and_update_data_(const uint8_t *receive_array) {
 
       /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-      UPDATE_TEXT_SENSOR(delay_value_remaining, this->get_delay_value_remaining_string_(this->ms_data_.delay_value_remaining))
+      UPDATE_TEXT_SENSOR(delay_value_remaining,
+                         this->get_delay_value_remaining_string_(this->ms_data_.delay_value_remaining))
 
       UPDATE_BINARY_SENSOR(warning_off_by_over_voltage, this->ms_data_.warning_off_by_over_voltage)
       UPDATE_BINARY_SENSOR(warning_off_by_under_voltage, this->ms_data_.warning_off_by_under_voltage)
@@ -706,32 +720,49 @@ void Dxs238xwComponent::process_and_update_data_(const uint8_t *receive_array) {
       break;
     }
     case HEKR_CMD_RECEIVE_MEASUREMENT: {
-      UPDATE_SENSOR_MEASUREMENTS_CURRENT(current_phase_1, ((receive_array[5] << 16) | (receive_array[6] << 8) | receive_array[7]) * 0.001)
-      UPDATE_SENSOR_MEASUREMENTS_CURRENT(current_phase_2, ((receive_array[8] << 16) | (receive_array[9] << 8) | receive_array[10]) * 0.001)
-      UPDATE_SENSOR_MEASUREMENTS_CURRENT(current_phase_3, ((receive_array[11] << 16) | (receive_array[12] << 8) | receive_array[13]) * 0.001)
+      UPDATE_SENSOR_MEASUREMENTS_CURRENT(
+          current_phase_1, ((receive_array[5] << 16) | (receive_array[6] << 8) | receive_array[7]) * 0.001)
+      UPDATE_SENSOR_MEASUREMENTS_CURRENT(
+          current_phase_2, ((receive_array[8] << 16) | (receive_array[9] << 8) | receive_array[10]) * 0.001)
+      UPDATE_SENSOR_MEASUREMENTS_CURRENT(
+          current_phase_3, ((receive_array[11] << 16) | (receive_array[12] << 8) | receive_array[13]) * 0.001)
 
       UPDATE_SENSOR_MEASUREMENTS(voltage_phase_1, ((receive_array[14] << 8) | receive_array[15]) * 0.1)
       UPDATE_SENSOR_MEASUREMENTS(voltage_phase_2, ((receive_array[16] << 8) | receive_array[17]) * 0.1)
       UPDATE_SENSOR_MEASUREMENTS(voltage_phase_3, ((receive_array[18] << 8) | receive_array[19]) * 0.1)
 
-      UPDATE_SENSOR_MEASUREMENTS_POWER(reactive_power_total, ((receive_array[20] << 16) | (receive_array[21] << 8) | receive_array[22]) * 0.0001)
-      UPDATE_SENSOR_MEASUREMENTS_POWER(reactive_power_phase_1, ((receive_array[23] << 16) | (receive_array[24] << 8) | receive_array[25]) * 0.0001)
-      UPDATE_SENSOR_MEASUREMENTS_POWER(reactive_power_phase_2, ((receive_array[26] << 16) | (receive_array[27] << 8) | receive_array[28]) * 0.0001)
-      UPDATE_SENSOR_MEASUREMENTS_POWER(reactive_power_phase_3, ((receive_array[29] << 16) | (receive_array[30] << 8) | receive_array[31]) * 0.0001)
+      UPDATE_SENSOR_MEASUREMENTS_POWER(
+          reactive_power_total, ((receive_array[20] << 16) | (receive_array[21] << 8) | receive_array[22]) * 0.0001)
+      UPDATE_SENSOR_MEASUREMENTS_POWER(
+          reactive_power_phase_1, ((receive_array[23] << 16) | (receive_array[24] << 8) | receive_array[25]) * 0.0001)
+      UPDATE_SENSOR_MEASUREMENTS_POWER(
+          reactive_power_phase_2, ((receive_array[26] << 16) | (receive_array[27] << 8) | receive_array[28]) * 0.0001)
+      UPDATE_SENSOR_MEASUREMENTS_POWER(
+          reactive_power_phase_3, ((receive_array[29] << 16) | (receive_array[30] << 8) | receive_array[31]) * 0.0001)
 
-      UPDATE_SENSOR_MEASUREMENTS_POWER(active_power_total, ((receive_array[32] << 16) | (receive_array[33] << 8) | receive_array[34]) * 0.0001)
-      UPDATE_SENSOR_MEASUREMENTS_POWER(active_power_phase_1, ((receive_array[35] << 16) | (receive_array[36] << 8) | receive_array[37]) * 0.0001)
-      UPDATE_SENSOR_MEASUREMENTS_POWER(active_power_phase_2, ((receive_array[38] << 16) | (receive_array[39] << 8) | receive_array[40]) * 0.0001)
-      UPDATE_SENSOR_MEASUREMENTS_POWER(active_power_phase_3, ((receive_array[41] << 16) | (receive_array[42] << 8) | receive_array[43]) * 0.0001)
+      UPDATE_SENSOR_MEASUREMENTS_POWER(
+          active_power_total, ((receive_array[32] << 16) | (receive_array[33] << 8) | receive_array[34]) * 0.0001)
+      UPDATE_SENSOR_MEASUREMENTS_POWER(
+          active_power_phase_1, ((receive_array[35] << 16) | (receive_array[36] << 8) | receive_array[37]) * 0.0001)
+      UPDATE_SENSOR_MEASUREMENTS_POWER(
+          active_power_phase_2, ((receive_array[38] << 16) | (receive_array[39] << 8) | receive_array[40]) * 0.0001)
+      UPDATE_SENSOR_MEASUREMENTS_POWER(
+          active_power_phase_3, ((receive_array[41] << 16) | (receive_array[42] << 8) | receive_array[43]) * 0.0001)
 
       UPDATE_SENSOR_MEASUREMENTS(power_factor_total, ((receive_array[44] << 8) | receive_array[45]) * 0.001)
       UPDATE_SENSOR_MEASUREMENTS(power_factor_phase_1, ((receive_array[46] << 8) | receive_array[47]) * 0.001)
       UPDATE_SENSOR_MEASUREMENTS(power_factor_phase_2, ((receive_array[48] << 8) | receive_array[49]) * 0.001)
       UPDATE_SENSOR_MEASUREMENTS(power_factor_phase_3, ((receive_array[50] << 8) | receive_array[51]) * 0.001)
 
-      UPDATE_SENSOR_MEASUREMENTS(total_energy, ((receive_array[54] << 24) | (receive_array[55] << 16) | (receive_array[56] << 8) | receive_array[57]) * 0.01)
-      UPDATE_SENSOR_MEASUREMENTS(import_active_energy, ((receive_array[58] << 24) | (receive_array[59] << 16) | (receive_array[60] << 8) | receive_array[61]) * 0.01)
-      UPDATE_SENSOR_MEASUREMENTS(export_active_energy, ((receive_array[62] << 24) | (receive_array[63] << 16) | (receive_array[64] << 8) | receive_array[65]) * -0.01)
+      UPDATE_SENSOR_MEASUREMENTS(
+          total_energy,
+          ((receive_array[54] << 24) | (receive_array[55] << 16) | (receive_array[56] << 8) | receive_array[57]) * 0.01)
+      UPDATE_SENSOR_MEASUREMENTS(
+          import_active_energy,
+          ((receive_array[58] << 24) | (receive_array[59] << 16) | (receive_array[60] << 8) | receive_array[61]) * 0.01)
+      UPDATE_SENSOR_MEASUREMENTS(export_active_energy, ((receive_array[62] << 24) | (receive_array[63] << 16) |
+                                                        (receive_array[64] << 8) | receive_array[65]) *
+                                                           -0.01)
 
       UPDATE_SENSOR_MEASUREMENTS(frequency, ((receive_array[52] << 8) | receive_array[53]) * 0.01)
 
@@ -753,11 +784,17 @@ void Dxs238xwComponent::process_and_update_data_(const uint8_t *receive_array) {
       if (receive_array[1] == 25) {
         this->lp_data_.energy_purchase_state = receive_array[23];
 
-        // this->lp_data_.energy_purchase_value = (((receive_array[11] << 24) | (receive_array[12] << 16) | (receive_array[13] << 8) | receive_array[14]) * 0.01);
-        // this->lp_data_.energy_purchase_alarm = (((receive_array[19] << 24) | (receive_array[20] << 16) | (receive_array[21] << 8) | receive_array[22]) * 0.01);
-        this->lp_data_.energy_purchase_balance = (((receive_array[15] << 24) | (receive_array[16] << 16) | (receive_array[17] << 8) | receive_array[18]) * 0.01);
+        // this->lp_data_.energy_purchase_value = (((receive_array[11] << 24) | (receive_array[12] << 16) |
+        // (receive_array[13] << 8) | receive_array[14]) * 0.01); this->lp_data_.energy_purchase_alarm =
+        // (((receive_array[19] << 24) | (receive_array[20] << 16) | (receive_array[21] << 8) | receive_array[22]) *
+        // 0.01);
+        this->lp_data_.energy_purchase_balance =
+            (((receive_array[15] << 24) | (receive_array[16] << 16) | (receive_array[17] << 8) | receive_array[18]) *
+             0.01);
 
-        this->ms_data_.warning_purchase_alarm = ((this->lp_data_.energy_purchase_balance <= this->lp_data_.energy_purchase_alarm) && this->lp_data_.energy_purchase_state);
+        this->ms_data_.warning_purchase_alarm =
+            ((this->lp_data_.energy_purchase_balance <= this->lp_data_.energy_purchase_alarm) &&
+             this->lp_data_.energy_purchase_state);
       }
 
       UPDATE_SENSOR(energy_purchase_balance, this->lp_data_.energy_purchase_balance)
@@ -772,7 +809,8 @@ void Dxs238xwComponent::process_and_update_data_(const uint8_t *receive_array) {
     case HEKR_CMD_RECEIVE_METER_ID: {
       char serial_number[20];
 
-      sprintf(serial_number, "%02u%02u%02u %02u%02u%02u", receive_array[5], receive_array[6], receive_array[7], receive_array[8], receive_array[9], receive_array[10]);
+      sprintf(serial_number, "%02u%02u%02u %02u%02u%02u", receive_array[5], receive_array[6], receive_array[7],
+              receive_array[8], receive_array[9], receive_array[10]);
       std::string string_serial_number(serial_number);
 
       ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -794,7 +832,8 @@ bool Dxs238xwComponent::send_command_(SmCommandSend cmd, bool state, bool proces
 
         is_good_communication = this->put_command_data_(HEKR_CMD_SEND_GET_METER_STATE, HEKR_CMD_RECEIVE_METER_STATE);
 
-        ESP_LOGV(TAG, "Out --- send_command - GET_POWER_STATE - Communication Result = %s", TRUEFALSE(is_good_communication));
+        ESP_LOGV(TAG, "Out --- send_command - GET_POWER_STATE - Communication Result = %s",
+                 TRUEFALSE(is_good_communication));
       }
 
       break;
@@ -804,7 +843,8 @@ bool Dxs238xwComponent::send_command_(SmCommandSend cmd, bool state, bool proces
 
       is_good_communication = this->put_command_data_(HEKR_CMD_SEND_GET_MEASUREMENT, HEKR_CMD_RECEIVE_MEASUREMENT);
 
-      ESP_LOGV(TAG, "Out --- send_command - GET_MEASUREMENT_DATA - Communication Result = %s", TRUEFALSE(is_good_communication));
+      ESP_LOGV(TAG, "Out --- send_command - GET_MEASUREMENT_DATA - Communication Result = %s",
+               TRUEFALSE(is_good_communication));
 
       break;
     }
@@ -812,9 +852,11 @@ bool Dxs238xwComponent::send_command_(SmCommandSend cmd, bool state, bool proces
       if ((millis() - this->lp_data_.time) >= SM_MIN_INTERVAL_TO_GET_DATA) {
         ESP_LOGV(TAG, "In --- send_command - GET_LIMIT_AND_PURCHASE_DATA");
 
-        is_good_communication = this->put_command_data_(HEKR_CMD_SEND_GET_LIMIT_AND_PURCHASE, HEKR_CMD_RECEIVE_LIMIT_AND_PURCHASE);
+        is_good_communication =
+            this->put_command_data_(HEKR_CMD_SEND_GET_LIMIT_AND_PURCHASE, HEKR_CMD_RECEIVE_LIMIT_AND_PURCHASE);
 
-        ESP_LOGV(TAG, "Out --- send_command - GET_LIMIT_AND_PURCHASE_DATA - Communication Result = %s", TRUEFALSE(is_good_communication));
+        ESP_LOGV(TAG, "Out --- send_command - GET_LIMIT_AND_PURCHASE_DATA - Communication Result = %s",
+                 TRUEFALSE(is_good_communication));
       }
 
       break;
@@ -824,7 +866,8 @@ bool Dxs238xwComponent::send_command_(SmCommandSend cmd, bool state, bool proces
 
       is_good_communication = this->put_command_data_(HEKR_CMD_SEND_GET_METER_ID, HEKR_CMD_RECEIVE_METER_ID);
 
-      ESP_LOGV(TAG, "Out --- send_command - GET_METER_ID - Communication Result = %s", TRUEFALSE(is_good_communication));
+      ESP_LOGV(TAG, "Out --- send_command - GET_METER_ID - Communication Result = %s",
+               TRUEFALSE(is_good_communication));
 
       break;
     }
@@ -845,10 +888,13 @@ bool Dxs238xwComponent::send_command_(SmCommandSend cmd, bool state, bool proces
       array_data[4] = (this->lp_data_.min_voltage_limit >> 8);
       array_data[5] = (this->lp_data_.min_voltage_limit & SM_GET_ONE_BYTE);
 
-      is_good_communication = this->put_command_data_(HEKR_CMD_SEND_SET_LIMIT, HEKR_CMD_RECEIVE_LIMIT_AND_PURCHASE, array_data, array_size, process_data);
+      is_good_communication = this->put_command_data_(HEKR_CMD_SEND_SET_LIMIT, HEKR_CMD_RECEIVE_LIMIT_AND_PURCHASE,
+                                                      array_data, array_size, process_data);
 
-      ESP_LOGD(TAG, "* Input Data: max_current_limit = %u, max_voltage_limit = %u, min_voltage_limit = %u", this->lp_data_.max_current_limit, this->lp_data_.max_voltage_limit, this->lp_data_.min_voltage_limit);
-      ESP_LOGD(TAG, "Out --- send_command - SET_LIMIT_DATA - Communication Result = %s", TRUEFALSE(is_good_communication));
+      ESP_LOGD(TAG, "* Input Data: max_current_limit = %u, max_voltage_limit = %u, min_voltage_limit = %u",
+               this->lp_data_.max_current_limit, this->lp_data_.max_voltage_limit, this->lp_data_.min_voltage_limit);
+      ESP_LOGD(TAG, "Out --- send_command - SET_LIMIT_DATA - Communication Result = %s",
+               TRUEFALSE(is_good_communication));
 
       break;
     }
@@ -878,10 +924,14 @@ bool Dxs238xwComponent::send_command_(SmCommandSend cmd, bool state, bool proces
 
       array_data[8] = state;
 
-      is_good_communication = this->put_command_data_(HEKR_CMD_SEND_SET_PURCHASE, HEKR_CMD_RECEIVE_LIMIT_AND_PURCHASE, array_data, array_size, process_data);
+      is_good_communication = this->put_command_data_(HEKR_CMD_SEND_SET_PURCHASE, HEKR_CMD_RECEIVE_LIMIT_AND_PURCHASE,
+                                                      array_data, array_size, process_data);
 
-      ESP_LOGD(TAG, "* Input Data: purchase_value = %u, purchase_alarm = %u, state = %s", (state ? this->lp_data_.energy_purchase_value : 0), (state ? this->lp_data_.energy_purchase_alarm : 0), ONOFF(state));
-      ESP_LOGD(TAG, "Out --- send_command - SET_PURCHASE_DATA - Communication Result = %s", TRUEFALSE(is_good_communication));
+      ESP_LOGD(TAG, "* Input Data: purchase_value = %u, purchase_alarm = %u, state = %s",
+               (state ? this->lp_data_.energy_purchase_value : 0), (state ? this->lp_data_.energy_purchase_alarm : 0),
+               ONOFF(state));
+      ESP_LOGD(TAG, "Out --- send_command - SET_PURCHASE_DATA - Communication Result = %s",
+               TRUEFALSE(is_good_communication));
 
       break;
     }
@@ -893,10 +943,12 @@ bool Dxs238xwComponent::send_command_(SmCommandSend cmd, bool state, bool proces
 
       array_data[0] = state;
 
-      is_good_communication = this->put_command_data_(HEKR_CMD_SEND_SET_METER_STATE, HEKR_CMD_RECEIVE_METER_STATE, array_data, array_size, process_data);
+      is_good_communication = this->put_command_data_(HEKR_CMD_SEND_SET_METER_STATE, HEKR_CMD_RECEIVE_METER_STATE,
+                                                      array_data, array_size, process_data);
 
       ESP_LOGD(TAG, "* Input Data: state = %s", ONOFF(state));
-      ESP_LOGD(TAG, "Out --- send_command - SET_POWER_STATE - Communication Result = %s", TRUEFALSE(is_good_communication));
+      ESP_LOGD(TAG, "Out --- send_command - SET_POWER_STATE - Communication Result = %s",
+               TRUEFALSE(is_good_communication));
 
       break;
     }
@@ -917,7 +969,8 @@ bool Dxs238xwComponent::send_command_(SmCommandSend cmd, bool state, bool proces
 
       array_data[2] = state;
 
-      is_good_communication = this->put_command_data_(HEKR_CMD_SEND_SET_DELAY, HEKR_CMD_RECEIVE_METER_STATE, array_data, array_size, process_data);
+      is_good_communication = this->put_command_data_(HEKR_CMD_SEND_SET_DELAY, HEKR_CMD_RECEIVE_METER_STATE, array_data,
+                                                      array_size, process_data);
 
       ESP_LOGD(TAG, "* Input Data: delay_value_set = %u, state = %s", delay_value_set, ONOFF(state));
       ESP_LOGD(TAG, "Out --- send_command - SET_DELAY - Communication Result = %s", TRUEFALSE(is_good_communication));
@@ -971,7 +1024,8 @@ void Dxs238xwComponent::update_meter_state_detail_() {
   }
 }
 
-bool Dxs238xwComponent::put_command_data_(uint8_t cmd_send, uint8_t cmd_receive, const uint8_t *array_data, uint8_t array_size, bool process_data) {
+bool Dxs238xwComponent::put_command_data_(uint8_t cmd_send, uint8_t cmd_receive, const uint8_t *array_data,
+                                          uint8_t array_size, bool process_data) {
   this->error_type_ = SmErrorType::NO_ERROR;
   this->error_code_ = SmErrorCode::NO_ERROR;
 
@@ -998,7 +1052,8 @@ void Dxs238xwComponent::incoming_messages_() {
   ESP_LOGI(TAG, "Incoming message");
 
   if (this->receive_serial_data_(this->receive_array_, HEKR_TYPE_RECEIVE)) {
-    ESP_LOGI(TAG, "* Successful message arrived: %s", format_hex_pretty(this->receive_array_, this->receive_array_[1]).c_str());
+    ESP_LOGI(TAG, "* Successful message arrived: %s",
+             format_hex_pretty(this->receive_array_, this->receive_array_[1]).c_str());
 
     this->process_and_update_data_(this->receive_array_);
 
@@ -1121,7 +1176,8 @@ void Dxs238xwComponent::print_error_() {
   this->error_code_ = SmErrorCode::NO_ERROR;
 }
 
-uint32_t Dxs238xwComponent::read_initial_number_value_(ESPPreferenceObject &preference, const std::string preference_string, uint32_t default_value) {
+uint32_t Dxs238xwComponent::read_initial_number_value_(ESPPreferenceObject &preference,
+                                                       const std::string preference_string, uint32_t default_value) {
   uint32_t initial_value = 0;
 
   if (!preference.load(&initial_value)) {
@@ -1145,7 +1201,8 @@ void Dxs238xwComponent::save_initial_number_value_(ESPPreferenceObject &preferen
   }
 }
 
-float Dxs238xwComponent::read_initial_number_value_(ESPPreferenceObject &preference, const std::string preference_string, float default_value) {
+float Dxs238xwComponent::read_initial_number_value_(ESPPreferenceObject &preference,
+                                                    const std::string preference_string, float default_value) {
   float initial_value = 0;
 
   if (!preference.load(&initial_value)) {

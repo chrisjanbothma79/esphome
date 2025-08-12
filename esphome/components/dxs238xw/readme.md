@@ -178,16 +178,16 @@ This development works only with the meters that work with the WISEN app. If you
       - platform: dxs238xw
         current_phase_1:
           name: "Current"
-          
+
         voltage_phase_1:
           name: "Voltage"
-          
+
         reactive_power_phase_1:
           name: "Reactive Power"
-          
+
         active_power_phase_1:
           name: "Active Power"
-          
+
         power_factor_phase_1:
           name: "Power Factor"
 ```
@@ -331,7 +331,7 @@ These numbers are input fields for setting on the energy meter, delay value, ene
 - **name** (**Required**, string): The name for the Number.
 
 All other options from [Number](https://esphome.io/components/number/). The Number are already configured with all default values, but you can override them if necessary.
-  
+
 # Switch
 
 These switch are used to activate or deactivate the purchase of energy, the delay time and the status of the energy meter.

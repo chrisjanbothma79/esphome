@@ -85,7 +85,8 @@ static const char *const SM_STR_CODE_NO_ERROR = "No Errors";
 
 static const char *const SM_STR_CODE_WRONG_BYTES_HEADER = "The bytes was received but are not correct (HEADER)";
 static const char *const SM_STR_CODE_WRONG_BYTES_LENGTH = "The bytes was received but are not correct (LENGTH)";
-static const char *const SM_STR_CODE_WRONG_BYTES_TYPE_MESSAGE = "The bytes was received but are not correct (TYPE_MESSAGE)";
+static const char *const SM_STR_CODE_WRONG_BYTES_TYPE_MESSAGE =
+    "The bytes was received but are not correct (TYPE_MESSAGE)";
 static const char *const SM_STR_CODE_WRONG_BYTES_COMMAND = "The bytes was received but are not correct (COMMAND)";
 
 static const char *const SM_STR_CODE_CRC = "CRC check failed";
@@ -248,7 +249,9 @@ struct MeterStateData {
   binary_sensor::BinarySensor *name##_binary_sensor_; \
 \
  public: \
-  void set_##name##_binary_sensor(binary_sensor::BinarySensor *name##_binary_sensor) { this->name##_binary_sensor_ = name##_binary_sensor; }
+  void set_##name##_binary_sensor(binary_sensor::BinarySensor *name##_binary_sensor) { \
+    this->name##_binary_sensor_ = name##_binary_sensor; \
+  }
 #else
 #define DXS238XW_BINARY_SENSOR(name)
 #endif
@@ -259,7 +262,9 @@ struct MeterStateData {
   text_sensor::TextSensor *name##_text_sensor_; \
 \
  public: \
-  void set_##name##_text_sensor(text_sensor::TextSensor *name##_text_sensor) { this->name##_text_sensor_ = name##_text_sensor; }
+  void set_##name##_text_sensor(text_sensor::TextSensor *name##_text_sensor) { \
+    this->name##_text_sensor_ = name##_text_sensor; \
+  }
 #else
 #define DXS238XW_TEXT_SENSOR(name)
 #endif
@@ -416,7 +421,8 @@ class Dxs238xwComponent : public PollingComponent, public uart::UARTDevice {
 
   void update_meter_state_detail_();
 
-  bool put_command_data_(uint8_t cmd_send, uint8_t cmd_receive, const uint8_t *array_data = nullptr, uint8_t array_size = 0, bool process_data = true);
+  bool put_command_data_(uint8_t cmd_send, uint8_t cmd_receive, const uint8_t *array_data = nullptr,
+                         uint8_t array_size = 0, bool process_data = true);
 
   void incoming_messages_();
 
@@ -427,10 +433,12 @@ class Dxs238xwComponent : public PollingComponent, public uart::UARTDevice {
 
   void print_error_();
 
-  uint32_t read_initial_number_value_(ESPPreferenceObject &preference, const std::string preference_string, uint32_t default_value);
+  uint32_t read_initial_number_value_(ESPPreferenceObject &preference, const std::string preference_string,
+                                      uint32_t default_value);
   void save_initial_number_value_(ESPPreferenceObject &preference, uint32_t value);
 
-  float read_initial_number_value_(ESPPreferenceObject &preference, const std::string preference_string, float default_value);
+  float read_initial_number_value_(ESPPreferenceObject &preference, const std::string preference_string,
+                                   float default_value);
   void save_initial_number_value_(ESPPreferenceObject &preference, float value);
 };
 

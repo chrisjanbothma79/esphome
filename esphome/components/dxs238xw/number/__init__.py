@@ -1,27 +1,25 @@
-from esphome.components import number
-import esphome.config_validation as cv
 import esphome.codegen as cg
-
+from esphome.components import number
 from esphome.components.number import NUMBER_MODES
-
+import esphome.config_validation as cv
 from esphome.const import (
-    CONF_ICON,
     CONF_ENTITY_CATEGORY,
+    CONF_ICON,
     CONF_MODE,
-    ENTITY_CATEGORY_CONFIG,
     CONF_UNIT_OF_MEASUREMENT,
+    ENTITY_CATEGORY_CONFIG,
     UNIT_AMPERE,
-    UNIT_VOLT,
     UNIT_KILOWATT_HOURS,
     UNIT_MINUTE,
+    UNIT_VOLT,
 )
 
 from .. import (
-    dxs238xw_ns,
     CONF_DXS238XW_ID,
+    DXS238XW_COMPONENT_SCHEMA,
     SmIdEntity,
     SmLimitValue,
-    DXS238XW_COMPONENT_SCHEMA,
+    dxs238xw_ns,
 )
 
 DEPENDENCIES = ["dxs238xw"]
@@ -45,7 +43,9 @@ TYPES = {
             {
                 cv.GenerateID(): cv.declare_id(Dxs238xwNumber),
                 cv.Optional(CONF_ICON, default="mdi:current-ac"): cv.icon,
-                cv.Optional(CONF_MODE, default="BOX"): cv.enum(NUMBER_MODES, upper=True),
+                cv.Optional(CONF_MODE, default="BOX"): cv.enum(
+                    NUMBER_MODES, upper=True
+                ),
                 cv.Optional(
                     CONF_UNIT_OF_MEASUREMENT, default=UNIT_AMPERE
                 ): cv.string_strict,
@@ -64,7 +64,9 @@ TYPES = {
             {
                 cv.GenerateID(): cv.declare_id(Dxs238xwNumber),
                 cv.Optional(CONF_ICON, default="mdi:sine-wave"): cv.icon,
-                cv.Optional(CONF_MODE, default="BOX"): cv.enum(NUMBER_MODES, upper=True),
+                cv.Optional(CONF_MODE, default="BOX"): cv.enum(
+                    NUMBER_MODES, upper=True
+                ),
                 cv.Optional(
                     CONF_UNIT_OF_MEASUREMENT, default=UNIT_VOLT
                 ): cv.string_strict,
@@ -83,7 +85,9 @@ TYPES = {
             {
                 cv.GenerateID(): cv.declare_id(Dxs238xwNumber),
                 cv.Optional(CONF_ICON, default="mdi:sine-wave"): cv.icon,
-                cv.Optional(CONF_MODE, default="BOX"): cv.enum(NUMBER_MODES, upper=True),
+                cv.Optional(CONF_MODE, default="BOX"): cv.enum(
+                    NUMBER_MODES, upper=True
+                ),
                 cv.Optional(
                     CONF_UNIT_OF_MEASUREMENT, default=UNIT_VOLT
                 ): cv.string_strict,
@@ -102,7 +106,9 @@ TYPES = {
             {
                 cv.GenerateID(): cv.declare_id(Dxs238xwNumber),
                 cv.Optional(CONF_ICON, default="mdi:lightning-bolt"): cv.icon,
-                cv.Optional(CONF_MODE, default="BOX"): cv.enum(NUMBER_MODES, upper=True),
+                cv.Optional(CONF_MODE, default="BOX"): cv.enum(
+                    NUMBER_MODES, upper=True
+                ),
                 cv.Optional(
                     CONF_UNIT_OF_MEASUREMENT, default=UNIT_KILOWATT_HOURS
                 ): cv.string_strict,
@@ -121,7 +127,9 @@ TYPES = {
             {
                 cv.GenerateID(): cv.declare_id(Dxs238xwNumber),
                 cv.Optional(CONF_ICON, default="mdi:lightning-bolt"): cv.icon,
-                cv.Optional(CONF_MODE, default="BOX"): cv.enum(NUMBER_MODES, upper=True),
+                cv.Optional(CONF_MODE, default="BOX"): cv.enum(
+                    NUMBER_MODES, upper=True
+                ),
                 cv.Optional(
                     CONF_UNIT_OF_MEASUREMENT, default=UNIT_KILOWATT_HOURS
                 ): cv.string_strict,
@@ -140,7 +148,9 @@ TYPES = {
             {
                 cv.GenerateID(): cv.declare_id(Dxs238xwNumber),
                 cv.Optional(CONF_ICON, default="mdi:timer-cog-outline"): cv.icon,
-                cv.Optional(CONF_MODE, default="BOX"): cv.enum(NUMBER_MODES, upper=True),
+                cv.Optional(CONF_MODE, default="BOX"): cv.enum(
+                    NUMBER_MODES, upper=True
+                ),
                 cv.Optional(
                     CONF_UNIT_OF_MEASUREMENT, default=UNIT_MINUTE
                 ): cv.string_strict,
@@ -158,8 +168,12 @@ TYPES = {
         number.number_schema.extend(
             {
                 cv.GenerateID(): cv.declare_id(Dxs238xwNumber),
-                cv.Optional(CONF_ICON, default="mdi:home-lightning-bolt-outline"): cv.icon,
-                cv.Optional(CONF_MODE, default="BOX"): cv.enum(NUMBER_MODES, upper=True),
+                cv.Optional(
+                    CONF_ICON, default="mdi:home-lightning-bolt-outline"
+                ): cv.icon,
+                cv.Optional(CONF_MODE, default="BOX"): cv.enum(
+                    NUMBER_MODES, upper=True
+                ),
                 cv.Optional(
                     CONF_UNIT_OF_MEASUREMENT, default=UNIT_KILOWATT_HOURS
                 ): cv.string_strict,
@@ -178,7 +192,9 @@ TYPES = {
             {
                 cv.GenerateID(): cv.declare_id(Dxs238xwNumber),
                 cv.Optional(CONF_ICON, default="mdi:cash"): cv.icon,
-                cv.Optional(CONF_MODE, default="BOX"): cv.enum(NUMBER_MODES, upper=True),
+                cv.Optional(CONF_MODE, default="BOX"): cv.enum(
+                    NUMBER_MODES, upper=True
+                ),
                 cv.Optional(
                     CONF_UNIT_OF_MEASUREMENT, default=UNIT_CURRENCY_DOLLAR
                 ): cv.string_strict,
