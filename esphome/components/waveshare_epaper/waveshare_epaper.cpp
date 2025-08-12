@@ -2531,10 +2531,89 @@ void GDEY042T81::dump_config() {
 // Datasheet:
 //  - https://resource.heltec.cn/download/HT-VME213/LCMEN2R13EFC1.pdf
 
+// Partial update screen LUT
+static const uint8_t LUT_20_VCOMDC_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x06, 0x03, 0x02, 0x01, 0x01, 0x01, 0x01, 0x06, 0x02, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_21_WW_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x06, 0x03, 0x02, 0x81, 0x01, 0x01, 0x01, 0x06, 0x02, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_22_BW_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x86, 0x83, 0x82, 0x81, 0x01, 0x01, 0x01, 0x86, 0x82, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_23_WB_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x46, 0x43, 0x02, 0x01, 0x01, 0x01, 0x01, 0x46, 0x42, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_24_BB_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x06, 0x03, 0x42, 0x41, 0x01, 0x01, 0x01, 0x06, 0x02, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+void LCMEN2R13EFC1::power_on_() {
+  if (!this->power_is_on_) {
+    this->command(0x04);
+    this->wait_until_idle_();
+  }
+  this->power_is_on_ = true;
+}
+
+void LCMEN2R13EFC1::power_off_() {
+  this->command(0x02);
+  this->wait_until_idle_();
+  this->power_is_on_ = false;
+}
+
+void LCMEN2R13EFC1::deep_sleep() {
+  this->power_off_();
+  if (this->deep_sleep_between_updates_) {
+    this->wait_until_idle_();
+    this->command(0x17);  // Auto sequence command
+    this->data(0xA7);     // PON -> DRF -> POF -> DSLP
+    ESP_LOGD(TAG, "go to deep sleep");
+    this->is_deep_sleep_ = true;
+  }
+}
+
+void LCMEN2R13EFC1::init_display_() {
+  // Hardware Initialization
+  if (this->deep_sleep_between_updates_ && this->is_deep_sleep_) {
+    ESP_LOGI(TAG, "wake up from deep sleep");
+    this->reset_();
+    this->is_deep_sleep_ = false;
+  }
+
+  this->power_on_();
+
+  ESP_LOGD(TAG, "panel setting done");
+}
+
 void LCMEN2R13EFC1::initialize() {
-  this->init_display_();
-  ESP_LOGD(TAG, "Initialization complete, set the display to deep sleep");
-  this->deep_sleep();
+  if (this->reset_pin_ != nullptr)
+    this->deep_sleep_between_updates_ = true;
+
+  // old buffer for partial update
+  RAMAllocator<uint8_t> allocator;
+  this->old_buffer_ = allocator.allocate(this->get_buffer_length_());
+  if (this->old_buffer_ == nullptr) {
+    ESP_LOGE(TAG, "Could not allocate old buffer for display!");
+    return;
+  }
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->old_buffer_[i] = 0xFF;
+  }
 }
 
 // https://github.com/todd-herbert/heltec-eink-modules/blob/9207eb6ab2b96f66298e0488740218c17b006af7/src/Platforms/VisionMasterE213/power_controls.cpp#L33
@@ -2549,37 +2628,116 @@ void LCMEN2R13EFC1::reset_() {
   }
 }
 
-void LCMEN2R13EFC1::init_display_() {
-  this->reset_();
+// Datasheet page 6, Note 6-4
+bool LCMEN2R13EFC1::wait_until_idle_() {
+  if (this->busy_pin_ == nullptr) {
+    return true;  // no busy pin, skip check
+  }
 
-  this->wait_until_idle_();
+  const uint32_t start = millis();
+  while (!this->busy_pin_->digital_read()) {  // false = LOW = busy
+    if (millis() - start > this->idle_timeout_()) {
+      ESP_LOGE(TAG, "Timeout while waiting for idle!");
+      return false;
+    }
+    delay(1);
+  }
+  return true;  // pin is HIGH = idle
+}
+
+void LCMEN2R13EFC1::init_full_() {
+  this->init_display_();
+
   this->command(0x00);  // Panel setting
-
   // [7:6] Display Res, [5] LUT, [4] BW / BWR [3] Scan Vert, [2] Shift Horiz, [1] Booster, [0] Reset?
   this->data(0b11 << 6 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 1 | 1 << 0);
 
   this->command(0x50);  // VCOM AND DATA INTERVAL SETTING
-
   // [7:6] Border, [5:4] Data polarity (default), [3:0] VCOM and Data interval (default)
   this->data(0b10 << 6 | 0b11 << 4 | 0b0111 << 0);
-
-  this->command(0x04);  // Power on
-  this->wait_until_idle_();
-
-  this->command(0x12);  // Refresh
-  this->wait_until_idle_();
-
-  this->command(0x02);  // Power off
+  ESP_LOGD(TAG, "initialized full update");
 }
 
-void LCMEN2R13EFC1::update_full_() { ESP_LOGD(TAG, "Full update"); }
+void LCMEN2R13EFC1::init_partial_() {
+  this->init_display_();
 
-void LCMEN2R13EFC1::update_part_() { ESP_LOGD(TAG, "Partial update"); }
+  this->command(0x00);  // Panel setting
+  // [7:6] Display Res, [5] LUT, [4] BW / BWR [3] Scan Vert, [2] Shift Horiz, [1] Booster, [0] Reset?
+  this->data(0b11 << 6 | 1 << 5 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 1 | 1 << 0);
 
-void HOT LCMEN2R13EFC1::display() { ESP_LOGD(TAG, "Display function called"); }
+  this->command(0x50);  // VCOM and data interval setting
+  // [7:6] Border, [5:4] Data polarity (default), [3:0] VCOM and Data interval (default)
+  this->data(0b11 << 6 | 0b01 << 4 | 0b0111 << 0);
+
+  // Load the various LUTs
+  this->command(0x20);  // VCOM
+  this->write_lut_(LUT_20_VCOMDC_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_20_VCOMDC_PARTIAL_LCMEN2R13EFC1));
+  this->command(0x21);  // WW
+  this->write_lut_(LUT_21_WW_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_21_WW_PARTIAL_LCMEN2R13EFC1));
+  this->command(0x22);  // BW
+  this->write_lut_(LUT_22_BW_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_22_BW_PARTIAL_LCMEN2R13EFC1));
+  this->command(0x23);  // WB
+  this->write_lut_(LUT_23_WB_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_23_WB_PARTIAL_LCMEN2R13EFC1));
+  this->command(0x24);  // BB
+  this->write_lut_(LUT_24_BB_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_24_BB_PARTIAL_LCMEN2R13EFC1));
+  ESP_LOGD(TAG, "initialized partial update");
+}
+
+void HOT LCMEN2R13EFC1::display() {
+  bool full_update = this->at_update_ == 0;
+  if (full_update) {
+    this->init_full_();
+  } else {
+    this->init_partial_();
+  }
+
+  // input old buffer data
+  this->command(0x10);
+  delay(2);
+  this->start_data_();
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(this->old_buffer_[i]);
+  }
+  this->end_data_();
+  delay(2);
+
+  // COMMAND DATA START TRANSMISSION 2 (B/W only)
+  this->command(0x13);
+  delay(2);
+  this->start_data_();
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(this->buffer_[i]);
+    this->old_buffer_[i] = this->buffer_[i];
+  }
+  this->end_data_();
+  delay(2);
+
+  // COMMAND DISPLAY REFRESH
+  this->command(0x12);
+  delay(2);
+  this->wait_until_idle_();
+
+  if (full_update) {
+    ESP_LOGD(TAG, "full update done");
+  } else {
+    ESP_LOGD(TAG, "partial update done");
+  }
+
+  this->at_update_ = (this->at_update_ + 1) % this->full_update_every_;
+  // COMMAND deep sleep
+  this->deep_sleep();
+}
+
+void LCMEN2R13EFC1::write_lut_(const uint8_t *lut, const uint8_t size) {
+  // COMMAND WRITE LUT REGISTER
+  this->start_data_();
+  for (uint8_t i = 0; i < size; i++)
+    this->write_byte(lut[i]);
+  this->end_data_();
+}
 
 void LCMEN2R13EFC1::set_full_update_every(uint32_t full_update_every) { this->full_update_every_ = full_update_every; }
-int LCMEN2R13EFC1::get_width_internal() { return 122; }
+int LCMEN2R13EFC1::get_width_internal() { return 128; }
 int LCMEN2R13EFC1::get_height_internal() { return 250; }
 uint32_t LCMEN2R13EFC1::idle_timeout_() { return 5000; }
 void LCMEN2R13EFC1::dump_config() {
