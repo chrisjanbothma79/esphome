@@ -26,18 +26,22 @@ CONFIG_SCHEMA = {
     ): binary_sensor.binary_sensor_schema(
         device_class=DEVICE_CLASS_RUNNING,
         entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        filters=[{"settle": cv.TimePeriod(milliseconds=1000)}],
         icon=ICON_ACCOUNT,
     ),
     cv.Optional(CONF_HAS_TARGET): binary_sensor.binary_sensor_schema(
         device_class=DEVICE_CLASS_OCCUPANCY,
+        filters=[{"settle": cv.TimePeriod(milliseconds=1000)}],
         icon=ICON_ACCOUNT,
     ),
     cv.Optional(CONF_HAS_MOVING_TARGET): binary_sensor.binary_sensor_schema(
         device_class=DEVICE_CLASS_MOTION,
+        filters=[{"settle": cv.TimePeriod(milliseconds=1000)}],
         icon=ICON_MOTION_SENSOR,
     ),
     cv.Optional(CONF_HAS_STILL_TARGET): binary_sensor.binary_sensor_schema(
         device_class=DEVICE_CLASS_OCCUPANCY,
+        filters=[{"settle": cv.TimePeriod(milliseconds=1000)}],
         icon=ICON_MOTION_SENSOR,
     ),
 }

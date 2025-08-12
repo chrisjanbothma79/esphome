@@ -24,9 +24,8 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(LD2412Component),
-            cv.Optional(CONF_THROTTLE, default="1000ms"): cv.All(
-                cv.positive_time_period_milliseconds,
-                cv.Range(min=cv.TimePeriod(milliseconds=1)),
+            cv.Optional(CONF_THROTTLE): cv.invalid(
+                f"{CONF_THROTTLE} has been removed; use per-sensor filters, instead"
             ),
         }
     )
@@ -47,35 +46,3 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
-    cg.add(var.set_throttle(config[CONF_THROTTLE]))
-
-
-CALIBRATION_ACTION_SCHEMA = maybe_simple_id(
-    {
-        cv.Required(CONF_ID): cv.use_id(LD2412Component),
-    }
-)
-
-
-BluetoothPasswordSetAction = LD2412_ns.class_(
-    "BluetoothPasswordSetAction", automation.Action
-)
-
-
-BLUETOOTH_PASSWORD_SET_SCHEMA = cv.Schema(
-    {
-        cv.Required(CONF_ID): cv.use_id(LD2412Component),
-        cv.Required(CONF_PASSWORD): cv.templatable(cv.string_strict),
-    }
-)
-
-
-@automation.register_action(
-    "bluetooth_password.set", BluetoothPasswordSetAction, BLUETOOTH_PASSWORD_SET_SCHEMA
-)
-async def bluetooth_password_set_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_PASSWORD], args, cg.std_string)
-    cg.add(var.set_password(template_))
-    return var
