@@ -23,7 +23,7 @@ void DelonghiClimate::transmit_state() {
 
   data->mark(DELONGHI_HEADER_MARK);
   data->space(DELONGHI_HEADER_SPACE);
-  for (unsigned char b : remote_state) {
+  for (uint8_t b : remote_state) {
     for (uint8_t mask = 1; mask > 0; mask <<= 1) {  // iterate through bit mask
       data->mark(DELONGHI_BIT_MARK);
       bool bit = b & mask;

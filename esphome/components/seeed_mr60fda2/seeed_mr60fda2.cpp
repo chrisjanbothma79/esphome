@@ -110,10 +110,10 @@ static uint8_t find_nearest_index(float value, const float *arr, int size) {
  * @param value The float value to convert.
  * @param bytes The byte array to store the converted value.
  */
-static void float_to_bytes(float value, unsigned char *bytes) {
+static void float_to_bytes(float value, uint8_t *bytes) {
   union {
     float float_value;
-    unsigned char byte_array[4];
+    uint8_t byte_array[4];
   } u;
 
   u.float_value = value;
@@ -128,7 +128,7 @@ static void float_to_bytes(float value, unsigned char *bytes) {
  * @param value The 32-bit unsigned integer to convert.
  * @param bytes The byte array to store the converted value.
  */
-static void int_to_bytes(uint32_t value, unsigned char *bytes) {
+static void int_to_bytes(uint32_t value, uint8_t *bytes) {
   bytes[0] = value & 0xFF;
   bytes[1] = (value >> 8) & 0xFF;
   bytes[2] = (value >> 16) & 0xFF;
