@@ -334,7 +334,7 @@ void Inkplate::display1b_() {
   uint8_t buffer_value;
   const uint8_t *buffer_ptr;
   eink_on_();
-  int rep = 4;
+  uint8_t rep = 4;
   switch (this->model_) {
     case INKPLATE_10:
       clean_fast_(0, 1);
