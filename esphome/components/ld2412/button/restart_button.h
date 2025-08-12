@@ -3,7 +3,8 @@
 #include "esphome/components/button/button.h"
 #include "../ld2412.h"
 
-namespace esphome::ld2412 {
+namespace esphome {
+namespace ld2412 {
 
 class RestartButton : public button::Button, public Parented<LD2412Component> {
  public:
@@ -13,4 +14,5 @@ class RestartButton : public button::Button, public Parented<LD2412Component> {
   void press_action() override;
 };
 
-}  // namespace esphome::ld2412
+}  // namespace ld2412
+}  // namespace esphome
