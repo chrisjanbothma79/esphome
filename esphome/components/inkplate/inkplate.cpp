@@ -81,29 +81,25 @@ void Inkplate::initialize_() {
     return;
   }
   if (this->greyscale_) {
-    uint8_t glut_size = 9;
-
-    this->glut_ = allocator32.allocate(256 * glut_size);
+    this->glut_ = allocator32.allocate(256 * GLUT_SIZE);
     if (this->glut_ == nullptr) {
       ESP_LOGE(TAG, "Could not allocate glut!");
       this->mark_failed();
       return;
     }
-    this->glut2_ = allocator32.allocate(256 * glut_size);
+    this->glut2_ = allocator32.allocate(256 * GLUT_SIZE);
     if (this->glut2_ == nullptr) {
       ESP_LOGE(TAG, "Could not allocate glut2!");
       this->mark_failed();
       return;
     }
 
-    const auto *const waveform3_bit = waveform3BitAll[this->model_];
-
-    for (int i = 0; i < glut_size; i++) {
+    for (uint8_t i = 0; i < GLUT_SIZE; i++) {
       for (uint32_t j = 0; j < 256; j++) {
-        uint8_t z = (waveform3_bit[j & 0x07][i] << 2) | (waveform3_bit[(j >> 4) & 0x07][i]);
+        uint8_t z = (this->waveform_[j & 0x07][i] << 2) | (this->waveform_[(j >> 4) & 0x07][i]);
         this->glut_[i * 256 + j] = ((z & 0b00000011) << 4) | (((z & 0b00001100) >> 2) << 18) |
                                    (((z & 0b00010000) >> 4) << 23) | (((z & 0b11100000) >> 5) << 25);
-        z = ((waveform3_bit[j & 0x07][i] << 2) | (waveform3_bit[(j >> 4) & 0x07][i])) << 4;
+        z = ((this->waveform_[j & 0x07][i] << 2) | (this->waveform_[(j >> 4) & 0x07][i])) << 4;
         this->glut2_[i * 256 + j] = ((z & 0b00000011) << 4) | (((z & 0b00001100) >> 2) << 18) |
                                     (((z & 0b00010000) >> 4) << 23) | (((z & 0b11100000) >> 5) << 25);
       }
@@ -171,14 +167,14 @@ void HOT Inkplate::draw_absolute_pixel_internal(int x, int y, Color color) {
     // uint8_t gs = (uint8_t)(px*7);
 
     uint8_t gs = ((color.red * 2126 / 10000) + (color.green * 7152 / 10000) + (color.blue * 722 / 10000)) >> 5;
-    this->buffer_[pos] = (pixelMaskGLUT[x_sub] & current) | (x_sub ? gs : gs << 4);
+    this->buffer_[pos] = (PIXEL_MASK_GLUT[x_sub] & current) | (x_sub ? gs : gs << 4);
 
   } else {
     int x1 = x / 8;
     int x_sub = x % 8;
     uint32_t pos = (x1 + y * (this->get_width_internal() / 8));
     uint8_t current = this->partial_buffer_[pos];
-    this->partial_buffer_[pos] = (~pixelMaskLUT[x_sub] & current) | (color.is_on() ? 0 : pixelMaskLUT[x_sub]);
+    this->partial_buffer_[pos] = (~PIXEL_MASK_LUT[x_sub] & current) | (color.is_on() ? 0 : PIXEL_MASK_LUT[x_sub]);
   }
 }
 
@@ -499,24 +495,24 @@ void Inkplate::display3b_() {
 
   switch (this->model_) {
     case INKPLATE_10:
-      if (this->inkplate_10_waveform_type_ == 0) {
+      if (this->custom_waveform_) {
         clean_fast_(1, 1);
-        clean_fast_(0, 10);
+        clean_fast_(0, 7);
         clean_fast_(2, 1);
-        clean_fast_(1, 10);
+        clean_fast_(1, 12);
         clean_fast_(2, 1);
-        clean_fast_(0, 10);
+        clean_fast_(0, 7);
         clean_fast_(2, 1);
-        clean_fast_(1, 10);
+        clean_fast_(1, 12);
       } else {
         clean_fast_(1, 1);
-        clean_fast_(0, 7);
+        clean_fast_(0, 10);
         clean_fast_(2, 1);
-        clean_fast_(1, 12);
+        clean_fast_(1, 10);
         clean_fast_(2, 1);
-        clean_fast_(0, 7);
+        clean_fast_(0, 10);
         clean_fast_(2, 1);
-        clean_fast_(1, 12);
+        clean_fast_(1, 10);
       }
       break;
     case INKPLATE_6_PLUS:

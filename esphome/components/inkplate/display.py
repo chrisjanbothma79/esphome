@@ -18,6 +18,8 @@ from esphome.const import (
 )
 import esphome.final_validate as fv
 
+from .const import INKPLATE_10_CUSTOM_WAVEFORMS, WAVEFORMS
+
 DEPENDENCIES = ["i2c", "esp32"]
 AUTO_LOAD = ["psram"]
 
@@ -64,12 +66,21 @@ MODELS = {
 
 CONF_CUSTOM_WAVEFORM = "custom_waveform"
 
+
+def _validate_custom_waveform(config):
+    if CONF_CUSTOM_WAVEFORM in config and config[CONF_MODEL] != "inkplate_10":
+        raise cv.Invalid("Custom waveforms are only supported on the Inkplate 10")
+    return config
+
+
 CONFIG_SCHEMA = cv.All(
     display.FULL_DISPLAY_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(Inkplate),
             cv.Optional(CONF_GREYSCALE, default=False): cv.boolean,
-            cv.Optional(CONF_CUSTOM_WAVEFORM, default=0): cv.uint8_t,
+            cv.Optional(CONF_CUSTOM_WAVEFORM): cv.All(
+                cv.uint8_t, cv.Range(min=1, max=len(INKPLATE_10_CUSTOM_WAVEFORMS))
+            ),
             cv.Optional(CONF_TRANSFORM): cv.Schema(
                 {
                     cv.Optional(CONF_MIRROR_X, default=False): cv.boolean,
@@ -123,6 +134,7 @@ CONFIG_SCHEMA = cv.All(
     .extend(cv.polling_component_schema("5s"))
     .extend(i2c.i2c_device_schema(0x48)),
     cv.has_at_most_one_key(CONF_PAGES, CONF_LAMBDA),
+    _validate_custom_waveform,
 )
 
 
@@ -159,7 +171,14 @@ async def to_code(config):
 
     cg.add(var.set_model(config[CONF_MODEL]))
 
-    cg.add(var.set_custom_waveform_inkplate_10(config[CONF_CUSTOM_WAVEFORM]))
+    if custom_waveform := config.get(CONF_CUSTOM_WAVEFORM):
+        waveform = INKPLATE_10_CUSTOM_WAVEFORMS[custom_waveform - 1]
+        waveform = [element for tupl in waveform for element in tupl]
+        cg.add(var.set_waveform(waveform, True))
+    else:
+        waveform = WAVEFORMS[config[CONF_MODEL]]
+        waveform = [element for tupl in waveform for element in tupl]
+        cg.add(var.set_waveform(waveform, False))
 
     ckv = await cg.gpio_pin_expression(config[CONF_CKV_PIN])
     cg.add(var.set_ckv_pin(ckv))
