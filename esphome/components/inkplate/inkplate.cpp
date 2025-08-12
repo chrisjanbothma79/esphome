@@ -335,64 +335,63 @@ void Inkplate::display1b_() {
   const uint8_t *buffer_ptr;
   eink_on_();
   int rep = 4;
-  switch(this->model_)
-  {
+  switch (this->model_) {
     case INKPLATE_10:
-        clean_fast_(0, 1);
-        clean_fast_(1, 10);
-        clean_fast_(2, 1);
-        clean_fast_(0, 10);
-        clean_fast_(2, 1);
-        clean_fast_(1, 10);
-        clean_fast_(2, 1);
-        clean_fast_(0, 10);
-        rep=5;
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 10);
+      clean_fast_(2, 1);
+      clean_fast_(0, 10);
+      clean_fast_(2, 1);
+      clean_fast_(1, 10);
+      clean_fast_(2, 1);
+      clean_fast_(0, 10);
+      rep = 5;
+      break;
     case INKPLATE_6_PLUS:
-        clean_fast_(0, 1);
-        clean_fast_(1, 15);
-        clean_fast_(2, 1);
-        clean_fast_(0, 5);
-        clean_fast_(2, 1);
-        clean_fast_(1, 15);
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 15);
+      clean_fast_(2, 1);
+      clean_fast_(0, 5);
+      clean_fast_(2, 1);
+      clean_fast_(1, 15);
+      break;
     case INKPLATE_6:
     case INKPLATE_6_V2:
-        clean_fast_(0, 1);
-        clean_fast_(1, 18);
-        clean_fast_(2, 1);
-        clean_fast_(0, 18);
-        clean_fast_(2, 1);
-        clean_fast_(1, 18);
-        clean_fast_(2, 1);
-        clean_fast_(0, 18);
-        clean_fast_(2, 1);
-        if(this->model_ == INKPLATE_6_V2)
-            rep=5;
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 18);
+      clean_fast_(2, 1);
+      clean_fast_(0, 18);
+      clean_fast_(2, 1);
+      clean_fast_(1, 18);
+      clean_fast_(2, 1);
+      clean_fast_(0, 18);
+      clean_fast_(2, 1);
+      if (this->model_ == INKPLATE_6_V2)
+        rep = 5;
+      break;
     case INKPLATE_5:
-        clean_fast_(0, 1);
-        clean_fast_(1, 14);
-        clean_fast_(2, 1);
-        clean_fast_(0, 14);
-        clean_fast_(2, 1);
-        clean_fast_(1, 14);
-        clean_fast_(2, 1);
-        clean_fast_(0, 14);
-        clean_fast_(2, 1);
-        rep=5;
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 14);
+      clean_fast_(2, 1);
+      clean_fast_(0, 14);
+      clean_fast_(2, 1);
+      clean_fast_(1, 14);
+      clean_fast_(2, 1);
+      clean_fast_(0, 14);
+      clean_fast_(2, 1);
+      rep = 5;
+      break;
     case INKPLATE_5_V2:
-        clean_fast_(0, 1);
-        clean_fast_(1, 11);
-        clean_fast_(2, 1);
-        clean_fast_(0, 11);
-        clean_fast_(2, 1);
-        clean_fast_(1, 11);
-        clean_fast_(2, 1);
-        clean_fast_(0, 11);
-        rep=3;
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 11);
+      clean_fast_(2, 1);
+      clean_fast_(0, 11);
+      clean_fast_(2, 1);
+      clean_fast_(1, 11);
+      clean_fast_(2, 1);
+      clean_fast_(0, 11);
+      rep = 3;
+      break;
   }
 
   uint32_t clock = (1 << this->cl_pin_->get_pin());
@@ -497,72 +496,70 @@ void Inkplate::display3b_() {
   uint32_t start_time = millis();
 
   eink_on_();
-  
-  switch(this->model_)
-  {
+
+  switch (this->model_) {
     case INKPLATE_10:
-        if(this->inkplate_10_waveform_type_ == 0){
-            clean_fast_(1, 1);
-            clean_fast_(0, 10);
-            clean_fast_(2, 1);
-            clean_fast_(1, 10);
-            clean_fast_(2, 1);
-            clean_fast_(0, 10);
-            clean_fast_(2, 1);
-            clean_fast_(1, 10);
-        }
-        else{
-            clean_fast_(1, 1);
-            clean_fast_(0, 7);
-            clean_fast_(2, 1);
-            clean_fast_(1, 12);
-            clean_fast_(2, 1);
-            clean_fast_(0, 7);
-            clean_fast_(2, 1);
-            clean_fast_(1, 12);
-        }
-        break;
+      if (this->inkplate_10_waveform_type_ == 0) {
+        clean_fast_(1, 1);
+        clean_fast_(0, 10);
+        clean_fast_(2, 1);
+        clean_fast_(1, 10);
+        clean_fast_(2, 1);
+        clean_fast_(0, 10);
+        clean_fast_(2, 1);
+        clean_fast_(1, 10);
+      } else {
+        clean_fast_(1, 1);
+        clean_fast_(0, 7);
+        clean_fast_(2, 1);
+        clean_fast_(1, 12);
+        clean_fast_(2, 1);
+        clean_fast_(0, 7);
+        clean_fast_(2, 1);
+        clean_fast_(1, 12);
+      }
+      break;
     case INKPLATE_6_PLUS:
-        clean_fast_(0, 1);
-        clean_fast_(1, 15);
-        clean_fast_(2, 1);
-        clean_fast_(0, 5);
-        clean_fast_(2, 1);
-        clean_fast_(1, 15);
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 15);
+      clean_fast_(2, 1);
+      clean_fast_(0, 5);
+      clean_fast_(2, 1);
+      clean_fast_(1, 15);
+      break;
     case INKPLATE_6:
     case INKPLATE_6_V2:
-        clean_fast_(0, 1);
-        clean_fast_(1, 18);
-        clean_fast_(2, 1);
-        clean_fast_(0, 18);
-        clean_fast_(2, 1);
-        clean_fast_(1, 18);
-        clean_fast_(2, 1);
-        clean_fast_(0, 18);
-        clean_fast_(2, 1);
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 18);
+      clean_fast_(2, 1);
+      clean_fast_(0, 18);
+      clean_fast_(2, 1);
+      clean_fast_(1, 18);
+      clean_fast_(2, 1);
+      clean_fast_(0, 18);
+      clean_fast_(2, 1);
+      break;
     case INKPLATE_5:
-        clean_fast_(0, 1);
-        clean_fast_(1, 14);
-        clean_fast_(2, 1);
-        clean_fast_(0, 14);
-        clean_fast_(2, 1);
-        clean_fast_(1, 14);
-        clean_fast_(2, 1);
-        clean_fast_(0, 14);
-        clean_fast_(2, 1);
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 14);
+      clean_fast_(2, 1);
+      clean_fast_(0, 14);
+      clean_fast_(2, 1);
+      clean_fast_(1, 14);
+      clean_fast_(2, 1);
+      clean_fast_(0, 14);
+      clean_fast_(2, 1);
+      break;
     case INKPLATE_5_V2:
-        clean_fast_(0, 1);
-        clean_fast_(1, 11);
-        clean_fast_(2, 1);
-        clean_fast_(0, 11);
-        clean_fast_(2, 1);
-        clean_fast_(1, 11);
-        clean_fast_(2, 1);
-        clean_fast_(0, 11);
-        break;
+      clean_fast_(0, 1);
+      clean_fast_(1, 11);
+      clean_fast_(2, 1);
+      clean_fast_(0, 11);
+      clean_fast_(2, 1);
+      clean_fast_(1, 11);
+      clean_fast_(2, 1);
+      clean_fast_(0, 11);
+      break;
   }
 
   uint32_t clock = (1 << this->cl_pin_->get_pin());
