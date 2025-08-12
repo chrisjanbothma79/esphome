@@ -942,6 +942,10 @@ def validate_config(
         # do not try to validate further as we don't know what the target is
         return result
 
+    from esphome.pins import PIN_SCHEMA_REGISTRY
+
+    PIN_SCHEMA_REGISTRY.reset()
+
     for domain, conf in config.items():
         result.add_validation_step(LoadValidationStep(domain, conf))
     result.add_validation_step(IDPassValidationStep())
