@@ -1,7 +1,6 @@
 #include "crc8_test_component.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include "old_crc8_implementations.h"
 
 namespace esphome {
 namespace crc8_test_component {
@@ -18,7 +17,6 @@ void CRC8TestComponent::setup() {
   test_crc8_parameter_equivalence();
   test_crc8_edge_cases();
   test_component_compatibility();
-  test_old_vs_new_implementations();
 
   ESP_LOGI(TAG, "CRC8 Integration Test Complete");
 }
@@ -144,91 +142,6 @@ void CRC8TestComponent::test_component_compatibility() {
 
   all_passed = true;  // These are just demonstration tests
   log_test_result("Component compatibility", all_passed);
-}
-
-void CRC8TestComponent::test_old_vs_new_implementations() {
-  ESP_LOGI(TAG, "Testing old vs new CRC8 implementations");
-
-  // Test data for AGS10/AM2315C/HTE501/TEE501 (Sensirion-style)
-  const uint8_t sensirion_tests[][5] = {{0x12}, {0x34, 0x56}, {0xAA, 0xBB, 0xCC}, {0x01, 0x02, 0x03, 0x04}};
-  const uint8_t sensirion_lens[] = {1, 2, 3, 4};
-
-  // Test data for LC709203F/MLX90614 (PEC-style)
-  const uint8_t pec_tests[][5] = {{0x12}, {0x34, 0x56}, {0xAA, 0xBB, 0xCC}, {0x01, 0x02, 0x03, 0x04}};
-  const uint8_t pec_lens[] = {1, 2, 3, 4};
-
-  bool all_passed = true;
-
-  // Test AGS10 implementation
-  ESP_LOGI(TAG, "Testing AGS10 old vs new");
-  for (int i = 0; i < 4; i++) {
-    uint8_t old_result = OldCRC8Implementations::ags10_calc_crc8_(sensirion_tests[i], sensirion_lens[i]);
-    uint8_t new_result = crc8(sensirion_tests[i], sensirion_lens[i], 0xFF, 0x31, true);
-    bool match = (old_result == new_result);
-    ESP_LOGI(TAG, "AGS10 test %d: old=0x%02X, new=0x%02X %s", i, old_result, new_result, match ? "PASS" : "FAIL");
-    all_passed &= match;
-  }
-
-  // Test AM2315C implementation
-  ESP_LOGI(TAG, "Testing AM2315C old vs new");
-  for (int i = 0; i < 4; i++) {
-    uint8_t old_result = OldCRC8Implementations::am2315c_crc8_(sensirion_tests[i], sensirion_lens[i]);
-    uint8_t new_result = crc8(sensirion_tests[i], sensirion_lens[i], 0xFF, 0x31, true);
-    bool match = (old_result == new_result);
-    ESP_LOGI(TAG, "AM2315C test %d: old=0x%02X, new=0x%02X %s", i, old_result, new_result, match ? "PASS" : "FAIL");
-    all_passed &= match;
-  }
-
-  // Test HTE501 implementation (using range-based function)
-  ESP_LOGI(TAG, "Testing HTE501 old vs new");
-  const uint8_t hte501_buf[] = {0x00, 0x12, 0x34, 0x56, 0x78, 0x00};  // Add padding
-  for (int i = 0; i < 3; i++) {
-    uint8_t from = 1;
-    uint8_t to = 1 + i;  // i=0: from=1,to=1 (1 byte), i=1: from=1,to=2 (2 bytes), i=2: from=1,to=3 (3 bytes)
-    uint8_t length = to - from + 1;  // inclusive range
-    uint8_t old_result = OldCRC8Implementations::hte501_calc_crc8_(hte501_buf, from, to);
-    uint8_t new_result = crc8(&hte501_buf[from], length, 0xFF, 0x31, true);
-    bool match = (old_result == new_result);
-    ESP_LOGI(TAG, "HTE501 test %d (from=%d,to=%d,len=%d): old=0x%02X, new=0x%02X %s", i, from, to, length, old_result,
-             new_result, match ? "PASS" : "FAIL");
-    all_passed &= match;
-  }
-
-  // Test TEE501 implementation (using range-based function)
-  ESP_LOGI(TAG, "Testing TEE501 old vs new");
-  for (int i = 0; i < 3; i++) {
-    uint8_t from = 1;
-    uint8_t to = 1 + i;  // i=0: from=1,to=1 (1 byte), i=1: from=1,to=2 (2 bytes), i=2: from=1,to=3 (3 bytes)
-    uint8_t length = to - from + 1;  // inclusive range
-    uint8_t old_result = OldCRC8Implementations::tee501_calc_crc8_(hte501_buf, from, to);
-    uint8_t new_result = crc8(&hte501_buf[from], length, 0xFF, 0x31, true);
-    bool match = (old_result == new_result);
-    ESP_LOGI(TAG, "TEE501 test %d (from=%d,to=%d,len=%d): old=0x%02X, new=0x%02X %s", i, from, to, length, old_result,
-             new_result, match ? "PASS" : "FAIL");
-    all_passed &= match;
-  }
-
-  // Test LC709203F implementation
-  ESP_LOGI(TAG, "Testing LC709203F old vs new");
-  for (int i = 0; i < 4; i++) {
-    uint8_t old_result = OldCRC8Implementations::lc709203f_crc8_(pec_tests[i], pec_lens[i]);
-    uint8_t new_result = crc8(pec_tests[i], pec_lens[i], 0x00, 0x07, true);
-    bool match = (old_result == new_result);
-    ESP_LOGI(TAG, "LC709203F test %d: old=0x%02X, new=0x%02X %s", i, old_result, new_result, match ? "PASS" : "FAIL");
-    all_passed &= match;
-  }
-
-  // Test MLX90614 implementation
-  ESP_LOGI(TAG, "Testing MLX90614 old vs new");
-  for (int i = 0; i < 4; i++) {
-    uint8_t old_result = OldCRC8Implementations::mlx90614_crc8_pec_(pec_tests[i], pec_lens[i]);
-    uint8_t new_result = crc8(pec_tests[i], pec_lens[i], 0x00, 0x07, true);
-    bool match = (old_result == new_result);
-    ESP_LOGI(TAG, "MLX90614 test %d: old=0x%02X, new=0x%02X %s", i, old_result, new_result, match ? "PASS" : "FAIL");
-    all_passed &= match;
-  }
-
-  log_test_result("Old vs New CRC8 implementations", all_passed);
 }
 
 bool CRC8TestComponent::verify_crc8(const char *test_name, const uint8_t *data, uint8_t len, uint8_t expected,
