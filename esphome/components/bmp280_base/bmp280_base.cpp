@@ -3,8 +3,6 @@
 #include "esphome/core/log.h"
 
 #define BMP280_ERROR_WRONG_CHIP_ID "Wrong chip ID"
-#define BMP280_ERROR_READING_STATUS_REG "Error reading status register"
-#define BMP280_ERROR_TIMEOUT_LOADING_NVM "Timeout loading NVM"
 
 namespace esphome {
 namespace bmp280_base {
@@ -92,14 +90,12 @@ void BMP280Component::setup() {
   do {
     delay(2);
     if (!this->read_byte(BMP280_REGISTER_STATUS, &status)) {
-      ESP_LOGW(TAG, BMP280_ERROR_READING_STATUS_REG);
-      this->mark_failed(BMP280_ERROR_READING_STATUS_REG);
+      this->mark_failed("Error reading status register");
       return;
     }
   } while ((status & BMP280_STATUS_IM_UPDATE) && (--retry));
   if (status & BMP280_STATUS_IM_UPDATE) {
-    ESP_LOGW(TAG, BMP280_ERROR_TIMEOUT_LOADING_NVM);
-    this->mark_failed(BMP280_ERROR_TIMEOUT_LOADING_NVM);
+    this->mark_failed("Timeout loading NVM");
     return;
   }
 
