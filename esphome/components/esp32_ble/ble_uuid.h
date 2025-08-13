@@ -4,7 +4,7 @@
 #include "esphome/core/helpers.h"
 
 #ifdef USE_ESP32
-#ifdef USE_ESP32_BLE_DEVICE
+#ifdef USE_ESP32_BLE_UUID
 
 #include <string>
 #include <esp_bt_defs.h>
@@ -43,5 +43,5 @@ class ESPBTUUID {
 
 }  // namespace esphome::esp32_ble
 
-#endif  // USE_ESP32_BLE_DEVICE
+#endif  // USE_ESP32_BLE_UUID
 #endif  // USE_ESP32

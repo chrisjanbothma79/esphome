@@ -33,12 +33,14 @@ enum AdvertisementParserType {
   RAW_ADVERTISEMENTS,
 };
 
-#ifdef USE_ESP32_BLE_DEVICE
+#ifdef USE_ESP32_BLE_UUID
 struct ServiceData {
   ESPBTUUID uuid;
   adv_data_t data;
 };
+#endif
 
+#ifdef USE_ESP32_BLE_DEVICE
 class ESPBLEiBeacon {
  public:
   ESPBLEiBeacon() { memset(&this->beacon_data_, 0, sizeof(this->beacon_data_)); }

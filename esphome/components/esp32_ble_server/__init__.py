@@ -447,6 +447,7 @@ def parse_properties(char_conf):
 
 def parse_uuid(uuid):
     # If the UUID is a int, use from_uint32
+    cg.add_define("USE_ESP32_BLE_UUID")
     if isinstance(uuid, int):
         return ESPBTUUID_ns.from_uint32(uuid)
     # Otherwise, use ESPBTUUID_ns.from_raw
