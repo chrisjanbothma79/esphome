@@ -447,7 +447,6 @@ def parse_properties(char_conf):
 
 def parse_uuid(uuid):
     # If the UUID is a int, use from_uint32
-    cg.add_define("USE_ESP32_BLE_UUID")
     if isinstance(uuid, int):
         return ESPBTUUID_ns.from_uint32(uuid)
     # Otherwise, use ESPBTUUID_ns.from_raw
@@ -530,6 +529,7 @@ async def to_code_characteristic(service_var, char_conf):
 async def to_code(config):
     # Register the loggers this component needs
     esp32_ble.register_bt_logger(BTLoggers.GATT, BTLoggers.SMP)
+    cg.add_define("USE_ESP32_BLE_UUID")
 
     var = cg.new_Pvariable(config[CONF_ID])
 

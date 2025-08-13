@@ -12,8 +12,8 @@ namespace esphome::bluetooth_proxy {
 
 static const char *const TAG = "bluetooth_proxy.connection";
 
-// This function is designed to be allocation-free and only called in the event loop (not thread-safe)
-// It directly packs UUIDs into the output array with precalculated constants for the base UUID
+// This function is allocation-free and directly packs UUIDs into the output array
+// using precalculated constants for the Bluetooth base UUID
 static void fill_128bit_uuid_array(std::array<uint64_t, 2> &out, esp_bt_uuid_t uuid_source) {
   // Bluetooth base UUID: 00000000-0000-1000-8000-00805F9B34FB
   // out[0] = bytes 8-15 (big-endian)
