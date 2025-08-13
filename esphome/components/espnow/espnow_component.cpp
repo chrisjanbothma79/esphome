@@ -407,7 +407,7 @@ esp_err_t ESPNowComponent::add_peer(const uint8_t *peer) {
   }
 
   if (memcmp(peer, this->own_address_, ESP_NOW_ETH_ALEN) == 0) {
-    this->mark_failed();
+    this->status_momentary_warning("peer-add-failed");
     return ESP_ERR_INVALID_MAC;
   }
 
