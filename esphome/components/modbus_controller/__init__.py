@@ -32,15 +32,16 @@ from .const import (
     CONF_RESPONSE_SIZE,
     CONF_SKIP_UPDATES,
     CONF_VALUE_TYPE,
+    CONF_WRITE_LAMBDA,
 )
 
-CODEOWNERS = ["@martgras"]
+CODEOWNERS = ["@martgras", "@gotnone"]
 
 AUTO_LOAD = ["modbus"]
 
 CONF_READ_LAMBDA = "read_lambda"
-CONF_WRITE_LAMBDA = "write_lambda"
 CONF_SERVER_REGISTERS = "server_registers"
+CONF_SERVER_COIL_REGISTERS = "server_coil_registers"
 MULTI_CONF = True
 
 modbus_controller_ns = cg.esphome_ns.namespace("modbus_controller")
@@ -50,6 +51,7 @@ ModbusController = modbus_controller_ns.class_(
 
 SensorItem = modbus_controller_ns.struct("SensorItem")
 ServerRegister = modbus_controller_ns.struct("ServerRegister")
+ServerCoilRegister = modbus_controller_ns.struct("ServerCoilRegister")
 
 ModbusFunctionCode_ns = modbus_controller_ns.namespace("ModbusFunctionCode")
 ModbusFunctionCode = ModbusFunctionCode_ns.enum("ModbusFunctionCode")
@@ -82,6 +84,7 @@ MODBUS_REGISTER_TYPE = {
 SensorValueType_ns = modbus_controller_ns.namespace("SensorValueType")
 SensorValueType = SensorValueType_ns.enum("SensorValueType")
 SENSOR_VALUE_TYPE = {
+    "COIL": SensorValueType.COIL,
     "RAW": SensorValueType.RAW,
     "U_WORD": SensorValueType.U_WORD,
     "S_WORD": SensorValueType.S_WORD,
@@ -98,6 +101,7 @@ SENSOR_VALUE_TYPE = {
 }
 
 TYPE_REGISTER_MAP = {
+    "COIL": 1,
     "RAW": 1,
     "U_WORD": 1,
     "S_WORD": 1,
@@ -143,16 +147,67 @@ ModbusOfflineTrigger = modbus_controller_ns.class_(
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def validate_address(register_set: set):
+    def validator(register: dict):
+        address = register[CONF_ADDRESS]
+        register_count = register.get(
+            CONF_REGISTER_COUNT, TYPE_REGISTER_MAP[register[CONF_VALUE_TYPE]]
+        )
+        last_address = address + register_count - 1
+        try:
+            cv.uint16_t(last_address)
+        except cv.MultipleInvalid as exc:
+            raise cv.Invalid(
+                f"Address {address} + register_count {register_count} for selected value_type outside of valid range {last_address}.\n"
+                + exc.msg
+            )
+        check_set = set(range(address, last_address + 1))
+        if not register_set.isdisjoint(check_set):
+            raise cv.Invalid(f"Address range overlap for {address}..{last_address}")
+        register_set.update(check_set)
+
+        return register
+
+    return validator
+
+
+def update_dict(other: dict):
+    def validator(register: dict):
+        register.update(other)
+
+        return register
+
+    return validator
+
+
+ModbusServerRegisterSet = set()
+ModbusServerCoilRegisterSet = set()
+
 ModbusServerRegisterSchema = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(ServerRegister),
-        cv.Required(CONF_ADDRESS): cv.positive_int,
-        cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
-        cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
-        cv.Optional(CONF_WRITE_LAMBDA): cv.returning_lambda,
-    }
+    cv.All(
+        {
+            cv.GenerateID(): cv.declare_id(ServerRegister),
+            cv.Required(CONF_ADDRESS): cv.uint16_t,
+            cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
+            cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
+            cv.Optional(CONF_WRITE_LAMBDA): cv.returning_lambda,
+        },
+        validate_address(ModbusServerRegisterSet),
+    )
 )
 
+ModbusServerCoilRegisterSchema = cv.Schema(
+    cv.All(
+        {
+            cv.GenerateID(): cv.declare_id(ServerCoilRegister),
+            cv.Required(CONF_ADDRESS): cv.positive_int,
+            cv.Required(CONF_WRITE_LAMBDA): cv.lambda_,
+        },
+        update_dict({CONF_VALUE_TYPE: "COIL"}),
+        validate_address(ModbusServerCoilRegisterSet),
+    )
+)
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -167,6 +222,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_SERVER_REGISTERS,
             ): cv.ensure_list(ModbusServerRegisterSchema),
+            cv.Optional(
+                CONF_SERVER_COIL_REGISTERS,
+            ): cv.ensure_list(ModbusServerCoilRegisterSchema),
             cv.Optional(CONF_ON_COMMAND_SENT): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
@@ -232,7 +290,7 @@ def validate_modbus_register(config):
 
 
 def _final_validate(config):
-    if CONF_SERVER_REGISTERS in config:
+    if CONF_SERVER_REGISTERS in config or CONF_SERVER_COIL_REGISTERS in config:
         return modbus.final_validate_modbus_device("modbus_controller", role="server")(
             config
         )
@@ -332,6 +390,22 @@ async def to_code(config):
                     )
                 )
             cg.add(var.add_server_register(server_register_var))
+    if CONF_SERVER_COIL_REGISTERS in config:
+        for server_coil_register in config[CONF_SERVER_COIL_REGISTERS]:
+            server_coil_register_var = cg.new_Pvariable(
+                server_coil_register[CONF_ID],
+                server_coil_register[CONF_ADDRESS],
+            )
+            cg.add(
+                server_coil_register_var.set_write_lambda(
+                    await cg.process_lambda(
+                        server_coil_register[CONF_WRITE_LAMBDA],
+                        parameters=[(cg.bool_, "state")],
+                        return_type=cg.void,
+                    ),
+                )
+            )
+            cg.add(var.add_server_coil_register(server_coil_register_var))
     await register_modbus_device(var, config)
     for conf in config.get(CONF_ON_COMMAND_SENT, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)

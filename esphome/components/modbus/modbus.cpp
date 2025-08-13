@@ -159,6 +159,11 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
                                            uint16_t(data[3]) | (uint16_t(data[2]) << 8));
           continue;
         }
+        if (function_code == 0x5) {
+          device->on_modbus_write_coil_register(function_code, uint16_t(data[1]) | (uint16_t(data[0]) << 8),
+                                                uint16_t(data[3]) | (uint16_t(data[2]) << 8));
+          continue;
+        }
         if (function_code == 0x6 || function_code == 0x10) {
           device->on_modbus_write_registers(function_code, data);
           continue;
