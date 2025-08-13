@@ -10,11 +10,16 @@ static const char *const TAG = "gt911.touchscreen";
 
 static const uint8_t PRIMARY_ADDRESS = 0x5D;    // default I2C address for GT911
 static const uint8_t SECONDARY_ADDRESS = 0x14;  // secondary I2C address for GT911
+
+// https://github.com/lewisxhe/SensorLib/blob/ca67841378c9d5a3fb1adbcbb78ceac68be70170/src/TouchDrvGT911.hpp#L133
+static constexpr uint8_t SLEEP_COMMAND = 0x05;
+
 static const uint8_t GET_TOUCH_STATE[2] = {0x81, 0x4E};
 static const uint8_t CLEAR_TOUCH_STATE[3] = {0x81, 0x4E, 0x00};
 static const uint8_t GET_TOUCHES[2] = {0x81, 0x4F};
 static const uint8_t GET_SWITCHES[2] = {0x80, 0x4D};
 static const uint8_t GET_MAX_VALUES[2] = {0x80, 0x48};
+
 static const size_t MAX_TOUCHES = 5;  // max number of possible touches reported
 static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
 
@@ -133,6 +138,25 @@ void GT911Touchscreen::update_touches() {
         listener->update_button(i, (keys & (1 << i)) != 0);
     }
   }
+}
+
+void GT911Touchscreen::on_powerdown() {
+  // https://github.com/lewisxhe/SensorLib/blob/ca67841378c9d5a3fb1adbcbb78ceac68be70170/src/TouchDrvGT911.hpp#L128-L131
+  if (this->interrupt_pin_ != nullptr) {
+    this->interrupt_pin_->detach_interrupt();
+    this->interrupt_pin_->pin_mode(gpio::FLAG_OUTPUT);
+    this->interrupt_pin_->digital_write(false);
+  }
+
+  if (!this->write_command_(SLEEP_COMMAND)) {
+    ESP_LOGE(TAG, "powerdown error");
+  }
+}
+
+bool GT911Touchscreen::write_command_(const uint8_t command) {
+  // https://github.com/lewisxhe/SensorLib/blob/ca67841378c9d5a3fb1adbcbb78ceac68be70170/src/TouchDrvGT911.hpp#L507-L512
+  const uint8_t command_buffer[3] = {0x80, 0x40, command};
+  return this->write(command_buffer, sizeof(command_buffer)) == i2c::ERROR_OK;
 }
 
 void GT911Touchscreen::dump_config() {

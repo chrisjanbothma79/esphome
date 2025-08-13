@@ -30,12 +30,35 @@ class GT911Touchscreen : public touchscreen::Touchscreen, public i2c::I2CDevice 
   void dump_config() override;
   bool can_proceed() override { return this->setup_done_; }
 
+  /// @brief Powers down the GT911 touchscreen controller.
+  ///
+  /// Detaches the interrupt (if pin is set), reconfigures it as a GPIO output,
+  /// and drives it low as part of the power-down sequence.
+  /// Then sends the sleep command to the controller via I2C.
+  ///
+  /// Logs an error if the sleep command fails to send.
+  ///
+  /// @see
+  /// https://github.com/lewisxhe/SensorLib/blob/ca67841378c9d5a3fb1adbcbb78ceac68be70170/src/TouchDrvGT911.hpp#L128-L131
+  void on_powerdown() override;
+
   void set_interrupt_pin(InternalGPIOPin *pin) { this->interrupt_pin_ = pin; }
   void set_reset_pin(GPIOPin *pin) { this->reset_pin_ = pin; }
   void register_button_listener(GT911ButtonListener *listener) { this->button_listeners_.push_back(listener); }
 
  protected:
   void update_touches() override;
+
+  /// @brief Sends a command to the GT911 touchscreen controller.
+  ///
+  /// Writes a single-byte command to the I2C register address 0x8040.
+  ///
+  /// @param[in] command The command byte to send.
+  /// @return true if the I2C write operation completed successfully (i2c::ERROR_OK), false otherwise.
+  ///
+  /// @see
+  /// https://github.com/lewisxhe/SensorLib/blob/ca67841378c9d5a3fb1adbcbb78ceac68be70170/src/TouchDrvGT911.hpp#L507-L512
+  bool write_command_(uint8_t command);
 
   /// @brief Perform the internal setup routine for the GT911 touchscreen.
   ///
