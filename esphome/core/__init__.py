@@ -803,6 +803,10 @@ class EsphomeCore:
             raise TypeError(
                 f"Library {library} must be instance of Library, not {type(library)}"
             )
+
+        if library.name is None or library.name == "":
+            raise ValueError(f"The library for {library.repository} must have a name")
+
         short_name = (
             library.name if "/" not in library.name else library.name.split("/")[-1]
         )
