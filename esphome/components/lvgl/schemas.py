@@ -498,6 +498,15 @@ ALL_STYLES = {
 }
 
 
+# schema for lvgl.[encoder|keypad].set_group action.
+SET_GROUP_ACTION_SCHEMA = LVGL_SCHEMA.extend(
+    {
+        cv.Required(CONF_ID): cv.use_id(LVEncoderListener),
+        cv.Required(CONF_GROUP): cv.use_id(lv_group_t),
+    }
+)
+
+
 def container_validator(schema, widget_type: WidgetType):
     """
     Create a validator for a container given the widget type
@@ -577,17 +586,3 @@ def any_widget_schema(extras=None):
     :return:
     """
     return cv.Any(dict(widget_schema(wt, extras) for wt in WIDGET_TYPES.values()))
-
-
-def set_group_action_schema():
-    """
-    Create a schema for setting the group of an LVGL encoder/keypad listener.
-    This is used in the lvgl.[encoder|keypad].set_group action.
-    :return: The schema for setting the group of an LVGL encoder listener.
-    """
-    return LVGL_SCHEMA.extend(
-        {
-            cv.Required(CONF_ID): cv.use_id(LVEncoderListener),
-            cv.Required(CONF_GROUP): cv.use_id(lv_group_t),
-        }
-    )

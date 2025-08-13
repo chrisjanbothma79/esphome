@@ -10,10 +10,10 @@ from .defines import (
     CONF_LONG_PRESS_TIME,
     literal,
 )
-from .encoders import set_group_to_code as _set_group_to_code
+from .encoders import set_group_to_code
 from .helpers import lvgl_components_required
 from .lvcode import lv
-from .schemas import ENCODER_SCHEMA, set_group_action_schema
+from .schemas import ENCODER_SCHEMA, SET_GROUP_ACTION_SCHEMA
 from .types import LvglAction, lv_indev_type_t
 from .widgets import get_widgets
 
@@ -64,12 +64,12 @@ async def keypads_to_code(var, config, default_group):
             b_sensor = await cg.get_variable(enc_conf[key])
             cg.add(listener.add_button(b_sensor, literal(f"LV_KEY_{key.upper()}")))
 
-        if (
-            group := await cg.get_variable(enc_conf[CONF_GROUP])
+        group = (
+            await cg.get_variable(enc_conf[CONF_GROUP])
             if CONF_GROUP in enc_conf
             else default_group
-        ):
-            cg.add(listener.set_group(group))
+        )
+        cg.add(listener.set_group(group))
 
 
 async def keypad_initial_focus_to_code(config):
@@ -79,8 +79,6 @@ async def keypad_initial_focus_to_code(config):
             lv.group_focus_obj(widget[0].obj)
 
 
-@automation.register_action(
-    "lvgl.keypad.set_group", LvglAction, set_group_action_schema()
-)
-async def set_group_to_code(config, action_id, template_arg, args):
-    return await _set_group_to_code(config, action_id, template_arg, args)
+automation.register_action(
+    "lvgl.keypad.set_group", LvglAction, SET_GROUP_ACTION_SCHEMA
+)(set_group_to_code)

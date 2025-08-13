@@ -243,16 +243,6 @@ def final_validation(configs):
                 raise cv.Invalid(
                     f"Widget '{w}' does not have any templated properties to refresh",
                 )
-        if any(
-            config.get(key) for key in (df.CONF_ENCODERS, df.CONF_KEYPADS)
-        ) and not config.get(df.CONF_GROUPS):
-            raise cv.Invalid(
-                "When using encoders or keypads, at least one group must be defined"
-            )
-
-
-def get_default_group(config):
-    return cg.Pvariable(config[df.CONF_DEFAULT_GROUP], lv_expr.group_create())
 
 
 async def to_code(configs):
@@ -318,7 +308,9 @@ async def to_code(configs):
         add_define("LV_FONT_DEFAULT", await lvalid.lv_font.process(default_font))
     cg.add(lvgl_static.esphome_lvgl_init())
 
-    default_group = get_default_group(config_0)
+    default_group = cg.Pvariable(
+        config_0[df.CONF_DEFAULT_GROUP], lv_expr.group_create()
+    )
     cg.add(lv_expr.group_set_default(default_group))
 
     for config in configs:
