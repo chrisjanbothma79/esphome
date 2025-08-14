@@ -144,14 +144,13 @@ def test_storage_edge_case_from_empty_integrations(
 @patch("esphome.writer.StorageJSON")
 @patch("esphome.writer.storage_path")
 @patch("esphome.writer.CORE")
-@patch("esphome.writer._LOGGER")
 def test_update_storage_json_logging_when_old_is_none(
-    mock_logger: MagicMock,
     mock_core: MagicMock,
     mock_storage_path: MagicMock,
     mock_storage_json_class: MagicMock,
     mock_clean_build: MagicMock,
     create_storage: Callable[..., StorageJSON],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that update_storage_json doesn't crash when old storage is None.
 
@@ -167,15 +166,15 @@ def test_update_storage_json_logging_when_old_is_none(
     mock_storage_json_class.from_esphome_core.return_value = new_storage
 
     # Call the function - should not raise AttributeError
-    update_storage_json()
+    with caplog.at_level("INFO"):
+        update_storage_json()
 
     # Verify clean_build was called
     mock_clean_build.assert_called_once()
 
     # Verify the correct log message was used (not the component removal message)
-    mock_logger.info.assert_called_with(
-        "Core config or version changed, cleaning build files..."
-    )
+    assert "Core config or version changed, cleaning build files..." in caplog.text
+    assert "Components removed" not in caplog.text
 
     # Verify save was called
     new_storage.save.assert_called_once_with("/test/path")
@@ -185,14 +184,13 @@ def test_update_storage_json_logging_when_old_is_none(
 @patch("esphome.writer.StorageJSON")
 @patch("esphome.writer.storage_path")
 @patch("esphome.writer.CORE")
-@patch("esphome.writer._LOGGER")
 def test_update_storage_json_logging_components_removed(
-    mock_logger: MagicMock,
     mock_core: MagicMock,
     mock_storage_path: MagicMock,
     mock_storage_json_class: MagicMock,
     mock_clean_build: MagicMock,
     create_storage: Callable[..., StorageJSON],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that update_storage_json logs removed components correctly."""
     # Setup mocks
@@ -206,15 +204,17 @@ def test_update_storage_json_logging_components_removed(
     mock_storage_json_class.from_esphome_core.return_value = new_storage
 
     # Call the function
-    update_storage_json()
+    with caplog.at_level("INFO"):
+        update_storage_json()
 
     # Verify clean_build was called
     mock_clean_build.assert_called_once()
 
     # Verify the correct log message was used with component names
-    mock_logger.info.assert_called_with(
-        "Components removed (%s), cleaning build files...", "bluetooth_proxy"
+    assert (
+        "Components removed (bluetooth_proxy), cleaning build files..." in caplog.text
     )
+    assert "Core config or version changed" not in caplog.text
 
     # Verify save was called
     new_storage.save.assert_called_once_with("/test/path")
