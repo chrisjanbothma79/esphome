@@ -289,7 +289,7 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
     return 0;  // Doesn't fit
   }
 
-  // Get buffer and prepare it inline
+  // Get buffer size after allocation (which includes header padding)
   std::vector<uint8_t> &shared_buf = conn->parent_->get_shared_buffer_ref();
   size_t size_before_encode = shared_buf.size();
 
