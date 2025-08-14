@@ -80,7 +80,7 @@ def replace_file_content(text, pattern, repl):
     return content_new, count
 
 
-def storage_should_clean(old: StorageJSON, new: StorageJSON) -> bool:
+def storage_should_clean(old: StorageJSON | None, new: StorageJSON) -> bool:
     if old is None:
         return True
 
