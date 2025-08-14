@@ -111,6 +111,14 @@ class ProgressBar:
         self._last_percent_int = percent_int
         self._last_segments = seg_pair
 
+    def get_last_percent_int(self) -> int | None:
+        """Return the most recent percent as an integer."""
+        return self._last_percent_int
+
+    def get_last_segments(self) -> tuple[int | None, int | None] | None:
+        """Return the most recent segment pair."""
+        return self._last_segments
+
     def done(self) -> None:
         """Finish the bar with a trailing newline."""
         self._finished = True
@@ -554,10 +562,9 @@ def perform_ota(
         except OTAError:
             sys.stderr.write("\n\n")
             raise
-        else:
-            if version < OTA_VERSION_2_0:
-                progress.update(1.0)
-            progress.done()
+        if version < OTA_VERSION_2_0:
+            progress.update(1.0)
+        progress.done()
 
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
@@ -745,37 +752,36 @@ def _transfer_with_acks(
                 percent_int = int(round(min(max(0.0, ratio), 1.0) * 10000))
                 seg_pair = (None, None)
                 if (
-                    percent_int == progress._last_percent_int
-                    and seg_pair == progress._last_segments
+                    percent_int == progress.get_last_percent_int()
+                    and seg_pair == progress.get_last_segments()
                 ):
                     return False
                 with suppress(AttributeError, ValueError):
                     progress.update(ratio)
                 return True
-            else:
-                ours_outstanding = max(0, outq_now - outq_baseline)
-                acked_tcp = max(0, min(sent, sent - ours_outstanding))
-                ratio = acked_tcp / total
-                percent_int = int(round(min(max(0.0, ratio), 1.0) * 10000))
-                seg_pair = (acked_segments, total_segments)
-                if (
-                    percent_int == progress._last_percent_int
-                    and seg_pair == progress._last_segments
-                ):
-                    return False
-                with suppress(AttributeError, ValueError):
-                    progress.update(
-                        ratio,
-                        acked_segments=acked_segments,
-                        total_segments=total_segments,
-                    )
-                return True
+            ours_outstanding = max(0, outq_now - outq_baseline)
+            acked_tcp = max(0, min(sent, sent - ours_outstanding))
+            ratio = acked_tcp / total
+            percent_int = int(round(min(max(0.0, ratio), 1.0) * 10000))
+            seg_pair = (acked_segments, total_segments)
+            if (
+                percent_int == progress.get_last_percent_int()
+                and seg_pair == progress.get_last_segments()
+            ):
+                return False
+            with suppress(AttributeError, ValueError):
+                progress.update(
+                    ratio,
+                    acked_segments=acked_segments,
+                    total_segments=total_segments,
+                )
+            return True
         ratio = max(acked_device, acked_fallback) / total
         percent_int = int(round(min(max(0.0, ratio), 1.0) * 10000))
         seg_pair = (None, None)
         if (
-            percent_int == progress._last_percent_int
-            and seg_pair == progress._last_segments
+            percent_int == progress.get_last_percent_int()
+            and seg_pair == progress.get_last_segments()
         ):
             return False
         with suppress(AttributeError, ValueError):
