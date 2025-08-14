@@ -75,6 +75,11 @@ std::optional<otIp6Address> OpenThreadComponent::get_omr_address_(InstanceLock &
   return {};
 }
 
+void OpenThreadComponent::defer_factory_reset_external_callback() {
+  ESP_LOGD(TAG, "Defer factory_reset_external_callback");
+  this->defer([this]() { this->factory_reset_external_callback(); });
+}
+
 void OpenThreadSrpComponent::srp_callback(otError err, const otSrpClientHostInfo *host_info,
                                           const otSrpClientService *services,
                                           const otSrpClientService *removed_services, void *context) {
@@ -104,8 +109,9 @@ void OpenThreadSrpComponent::srp_factory_reset_callback(otError err, const otSrp
     // Handle other SRP client events or errors
     ESP_LOGW(TAG, "SRP client event/error: %s", otThreadErrorToString(err));
   }
-  obj->factory_reset_ready = true;
+  obj->defer_factory_reset_external_callback();
 }
+
 void OpenThreadSrpComponent::setup() {
   otError error;
   InstanceLock lock = InstanceLock::acquire();
@@ -230,7 +236,8 @@ bool OpenThreadComponent::teardown() {
   return this->teardown_complete_;
 }
 
-void OpenThreadComponent::on_factory_reset() {
+void OpenThreadComponent::on_factory_reset(std::function<void()> callback) {
+  factory_reset_external_callback = callback;
   ESP_LOGD(TAG, "Start Removal SRP Host and Services");
   otError error;
   InstanceLock lock = InstanceLock::acquire();

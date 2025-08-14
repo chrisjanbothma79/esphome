@@ -10,7 +10,7 @@ class FactoryResetSwitch : public switch_::Switch, public Component {
  public:
   void dump_config() override;
 #ifdef USE_OPENTHREAD
-  void loop() override;
+  static void factory_reset_callback();
 #endif
 
  protected:

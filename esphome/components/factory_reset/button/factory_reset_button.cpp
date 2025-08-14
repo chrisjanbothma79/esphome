@@ -17,7 +17,7 @@ void FactoryResetButton::press_action() {
   // Let MQTT settle a bit
   delay(100);  // NOLINT
 #ifdef USE_OPENTHREAD
-  openthread::global_openthread_component->on_factory_reset();
+  openthread::global_openthread_component->on_factory_reset(FactoryResetSwitch::factory_reset_callback);
 #else
   global_preferences->reset();
   App.safe_reboot();
@@ -25,11 +25,9 @@ void FactoryResetButton::press_action() {
 }
 
 #ifdef USE_OPENTHREAD
-void FactoryResetSwitch::loop() {
-  if (openthread::global_openthread_component->factory_reset_ready) {
-    global_preferences->reset();
-    App.safe_reboot();
-  }
+void FactoryResetSwitch::factory_reset_callback() {
+  global_preferences->reset();
+  App.safe_reboot();
 }
 #endif
 
