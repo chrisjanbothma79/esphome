@@ -291,7 +291,6 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
 
   // Get buffer size after allocation (which includes header padding)
   std::vector<uint8_t> &shared_buf = conn->parent_->get_shared_buffer_ref();
-  size_t size_before_encode = shared_buf.size();
 
   if (is_single || conn->flags_.batch_first_message) {
     // Single message or first batch message
@@ -308,6 +307,7 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
   }
 
   // Encode directly into buffer
+  size_t size_before_encode = shared_buf.size();
   msg.encode({&shared_buf});
 
   // Calculate actual encoded size (not including header that was already added)
