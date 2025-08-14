@@ -252,17 +252,21 @@ class APIConnection : public APIServerConnection {
 
     // Get header padding size - used for both reserve and insert
     uint8_t header_padding = this->helper_->frame_header_padding();
-
     // Get shared buffer from parent server
     std::vector<uint8_t> &shared_buf = this->parent_->get_shared_buffer_ref();
+    this->prepare_first_message_buffer(shared_buf, header_padding,
+                                       reserve_size + header_padding + this->helper_->frame_footer_size());
+    return {&shared_buf};
+  }
+
+  void prepare_first_message_buffer(std::vector<uint8_t> &shared_buf, size_t header_padding, size_t total_size) {
     shared_buf.clear();
     // Reserve space for header padding + message + footer
     // - Header padding: space for protocol headers (7 bytes for Noise, 6 for Plaintext)
     // - Footer: space for MAC (16 bytes for Noise, 0 for Plaintext)
-    shared_buf.reserve(reserve_size + header_padding + this->helper_->frame_footer_size());
+    shared_buf.reserve(total_size);
     // Resize to add header padding so message encoding starts at the correct position
     shared_buf.resize(header_padding);
-    return {&shared_buf};
   }
 
   bool try_to_clear_buffer(bool log_out_of_space);

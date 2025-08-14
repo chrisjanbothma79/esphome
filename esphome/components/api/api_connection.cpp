@@ -294,9 +294,7 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
 
   if (is_single || conn->flags_.batch_first_message) {
     // Single message or first batch message
-    shared_buf.clear();
-    shared_buf.reserve(total_size);
-    shared_buf.resize(header_padding);
+    conn->prepare_first_message_buffer(shared_buf, header_padding, total_size);
     if (conn->flags_.batch_first_message) {
       conn->flags_.batch_first_message = false;
     }
