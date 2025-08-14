@@ -7,7 +7,7 @@
 
 #ifdef USE_LOGGER
 #include "esphome/components/logger/logger.h"
-#endif
+#endif  // USE_LOGGER
 
 namespace esphome {
 namespace uart {
@@ -84,14 +84,14 @@ void ESP32ArduinoUARTComponent::setup() {
 #else
   is_default_tx = tx_pin_ == nullptr || tx_pin_->get_pin() == 1;
   is_default_rx = rx_pin_ == nullptr || rx_pin_->get_pin() == 3;
-#endif
+#endif  // CONFIG_IDF_TARGET_ESP32C3
   static uint8_t next_uart_num = 0;
   if (is_default_tx && is_default_rx && next_uart_num == 0) {
 #if ARDUINO_USB_CDC_ON_BOOT
     this->hw_serial_ = &Serial0;
 #else
     this->hw_serial_ = &Serial;
-#endif
+#endif  // ARDUINO_USB_CDC_ON_BOOT
     next_uart_num++;
   } else {
 #ifdef USE_LOGGER
@@ -138,8 +138,46 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
     invert = true;
   if (rx_pin_ != nullptr && rx_pin_->is_inverted())
     invert = true;
+
+  // Set clock source before beginning UART communication
+  // This must be done before calling begin() to be effective
+  if (this->hw_serial_ != nullptr) {
+    // End current UART session if it's already running to allow clock source change
+    this->hw_serial_->end();
+    
+    // Set the desired clock source
+    switch (this->clock_source_) {
+      case ESP32_UART_CLOCK_SOURCE_APB:
+        this->hw_serial_->setClockSource(UART_CLK_SRC_APB);
+        break;
+      case ESP32_UART_CLOCK_SOURCE_XTAL:
+        this->hw_serial_->setClockSource(UART_CLK_SRC_XTAL);
+        break;
+      case ESP32_UART_CLOCK_SOURCE_RTC:
+        this->hw_serial_->setClockSource(UART_CLK_SRC_RTC);
+        break;
+      case ESP32_UART_CLOCK_SOURCE_REF_TICK:
+        this->hw_serial_->setClockSource(UART_CLK_SRC_REF_TICK);
+        break;
+      case ESP32_UART_CLOCK_SOURCE_PLL_F40M:
+        this->hw_serial_->setClockSource(UART_CLK_SRC_PLL_F40M);
+        break;
+      case ESP32_UART_CLOCK_SOURCE_PLL_F48M:
+        this->hw_serial_->setClockSource(UART_CLK_SRC_PLL_F48M);
+        break;
+      case ESP32_UART_CLOCK_SOURCE_PLL_F80M:
+        this->hw_serial_->setClockSource(UART_CLK_SRC_PLL_F80M);
+        break;
+      case ESP32_UART_CLOCK_SOURCE_DEFAULT:
+      default:
+        this->hw_serial_->setClockSource(UART_CLK_SRC_DEFAULT);
+        break;
+    }
+  }
+
   this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, invert);
+  
   if (dump_config) {
     ESP_LOGCONFIG(TAG, "UART %u was reloaded.", this->number_);
     this->dump_config();
@@ -147,6 +185,23 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
 }
 
 void ESP32ArduinoUARTComponent::dump_config() {
+  // Flash-efficient lookup table for clock source names
+  static const char* const CLOCK_SOURCE_NAMES[] = {
+    "DEFAULT",   // ESP32_UART_CLOCK_SOURCE_DEFAULT = 0
+    "REF_TICK",  // ESP32_UART_CLOCK_SOURCE_REF_TICK = 1
+    "APB",       // ESP32_UART_CLOCK_SOURCE_APB = 2
+    "XTAL",      // ESP32_UART_CLOCK_SOURCE_XTAL = 3
+    "RTC",       // ESP32_UART_CLOCK_SOURCE_RTC = 4
+    "PLL_F40M",  // ESP32_UART_CLOCK_SOURCE_PLL_F40M = 5
+    "PLL_F48M",  // ESP32_UART_CLOCK_SOURCE_PLL_F48M = 6
+    "PLL_F80M",  // ESP32_UART_CLOCK_SOURCE_PLL_F80M = 7
+  };
+  
+  const char *clock_source_str = "UNKNOWN";
+  if (this->clock_source_ < (sizeof(CLOCK_SOURCE_NAMES) / sizeof(CLOCK_SOURCE_NAMES[0]))) {
+    clock_source_str = CLOCK_SOURCE_NAMES[this->clock_source_];
+  }
+
   ESP_LOGCONFIG(TAG, "UART Bus %d:", this->number_);
   LOG_PIN("  TX Pin: ", tx_pin_);
   LOG_PIN("  RX Pin: ", rx_pin_);
@@ -157,8 +212,11 @@ void ESP32ArduinoUARTComponent::dump_config() {
                 "  Baud Rate: %u baud\n"
                 "  Data Bits: %u\n"
                 "  Parity: %s\n"
-                "  Stop bits: %u",
-                this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_);
+                "  Stop bits: %u\n"
+                "  Clock Source: %s",
+                this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_,
+                clock_source_str);
+
   this->check_logger_conflict();
 }
 
@@ -168,7 +226,7 @@ void ESP32ArduinoUARTComponent::write_array(const uint8_t *data, size_t len) {
   for (size_t i = 0; i < len; i++) {
     this->debug_callback_.call(UART_DIRECTION_TX, data[i]);
   }
-#endif
+#endif  // USE_UART_DEBUGGER
 }
 
 bool ESP32ArduinoUARTComponent::peek_byte(uint8_t *data) {
@@ -186,11 +244,12 @@ bool ESP32ArduinoUARTComponent::read_array(uint8_t *data, size_t len) {
   for (size_t i = 0; i < len; i++) {
     this->debug_callback_.call(UART_DIRECTION_RX, data[i]);
   }
-#endif
+#endif  // USE_UART_DEBUGGER
   return true;
 }
 
 int ESP32ArduinoUARTComponent::available() { return this->hw_serial_->available(); }
+
 void ESP32ArduinoUARTComponent::flush() {
   ESP_LOGVV(TAG, "    Flushing");
   this->hw_serial_->flush();
@@ -206,7 +265,7 @@ void ESP32ArduinoUARTComponent::check_logger_conflict() {
     ESP_LOGW(TAG, "  You're using the same serial port for logging and the UART component. Please "
                   "disable logging over the serial port by setting logger->baud_rate to 0.");
   }
-#endif
+#endif  // USE_LOGGER
 }
 
 }  // namespace uart

@@ -99,6 +99,19 @@ UARTDummyReceiver = uart_ns.class_("UARTDummyReceiver", cg.Component)
 MULTI_CONF = True
 MULTI_CONF_NO_DEFAULT = True
 
+# ESP32 Arduino UART Clock Source options
+ESP32UARTClockSource = uart_ns.enum("ESP32UARTClockSource")
+ESP32_UART_CLOCK_SOURCES = {
+    "DEFAULT": ESP32UARTClockSource.ESP32_UART_CLOCK_SOURCE_DEFAULT,
+    "REF_TICK": ESP32UARTClockSource.ESP32_UART_CLOCK_SOURCE_REF_TICK,
+    "APB": ESP32UARTClockSource.ESP32_UART_CLOCK_SOURCE_APB,
+    "XTAL": ESP32UARTClockSource.ESP32_UART_CLOCK_SOURCE_XTAL,
+    "RTC": ESP32UARTClockSource.ESP32_UART_CLOCK_SOURCE_RTC,
+    "PLL_F40M": ESP32UARTClockSource.ESP32_UART_CLOCK_SOURCE_PLL_F40M,
+    "PLL_F48M": ESP32UARTClockSource.ESP32_UART_CLOCK_SOURCE_PLL_F48M,
+    "PLL_F80M": ESP32UARTClockSource.ESP32_UART_CLOCK_SOURCE_PLL_F80M,
+}
+
 
 def validate_raw_data(value):
     if isinstance(value, str):
@@ -147,6 +160,16 @@ def validate_host_config(config):
     return config
 
 
+def validate_esp32_clock_source(config):
+    """Validate ESP32 clock source configuration"""
+    if not (CORE.is_esp32 and CORE.using_arduino):
+        if CONF_CLOCK_SOURCE in config:
+            raise cv.Invalid(
+                "clock_source is only supported on ESP32 with Arduino framework"
+            )
+    return config
+
+
 def _uart_declare_type(value):
     if CORE.is_esp8266:
         return cv.declare_id(ESP8266UartComponent)(value)
@@ -174,6 +197,7 @@ UART_PARITY_OPTIONS = {
 CONF_STOP_BITS = "stop_bits"
 CONF_DATA_BITS = "data_bits"
 CONF_PARITY = "parity"
+CONF_CLOCK_SOURCE = "clock_source"
 
 UARTDirection = uart_ns.enum("UARTDirection")
 UART_DIRECTIONS = {
@@ -248,6 +272,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
                 UART_PARITY_OPTIONS, upper=True
             ),
+            cv.Optional(CONF_CLOCK_SOURCE, default="DEFAULT"): cv.enum(
+                ESP32_UART_CLOCK_SOURCES, upper=True
+            ),
             cv.Optional(CONF_INVERT): cv.invalid(
                 "This option has been removed. Please instead use invert in the tx/rx pin schemas."
             ),
@@ -257,6 +284,7 @@ CONFIG_SCHEMA = cv.All(
     cv.has_at_least_one_key(CONF_TX_PIN, CONF_RX_PIN, CONF_PORT),
     validate_invert_esp32,
     validate_host_config,
+    validate_esp32_clock_source,
 )
 
 
@@ -304,6 +332,10 @@ async def to_code(config):
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
     cg.add(var.set_parity(config[CONF_PARITY]))
+
+    # Set clock source for ESP32 Arduino framework
+    if CORE.is_esp32 and CORE.using_arduino and CONF_CLOCK_SOURCE in config:
+        cg.add(var.set_clock_source(config[CONF_CLOCK_SOURCE]))
 
     if CONF_DEBUG in config:
         await debug_to_code(config[CONF_DEBUG], var)
