@@ -265,41 +265,10 @@ class APIConnection : public APIServerConnection {
     return {&shared_buf};
   }
 
-  // Prepare buffer for next message in batch
-  ProtoWriteBuffer prepare_message_buffer(uint16_t message_size, bool is_first_message) {
-    // Get reference to shared buffer (it maintains state between batch messages)
-    std::vector<uint8_t> &shared_buf = this->parent_->get_shared_buffer_ref();
-
-    if (is_first_message) {
-      shared_buf.clear();
-    }
-
-    size_t current_size = shared_buf.size();
-
-    // Calculate padding to add:
-    // - First message: just header padding
-    // - Subsequent messages: footer for previous message + header padding for this message
-    size_t padding_to_add = is_first_message
-                                ? this->helper_->frame_header_padding()
-                                : this->helper_->frame_header_padding() + this->helper_->frame_footer_size();
-
-    // Reserve space for padding + message
-    shared_buf.reserve(current_size + padding_to_add + message_size);
-
-    // Resize to add the padding bytes
-    shared_buf.resize(current_size + padding_to_add);
-
-    return {&shared_buf};
-  }
-
   bool try_to_clear_buffer(bool log_out_of_space);
   bool send_buffer(ProtoWriteBuffer buffer, uint8_t message_type) override;
 
   std::string get_client_combined_info() const { return this->client_info_.get_combined_info(); }
-
-  // Buffer allocator methods for batch processing
-  ProtoWriteBuffer allocate_single_message_buffer(uint16_t size);
-  ProtoWriteBuffer allocate_batch_message_buffer(uint16_t size);
 
  protected:
   // Helper function to handle authentication completion
