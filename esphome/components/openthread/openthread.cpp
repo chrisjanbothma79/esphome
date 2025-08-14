@@ -76,8 +76,8 @@ std::optional<otIp6Address> OpenThreadComponent::get_omr_address_(InstanceLock &
 }
 
 void OpenThreadComponent::defer_factory_reset_external_callback() {
-  ESP_LOGD(TAG, "Defer factory_reset_external_callback");
-  this->defer([this]() { this->factory_reset_external_callback(); });
+  ESP_LOGD(TAG, "Defer factory_reset_external_callback_");
+  this->defer([this]() { this->factory_reset_external_callback_(); });
 }
 
 void OpenThreadSrpComponent::srp_callback(otError err, const otSrpClientHostInfo *host_info,
@@ -237,7 +237,7 @@ bool OpenThreadComponent::teardown() {
 }
 
 void OpenThreadComponent::on_factory_reset(std::function<void()> callback) {
-  factory_reset_external_callback = callback;
+  factory_reset_external_callback_ = callback;
   ESP_LOGD(TAG, "Start Removal SRP Host and Services");
   otError error;
   InstanceLock lock = InstanceLock::acquire();
