@@ -64,6 +64,7 @@ text_sensor:
 event:
   - platform: template
     name: "Template Event"
+    id: template_event1
     event_types:
       - "custom_event_1"
       - "custom_event_2"
