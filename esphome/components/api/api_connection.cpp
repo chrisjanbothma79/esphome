@@ -302,8 +302,9 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
   } else {
     // Batch message second or later
     // Add padding for previous message footer + this message header
-    shared_buf.reserve(size_before_encode + total_calculated_size);
-    shared_buf.resize(size_before_encode + footer_size + header_padding);
+    size_t current_size = shared_buf.size();
+    shared_buf.reserve(current_size + total_calculated_size);
+    shared_buf.resize(current_size + footer_size + header_padding);
   }
 
   // Encode directly into buffer
