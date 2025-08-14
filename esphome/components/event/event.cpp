@@ -14,6 +14,7 @@ void Event::trigger(const std::string &event_type) {
     return;
   }
   last_event_type = &(*found);
+  this->set_has_state(true);
   ESP_LOGD(TAG, "'%s' Triggered event '%s'", this->get_name().c_str(), last_event_type->c_str());
   this->event_callback_.call(event_type);
 }

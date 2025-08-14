@@ -38,6 +38,15 @@ sensor:
       }
     update_interval: 60s
 
+text:
+  - platform: template
+    name: "Template text"
+    optimistic: true
+    min_length: 0
+    max_length: 100
+    mode: text
+    initial_value: "Hello World"
+
 text_sensor:
   - platform: version
     name: "ESPHome Version"
