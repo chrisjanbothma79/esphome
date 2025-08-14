@@ -7,15 +7,13 @@
 namespace esphome {
 namespace bl0940 {
 
-static const char *const TAG = "calibration_reset.button";
+static const char *const TAG = "bl0940.button.calibration_reset";
 
 void CalibrationResetButton::dump_config() { LOG_BUTTON("", "Calibration Reset Button", this); }
 
 void CalibrationResetButton::press_action() {
   ESP_LOGI(TAG, "Resetting calibration defaults...");
-  if (bl0940_ != nullptr) {
-    bl0940_->reset_calibration();
-  }
+  this->parent_->reset_calibration();
 }
 
 }  // namespace bl0940

@@ -7,7 +7,7 @@
 namespace esphome {
 namespace bl0940 {
 
-class CalibrationNumber : public number::Number, public PollingComponent {
+class CalibrationNumber : public number::Number, public Component {
  public:
   void setup() override;
   void update() override;

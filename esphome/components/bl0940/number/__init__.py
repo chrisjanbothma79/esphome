@@ -30,8 +30,6 @@ CalibrationNumber = bl0940_ns.class_(
 def validate_min_max(config):
     if config[CONF_MAX_VALUE] <= config[CONF_MIN_VALUE]:
         raise cv.Invalid("max_value must be greater than min_value")
-    if config[CONF_MIN_VALUE] < -50 or config[CONF_MAX_VALUE] > 50:
-        raise cv.Invalid("max calibration range is +/-50 percent")
     return config
 
 
@@ -43,13 +41,13 @@ CALIBRATION_SCHEMA = cv.All(
     )
     .extend(
         {
-            cv.Optional(CONF_MAX_VALUE, default=10): cv.float_,
+            cv.Optional(CONF_MAX_VALUE, default=10): cv.All(cv.float_, cv.Range(max=50)),
             cv.Optional(CONF_MIN_VALUE, default=-10): cv.float_,
             cv.Optional(CONF_STEP, default=0.1): cv.positive_float,
             cv.Optional(CONF_RESTORE_VALUE): cv.boolean,
         }
     )
-    .extend(cv.polling_component_schema("never")),
+    .extend(cv.COMPONENT_SCHEMA),
     validate_min_max,
 )
 
@@ -57,7 +55,7 @@ CALIBRATION_SCHEMA = cv.All(
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(BL0940Number),
-        cv.Required(CONF_BL0940_ID): cv.use_id(BL0940),
+        cv.GenerateID(CONF_BL0940_ID): cv.use_id(BL0940),
         cv.Optional(CONF_CURRENT_CALIBRATION): CALIBRATION_SCHEMA,
         cv.Optional(CONF_VOLTAGE_CALIBRATION): CALIBRATION_SCHEMA,
         cv.Optional(CONF_POWER_CALIBRATION): CALIBRATION_SCHEMA,
@@ -77,9 +75,7 @@ async def to_code(config):
         (CONF_POWER_CALIBRATION, "set_power_calibration_number"),
         (CONF_ENERGY_CALIBRATION, "set_energy_calibration_number"),
     ]:
-        if cal_type in config:
-            conf = dict(config[cal_type])
-            conf[CONF_MODE] = number.NumberMode.NUMBER_MODE_BOX
+        if conf := config.get(cal_type):
             var = await number.new_number(
                 conf,
                 min_value=conf.get(CONF_MIN_VALUE),
@@ -88,6 +84,6 @@ async def to_code(config):
             )
             await cg.register_component(var, conf)
 
-            if CONF_RESTORE_VALUE in config:
-                cg.add(var.set_restore_value(config[CONF_RESTORE_VALUE]))
+            if restore_value := config.get(CONF_RESTORE_VALUE):
+                cg.add(var.set_restore_value(restore_value))
             cg.add(getattr(bl0940, setter_method)(var))

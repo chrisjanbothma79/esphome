@@ -91,10 +91,10 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
 
 #ifdef USE_NUMBER
   // --- Calibration number entities (for dynamic calibration via HA UI) ---
-  number::Number *voltage_calibration_{nullptr};
-  number::Number *current_calibration_{nullptr};
-  number::Number *power_calibration_{nullptr};
-  number::Number *energy_calibration_{nullptr};
+  number::Number *voltage_calibration_number_{nullptr};
+  number::Number *current_calibration_number_{nullptr};
+  number::Number *power_calibration_number_{nullptr};
+  number::Number *energy_calibration_number_{nullptr};
 #endif
 
   // --- Internal state ---

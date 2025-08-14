@@ -16,16 +16,12 @@ CONFIG_SCHEMA = cv.All(
         entity_category=ENTITY_CATEGORY_CONFIG,
         icon=ICON_RESTART,
     )
-    .extend({cv.Required(CONF_BL0940_ID): cv.use_id(BL0940)})
+    .extend({cv.GenerateID(CONF_BL0940_ID): cv.use_id(BL0940)})
     .extend(cv.COMPONENT_SCHEMA)
 )
 
 
 async def to_code(config):
-    bl0940 = await cg.get_variable(config[CONF_BL0940_ID])
-
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = await button.new_button(config)
     await cg.register_component(var, config)
-    await button.register_button(var, config)
-
-    cg.add(var.set_bl0940(bl0940))
+    await cg.register_parented(var, config[CONF_BL0940_ID])
