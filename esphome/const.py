@@ -4,7 +4,7 @@ from enum import Enum
 
 from esphome.enum import StrEnum
 
-__version__ = "2025.8.0-dev"
+__version__ = "2025.9.0-dev"
 
 ALLOWED_NAME_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-_"
 VALID_SUBSTITUTIONS_CHARACTERS = (
@@ -761,6 +761,7 @@ CONF_POSITION_COMMAND_TOPIC = "position_command_topic"
 CONF_POSITION_STATE_TOPIC = "position_state_topic"
 CONF_POWER = "power"
 CONF_POWER_FACTOR = "power_factor"
+CONF_POWER_MODE = "power_mode"
 CONF_POWER_ON_VALUE = "power_on_value"
 CONF_POWER_SAVE_MODE = "power_save_mode"
 CONF_POWER_SUPPLY = "power_supply"
