@@ -2,11 +2,12 @@
 
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from esphome.storage_json import StorageJSON
-from esphome.writer import storage_should_clean
+from esphome.writer import storage_should_clean, update_storage_json
 
 
 @pytest.fixture
@@ -137,3 +138,83 @@ def test_storage_edge_case_from_empty_integrations(
     old = create_storage(loaded_integrations=[])
     new = create_storage(loaded_integrations=["api", "wifi"])
     assert storage_should_clean(old, new) is False
+
+
+@patch("esphome.writer.clean_build")
+@patch("esphome.writer.StorageJSON")
+@patch("esphome.writer.storage_path")
+@patch("esphome.writer.CORE")
+@patch("esphome.writer._LOGGER")
+def test_update_storage_json_logging_when_old_is_none(
+    mock_logger: MagicMock,
+    mock_core: MagicMock,
+    mock_storage_path: MagicMock,
+    mock_storage_json_class: MagicMock,
+    mock_clean_build: MagicMock,
+    create_storage: Callable[..., StorageJSON],
+) -> None:
+    """Test that update_storage_json doesn't crash when old storage is None.
+
+    This is a regression test for the AttributeError that occurred when
+    old was None and we tried to access old.loaded_integrations.
+    """
+    # Setup mocks
+    mock_storage_path.return_value = "/test/path"
+    mock_storage_json_class.load.return_value = None  # Old storage is None
+
+    new_storage = create_storage(loaded_integrations=["api", "wifi"])
+    new_storage.save = MagicMock()  # Mock the save method
+    mock_storage_json_class.from_esphome_core.return_value = new_storage
+
+    # Call the function - should not raise AttributeError
+    update_storage_json()
+
+    # Verify clean_build was called
+    mock_clean_build.assert_called_once()
+
+    # Verify the correct log message was used (not the component removal message)
+    mock_logger.info.assert_called_with(
+        "Core config or version changed, cleaning build files..."
+    )
+
+    # Verify save was called
+    new_storage.save.assert_called_once_with("/test/path")
+
+
+@patch("esphome.writer.clean_build")
+@patch("esphome.writer.StorageJSON")
+@patch("esphome.writer.storage_path")
+@patch("esphome.writer.CORE")
+@patch("esphome.writer._LOGGER")
+def test_update_storage_json_logging_components_removed(
+    mock_logger: MagicMock,
+    mock_core: MagicMock,
+    mock_storage_path: MagicMock,
+    mock_storage_json_class: MagicMock,
+    mock_clean_build: MagicMock,
+    create_storage: Callable[..., StorageJSON],
+) -> None:
+    """Test that update_storage_json logs removed components correctly."""
+    # Setup mocks
+    mock_storage_path.return_value = "/test/path"
+
+    old_storage = create_storage(loaded_integrations=["api", "wifi", "bluetooth_proxy"])
+    new_storage = create_storage(loaded_integrations=["api", "wifi"])
+    new_storage.save = MagicMock()  # Mock the save method
+
+    mock_storage_json_class.load.return_value = old_storage
+    mock_storage_json_class.from_esphome_core.return_value = new_storage
+
+    # Call the function
+    update_storage_json()
+
+    # Verify clean_build was called
+    mock_clean_build.assert_called_once()
+
+    # Verify the correct log message was used with component names
+    mock_logger.info.assert_called_with(
+        "Components removed (%s), cleaning build files...", "bluetooth_proxy"
+    )
+
+    # Verify save was called
+    new_storage.save.assert_called_once_with("/test/path")

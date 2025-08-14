@@ -103,7 +103,7 @@ def storage_should_update_cmake_cache(old: StorageJSON, new: StorageJSON) -> boo
     return False
 
 
-def update_storage_json():
+def update_storage_json() -> None:
     path = storage_path()
     old = StorageJSON.load(path)
     new = StorageJSON.from_esphome_core(CORE, old)
@@ -111,7 +111,7 @@ def update_storage_json():
         return
 
     if storage_should_clean(old, new):
-        if old.loaded_integrations - new.loaded_integrations:
+        if old is not None and old.loaded_integrations - new.loaded_integrations:
             removed = old.loaded_integrations - new.loaded_integrations
             _LOGGER.info(
                 "Components removed (%s), cleaning build files...",
