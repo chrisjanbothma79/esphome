@@ -311,10 +311,15 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
   size_t size_before_encode = shared_buf.size();
   msg.encode(buffer);
 
+  // Calculate actual encoded size (not including header that was already added)
   size_t actual_payload_size = shared_buf.size() - size_before_encode;
-  assert(calculated_size == actual_payload_size);
 
-  return static_cast<uint16_t>(total_size);
+  // Return actual total size (header + actual payload + footer)
+  size_t actual_total_size = header_padding + actual_payload_size + footer_size;
+
+  // Verify that calculate_size() returned the correct value
+  assert(calculated_size == actual_payload_size);
+  return static_cast<uint16_t>(actual_total_size);
 }
 
 #ifdef USE_BINARY_SENSOR
