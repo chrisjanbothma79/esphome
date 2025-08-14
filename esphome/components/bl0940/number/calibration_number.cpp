@@ -7,7 +7,6 @@ namespace bl0940 {
 static const char *const TAG = "bl0940.number";
 
 void CalibrationNumber::setup() {
-
   float value;
   if (!this->restore_value_) {
     value = this->initial_value_;
@@ -23,7 +22,6 @@ void CalibrationNumber::setup() {
   }
   this->publish_state(value);
 }
-
 
 void CalibrationNumber::control(float value) {
   this->publish_state(value);
