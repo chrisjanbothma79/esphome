@@ -111,7 +111,7 @@ def update_storage_json():
         return
 
     if storage_should_clean(old, new):
-        if old and old.loaded_integrations - new.loaded_integrations:
+        if old.loaded_integrations - new.loaded_integrations:
             removed = old.loaded_integrations - new.loaded_integrations
             _LOGGER.info(
                 "Components removed (%s), cleaning build files...",
