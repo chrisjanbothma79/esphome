@@ -86,7 +86,10 @@ def storage_should_clean(old: StorageJSON, new: StorageJSON) -> bool:
 
     if old.src_version != new.src_version:
         return True
-    return old.build_path != new.build_path
+    if old.build_path != new.build_path:
+        return True
+    # Check if any components have been removed
+    return bool(old.loaded_integrations - new.loaded_integrations)
 
 
 def storage_should_update_cmake_cache(old: StorageJSON, new: StorageJSON) -> bool:
@@ -108,7 +111,14 @@ def update_storage_json():
         return
 
     if storage_should_clean(old, new):
-        _LOGGER.info("Core config, version changed, cleaning build files...")
+        if old and old.loaded_integrations - new.loaded_integrations:
+            removed = old.loaded_integrations - new.loaded_integrations
+            _LOGGER.info(
+                "Components removed (%s), cleaning build files...",
+                ", ".join(sorted(removed)),
+            )
+        else:
+            _LOGGER.info("Core config or version changed, cleaning build files...")
         clean_build()
     elif storage_should_update_cmake_cache(old, new):
         _LOGGER.info("Integrations changed, cleaning cmake cache...")
