@@ -144,7 +144,7 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
   if (this->hw_serial_ != nullptr) {
     // End current UART session if it's already running to allow clock source change
     this->hw_serial_->end();
-    
+
     // Set the desired clock source
     switch (this->clock_source_) {
       case ESP32_UART_CLOCK_SOURCE_APB:
@@ -177,7 +177,7 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
 
   this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, invert);
-  
+
   if (dump_config) {
     ESP_LOGCONFIG(TAG, "UART %u was reloaded.", this->number_);
     this->dump_config();
@@ -186,17 +186,17 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
 
 void ESP32ArduinoUARTComponent::dump_config() {
   // Flash-efficient lookup table for clock source names
-  static const char* const CLOCK_SOURCE_NAMES[] = {
-    "DEFAULT",   // ESP32_UART_CLOCK_SOURCE_DEFAULT = 0
-    "REF_TICK",  // ESP32_UART_CLOCK_SOURCE_REF_TICK = 1
-    "APB",       // ESP32_UART_CLOCK_SOURCE_APB = 2
-    "XTAL",      // ESP32_UART_CLOCK_SOURCE_XTAL = 3
-    "RTC",       // ESP32_UART_CLOCK_SOURCE_RTC = 4
-    "PLL_F40M",  // ESP32_UART_CLOCK_SOURCE_PLL_F40M = 5
-    "PLL_F48M",  // ESP32_UART_CLOCK_SOURCE_PLL_F48M = 6
-    "PLL_F80M",  // ESP32_UART_CLOCK_SOURCE_PLL_F80M = 7
+  static const char *const CLOCK_SOURCE_NAMES[] = {
+      "DEFAULT",   // ESP32_UART_CLOCK_SOURCE_DEFAULT = 0
+      "REF_TICK",  // ESP32_UART_CLOCK_SOURCE_REF_TICK = 1
+      "APB",       // ESP32_UART_CLOCK_SOURCE_APB = 2
+      "XTAL",      // ESP32_UART_CLOCK_SOURCE_XTAL = 3
+      "RTC",       // ESP32_UART_CLOCK_SOURCE_RTC = 4
+      "PLL_F40M",  // ESP32_UART_CLOCK_SOURCE_PLL_F40M = 5
+      "PLL_F48M",  // ESP32_UART_CLOCK_SOURCE_PLL_F48M = 6
+      "PLL_F80M",  // ESP32_UART_CLOCK_SOURCE_PLL_F80M = 7
   };
-  
+
   const char *clock_source_str = "UNKNOWN";
   if (this->clock_source_ < (sizeof(CLOCK_SOURCE_NAMES) / sizeof(CLOCK_SOURCE_NAMES[0]))) {
     clock_source_str = CLOCK_SOURCE_NAMES[this->clock_source_];

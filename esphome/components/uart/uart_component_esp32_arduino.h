@@ -15,14 +15,16 @@ namespace uart {
 
 /// Clock source options for ESP32 UART - comprehensive support for all ESP32 variants
 enum ESP32UARTClockSource {
-  ESP32_UART_CLOCK_SOURCE_DEFAULT = 0,    ///< Default clock source (varies by chip)
-  ESP32_UART_CLOCK_SOURCE_REF_TICK = 1,   ///< REF_TICK clock source (1MHz) - ESP32, ESP32-S2
-  ESP32_UART_CLOCK_SOURCE_APB = 2,        ///< APB clock source (80MHz) - ESP32, ESP32-S2, ESP32-C3, ESP32-S3
-  ESP32_UART_CLOCK_SOURCE_XTAL = 3,       ///< XTAL clock source (40MHz) - ESP32-C2, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2, ESP32-S3, ESP32-P4
-  ESP32_UART_CLOCK_SOURCE_RTC = 4,        ///< RTC clock source - ESP32-C2, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2, ESP32-S3, ESP32-P4
-  ESP32_UART_CLOCK_SOURCE_PLL_F40M = 5,   ///< PLL F40M clock source (40MHz) - ESP32-C2
-  ESP32_UART_CLOCK_SOURCE_PLL_F48M = 6,   ///< PLL F48M clock source (48MHz) - ESP32-H2
-  ESP32_UART_CLOCK_SOURCE_PLL_F80M = 7,   ///< PLL F80M clock source (80MHz) - ESP32-C5, ESP32-C6, ESP32-C61, ESP32-P4
+  ESP32_UART_CLOCK_SOURCE_DEFAULT = 0,   ///< Default clock source (varies by chip)
+  ESP32_UART_CLOCK_SOURCE_REF_TICK = 1,  ///< REF_TICK clock source (1MHz) - ESP32, ESP32-S2
+  ESP32_UART_CLOCK_SOURCE_APB = 2,       ///< APB clock source (80MHz) - ESP32, ESP32-S2, ESP32-C3, ESP32-S3
+  ESP32_UART_CLOCK_SOURCE_XTAL = 3,  ///< XTAL clock source (40MHz) - ESP32-C2, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-C61,
+                                     ///< ESP32-H2, ESP32-S3, ESP32-P4
+  ESP32_UART_CLOCK_SOURCE_RTC =
+      4,  ///< RTC clock source - ESP32-C2, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2, ESP32-S3, ESP32-P4
+  ESP32_UART_CLOCK_SOURCE_PLL_F40M = 5,  ///< PLL F40M clock source (40MHz) - ESP32-C2
+  ESP32_UART_CLOCK_SOURCE_PLL_F48M = 6,  ///< PLL F48M clock source (48MHz) - ESP32-H2
+  ESP32_UART_CLOCK_SOURCE_PLL_F80M = 7,  ///< PLL F80M clock source (80MHz) - ESP32-C5, ESP32-C6, ESP32-C61, ESP32-P4
 };
 
 class ESP32ArduinoUARTComponent : public UARTComponent, public Component {
@@ -72,7 +74,8 @@ class ESP32ArduinoUARTComponent : public UARTComponent, public Component {
 
   HardwareSerial *hw_serial_{nullptr};
   uint8_t number_{0};
-  ESP32UARTClockSource clock_source_{ESP32_UART_CLOCK_SOURCE_DEFAULT};  ///< Default to DEFAULT for backward compatibility
+  ESP32UARTClockSource clock_source_{
+      ESP32_UART_CLOCK_SOURCE_DEFAULT};  ///< Default to DEFAULT for backward compatibility
 };
 
 }  // namespace uart
