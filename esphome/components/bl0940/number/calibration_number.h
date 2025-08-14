@@ -10,7 +10,6 @@ namespace bl0940 {
 class CalibrationNumber : public number::Number, public Component {
  public:
   void setup() override;
-  void update() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
 
@@ -18,9 +17,7 @@ class CalibrationNumber : public number::Number, public Component {
 
  protected:
   void control(float value) override;
-  float initial_value_{0};
   bool restore_value_{true};
-  optional<std::function<optional<float>()>> f_;
 
   ESPPreferenceObject pref_;
 };
