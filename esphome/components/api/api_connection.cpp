@@ -281,7 +281,7 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
   const uint8_t header_padding = conn->helper_->frame_header_padding();
   const uint8_t footer_size = conn->helper_->frame_footer_size();
 
-  // Calculate total size with padding
+  // Calculate total size with padding for buffer allocation
   size_t total_calculated_size = calculated_size + header_padding + footer_size;
 
   // Check if it fits
