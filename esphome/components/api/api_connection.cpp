@@ -307,7 +307,8 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
   }
 
   // Encode directly into buffer
-  msg.encode({&shared_buf});
+  ProtoWriteBuffer buffer{&shared_buf};
+  msg.encode(buffer);
 
   // Calculate actual encoded size (not including header that was already added)
   size_t actual_payload_size = shared_buf.size() - size_before_encode;
