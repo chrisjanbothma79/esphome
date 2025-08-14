@@ -281,35 +281,33 @@ uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint8_t mess
   const uint8_t header_padding = conn->helper_->frame_header_padding();
   const uint8_t footer_size = conn->helper_->frame_footer_size();
 
-  // Calculate total size with padding
-  size_t total_size = calculated_size + header_padding + footer_size;
+  // Calculate total size with padding for buffer allocation
+  size_t total_calculated_size = calculated_size + header_padding + footer_size;
 
   // Check if it fits
-  if (total_size > remaining_size) {
+  if (total_calculated_size > remaining_size) {
     return 0;  // Doesn't fit
   }
 
-  // Get buffer and prepare it inline
+  // Get buffer size after allocation (which includes header padding)
   std::vector<uint8_t> &shared_buf = conn->parent_->get_shared_buffer_ref();
+  size_t size_before_encode = shared_buf.size();
 
   if (is_single || conn->flags_.batch_first_message) {
     // Single message or first batch message
-    conn->prepare_first_message_buffer(shared_buf, header_padding, total_size);
+    conn->prepare_first_message_buffer(shared_buf, header_padding, total_calculated_size);
     if (conn->flags_.batch_first_message) {
       conn->flags_.batch_first_message = false;
     }
   } else {
     // Batch message second or later
     // Add padding for previous message footer + this message header
-    size_t current_size = shared_buf.size();
-    shared_buf.reserve(current_size + total_size);
-    shared_buf.resize(current_size + footer_size + header_padding);
+    shared_buf.reserve(size_before_encode + total_calculated_size);
+    shared_buf.resize(size_before_encode + footer_size + header_padding);
   }
 
   // Encode directly into buffer
-  ProtoWriteBuffer buffer{&shared_buf};
-  size_t size_before_encode = shared_buf.size();
-  msg.encode(buffer);
+  msg.encode({&shared_buf});
 
   // Calculate actual encoded size (not including header that was already added)
   size_t actual_payload_size = shared_buf.size() - size_before_encode;
