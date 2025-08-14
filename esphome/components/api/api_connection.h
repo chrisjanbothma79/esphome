@@ -235,6 +235,13 @@ class APIConnection : public APIServerConnection {
            this->is_authenticated();
   }
   uint8_t get_log_subscription_level() const { return this->flags_.log_subscription; }
+
+  // Get client API version for feature detection
+  bool client_supports_api_version(uint16_t major, uint16_t minor) const {
+    return this->client_api_version_major_ > major ||
+           (this->client_api_version_major_ == major && this->client_api_version_minor_ >= minor);
+  }
+
   void on_fatal_error() override;
 #ifdef USE_API_PASSWORD
   void on_unauthenticated_access() override;
@@ -696,10 +703,16 @@ class APIConnection : public APIServerConnection {
   bool send_message_smart_(EntityBase *entity, MessageCreatorPtr creator, uint8_t message_type,
                            uint8_t estimated_size) {
     // Try to send immediately if:
-    // 1. We should try to send immediately (should_try_send_immediately = true)
-    // 2. Batch delay is 0 (user has opted in to immediate sending)
-    // 3. Buffer has space available
-    if (this->flags_.should_try_send_immediately && this->get_batch_delay_ms_() == 0 &&
+    // 1. It's an UpdateStateResponse (always send immediately to handle cases where
+    //    the main loop is blocked, e.g., during OTA updates)
+    // 2. OR: We should try to send immediately (should_try_send_immediately = true)
+    //        AND Batch delay is 0 (user has opted in to immediate sending)
+    // 3. AND: Buffer has space available
+    if ((
+#ifdef USE_UPDATE
+            message_type == UpdateStateResponse::MESSAGE_TYPE ||
+#endif
+            (this->flags_.should_try_send_immediately && this->get_batch_delay_ms_() == 0)) &&
         this->helper_->can_write_without_blocking()) {
       // Now actually encode and send
       if (creator(entity, this, MAX_BATCH_PACKET_SIZE, true) &&

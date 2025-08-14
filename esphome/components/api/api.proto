@@ -250,8 +250,8 @@ message DeviceInfoResponse {
   // Supports receiving and saving api encryption key
   bool api_encryption_supported = 19 [(field_ifdef) = "USE_API_NOISE"];
 
-  repeated DeviceInfo devices = 20 [(field_ifdef) = "USE_DEVICES"];
-  repeated AreaInfo areas = 21 [(field_ifdef) = "USE_AREAS"];
+  repeated DeviceInfo devices = 20 [(field_ifdef) = "USE_DEVICES", (fixed_array_size_define) = "ESPHOME_DEVICE_COUNT"];
+  repeated AreaInfo areas = 21 [(field_ifdef) = "USE_AREAS", (fixed_array_size_define) = "ESPHOME_AREA_COUNT"];
 
   // Top-level area info to phase out suggested_area
   AreaInfo area = 22 [(field_ifdef) = "USE_AREAS"];
@@ -1438,11 +1438,11 @@ message BluetoothLERawAdvertisementsResponse {
   option (ifdef) = "USE_BLUETOOTH_PROXY";
   option (no_delay) = true;
 
-  repeated BluetoothLERawAdvertisement advertisements = 1;
+  repeated BluetoothLERawAdvertisement advertisements = 1 [(fixed_array_with_length_define) = "BLUETOOTH_PROXY_ADVERTISEMENT_BATCH_SIZE"];
 }
 
 enum BluetoothDeviceRequestType {
-  BLUETOOTH_DEVICE_REQUEST_TYPE_CONNECT = 0;
+  BLUETOOTH_DEVICE_REQUEST_TYPE_CONNECT = 0 [deprecated = true]; // V1 removed, use V3 variants
   BLUETOOTH_DEVICE_REQUEST_TYPE_DISCONNECT = 1;
   BLUETOOTH_DEVICE_REQUEST_TYPE_PAIR = 2;
   BLUETOOTH_DEVICE_REQUEST_TYPE_UNPAIR = 3;
@@ -1482,21 +1482,39 @@ message BluetoothGATTGetServicesRequest {
 }
 
 message BluetoothGATTDescriptor {
-  repeated uint64 uuid = 1 [(fixed_array_size) = 2];
+  repeated uint64 uuid = 1 [(fixed_array_size) = 2, (fixed_array_skip_zero) = true];
   uint32 handle = 2;
+
+  // New field for efficient UUID (v1.12+)
+  // Only one of uuid or short_uuid will be set.
+  // short_uuid is used for both 16-bit and 32-bit UUIDs with v1.12+ clients.
+  // 128-bit UUIDs always use the uuid field for backwards compatibility.
+  uint32 short_uuid = 3;  // 16-bit or 32-bit UUID
 }
 
 message BluetoothGATTCharacteristic {
-  repeated uint64 uuid = 1 [(fixed_array_size) = 2];
+  repeated uint64 uuid = 1 [(fixed_array_size) = 2, (fixed_array_skip_zero) = true];
   uint32 handle = 2;
   uint32 properties = 3;
   repeated BluetoothGATTDescriptor descriptors = 4;
+
+  // New field for efficient UUID (v1.12+)
+  // Only one of uuid or short_uuid will be set.
+  // short_uuid is used for both 16-bit and 32-bit UUIDs with v1.12+ clients.
+  // 128-bit UUIDs always use the uuid field for backwards compatibility.
+  uint32 short_uuid = 5;  // 16-bit or 32-bit UUID
 }
 
 message BluetoothGATTService {
-  repeated uint64 uuid = 1 [(fixed_array_size) = 2];
+  repeated uint64 uuid = 1 [(fixed_array_size) = 2, (fixed_array_skip_zero) = true];
   uint32 handle = 2;
   repeated BluetoothGATTCharacteristic characteristics = 3;
+
+  // New field for efficient UUID (v1.12+)
+  // Only one of uuid or short_uuid will be set.
+  // short_uuid is used for both 16-bit and 32-bit UUIDs with v1.12+ clients.
+  // 128-bit UUIDs always use the uuid field for backwards compatibility.
+  uint32 short_uuid = 4;  // 16-bit or 32-bit UUID
 }
 
 message BluetoothGATTGetServicesResponse {
@@ -1603,7 +1621,10 @@ message BluetoothConnectionsFreeResponse {
 
   uint32 free = 1;
   uint32 limit = 2;
-  repeated uint64 allocated = 3;
+  repeated uint64 allocated = 3 [
+    (fixed_array_size_define) = "BLUETOOTH_PROXY_MAX_CONNECTIONS",
+    (fixed_array_skip_zero) = true
+  ];
 }
 
 message BluetoothGATTErrorResponse {
