@@ -6,7 +6,6 @@
 #include <cstring>  // for memcpy
 #include <vector>
 #include <memory>  // for std::unique_ptr
-
 #include <esp_gap_ble_api.h>
 #include <esp_gattc_api.h>
 #include <esp_gatts_api.h>
