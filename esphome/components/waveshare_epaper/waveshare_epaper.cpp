@@ -2579,9 +2579,7 @@ void LCMEN2R13EFC1::power_off_() {
 }
 
 void LCMEN2R13EFC1::deep_sleep() {
-  this->power_off_();
   if (this->deep_sleep_between_updates_) {
-    this->wait_until_idle_();
     this->command(0x17);  // Auto sequence command
     this->data(0xA7);     // PON -> DRF -> POF -> DSLP
     ESP_LOGD(TAG, "go to deep sleep");
@@ -2724,6 +2722,7 @@ void LCMEN2R13EFC1::write_lut_(const uint8_t *lut, const uint8_t size) {
 void LCMEN2R13EFC1::set_full_update_every(uint32_t full_update_every) { this->full_update_every_ = full_update_every; }
 int LCMEN2R13EFC1::get_width_internal() { return 128; }
 int LCMEN2R13EFC1::get_height_internal() { return 250; }
+uint32_t LCMEN2R13EFC1::idle_timeout_() { return 4500; }
 void LCMEN2R13EFC1::dump_config() {
   LOG_DISPLAY("", "VisionMaster E213 E-Paper", this)
   ESP_LOGCONFIG(TAG, "  Model: LCMEN2R13EFC1");
