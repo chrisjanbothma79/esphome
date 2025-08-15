@@ -7,6 +7,7 @@ namespace esphome {
 namespace deep_sleep {
 
 static const char *const TAG = "deep_sleep";
+static const uint16_t DEBOUNCE_TIME_MS = 50;
 
 optional<uint32_t> DeepSleepComponent::get_run_duration_() const {
   if (this->wakeup_cause_to_run_duration_.has_value()) {
@@ -56,18 +57,24 @@ void DeepSleepComponent::dump_config_platform_() {
   }
 }
 
-bool DeepSleepComponent::prepare_to_sleep_() {
-  if (this->wakeup_pin_mode_ == WAKEUP_PIN_MODE_KEEP_AWAKE && this->wakeup_pin_ != nullptr &&
-      this->wakeup_pin_->digital_read()) {
-    // Defer deep sleep until inactive
-    if (!this->next_enter_deep_sleep_) {
-      this->status_set_warning();
-      ESP_LOGW(TAG, "Waiting for wakeup pin state change");
+void DeepSleepComponent::setup_platform_() {
+  if (this->wakeup_pin_ != nullptr && this->wakeup_pin_mode_ == WAKEUP_PIN_MODE_KEEP_AWAKE) {
+    this->isr_pin_ = this->wakeup_pin_->to_isr();
+    this->wakeup_pin_->attach_interrupt(DeepSleepComponent::gpio_intr, this, esphome::gpio::INTERRUPT_ANY_EDGE);
+    if (this->wakeup_pin_->digital_read()) {
+      this->last_pin_state_ = true;
+      this->set_deep_sleep_prevention(true, true);
     }
-    this->next_enter_deep_sleep_ = true;
-    return false;
   }
-  return true;
+}
+
+void IRAM_ATTR DeepSleepComponent::gpio_intr(DeepSleepComponent *arg) {
+  volatile bool new_state = arg->isr_pin_.digital_read();
+  if ((arg->debounce_timer_ + DEBOUNCE_TIME_MS < millis()) && (arg->last_pin_state_ != new_state)) {
+    arg->last_pin_state_ = new_state;
+    arg->debounce_timer_ = millis();
+    arg->defer([arg, new_state]() { arg->set_deep_sleep_prevention(new_state, true); });
+  }
 }
 
 void DeepSleepComponent::deep_sleep_() {

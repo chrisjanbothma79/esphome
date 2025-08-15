@@ -6,6 +6,8 @@ namespace esphome {
 namespace deep_sleep {
 
 static const char *const TAG = "deep_sleep";
+static const char *const RUN_TIMEOUT = "run_timeout";
+
 // 5 seconds for deep sleep to ensure clean disconnect from Home Assistant
 static const uint32_t TEARDOWN_TIMEOUT_DEEP_SLEEP_MS = 5000;
 
@@ -14,13 +16,14 @@ bool global_has_deep_sleep = false;  // NOLINT(cppcoreguidelines-avoid-non-const
 void DeepSleepComponent::setup() {
   global_has_deep_sleep = true;
 
-  const optional<uint32_t> run_duration = get_run_duration_();
+  const optional<uint32_t> run_duration = this->get_run_duration_();
   if (run_duration.has_value()) {
     ESP_LOGI(TAG, "Scheduling in %" PRIu32 " ms", *run_duration);
-    this->set_timeout(*run_duration, [this]() { this->begin_sleep(); });
+    this->set_timeout(RUN_TIMEOUT, *run_duration, [this]() { this->begin_sleep(); });
   } else {
     ESP_LOGD(TAG, "Not scheduling; no run duration configured");
   }
+  this->setup_platform_();
 }
 
 void DeepSleepComponent::dump_config() {
@@ -35,10 +38,7 @@ void DeepSleepComponent::dump_config() {
   this->dump_config_platform_();
 }
 
-void DeepSleepComponent::loop() {
-  if (this->next_enter_deep_sleep_)
-    this->begin_sleep();
-}
+float DeepSleepComponent::get_setup_priority() const { return setup_priority::LATE; }
 
 float DeepSleepComponent::get_loop_priority() const {
   return -100.0f;  // run after everything else is ready
@@ -49,16 +49,15 @@ void DeepSleepComponent::set_sleep_duration(uint32_t time_ms) { this->sleep_dura
 void DeepSleepComponent::set_run_duration(uint32_t time_ms) { this->run_duration_ = time_ms; }
 
 void DeepSleepComponent::begin_sleep(bool manual) {
-  if (this->prevent_ && !manual) {
-    this->next_enter_deep_sleep_ = true;
+  this->cancel_timeout(RUN_TIMEOUT);
+
+  if (!manual && (this->waiting_for_sleep_ || this->prevent_ != 0)) {
+    this->waiting_for_sleep_ = true;
+    ESP_LOGI(TAG, "Waiting to allow for deep sleep");
     return;
   }
 
-  if (!this->prepare_to_sleep_()) {
-    return;
-  }
-
-  ESP_LOGI(TAG, "Beginning sleep");
+  ESP_LOGI(TAG, "Going to sleep now");
   if (this->sleep_duration_.has_value()) {
     ESP_LOGI(TAG, "Sleeping for %" PRId64 "us", *this->sleep_duration_);
   }
@@ -71,11 +70,23 @@ void DeepSleepComponent::begin_sleep(bool manual) {
   this->deep_sleep_();
 }
 
-float DeepSleepComponent::get_setup_priority() const { return setup_priority::LATE; }
+void DeepSleepComponent::prevent_deep_sleep() { this->set_deep_sleep_prevention(true, false); }
+void DeepSleepComponent::allow_deep_sleep() { this->set_deep_sleep_prevention(false, false); }
 
-void DeepSleepComponent::prevent_deep_sleep() { this->prevent_ = true; }
+void DeepSleepComponent::set_deep_sleep_prevention(bool prevent, bool external) {
+  uint8_t value = external ? this->prevent_ >> 4 : this->prevent_ & 0xf;
+  if (prevent && (value < 15)) {
+    this->prevent_ += (external ? 16 : 1);
+  }
+  if (!prevent && (value > 0)) {
+    this->prevent_ -= (external ? 16 : 1);
+  }
 
-void DeepSleepComponent::allow_deep_sleep() { this->prevent_ = false; }
+  ESP_LOGV(TAG, "Prevent count is %02x, %d, %s", this->prevent_, value, prevent ? "PRESS" : "released");
+  if (this->prevent_ == 0 && this->waiting_for_sleep_) {
+    this->begin_sleep(true);
+  }
+}
 
 }  // namespace deep_sleep
 }  // namespace esphome
