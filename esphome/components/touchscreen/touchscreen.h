@@ -1,13 +1,13 @@
 #pragma once
 
-#include "esphome/core/defines.h"
 #include "esphome/components/display/display.h"
+#include "esphome/core/defines.h"
 
 #include "esphome/core/automation.h"
 #include "esphome/core/hal.h"
 
-#include <vector>
 #include <map>
+#include <vector>
 
 namespace esphome {
 namespace touchscreen {
@@ -30,9 +30,12 @@ struct TouchPoint {
 using TouchPoints_t = std::vector<TouchPoint>;
 
 struct TouchscreenInterrupt {
+  ISRInternalGPIOPin isr_pin_;
   volatile bool touched{true};
   bool init{false};
+  bool inverted{false};
   static void gpio_intr(TouchscreenInterrupt *store);
+  Component *component_{nullptr};
 };
 
 class TouchListener {

@@ -7,13 +7,24 @@ namespace touchscreen {
 
 static const char *const TAG = "touchscreen";
 
-void TouchscreenInterrupt::gpio_intr(TouchscreenInterrupt *store) { store->touched = true; }
+void TouchscreenInterrupt::gpio_intr(TouchscreenInterrupt *store) {
+  bool new_state = store->isr_pin_.digital_read();
+  if (new_state != store->inverted) {
+    store->touched = true;
+    if (store->component_ != nullptr) {
+      store->component_->enable_loop_soon_any_context();
+    }
+  }
+}
 
 void Touchscreen::attach_interrupt_(InternalGPIOPin *irq_pin, esphome::gpio::InterruptType type) {
+  this->store_.isr_pin_ = irq_pin->to_isr();
+  this->store_.component_ = this;
+  this->store_.inverted = irq_pin->is_inverted();
   irq_pin->attach_interrupt(TouchscreenInterrupt::gpio_intr, &this->store_, type);
   this->store_.init = true;
   this->store_.touched = false;
-  ESP_LOGD(TAG, "Attach Touch Interupt");
+  ESP_LOGD(TAG, "Attach Touch Interrupt");
 }
 
 void Touchscreen::call_setup() {
@@ -71,6 +82,8 @@ void Touchscreen::loop() {
       }
     }
   }
+  if (this->store_.init)
+    this->disable_loop();
 }
 
 void Touchscreen::add_raw_touch_position_(uint8_t id, int16_t x_raw, int16_t y_raw, int16_t z_raw) {
