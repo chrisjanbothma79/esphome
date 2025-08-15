@@ -147,14 +147,18 @@ class BLEEvent {
     }
     if (this->type_ == GATTC) {
       delete this->event_.gattc.gattc_param;
+      delete[] this->event_.gattc.data;
       this->event_.gattc.gattc_param = nullptr;
-      this->reset_gattc_data_();
+      this->event_.gattc.data = nullptr;
+      this->event_.gattc.data_len = 0;
       return;
     }
     if (this->type_ == GATTS) {
       delete this->event_.gatts.gatts_param;
+      delete[] this->event_.gatts.data;
       this->event_.gatts.gatts_param = nullptr;
-      this->reset_gatts_data_();
+      this->event_.gatts.data = nullptr;
+      this->event_.gatts.data_len = 0;
     }
   }
 
@@ -235,20 +239,6 @@ class BLEEvent {
   const esp_ble_sec_t &security() const { return event_.gap.security; }
 
  private:
-  // Helper to reset GATTC data
-  void reset_gattc_data_() {
-    delete[] this->event_.gattc.data;
-    this->event_.gattc.data = nullptr;
-    this->event_.gattc.data_len = 0;
-  }
-
-  // Helper to reset GATTS data
-  void reset_gatts_data_() {
-    delete[] this->event_.gatts.data;
-    this->event_.gatts.data = nullptr;
-    this->event_.gatts.data_len = 0;
-  }
-
   // Initialize GAP event data
   void init_gap_data_(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->event_.gap.gap_event = e;
@@ -334,7 +324,8 @@ class BLEEvent {
 
     if (p == nullptr) {
       this->event_.gattc.gattc_param = nullptr;
-      this->reset_gattc_data_();
+      this->event_.gattc.data = nullptr;
+      this->event_.gattc.data_len = 0;
       return;  // Invalid event, but we can't log in header file
     }
 
@@ -365,7 +356,8 @@ class BLEEvent {
         this->event_.gattc.gattc_param->read.value = this->event_.gattc.data;
         break;
       default:
-        this->reset_gattc_data_();
+        this->event_.gattc.data = nullptr;
+        this->event_.gattc.data_len = 0;
         break;
     }
   }
@@ -377,7 +369,8 @@ class BLEEvent {
 
     if (p == nullptr) {
       this->event_.gatts.gatts_param = nullptr;
-      this->reset_gatts_data_();
+      this->event_.gatts.data = nullptr;
+      this->event_.gatts.data_len = 0;
       return;  // Invalid event, but we can't log in header file
     }
 
@@ -401,7 +394,8 @@ class BLEEvent {
         this->event_.gatts.gatts_param->write.value = this->event_.gatts.data;
         break;
       default:
-        this->reset_gatts_data_();
+        this->event_.gatts.data = nullptr;
+        this->event_.gatts.data_len = 0;
         break;
     }
   }
