@@ -173,7 +173,7 @@ class ESP32Preferences : public ESPPreferences {
       ESP_LOGV(TAG, "nvs_get_blob('%s') failed: %s", to_save.key.c_str(), esp_err_to_name(err));
       return true;
     }
-    return memcmp(to_save.data.data(), stored_data.get(), actual_len) != 0;
+    return memcmp(to_save.data.data(), stored_data.get(), to_save.data.size()) != 0;
   }
 
   bool reset() override {
