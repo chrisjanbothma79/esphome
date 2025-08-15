@@ -184,7 +184,7 @@ def validate_esp32_clock_source_compatibility(config):
 
     # Get the current board's variant using CORE.board_id
     board_variant = None
-    if hasattr(CORE, 'board_id') and CORE.board_id:
+    if hasattr(CORE, "board_id") and CORE.board_id:
         board_name = CORE.board_id.lower()
 
         # Map board names to variants
