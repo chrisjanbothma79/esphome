@@ -272,7 +272,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
                 UART_PARITY_OPTIONS, upper=True
             ),
-            cv.Optional(CONF_CLOCK_SOURCE, default="DEFAULT"): cv.enum(
+            cv.Optional(CONF_CLOCK_SOURCE): cv.enum(
                 ESP32_UART_CLOCK_SOURCES, upper=True
             ),
             cv.Optional(CONF_INVERT): cv.invalid(
