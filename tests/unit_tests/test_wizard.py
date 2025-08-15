@@ -17,6 +17,7 @@ import esphome.wizard as wz
 @pytest.fixture
 def default_config():
     return {
+        "type": "basic",
         "name": "test-name",
         "platform": "ESP8266",
         "board": "esp01_1m",
@@ -123,6 +124,47 @@ def test_wizard_write_sets_platform(default_config, tmp_path, monkeypatch):
     # Then
     generated_config = wz.write_file.call_args.args[1]
     assert "esp8266:" in generated_config
+
+
+def test_wizard_empty_config(tmp_path, monkeypatch):
+    """
+    The wizard should be able to create an empty configuration
+    """
+    # Given
+    empty_config = {
+        "type": "empty",
+        "name": "test-empty",
+    }
+    monkeypatch.setattr(wz, "write_file", MagicMock())
+    monkeypatch.setattr(CORE, "config_path", os.path.dirname(tmp_path))
+
+    # When
+    wz.wizard_write(tmp_path, **empty_config)
+
+    # Then
+    generated_config = wz.write_file.call_args.args[1]
+    assert generated_config == ""
+
+
+def test_wizard_upload_config(tmp_path, monkeypatch):
+    """
+    The wizard should be able to import an base64 encoded configuration
+    """
+    # Given
+    empty_config = {
+        "type": "upload",
+        "name": "test-upload",
+        "file_content": "IyBpbXBvcnRlZCBmaWxlIPCfk4EKCg==",
+    }
+    monkeypatch.setattr(wz, "write_file", MagicMock())
+    monkeypatch.setattr(CORE, "config_path", os.path.dirname(tmp_path))
+
+    # When
+    wz.wizard_write(tmp_path, **empty_config)
+
+    # Then
+    generated_config = wz.write_file.call_args.args[1]
+    assert generated_config == "# imported file 📁\n\n"
 
 
 def test_wizard_write_defaults_platform_from_board_esp8266(

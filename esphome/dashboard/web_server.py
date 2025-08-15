@@ -490,7 +490,17 @@ class WizardRequestHandler(BaseHandler):
         kwargs = {
             k: v
             for k, v in json.loads(self.request.body.decode()).items()
-            if k in ("name", "platform", "board", "ssid", "psk", "password")
+            if k
+            in (
+                "type",
+                "name",
+                "platform",
+                "board",
+                "ssid",
+                "psk",
+                "password",
+                "file_content",
+            )
         }
         if not kwargs["name"]:
             self.set_status(422)
@@ -498,12 +508,25 @@ class WizardRequestHandler(BaseHandler):
             self.write(json.dumps({"error": "Name is required"}))
             return
 
+        if "type" not in kwargs:
+            # Default to basic wizard type for backwards compatibility
+            kwargs["type"] = "basic"
+
         kwargs["friendly_name"] = kwargs["name"]
         kwargs["name"] = friendly_name_slugify(kwargs["friendly_name"])
-
-        kwargs["ota_password"] = secrets.token_hex(16)
-        noise_psk = secrets.token_bytes(32)
-        kwargs["api_encryption_key"] = base64.b64encode(noise_psk).decode()
+        if kwargs["type"] == "basic":
+            kwargs["ota_password"] = secrets.token_hex(16)
+            noise_psk = secrets.token_bytes(32)
+            kwargs["api_encryption_key"] = base64.b64encode(noise_psk).decode()
+        elif kwargs["type"] not in ("empty", "upload"):
+            self.set_status(422)
+            self.set_header("content-type", "application/json")
+            self.write(
+                json.dumps(
+                    {"error": f"Invalid wizard type specified: {kwargs['type']}"}
+                )
+            )
+            return
         filename = f"{kwargs['name']}.yaml"
         destination = settings.rel_path(filename)
         wizard.wizard_write(path=destination, **kwargs)
