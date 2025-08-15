@@ -456,9 +456,7 @@ def perform_ota(
         _LOGGER.info("Connected to %s", remote_ip)
         break
     if sock is None:
-        raise OTAError(
-            f"Error connecting to {remote_host}:{remote_port}: {last_err}"
-        )
+        raise OTAError(f"Error connecting to {remote_host}:{remote_port}: {last_err}")
     try:
         sock.settimeout(OTA_IMAGE_TRANSFER_TIMEOUT)
 
