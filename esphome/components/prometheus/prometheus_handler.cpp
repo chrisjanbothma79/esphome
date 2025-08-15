@@ -635,7 +635,7 @@ void PrometheusHandler::event_row_(AsyncResponseStream *stream, event::Event *ob
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\",last_event_type=\""));
-    stream->print(*obj->last_event_type);
+    stream->print(obj->last_event_type->c_str());
     stream->print(F("\"} "));
     stream->print(F("1.0"));
     stream->print(F("\n"));
