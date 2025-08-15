@@ -430,31 +430,36 @@ def perform_ota(
     """
 
     addresses = resolve_ip_address(remote_host, remote_port)
+    sock: socket.socket | None = None
     remote_ip = None
-    for af, _socktype, _proto, _canonname, sa in addresses:
-        if af == socket.AF_INET:
-            remote_ip = sa[0]
-            break
-    if remote_ip is None:
-        raise OTAError(f"Could not resolve IPv4 address for {remote_host}")
-    _LOGGER.info("Connecting to %s:%s...", remote_ip, remote_port)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        sock.settimeout(OTA_CONNECT_TIMEOUT)
+    last_err: OSError | None = None
+    for af, socktype, _proto, _canonname, sa in addresses:
+        _LOGGER.info("Connecting to %s:%s...", sa[0], sa[1])
+        s = socket.socket(af, socktype)
+        s.settimeout(OTA_CONNECT_TIMEOUT)
         try:
             # Clamp TCP MSS so more packets fit into the device's small receive window.
             # Keeping more segments in flight makes fast retransmit more likely
             # and reduces the amount of RTO backoffs on loss.
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_MAXSEG, 536)
+            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_MAXSEG, 536)
         except (AttributeError, OSError) as err:
             _LOGGER.warning("Could not set TCP MSS: %s", err)
         try:
-            sock.connect((remote_ip, remote_port))
+            s.connect(sa)
         except OSError as err:
-            raise OTAError(
-                f"Error connecting to {remote_ip}:{remote_port}: {err}"
-            ) from err
-
+            last_err = err
+            s.close()
+            _LOGGER.error("Connecting to %s:%s failed: %s", sa[0], sa[1], err)
+            continue
+        sock = s
+        remote_ip = sa[0]
+        _LOGGER.info("Connected to %s", remote_ip)
+        break
+    if sock is None:
+        raise OTAError(
+            f"Error connecting to {remote_host}:{remote_port}: {last_err}"
+        )
+    try:
         sock.settimeout(OTA_IMAGE_TRANSFER_TIMEOUT)
 
         with open(filename, "rb") as file:
