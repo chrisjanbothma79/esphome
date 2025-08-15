@@ -3,7 +3,9 @@
 #ifdef USE_ESP32
 
 #include <cstddef>  // for offsetof
+#include <cstring>  // for memcpy
 #include <vector>
+#include <memory>  // for std::unique_ptr
 
 #include <esp_gap_ble_api.h>
 #include <esp_gattc_api.h>
@@ -145,16 +147,18 @@ class BLEEvent {
     }
     if (this->type_ == GATTC) {
       delete this->event_.gattc.gattc_param;
-      delete this->event_.gattc.data;
+      delete[] this->event_.gattc.data;
       this->event_.gattc.gattc_param = nullptr;
       this->event_.gattc.data = nullptr;
+      this->event_.gattc.data_len = 0;
       return;
     }
     if (this->type_ == GATTS) {
       delete this->event_.gatts.gatts_param;
-      delete this->event_.gatts.data;
+      delete[] this->event_.gatts.data;
       this->event_.gatts.gatts_param = nullptr;
       this->event_.gatts.data = nullptr;
+      this->event_.gatts.data_len = 0;
     }
   }
 
@@ -209,17 +213,19 @@ class BLEEvent {
       esp_gattc_cb_event_t gattc_event;
       esp_gatt_if_t gattc_if;
       esp_ble_gattc_cb_param_t *gattc_param;  // Heap-allocated
-      std::vector<uint8_t> *data;             // Heap-allocated
-    } gattc;                                  // 16 bytes (pointers only)
+      uint8_t *data;                          // Heap-allocated raw buffer (manually managed)
+      uint16_t data_len;                      // Track size separately
+    } gattc;
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gatts_event {
       esp_gatts_cb_event_t gatts_event;
       esp_gatt_if_t gatts_if;
       esp_ble_gatts_cb_param_t *gatts_param;  // Heap-allocated
-      std::vector<uint8_t> *data;             // Heap-allocated
-    } gatts;                                  // 16 bytes (pointers only)
-  } event_;                                   // 80 bytes
+      uint8_t *data;                          // Heap-allocated raw buffer (manually managed)
+      uint16_t data_len;                      // Track size separately
+    } gatts;
+  } event_;  // 80 bytes
 
   ble_event_t type_;
 
@@ -319,6 +325,7 @@ class BLEEvent {
     if (p == nullptr) {
       this->event_.gattc.gattc_param = nullptr;
       this->event_.gattc.data = nullptr;
+      this->event_.gattc.data_len = 0;
       return;  // Invalid event, but we can't log in header file
     }
 
@@ -336,16 +343,21 @@ class BLEEvent {
     // We must copy this data to ensure it remains valid when the event is processed later.
     switch (e) {
       case ESP_GATTC_NOTIFY_EVT:
-        this->event_.gattc.data = new std::vector<uint8_t>(p->notify.value, p->notify.value + p->notify.value_len);
-        this->event_.gattc.gattc_param->notify.value = this->event_.gattc.data->data();
+        this->event_.gattc.data_len = p->notify.value_len;
+        this->event_.gattc.data = new uint8_t[p->notify.value_len];
+        memcpy(this->event_.gattc.data, p->notify.value, p->notify.value_len);
+        this->event_.gattc.gattc_param->notify.value = this->event_.gattc.data;
         break;
       case ESP_GATTC_READ_CHAR_EVT:
       case ESP_GATTC_READ_DESCR_EVT:
-        this->event_.gattc.data = new std::vector<uint8_t>(p->read.value, p->read.value + p->read.value_len);
-        this->event_.gattc.gattc_param->read.value = this->event_.gattc.data->data();
+        this->event_.gattc.data_len = p->read.value_len;
+        this->event_.gattc.data = new uint8_t[p->read.value_len];
+        memcpy(this->event_.gattc.data, p->read.value, p->read.value_len);
+        this->event_.gattc.gattc_param->read.value = this->event_.gattc.data;
         break;
       default:
         this->event_.gattc.data = nullptr;
+        this->event_.gattc.data_len = 0;
         break;
     }
   }
@@ -358,6 +370,7 @@ class BLEEvent {
     if (p == nullptr) {
       this->event_.gatts.gatts_param = nullptr;
       this->event_.gatts.data = nullptr;
+      this->event_.gatts.data_len = 0;
       return;  // Invalid event, but we can't log in header file
     }
 
@@ -375,11 +388,14 @@ class BLEEvent {
     // We must copy this data to ensure it remains valid when the event is processed later.
     switch (e) {
       case ESP_GATTS_WRITE_EVT:
-        this->event_.gatts.data = new std::vector<uint8_t>(p->write.value, p->write.value + p->write.len);
-        this->event_.gatts.gatts_param->write.value = this->event_.gatts.data->data();
+        this->event_.gatts.data_len = p->write.len;
+        this->event_.gatts.data = new uint8_t[p->write.len];
+        memcpy(this->event_.gatts.data, p->write.value, p->write.len);
+        this->event_.gatts.gatts_param->write.value = this->event_.gatts.data;
         break;
       default:
         this->event_.gatts.data = nullptr;
+        this->event_.gatts.data_len = 0;
         break;
     }
   }
