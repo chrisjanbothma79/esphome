@@ -172,7 +172,7 @@ def validate_esp32_clock_source_compatibility(config):
     # Define supported clock sources per ESP32 variant
     SUPPORTED_CLOCK_SOURCES = {
         "esp32": ["APB", "REF_TICK"],
-        "esp32s2": ["APB", "REF_TICK"], 
+        "esp32s2": ["APB", "REF_TICK"],
         "esp32s3": ["APB", "XTAL", "RTC"],
         "esp32c2": ["XTAL", "RTC", "PLL_F40M"],
         "esp32c3": ["APB", "XTAL", "RTC"],
@@ -215,7 +215,13 @@ def validate_esp32_clock_source_compatibility(config):
                 f"Clock source '{clock_source}' is not supported on {board_variant.upper()}. "
                 f"Supported options: {', '.join(supported)}"
             )
-    # If we can't determine the variant, silently continue (no warning needed)
+    else:
+        # If we can't determine the variant, issue a warning
+        cv.warn_once(
+            "clock_source_variant",
+            f"Could not determine ESP32 variant for clock source validation. "
+            f"Please ensure '{clock_source}' is supported by your specific ESP32 chip.",
+        )
 
     return config
 
