@@ -344,15 +344,23 @@ class BLEEvent {
     switch (e) {
       case ESP_GATTC_NOTIFY_EVT:
         this->event_.gattc.data_len = p->notify.value_len;
-        this->event_.gattc.data = new uint8_t[p->notify.value_len];
-        memcpy(this->event_.gattc.data, p->notify.value, p->notify.value_len);
+        if (p->notify.value_len > 0) {
+          this->event_.gattc.data = new uint8_t[p->notify.value_len];
+          memcpy(this->event_.gattc.data, p->notify.value, p->notify.value_len);
+        } else {
+          this->event_.gattc.data = nullptr;
+        }
         this->event_.gattc.gattc_param->notify.value = this->event_.gattc.data;
         break;
       case ESP_GATTC_READ_CHAR_EVT:
       case ESP_GATTC_READ_DESCR_EVT:
         this->event_.gattc.data_len = p->read.value_len;
-        this->event_.gattc.data = new uint8_t[p->read.value_len];
-        memcpy(this->event_.gattc.data, p->read.value, p->read.value_len);
+        if (p->read.value_len > 0) {
+          this->event_.gattc.data = new uint8_t[p->read.value_len];
+          memcpy(this->event_.gattc.data, p->read.value, p->read.value_len);
+        } else {
+          this->event_.gattc.data = nullptr;
+        }
         this->event_.gattc.gattc_param->read.value = this->event_.gattc.data;
         break;
       default:
@@ -389,8 +397,12 @@ class BLEEvent {
     switch (e) {
       case ESP_GATTS_WRITE_EVT:
         this->event_.gatts.data_len = p->write.len;
-        this->event_.gatts.data = new uint8_t[p->write.len];
-        memcpy(this->event_.gatts.data, p->write.value, p->write.len);
+        if (p->write.len > 0) {
+          this->event_.gatts.data = new uint8_t[p->write.len];
+          memcpy(this->event_.gatts.data, p->write.value, p->write.len);
+        } else {
+          this->event_.gatts.data = nullptr;
+        }
         this->event_.gatts.gatts_param->write.value = this->event_.gatts.data;
         break;
       default:
