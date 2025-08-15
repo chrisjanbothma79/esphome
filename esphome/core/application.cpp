@@ -256,30 +256,63 @@ void Application::run_powerdown_hooks() {
 void Application::teardown_components(uint32_t timeout_ms) {
   uint32_t start_time = millis();
 
-  // Copy all components in reverse order using reverse iterators
+  // Use a StaticVector instead of std::vector to avoid heap allocation
+  // since we know the maximum size at compile time
+  StaticVector<Component *, ESPHOME_COMPONENT_COUNT> pending_components;
+
+  // Copy all components in reverse order
   // Reverse order matches the behavior of run_safe_shutdown_hooks() above and ensures
   // components are torn down in the opposite order of their setup_priority (which is
   // used to sort components during Application::setup())
-  std::vector<Component *> pending_components(this->components_.rbegin(), this->components_.rend());
+  size_t num_components = this->components_.size();
+  for (size_t i = 0; i < num_components; ++i) {
+    pending_components[i] = this->components_[num_components - 1 - i];
+  }
 
   uint32_t now = start_time;
-  while (!pending_components.empty() && (now - start_time) < timeout_ms) {
+  size_t pending_count = pending_components.size();
+
+  // Compaction algorithm for teardown
+  // ==================================
+  // We repeatedly call teardown() on each component until it returns true.
+  // Components that are done are removed using array compaction:
+  //
+  // Initial state (all components pending):
+  //   pending_components: [A, B, C, D, E, F]
+  //   pending_count: 6                    ^
+  //
+  // After first iteration (B and D finish teardown):
+  //   pending_components: [A, C, E, F | B, D]  (B, D are still in memory but ignored)
+  //   pending_count: 4                ^
+  //
+  // After second iteration (A finishes):
+  //   pending_components: [C, E, F | A, B, D]
+  //   pending_count: 3             ^
+  //
+  // The algorithm compacts remaining components to the front of the array,
+  // tracking only the count of pending components. This avoids expensive
+  // erase operations while maintaining O(n) complexity per iteration.
+
+  while (pending_count > 0 && (now - start_time) < timeout_ms) {
     // Feed watchdog during teardown to prevent triggering
     this->feed_wdt(now);
 
-    // Use iterator to safely erase elements
-    for (auto it = pending_components.begin(); it != pending_components.end();) {
-      if ((*it)->teardown()) {
-        // Component finished teardown, erase it
-        it = pending_components.erase(it);
-      } else {
-        // Component still needs time
-        ++it;
+    // Process components and compact the array, keeping only those still pending
+    size_t still_pending = 0;
+    for (size_t i = 0; i < pending_count; ++i) {
+      if (!pending_components[i]->teardown()) {
+        // Component still needs time, keep it in the list
+        if (still_pending != i) {
+          pending_components[still_pending] = pending_components[i];
+        }
+        ++still_pending;
       }
+      // Component finished teardown, skip it (don't increment still_pending)
     }
+    pending_count = still_pending;
 
     // Give some time for I/O operations if components are still pending
-    if (!pending_components.empty()) {
+    if (pending_count > 0) {
       this->yield_with_select_(1);
     }
 
@@ -287,11 +320,11 @@ void Application::teardown_components(uint32_t timeout_ms) {
     now = millis();
   }
 
-  if (!pending_components.empty()) {
+  if (pending_count > 0) {
     // Note: At this point, connections are either disconnected or in a bad state,
     // so this warning will only appear via serial rather than being transmitted to clients
-    for (auto *component : pending_components) {
-      ESP_LOGW(TAG, "%s did not complete teardown within %" PRIu32 " ms", component->get_component_source(),
+    for (size_t i = 0; i < pending_count; ++i) {
+      ESP_LOGW(TAG, "%s did not complete teardown within %" PRIu32 " ms", pending_components[i]->get_component_source(),
                timeout_ms);
     }
   }
