@@ -167,7 +167,6 @@ class ESP32Preferences : public ESPPreferences {
     if (actual_len != to_save.data.size()) {
       return true;
     }
-    // Use unique_ptr to avoid vector overhead for temporary comparison
     auto stored_data = std::make_unique<uint8_t[]>(actual_len);
     err = nvs_get_blob(nvs_handle, to_save.key.c_str(), stored_data.get(), &actual_len);
     if (err != 0) {
