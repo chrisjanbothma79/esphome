@@ -525,8 +525,6 @@ class LCMEN2R13EFC1 : public WaveshareEPaper {
  public:
   LCMEN2R13EFC1();
 
-  bool wait_until_idle_();
-
   void initialize() override;
 
   void display() override;
@@ -546,7 +544,6 @@ class LCMEN2R13EFC1 : public WaveshareEPaper {
   void power_on_();
   int get_width_internal() override;
   int get_height_internal() override;
-  uint32_t idle_timeout_() override;
 
  private:
   void reset_();
