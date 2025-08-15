@@ -61,9 +61,19 @@ static_assert(offsetof(esp_ble_gap_cb_param_t, read_rssi_cmpl.rssi) == sizeof(es
 static_assert(offsetof(esp_ble_gap_cb_param_t, read_rssi_cmpl.remote_addr) == sizeof(esp_bt_status_t) + sizeof(int8_t),
               "remote_addr must follow rssi in read_rssi_cmpl");
 
-// Maximum size for inline storage of GATTC/GATTS data
-// This value is chosen to fit within the 80-byte union while maximizing inline storage
-static constexpr size_t INLINE_DATA_SIZE = 68;
+// Param struct sizes on ESP32
+static constexpr size_t GATTC_PARAM_SIZE = 28;
+static constexpr size_t GATTS_PARAM_SIZE = 32;
+
+// Maximum size for inline storage of data
+// GATTC: 80 - 28 (param) - 8 (other fields) = 44 bytes for data
+// GATTS: 80 - 32 (param) - 8 (other fields) = 40 bytes for data
+static constexpr size_t GATTC_INLINE_DATA_SIZE = 44;
+static constexpr size_t GATTS_INLINE_DATA_SIZE = 40;
+
+// Verify param struct sizes
+static_assert(sizeof(esp_ble_gattc_cb_param_t) == GATTC_PARAM_SIZE, "GATTC param size unexpected");
+static_assert(sizeof(esp_ble_gatts_cb_param_t) == GATTS_PARAM_SIZE, "GATTS param size unexpected");
 
 // Received GAP, GATTC and GATTS events are only queued, and get processed in the main loop().
 // This class stores each event with minimal memory usage.
@@ -115,21 +125,21 @@ class BLEEvent {
     this->init_gap_data_(e, p);
   }
 
-  // Constructor for GATTC events - uses heap allocation
-  // IMPORTANT: The heap allocation is REQUIRED and must not be removed as an optimization.
-  // The param pointer from ESP-IDF is only valid during the callback execution.
-  // Since BLE events are processed asynchronously in the main loop, we must create
-  // our own copy to ensure the data remains valid until the event is processed.
+  // Constructor for GATTC events - param stored inline, data may use heap
+  // IMPORTANT: We MUST copy the param struct because the pointer from ESP-IDF
+  // is only valid during the callback execution. Since BLE events are processed
+  // asynchronously in the main loop, we store our own copy inline to ensure
+  // the data remains valid until the event is processed.
   BLEEvent(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->type_ = GATTC;
     this->init_gattc_data_(e, i, p);
   }
 
-  // Constructor for GATTS events - uses heap allocation
-  // IMPORTANT: The heap allocation is REQUIRED and must not be removed as an optimization.
-  // The param pointer from ESP-IDF is only valid during the callback execution.
-  // Since BLE events are processed asynchronously in the main loop, we must create
-  // our own copy to ensure the data remains valid until the event is processed.
+  // Constructor for GATTS events - param stored inline, data may use heap
+  // IMPORTANT: We MUST copy the param struct because the pointer from ESP-IDF
+  // is only valid during the callback execution. Since BLE events are processed
+  // asynchronously in the main loop, we store our own copy inline to ensure
+  // the data remains valid until the event is processed.
   BLEEvent(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->type_ = GATTS;
     this->init_gatts_data_(e, i, p);
@@ -148,24 +158,20 @@ class BLEEvent {
         // GAP events don't have heap allocations
         break;
       case GATTC:
-        delete this->event_.gattc.gattc_param;
-        // Only delete heap data if it was heap-allocated
+        // Param is now stored inline, only delete heap data if it was heap-allocated
         if (!this->event_.gattc.is_inline && this->event_.gattc.data.heap_data != nullptr) {
           delete[] this->event_.gattc.data.heap_data;
         }
         // Clear critical fields to prevent issues if type changes
-        this->event_.gattc.gattc_param = nullptr;
         this->event_.gattc.is_inline = false;
         this->event_.gattc.data.heap_data = nullptr;
         break;
       case GATTS:
-        delete this->event_.gatts.gatts_param;
-        // Only delete heap data if it was heap-allocated
+        // Param is now stored inline, only delete heap data if it was heap-allocated
         if (!this->event_.gatts.is_inline && this->event_.gatts.data.heap_data != nullptr) {
           delete[] this->event_.gatts.data.heap_data;
         }
         // Clear critical fields to prevent issues if type changes
-        this->event_.gatts.gatts_param = nullptr;
         this->event_.gatts.is_inline = false;
         this->event_.gatts.data.heap_data = nullptr;
         break;
@@ -220,30 +226,30 @@ class BLEEvent {
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gattc_event {
-      esp_ble_gattc_cb_param_t *gattc_param;  // Heap-allocated (4 bytes)
-      esp_gattc_cb_event_t gattc_event;       // 4 bytes
+      esp_ble_gattc_cb_param_t gattc_param;  // Stored inline (28 bytes)
+      esp_gattc_cb_event_t gattc_event;      // 4 bytes
       union {
-        uint8_t *heap_data;                     // 4 bytes when heap-allocated
-        uint8_t inline_data[INLINE_DATA_SIZE];  // INLINE_DATA_SIZE bytes when stored inline
-      } data;                                   // INLINE_DATA_SIZE bytes total
-      uint16_t data_len;                        // 2 bytes
-      esp_gatt_if_t gattc_if;                   // 1 byte
-      bool is_inline;                           // 1 byte - true when data is stored inline
-    } gattc;                                    // Total: 80 bytes
+        uint8_t *heap_data;                           // 4 bytes when heap-allocated
+        uint8_t inline_data[GATTC_INLINE_DATA_SIZE];  // 44 bytes when stored inline
+      } data;                                         // 44 bytes total
+      uint16_t data_len;                              // 2 bytes
+      esp_gatt_if_t gattc_if;                         // 1 byte
+      bool is_inline;                                 // 1 byte - true when data is stored inline
+    } gattc;                                          // Total: 80 bytes
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gatts_event {
-      esp_ble_gatts_cb_param_t *gatts_param;  // Heap-allocated (4 bytes)
-      esp_gatts_cb_event_t gatts_event;       // 4 bytes
+      esp_ble_gatts_cb_param_t gatts_param;  // Stored inline (32 bytes)
+      esp_gatts_cb_event_t gatts_event;      // 4 bytes
       union {
-        uint8_t *heap_data;                     // 4 bytes when heap-allocated
-        uint8_t inline_data[INLINE_DATA_SIZE];  // INLINE_DATA_SIZE bytes when stored inline
-      } data;                                   // INLINE_DATA_SIZE bytes total
-      uint16_t data_len;                        // 2 bytes
-      esp_gatt_if_t gatts_if;                   // 1 byte
-      bool is_inline;                           // 1 byte - true when data is stored inline
-    } gatts;                                    // Total: 80 bytes
-  } event_;                                     // 80 bytes
+        uint8_t *heap_data;                           // 4 bytes when heap-allocated
+        uint8_t inline_data[GATTS_INLINE_DATA_SIZE];  // 40 bytes when stored inline
+      } data;                                         // 40 bytes total
+      uint16_t data_len;                              // 2 bytes
+      esp_gatt_if_t gatts_if;                         // 1 byte
+      bool is_inline;                                 // 1 byte - true when data is stored inline
+    } gatts;                                          // Total: 80 bytes
+  } event_;                                           // 80 bytes
 
   ble_event_t type_;
 
@@ -258,12 +264,12 @@ class BLEEvent {
 
  private:
   // Helper to copy data with inline storage optimization
-  template<typename EventStruct>
+  template<typename EventStruct, size_t InlineSize>
   void copy_data_with_inline_storage_(EventStruct &event, const uint8_t *src_data, uint16_t len,
                                       uint8_t **param_value_ptr) {
     event.data_len = len;
     if (len > 0) {
-      if (len <= INLINE_DATA_SIZE) {
+      if (len <= InlineSize) {
         event.is_inline = true;
         memcpy(event.data.inline_data, src_data, len);
         *param_value_ptr = event.data.inline_data;
@@ -364,34 +370,33 @@ class BLEEvent {
     this->event_.gattc.gattc_if = i;
 
     if (p == nullptr) {
-      this->event_.gattc.gattc_param = nullptr;
+      // Zero out the param struct when null
+      memset(&this->event_.gattc.gattc_param, 0, sizeof(this->event_.gattc.gattc_param));
       this->event_.gattc.is_inline = false;
       this->event_.gattc.data.heap_data = nullptr;
       this->event_.gattc.data_len = 0;
       return;  // Invalid event, but we can't log in header file
     }
 
-    // Heap-allocate param
-    // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
-    // while GAP events (99%) are stored inline to minimize memory usage
-    // IMPORTANT: This heap allocation provides clear ownership semantics:
-    // - The BLEEvent owns the allocated memory for its lifetime
-    // - The data remains valid from the BLE callback context until processed in the main loop
-    // - Without this copy, we'd have use-after-free bugs as ESP-IDF reuses the callback memory
-    this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
+    // Copy param struct inline (no heap allocation!)
+    // GATTC/GATTS events are rare (<1% of events) but we can still store them inline
+    // along with small data payloads, eliminating all heap allocations for typical BLE operations
+    // CRITICAL: This copy is REQUIRED for memory safety - the ESP-IDF param pointer
+    // is only valid during the callback and will be reused/freed after we return
+    this->event_.gattc.gattc_param = *p;
 
     // Copy data for events that need it
     // The param struct contains pointers (e.g., notify.value) that point to temporary buffers.
     // We must copy this data to ensure it remains valid when the event is processed later.
     switch (e) {
       case ESP_GATTC_NOTIFY_EVT:
-        copy_data_with_inline_storage_(this->event_.gattc, p->notify.value, p->notify.value_len,
-                                       &this->event_.gattc.gattc_param->notify.value);
+        copy_data_with_inline_storage_<decltype(this->event_.gattc), GATTC_INLINE_DATA_SIZE>(
+            this->event_.gattc, p->notify.value, p->notify.value_len, &this->event_.gattc.gattc_param.notify.value);
         break;
       case ESP_GATTC_READ_CHAR_EVT:
       case ESP_GATTC_READ_DESCR_EVT:
-        copy_data_with_inline_storage_(this->event_.gattc, p->read.value, p->read.value_len,
-                                       &this->event_.gattc.gattc_param->read.value);
+        copy_data_with_inline_storage_<decltype(this->event_.gattc), GATTC_INLINE_DATA_SIZE>(
+            this->event_.gattc, p->read.value, p->read.value_len, &this->event_.gattc.gattc_param.read.value);
         break;
       default:
         this->event_.gattc.is_inline = false;
@@ -407,29 +412,28 @@ class BLEEvent {
     this->event_.gatts.gatts_if = i;
 
     if (p == nullptr) {
-      this->event_.gatts.gatts_param = nullptr;
+      // Zero out the param struct when null
+      memset(&this->event_.gatts.gatts_param, 0, sizeof(this->event_.gatts.gatts_param));
       this->event_.gatts.is_inline = false;
       this->event_.gatts.data.heap_data = nullptr;
       this->event_.gatts.data_len = 0;
       return;  // Invalid event, but we can't log in header file
     }
 
-    // Heap-allocate param
-    // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
-    // while GAP events (99%) are stored inline to minimize memory usage
-    // IMPORTANT: This heap allocation provides clear ownership semantics:
-    // - The BLEEvent owns the allocated memory for its lifetime
-    // - The data remains valid from the BLE callback context until processed in the main loop
-    // - Without this copy, we'd have use-after-free bugs as ESP-IDF reuses the callback memory
-    this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);
+    // Copy param struct inline (no heap allocation!)
+    // GATTC/GATTS events are rare (<1% of events) but we can still store them inline
+    // along with small data payloads, eliminating all heap allocations for typical BLE operations
+    // CRITICAL: This copy is REQUIRED for memory safety - the ESP-IDF param pointer
+    // is only valid during the callback and will be reused/freed after we return
+    this->event_.gatts.gatts_param = *p;
 
     // Copy data for events that need it
     // The param struct contains pointers (e.g., write.value) that point to temporary buffers.
     // We must copy this data to ensure it remains valid when the event is processed later.
     switch (e) {
       case ESP_GATTS_WRITE_EVT:
-        copy_data_with_inline_storage_(this->event_.gatts, p->write.value, p->write.len,
-                                       &this->event_.gatts.gatts_param->write.value);
+        copy_data_with_inline_storage_<decltype(this->event_.gatts), GATTS_INLINE_DATA_SIZE>(
+            this->event_.gatts, p->write.value, p->write.len, &this->event_.gatts.gatts_param.write.value);
         break;
       default:
         this->event_.gatts.is_inline = false;
