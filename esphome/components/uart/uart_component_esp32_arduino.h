@@ -13,7 +13,7 @@
 namespace esphome {
 namespace uart {
 
-#ifdef USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
+#if USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
 /// Clock source options for ESP32 UART - comprehensive support for all ESP32 variants
 enum ESP32UARTClockSource {
   ESP32_UART_CLOCK_SOURCE_DEFAULT = 0,   ///< Default clock source (varies by chip)
@@ -63,7 +63,7 @@ class ESP32ArduinoUARTComponent : public UARTComponent, public Component {
   void load_settings(bool dump_config) override;
   void load_settings() override { this->load_settings(true); }
 
-#ifdef USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
+#if USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
   /// Set the clock source for the UART peripheral
   /// @param clock_source The clock source to use (REF_TICK or APB)
   void set_clock_source(ESP32UARTClockSource clock_source) { this->clock_source_ = clock_source; }
@@ -79,7 +79,7 @@ class ESP32ArduinoUARTComponent : public UARTComponent, public Component {
   HardwareSerial *hw_serial_{nullptr};
   uint8_t number_{0};
 
-#ifdef USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
+#if USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
   ESP32UARTClockSource clock_source_{
       ESP32_UART_CLOCK_SOURCE_DEFAULT};  ///< Default to DEFAULT for backward compatibility
 };

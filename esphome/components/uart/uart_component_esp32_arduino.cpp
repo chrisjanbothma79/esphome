@@ -201,7 +201,7 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
 }
 
 void ESP32ArduinoUARTComponent::dump_config() {
-#ifdef USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
+#if USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
   // Flash-efficient lookup table for clock source names
   static const char *const CLOCK_SOURCE_NAMES[] = {
       "DEFAULT",   // ESP32_UART_CLOCK_SOURCE_DEFAULT = 0
@@ -232,7 +232,7 @@ void ESP32ArduinoUARTComponent::dump_config() {
                 "  Parity: %s\n"
                 "  Stop bits: %u",
                 this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_);
-#ifdef USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
+#if USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
   ESP_LOGCONFIG(TAG, "  Clock Source: %s", clock_source_str);
 #endif  // USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
 
