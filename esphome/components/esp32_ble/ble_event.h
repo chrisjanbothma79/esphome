@@ -4,7 +4,6 @@
 
 #include <cstddef>  // for offsetof
 #include <cstring>  // for memcpy
-#include <vector>
 #include <esp_gap_ble_api.h>
 #include <esp_gattc_api.h>
 #include <esp_gatts_api.h>
@@ -64,7 +63,7 @@ static_assert(offsetof(esp_ble_gap_cb_param_t, read_rssi_cmpl.remote_addr) == si
 
 // Received GAP, GATTC and GATTS events are only queued, and get processed in the main loop().
 // This class stores each event with minimal memory usage.
-// GAP events (99% of traffic) don't have the vector overhead.
+// GAP events (99% of traffic) don't have the heap allocation overhead.
 // GATTC/GATTS events use heap allocation for their param and data.
 //
 // Event flow:
