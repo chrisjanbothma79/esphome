@@ -213,11 +213,8 @@ void ESP32ArduinoUARTComponent::dump_config() {
       "PLL_F48M",  // ESP32_UART_CLOCK_SOURCE_PLL_F48M = 6
       "PLL_F80M",  // ESP32_UART_CLOCK_SOURCE_PLL_F80M = 7
   };
-
-  const char *clock_source_str = "UNKNOWN";
-  if (this->clock_source_ < (sizeof(CLOCK_SOURCE_NAMES) / sizeof(CLOCK_SOURCE_NAMES[0]))) {
-    clock_source_str = CLOCK_SOURCE_NAMES[this->clock_source_];
-  }
+  
+  const char *clock_source_str = CLOCK_SOURCE_NAMES[this->clock_source_];
 #endif  // USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
 
   ESP_LOGCONFIG(TAG, "UART Bus %d:", this->number_);
