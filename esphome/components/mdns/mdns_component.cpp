@@ -24,7 +24,8 @@ static const char *const TAG = "mdns";
 void MDNSComponent::compile_records_() {
   this->hostname_ = App.get_name();
 
-  this->services_.clear();
+  this->service_count_ = 0;
+
 #ifdef USE_API
   if (api::global_api_server != nullptr) {
     MDNSService service{};
@@ -80,7 +81,7 @@ void MDNSComponent::compile_records_() {
     service.txt_records.push_back({"package_import_url", dashboard_import::get_package_import_url()});
 #endif
 
-    this->services_.push_back(service);
+    this->services_[this->service_count_++] = service;
   }
 #endif  // USE_API
 
@@ -90,7 +91,7 @@ void MDNSComponent::compile_records_() {
     service.service_type = "_prometheus-http";
     service.proto = "_tcp";
     service.port = USE_WEBSERVER_PORT;
-    this->services_.push_back(service);
+    this->services_[this->service_count_++] = service;
   }
 #endif
 
@@ -100,15 +101,17 @@ void MDNSComponent::compile_records_() {
     service.service_type = "_http";
     service.proto = "_tcp";
     service.port = USE_WEBSERVER_PORT;
-    this->services_.push_back(service);
+    this->services_[this->service_count_++] = service;
   }
 #endif
 
 #ifdef USE_MDNS_EXTRA_SERVICES
-  this->services_.insert(this->services_.end(), this->services_extra_.begin(), this->services_extra_.end());
+  for (const auto &extra_service : this->services_extra_) {
+    this->services_[this->service_count_++] = extra_service;
+  }
 #endif
 
-  if (this->services_.empty()) {
+  if (this->service_count_ == 0) {
     // Publish "http" service if not using native API
     // This is just to have *some* mDNS service so that .local resolution works
     MDNSService service{};
@@ -116,7 +119,7 @@ void MDNSComponent::compile_records_() {
     service.proto = "_tcp";
     service.port = USE_WEBSERVER_PORT;
     service.txt_records.push_back({"version", ESPHOME_VERSION});
-    this->services_.push_back(service);
+    this->services_[this->service_count_++] = service;
   }
 }
 
@@ -126,7 +129,8 @@ void MDNSComponent::dump_config() {
                 "  Hostname: %s",
                 this->hostname_.c_str());
   ESP_LOGV(TAG, "  Services:");
-  for (const auto &service : this->services_) {
+  for (size_t i = 0; i < this->service_count_; i++) {
+    const auto &service = this->services_[i];
     ESP_LOGV(TAG, "  - %s, %s, %d", service.service_type.c_str(), service.proto.c_str(),
              const_cast<TemplatableValue<uint16_t> &>(service.port).value());
     for (const auto &record : service.txt_records) {
@@ -135,8 +139,6 @@ void MDNSComponent::dump_config() {
     }
   }
 }
-
-std::vector<MDNSService> MDNSComponent::get_services() { return this->services_; }
 
 }  // namespace mdns
 }  // namespace esphome

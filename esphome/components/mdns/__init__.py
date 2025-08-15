@@ -90,11 +90,37 @@ async def to_code(config):
 
     cg.add_define("USE_MDNS")
 
+    # Count how many services we'll have at compile time
+    service_count = 0
+
+    # Check if API is enabled (USE_API is defined by api component)
+    if "api" in CORE.config:
+        service_count += 1
+
+    # Check if Prometheus is enabled (USE_PROMETHEUS is defined by prometheus component)
+    if "prometheus" in CORE.config:
+        service_count += 1
+
+    # Check if Web Server is enabled (USE_WEBSERVER is defined by web_server component)
+    if "web_server" in CORE.config:
+        service_count += 1
+
+    # Count extra services from config
+    extra_service_count = len(config.get(CONF_SERVICES, []))
+    if extra_service_count > 0:
+        service_count += extra_service_count
+        cg.add_define("USE_MDNS_EXTRA_SERVICES")
+        cg.add_define("MDNS_EXTRA_SERVICE_COUNT", extra_service_count)
+
+    # If no services, we'll add a fallback HTTP service
+    if service_count == 0:
+        service_count = 1
+
+    # Define the total service count
+    cg.add_define("MDNS_SERVICE_COUNT", service_count)
+
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-
-    if config[CONF_SERVICES]:
-        cg.add_define("USE_MDNS_EXTRA_SERVICES")
 
     for service in config[CONF_SERVICES]:
         txt = [

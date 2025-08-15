@@ -1,6 +1,7 @@
 #pragma once
 #include "esphome/core/defines.h"
 #ifdef USE_MDNS
+#include <array>
 #include <string>
 #include <vector>
 #include "esphome/core/automation.h"
@@ -39,7 +40,8 @@ class MDNSComponent : public Component {
   void add_extra_service(MDNSService service) { services_extra_.push_back(std::move(service)); }
 #endif
 
-  std::vector<MDNSService> get_services();
+  const std::array<MDNSService, MDNS_SERVICE_COUNT> &get_services() const { return this->services_; }
+  size_t get_service_count() const { return this->service_count_; }
 
   void on_shutdown() override;
 
@@ -47,7 +49,8 @@ class MDNSComponent : public Component {
 #ifdef USE_MDNS_EXTRA_SERVICES
   std::vector<MDNSService> services_extra_{};
 #endif
-  std::vector<MDNSService> services_{};
+  std::array<MDNSService, MDNS_SERVICE_COUNT> services_{};
+  size_t service_count_{0};  // Track how many services are actually populated
   std::string hostname_;
   void compile_records_();
 };
