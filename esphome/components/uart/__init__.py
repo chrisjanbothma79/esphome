@@ -160,13 +160,69 @@ def validate_host_config(config):
     return config
 
 
-def validate_esp32_clock_source(config):
-    """Validate ESP32 clock source configuration"""
-    if not (CORE.is_esp32 and CORE.using_arduino):
-        if CONF_CLOCK_SOURCE in config:
+def validate_esp32_clock_source_compatibility(config):
+    # Validate clock source compatibility with specific ESP32 variant
+    if not (CORE.is_esp32 and CORE.using_arduino and CONF_CLOCK_SOURCE in config):
+        return config
+    
+    clock_source = config[CONF_CLOCK_SOURCE]
+    if clock_source == "DEFAULT":
+        return config
+    
+    # Define supported clock sources per ESP32 variant
+    SUPPORTED_CLOCK_SOURCES = {
+        "esp32": ["APB", "REF_TICK"],
+        "esp32s2": ["APB", "REF_TICK"], 
+        "esp32s3": ["APB", "XTAL", "RTC"],
+        "esp32c2": ["XTAL", "RTC", "PLL_F40M"],
+        "esp32c3": ["APB", "XTAL", "RTC"],
+        "esp32c5": ["XTAL", "RTC", "PLL_F80M"],
+        "esp32c6": ["XTAL", "RTC", "PLL_F80M"],
+        "esp32h2": ["XTAL", "RTC", "PLL_F48M"],
+        "esp32p4": ["XTAL", "RTC", "PLL_F80M"],
+    }
+    
+    # Get the current board's variant
+    board_variant = None
+    if hasattr(CORE, 'board') and CORE.board:
+        board_name = CORE.board.lower()
+        
+        # Map board names to variants
+        if any(x in board_name for x in ["esp32s3", "s3"]):
+            board_variant = "esp32s3"
+        elif any(x in board_name for x in ["esp32s2", "s2"]):
+            board_variant = "esp32s2"
+        elif any(x in board_name for x in ["esp32c2", "c2"]):
+            board_variant = "esp32c2"
+        elif any(x in board_name for x in ["esp32c3", "c3"]):
+            board_variant = "esp32c3"
+        elif any(x in board_name for x in ["esp32c5", "c5"]):
+            board_variant = "esp32c5"
+        elif any(x in board_name for x in ["esp32c6", "c6"]):
+            board_variant = "esp32c6"
+        elif any(x in board_name for x in ["esp32h2", "h2"]):
+            board_variant = "esp32h2"
+        elif any(x in board_name for x in ["esp32p4", "p4"]):
+            board_variant = "esp32p4"
+        elif "esp32" in board_name:
+            board_variant = "esp32"
+    
+    # Check compatibility
+    if board_variant and board_variant in SUPPORTED_CLOCK_SOURCES:
+        supported = SUPPORTED_CLOCK_SOURCES[board_variant]
+        if clock_source not in supported:
             raise cv.Invalid(
-                "clock_source is only supported on ESP32 with Arduino framework"
+                f"Clock source '{clock_source}' is not supported on {board_variant.upper()}. "
+                f"Supported options: {', '.join(supported)}"
             )
+    else:
+        # If we can't determine the variant, issue a warning
+        cv.warn_once(
+            "clock_source_variant",
+            f"Could not determine ESP32 variant for clock source validation. "
+            f"Please ensure '{clock_source}' is supported by your specific ESP32 chip."
+        )
+    
     return config
 
 
@@ -284,7 +340,7 @@ CONFIG_SCHEMA = cv.All(
     cv.has_at_least_one_key(CONF_TX_PIN, CONF_RX_PIN, CONF_PORT),
     validate_invert_esp32,
     validate_host_config,
-    validate_esp32_clock_source,
+    validate_esp32_clock_source_compatibility,
 )
 
 
