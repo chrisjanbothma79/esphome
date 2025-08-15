@@ -164,15 +164,15 @@ def validate_esp32_clock_source_compatibility(config):
     # Validate clock source compatibility with specific ESP32 variant
     if not (CORE.is_esp32 and CORE.using_arduino and CONF_CLOCK_SOURCE in config):
         return config
-    
+
     clock_source = config[CONF_CLOCK_SOURCE]
     if clock_source == "DEFAULT":
         return config
-    
+
     # Define supported clock sources per ESP32 variant
     SUPPORTED_CLOCK_SOURCES = {
         "esp32": ["APB", "REF_TICK"],
-        "esp32s2": ["APB", "REF_TICK"], 
+        "esp32s2": ["APB", "REF_TICK"],
         "esp32s3": ["APB", "XTAL", "RTC"],
         "esp32c2": ["XTAL", "RTC", "PLL_F40M"],
         "esp32c3": ["APB", "XTAL", "RTC"],
@@ -181,12 +181,12 @@ def validate_esp32_clock_source_compatibility(config):
         "esp32h2": ["XTAL", "RTC", "PLL_F48M"],
         "esp32p4": ["XTAL", "RTC", "PLL_F80M"],
     }
-    
+
     # Get the current board's variant
     board_variant = None
-    if hasattr(CORE, 'board') and CORE.board:
+    if hasattr(CORE, "board") and CORE.board:
         board_name = CORE.board.lower()
-        
+
         # Map board names to variants
         if any(x in board_name for x in ["esp32s3", "s3"]):
             board_variant = "esp32s3"
@@ -206,7 +206,7 @@ def validate_esp32_clock_source_compatibility(config):
             board_variant = "esp32p4"
         elif "esp32" in board_name:
             board_variant = "esp32"
-    
+
     # Check compatibility
     if board_variant and board_variant in SUPPORTED_CLOCK_SOURCES:
         supported = SUPPORTED_CLOCK_SOURCES[board_variant]
@@ -220,9 +220,9 @@ def validate_esp32_clock_source_compatibility(config):
         cv.warn_once(
             "clock_source_variant",
             f"Could not determine ESP32 variant for clock source validation. "
-            f"Please ensure '{clock_source}' is supported by your specific ESP32 chip."
+            f"Please ensure '{clock_source}' is supported by your specific ESP32 chip.",
         )
-    
+
     return config
 
 
