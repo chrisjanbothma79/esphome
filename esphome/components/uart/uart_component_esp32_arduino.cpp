@@ -145,35 +145,51 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
     // End current UART session if it's already running to allow clock source change
     this->hw_serial_->end();
 
+#if USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
     // Set the desired clock source
     switch (this->clock_source_) {
+#ifdef UART_CLK_SRC_APB
       case ESP32_UART_CLOCK_SOURCE_APB:
         this->hw_serial_->setClockSource(UART_CLK_SRC_APB);
         break;
+#endif  // UART_CLK_SRC_APB
+#ifdef UART_CLK_SRC_XTAL
       case ESP32_UART_CLOCK_SOURCE_XTAL:
         this->hw_serial_->setClockSource(UART_CLK_SRC_XTAL);
         break;
+#endif  // UART_CLK_SRC_XTAL
+#ifdef UART_CLK_SRC_RTC
       case ESP32_UART_CLOCK_SOURCE_RTC:
         this->hw_serial_->setClockSource(UART_CLK_SRC_RTC);
         break;
+#endif  // UART_CLK_SRC_RTC
+#ifdef UART_CLK_SRC_REF_TICK
       case ESP32_UART_CLOCK_SOURCE_REF_TICK:
         this->hw_serial_->setClockSource(UART_CLK_SRC_REF_TICK);
         break;
+#endif  // UART_CLK_SRC_REF_TICK
+#ifdef UART_CLK_SRC_PLL_F40M
       case ESP32_UART_CLOCK_SOURCE_PLL_F40M:
         this->hw_serial_->setClockSource(UART_CLK_SRC_PLL_F40M);
         break;
+#endif  // UART_CLK_SRC_PLL_F40M
+#ifdef UART_CLK_SRC_PLL_F48M
       case ESP32_UART_CLOCK_SOURCE_PLL_F48M:
         this->hw_serial_->setClockSource(UART_CLK_SRC_PLL_F48M);
         break;
+#endif  // UART_CLK_SRC_PLL_F48M
+#ifdef UART_CLK_SRC_PLL_F80M
       case ESP32_UART_CLOCK_SOURCE_PLL_F80M:
         this->hw_serial_->setClockSource(UART_CLK_SRC_PLL_F80M);
         break;
+#endif  // UART_CLK_SRC_PLL_F80M
       case ESP32_UART_CLOCK_SOURCE_DEFAULT:
       default:
         this->hw_serial_->setClockSource(UART_CLK_SRC_DEFAULT);
         break;
     }
   }
+#endif  // USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
 
   this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, invert);
@@ -185,6 +201,7 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
 }
 
 void ESP32ArduinoUARTComponent::dump_config() {
+#ifdef USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
   // Flash-efficient lookup table for clock source names
   static const char *const CLOCK_SOURCE_NAMES[] = {
       "DEFAULT",   // ESP32_UART_CLOCK_SOURCE_DEFAULT = 0
@@ -201,6 +218,7 @@ void ESP32ArduinoUARTComponent::dump_config() {
   if (this->clock_source_ < (sizeof(CLOCK_SOURCE_NAMES) / sizeof(CLOCK_SOURCE_NAMES[0]))) {
     clock_source_str = CLOCK_SOURCE_NAMES[this->clock_source_];
   }
+#endif  // USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
 
   ESP_LOGCONFIG(TAG, "UART Bus %d:", this->number_);
   LOG_PIN("  TX Pin: ", tx_pin_);
@@ -212,10 +230,11 @@ void ESP32ArduinoUARTComponent::dump_config() {
                 "  Baud Rate: %u baud\n"
                 "  Data Bits: %u\n"
                 "  Parity: %s\n"
-                "  Stop bits: %u\n"
-                "  Clock Source: %s",
-                this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_,
-                clock_source_str);
+                "  Stop bits: %u",
+                this->baud_rate_, this->data_bits_, LOG_STR_ARG(parity_to_str(this->parity_)), this->stop_bits_);
+#ifdef USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
+  ESP_LOGCONFIG(TAG, "  Clock Source: %s", clock_source_str);
+#endif  // USE_ARDUINO_VERSION_CODE >= VERSION_CODE(3, 2, 1)
 
   this->check_logger_conflict();
 }
