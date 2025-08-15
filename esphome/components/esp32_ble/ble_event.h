@@ -139,7 +139,7 @@ class BLEEvent {
   ~BLEEvent() { this->release(); }
 
   // Default constructor for pre-allocation in pool
-  BLEEvent() : type_(GAP), event_{} {}
+  BLEEvent() : event_{}, type_(GAP) {}
 
   // Invoked on return to EventPool - clean up any heap-allocated data
   void release() {
