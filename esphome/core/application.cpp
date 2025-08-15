@@ -257,7 +257,7 @@ void Application::teardown_components(uint32_t timeout_ms) {
   uint32_t start_time = millis();
 
   // Use a StaticVector instead of std::vector to avoid heap allocation
-  // since we know the maximum size at compile time
+  // since we know the actual size at compile time
   StaticVector<Component *, ESPHOME_COMPONENT_COUNT> pending_components;
 
   // Copy all components in reverse order
