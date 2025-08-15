@@ -67,34 +67,35 @@ void BL0940::update() {
 void BL0940::setup() {
 #ifdef USE_NUMBER
   // add calibration callbacks
-  if (this->voltage_calibration_ != nullptr) {
-    this->voltage_calibration_->add_on_state_callback(
+  if (this->voltage_calibration_number_ != nullptr) {
+    this->voltage_calibration_number_->add_on_state_callback(
         [this](float state) { this->voltage_calibration_callback_(state); });
-    if (this->voltage_calibration_->has_state()) {
-      this->voltage_calibration_callback_(this->voltage_calibration_->state);
+    if (this->voltage_calibration_number_->has_state()) {
+      this->voltage_calibration_callback_(this->voltage_calibration_number_->state);
     }
   }
 
-  if (this->current_calibration_ != nullptr) {
-    this->current_calibration_->add_on_state_callback(
+  if (this->current_calibration_number_ != nullptr) {
+    this->current_calibration_number_->add_on_state_callback(
         [this](float state) { this->current_calibration_callback_(state); });
-    if (this->current_calibration_->has_state()) {
-      this->current_calibration_callback_(this->current_calibration_->state);
+    if (this->current_calibration_number_->has_state()) {
+      this->current_calibration_callback_(this->current_calibration_number_->state);
     }
   }
 
-  if (this->power_calibration_ != nullptr) {
-    this->power_calibration_->add_on_state_callback([this](float state) { this->power_calibration_callback_(state); });
-    if (this->power_calibration_->has_state()) {
-      this->power_calibration_callback_(this->power_calibration_->state);
+  if (this->power_calibration_number_ != nullptr) {
+    this->power_calibration_number_->add_on_state_callback(
+        [this](float state) { this->power_calibration_callback_(state); });
+    if (this->power_calibration_number_->has_state()) {
+      this->power_calibration_callback_(this->power_calibration_number_->state);
     }
   }
 
-  if (this->energy_calibration_ != nullptr) {
-    this->energy_calibration_->add_on_state_callback(
+  if (this->energy_calibration_number_ != nullptr) {
+    this->energy_calibration_number_->add_on_state_callback(
         [this](float state) { this->energy_calibration_callback_(state); });
-    if (this->energy_calibration_->has_state()) {
-      this->energy_calibration_callback_(this->energy_calibration_->state);
+    if (this->energy_calibration_number_->has_state()) {
+      this->energy_calibration_callback_(this->energy_calibration_number_->state);
     }
   }
 #endif
@@ -127,17 +128,17 @@ float BL0940::calculate_calibration_value_(float state) { return (100 + state) /
 
 void BL0940::reset_calibration() {
 #ifdef USE_NUMBER
-  if (this->current_calibration_ != nullptr && this->current_cal_ != 1) {
-    this->current_calibration_->make_call().set_value(0).perform();
+  if (this->current_calibration_number_ != nullptr && this->current_cal_ != 1) {
+    this->current_calibration_number_->make_call().set_value(0).perform();
   }
-  if (this->voltage_calibration_ != nullptr && this->voltage_cal_ != 1) {
-    this->voltage_calibration_->make_call().set_value(0).perform();
+  if (this->voltage_calibration_number_ != nullptr && this->voltage_cal_ != 1) {
+    this->voltage_calibration_number_->make_call().set_value(0).perform();
   }
-  if (this->power_calibration_ != nullptr && this->power_cal_ != 1) {
-    this->power_calibration_->make_call().set_value(0).perform();
+  if (this->power_calibration_number_ != nullptr && this->power_cal_ != 1) {
+    this->power_calibration_number_->make_call().set_value(0).perform();
   }
-  if (this->energy_calibration_ != nullptr && this->energy_cal_ != 1) {
-    this->energy_calibration_->make_call().set_value(0).perform();
+  if (this->energy_calibration_number_ != nullptr && this->energy_cal_ != 1) {
+    this->energy_calibration_number_->make_call().set_value(0).perform();
   }
 #endif
   ESP_LOGD(TAG, "external calibration values restored to initial state");

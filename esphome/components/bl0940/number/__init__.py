@@ -41,10 +41,13 @@ CALIBRATION_SCHEMA = cv.All(
     )
     .extend(
         {
+            cv.Optional(CONF_MODE, default="BOX"): cv.enum(number.NUMBER_MODES),
             cv.Optional(CONF_MAX_VALUE, default=10): cv.All(
                 cv.float_, cv.Range(max=50)
             ),
-            cv.Optional(CONF_MIN_VALUE, default=-10): cv.float_,
+            cv.Optional(CONF_MIN_VALUE, default=-10): cv.All(
+                cv.float_, cv.Range(min=-50)
+            ),
             cv.Optional(CONF_STEP, default=0.1): cv.positive_float,
             cv.Optional(CONF_RESTORE_VALUE): cv.boolean,
         }

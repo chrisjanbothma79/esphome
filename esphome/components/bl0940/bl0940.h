@@ -63,10 +63,10 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
 
 #ifdef USE_NUMBER
   // Calibration number setters (for Home Assistant number entities)
-  void set_current_calibration_number(number::Number *num) { this->current_calibration_ = num; }
-  void set_voltage_calibration_number(number::Number *num) { this->voltage_calibration_ = num; }
-  void set_power_calibration_number(number::Number *num) { this->power_calibration_ = num; }
-  void set_energy_calibration_number(number::Number *num) { this->energy_calibration_ = num; }
+  void set_current_calibration_number(number::Number *num) { this->current_calibration_number_ = num; }
+  void set_voltage_calibration_number(number::Number *num) { this->voltage_calibration_number_ = num; }
+  void set_power_calibration_number(number::Number *num) { this->power_calibration_number_ = num; }
+  void set_energy_calibration_number(number::Number *num) { this->energy_calibration_number_ = num; }
 #endif
 
 #ifdef USE_BUTTON
