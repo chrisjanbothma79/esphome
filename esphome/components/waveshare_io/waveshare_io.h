@@ -1,0 +1,68 @@
+#pragma once
+
+#include "esphome/components/gpio_expander/cached_gpio.h"
+#include "esphome/components/i2c/i2c.h"
+#include "esphome/core/component.h"
+#include "esphome/core/hal.h"
+
+namespace esphome {
+namespace waveshare_io {
+
+class WaveshareIOComponent : public Component,
+                             public i2c::I2CDevice,
+                             public gpio_expander::CachedGpioExpander<uint8_t, 8> {
+ public:
+  WaveshareIOComponent() = default;
+
+  void setup() override;
+  void pin_mode(uint8_t pin, gpio::Flags flags);
+
+  float get_setup_priority() const override;
+
+  void dump_config() override;
+
+  void loop() override;
+
+  uint16_t get_adc_value();
+  void set_pwm_value(uint8_t value);  // 0 - 255
+
+ protected:
+  friend class WaveshareIOGPIOPin;
+
+  bool digital_read_hw(uint8_t pin) override;
+  bool digital_read_cache(uint8_t pin) override;
+  void digital_write_hw(uint8_t pin, bool value) override;
+
+  float get_loop_priority() const override;
+
+  uint8_t mode_mask_{0x00};    // Mask for the pin mode - 1 means output, 0 means input
+  uint8_t output_mask_{0x00};  // The mask to write as output state - 1 means HIGH, 0 means LOW
+  uint8_t input_mask_{0x00};   // The state read in digital_read_hw - 1 means HIGH, 0 means LOW
+
+  bool write_gpio_modes_();
+  bool write_gpio_outputs_();
+};
+
+/// Helper class to expose a WaveshareIO pin as a GPIO pin.
+class WaveshareIOGPIOPin : public GPIOPin, public Parented<WaveshareIOComponent> {
+ public:
+  void setup() override{};
+  void pin_mode(gpio::Flags flags) override;
+  bool digital_read() override;
+  void digital_write(bool value) override;
+  std::string dump_summary() const override;
+
+  void set_pin(uint8_t pin) { pin_ = pin; }
+  void set_inverted(bool inverted) { inverted_ = inverted; }
+  void set_flags(gpio::Flags flags);
+
+  gpio::Flags get_flags() const override { return this->flags_; }
+
+ protected:
+  uint8_t pin_{};
+  bool inverted_{};
+  gpio::Flags flags_{};
+};
+
+}  // namespace waveshare_io
+}  // namespace esphome
