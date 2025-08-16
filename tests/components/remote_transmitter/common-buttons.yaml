@@ -7,6 +7,12 @@ button:
         source: 0x01
         command: 0x0C
   - platform: template
+    name: brennenstuhl
+    id: button_a_on
+    on_press:
+      remote_transmitter.transmit_brennenstuhl:
+        code: 0xBD2E2C
+  - platform: template
     name: JVC Off
     id: living_room_lights_on
     on_press:
