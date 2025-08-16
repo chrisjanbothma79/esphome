@@ -165,6 +165,7 @@ void ModemHandler::send_init_at() {
 
 bool ModemHandler::prepare_sim() {
   App.feed_wdt();
+  delay(200);  // NOLINT
   AtCommandResult result = this->send_at("AT+CPIN?");
   if (!result.success) {
     ESP_LOGW(TAG, "Failed to check pin: %s (%s)", result.c_str(),
