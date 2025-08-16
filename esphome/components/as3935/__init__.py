@@ -5,6 +5,9 @@ from esphome.const import (
     CONF_CALIBRATION,
     CONF_CAPACITANCE,
     CONF_DIV_RATIO,
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
+    CONF_ID,
     CONF_INDOOR,
     CONF_IRQ_PIN,
     CONF_LIGHTNING_THRESHOLD,
@@ -13,9 +16,6 @@ from esphome.const import (
     CONF_SPIKE_REJECTION,
     CONF_TUNE_ANTENNA,
     CONF_WATCHDOG_THRESHOLD,
-    CONF_ID,
-    CONF_ENTITY_CATEGORY,
-    CONF_ICON,
 )
 from esphome.core.entity_helpers import entity_duplicate_validator
 from esphome.cpp_generator import MockObjClass

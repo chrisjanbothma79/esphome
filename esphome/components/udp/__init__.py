@@ -13,11 +13,11 @@ from esphome.components.packet_transport import (
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_DATA,
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
     CONF_ID,
     CONF_PORT,
     CONF_TRIGGER_ID,
-    CONF_ENTITY_CATEGORY,
-    CONF_ICON,
 )
 from esphome.core import Lambda
 from esphome.core.entity_helpers import entity_duplicate_validator

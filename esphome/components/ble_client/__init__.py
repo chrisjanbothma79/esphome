@@ -6,6 +6,8 @@ from esphome.components.esp32_ble import BTLoggers
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CHARACTERISTIC_UUID,
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
     CONF_ID,
     CONF_MAC_ADDRESS,
     CONF_NAME,
@@ -14,8 +16,6 @@ from esphome.const import (
     CONF_SERVICE_UUID,
     CONF_TRIGGER_ID,
     CONF_VALUE,
-    CONF_ENTITY_CATEGORY,
-    CONF_ICON,
 )
 from esphome.core.entity_helpers import entity_duplicate_validator
 from esphome.cpp_generator import MockObjClass

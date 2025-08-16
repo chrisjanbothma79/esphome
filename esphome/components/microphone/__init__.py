@@ -6,12 +6,12 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BITS_PER_SAMPLE,
     CONF_CHANNELS,
+    CONF_ENTITY_CATEGORY,
     CONF_GAIN_FACTOR,
+    CONF_ICON,
     CONF_ID,
     CONF_MICROPHONE,
     CONF_TRIGGER_ID,
-    CONF_ENTITY_CATEGORY,
-    CONF_ICON,
 )
 from esphome.core import CORE
 from esphome.core.entity_helpers import entity_duplicate_validator

@@ -3,12 +3,12 @@ import esphome.codegen as cg
 from esphome.components import i2c
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
     CONF_ON_TAG,
     CONF_ON_TAG_REMOVED,
     CONF_RESET_PIN,
     CONF_TRIGGER_ID,
-    CONF_ENTITY_CATEGORY,
-    CONF_ICON,
 )
 from esphome.core.entity_helpers import entity_duplicate_validator
 from esphome.cpp_generator import MockObjClass
