@@ -102,6 +102,7 @@ MODEM_MODELS_POWER["SIM7670"] = MODEM_MODELS_POWER["SIM7600"]
 
 MODEM_MODELS_GNSS_QUERY = {
     "SIM7600": {"command": "AT+CGNSSINFO", "parser": "CGNSSINFO16"},
+    # WARNING: some 7670 doesn't have gnss firmware support. Firmware version from ATI must end with '_F'
     "SIM7670": {"command": "AT+CGNSSINFO", "parser": "CGNSSINFO18"},
     # SIM7080G cannot connect to cellular network and GPS positioning at the same time
     #    "SIM7080": {"command": "AT+CGNSINF", "parser": "CGNSINF21"},

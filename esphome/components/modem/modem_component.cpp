@@ -273,10 +273,11 @@ void ModemComponent::handle_state_enabling_() {
   }
 
   if (this->modem_handler->power_pin) {
+    ESP_LOGD(TAG, "Modem not responding, powering on...");
     this->component_state_ = ModemComponentState::POWERING_ON;
   } else {
-    ESP_LOGW(TAG, "Unable to autodetect modem, and no power pin definded.");
-    this->component_state_ = ModemComponentState::INIT_NETWORK;
+    ESP_LOGE(TAG, "Unable enable modem, and no power pin defined.");
+    this->component_state_ = ModemComponentState::NOT_RESPONDING;
   }
 }
 
@@ -463,13 +464,17 @@ void ModemComponent::handle_state_disabling_() {
   if (this->modem_handler->power_pin) {
     this->component_state_ = ModemComponentState::POWERING_OFF;
   } else {
-    if (this->modem_handler->dce->get_mode() != esp_modem::modem_mode::COMMAND_MODE) {
-      this->modem_handler->dce->set_mode(esp_modem::modem_mode::COMMAND_MODE);
-    }
-    if (this->modem_handler->dce->set_radio_state(0) == esp_modem::command_result::OK) {
-      ESP_LOGI(TAG, "No power pin. Modem set to minimal functionality.");
+    if (this->modem_handler->dce) {
+      if (this->modem_handler->dce->get_mode() != esp_modem::modem_mode::COMMAND_MODE) {
+        this->modem_handler->dce->set_mode(esp_modem::modem_mode::COMMAND_MODE);
+      }
+      if (this->modem_handler->dce->set_radio_state(0) == esp_modem::command_result::OK) {
+        ESP_LOGI(TAG, "No power pin. Modem set to minimal functionality.");
+      } else {
+        ESP_LOGE(TAG, "Failed to set modem to minimal functionality.");
+      }
     } else {
-      ESP_LOGE(TAG, "Failed to set modem to minimal functionality.");
+      ESP_LOGW(TAG, "No DCE available to disable modem.");
     }
     if (this->disable_wanted_) {
       this->component_state_ = ModemComponentState::DISABLED;

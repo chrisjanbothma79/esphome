@@ -278,7 +278,12 @@ void ModemNMEAUARTComponent::update() {
       global_modem_component->modem_handler->dce->sync() != esp_modem::command_result::OK)
     return;
 
-  std::string resp = global_modem_component->modem_handler->send_at(this->gnss_command_).output;
+  AtCommandResult gnss_command = global_modem_component->modem_handler->send_at(this->gnss_command_);
+  if (!gnss_command.success) {
+    ESP_LOGE(TAG, "Failed to execute GNSS command '%s'", this->gnss_command_.c_str());
+    return;
+  }
+  std::string resp = gnss_command.output;
   ESP_LOGI(TAG, "GNSS command result: '%s'", resp.c_str());
 
   GnssInfo gi;
