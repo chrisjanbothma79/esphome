@@ -5,35 +5,36 @@
 namespace esphome {
 namespace hitachi_168bit {
 
-/// Simple enum to represent models.
+/// Models supported by the 168-bit Hitachi protocol.
 enum Model {
-  MODEL_DG11J1_91 = 1,  /// Temperature range is from 16 to 30
-  MODEL_DG11J1_3A = 1,  // <— add this if missing
-
+  MODEL_DG11J1_91 = 0,  // Temperature range 16–30
+  MODEL_DG11J1_3A = 1,  // Temperature range 16–30 (adjust if you later confirm different limits)
 };
 
-// Temperature
-const float hitachi_168bit_DG11J1_91_TEMP_MAX = 30.0;
-const float hitachi_168bit_DG11J1_91_TEMP_MIN = 16.0;
+// Temperature limits (keep as float and constexpr for compile-time)
+constexpr float HITACHI_168BIT_DG11J1_91_TEMP_MIN = 16.0f;
+constexpr float HITACHI_168BIT_DG11J1_91_TEMP_MAX = 30.0f;
 
-const float hitachi_168bit_DG11J1_3A_TEMP_MIN = 16.0f;
-const float hitachi_168bit_DG11J1_3A_TEMP_MAX = 30.0f;
+constexpr float HITACHI_168BIT_DG11J1_3A_TEMP_MIN = 16.0f;
+constexpr float HITACHI_168BIT_DG11J1_3A_TEMP_MAX = 30.0f;
 
 class hitachi_168bitClimate : public climate_ir::ClimateIR {
  public:
   hitachi_168bitClimate()
-      : climate_ir::ClimateIR(temperature_min_(), temperature_max_(), 1.0f, true, true,
-                              {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
-                               climate::CLIMATE_FAN_HIGH},
-                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}) {}
+      : climate_ir::ClimateIR(
+            temperature_min_(),         // min temp
+            temperature_max_(),         // max temp
+            1.0f,                       // temperature step
+            true,                       // supports_cool
+            true,                       // supports_heat
+            {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM, climate::CLIMATE_FAN_HIGH},
+            {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}) {}
 
   void setup() override {
     climate_ir::ClimateIR::setup();
-
-    this->powered_on_assumed = this->mode != climate::CLIMATE_MODE_OFF;
+    this->powered_on_assumed = (this->mode != climate::CLIMATE_MODE_OFF);
   }
 
-  /// Override control to change settings of the climate device.
   void control(const climate::ClimateCall &call) override {
     send_swing_cmd_ = call.get_swing_mode().has_value();
     climate_ir::ClimateIR::control(call);
@@ -41,25 +42,24 @@ class hitachi_168bitClimate : public climate_ir::ClimateIR {
 
   void set_model(Model model) { this->model_ = model; }
 
-  // used to track when to send the power toggle command
-  bool powered_on_assumed;
+  // Used to track when to send the power toggle command
+  bool powered_on_assumed{false};
 
  protected:
-  /// Transmit via IR the state of this climate controller.
   void transmit_state() override;
-  /// Handle received IR Buffer
   bool on_receive(remote_base::RemoteReceiveData data) override;
-  /// Set the time of the last transmission.
-  int32_t last_transmit_time_{};
 
+  int32_t last_transmit_time_{};
   bool send_swing_cmd_{false};
-  Model model_;
+
+  // Default to a safe model to avoid uninitialized reads
+  Model model_{MODEL_DG11J1_91};
 
   float temperature_min_() {
-    return (model_ == MODEL_DG11J1_3A) ? hitachi_168bit_DG11J1_3A_TEMP_MIN : hitachi_168bit_DG11J1_91_TEMP_MIN;
+    return (model_ == MODEL_DG11J1_3A) ? HITACHI_168BIT_DG11J1_3A_TEMP_MIN : HITACHI_168BIT_DG11J1_91_TEMP_MIN;
   }
   float temperature_max_() {
-    return (model_ == MODEL_DG11J1_3A) ? hitachi_168bit_DG11J1_3A_TEMP_MAX : hitachi_168bit_DG11J1_91_TEMP_MAX;
+    return (model_ == MODEL_DG11J1_3A) ? HITACHI_168BIT_DG11J1_3A_TEMP_MAX : HITACHI_168BIT_DG11J1_91_TEMP_MAX;
   }
 };
 
