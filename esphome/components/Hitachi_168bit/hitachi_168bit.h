@@ -8,11 +8,16 @@ namespace hitachi_168bit {
 /// Simple enum to represent models.
 enum Model {
   MODEL_DG11J1_91 = 1,  /// Temperature range is from 16 to 30
+  MODEL_DG11J1_3A = 1,   // <— add this if missing
+
 };
 
 // Temperature
 const float hitachi_168bit_DG11J1_91_TEMP_MAX = 30.0;
 const float hitachi_168bit_DG11J1_91_TEMP_MIN = 16.0;
+
+const float hitachi_168bit_DG11J1_3A_TEMP_MIN = 16.0f;
+const float hitachi_168bit_DG11J1_3A_TEMP_MAX = 30.0f;
 
 class hitachi_168bitClimate : public climate_ir::ClimateIR {
  public:
