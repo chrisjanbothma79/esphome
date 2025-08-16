@@ -22,20 +22,22 @@ EZOSensor = ezo_ns.class_(
 )
 
 CustomTrigger = ezo_ns.class_(
-    "CustomTrigger", automation.Trigger.template(cg.std_string)
+    "CustomTrigger", automation.Trigger.template(cg.std_string_view)
 )
 
 
-TTrigger = ezo_ns.class_("TTrigger", automation.Trigger.template(cg.std_string))
+TTrigger = ezo_ns.class_("TTrigger", automation.Trigger.template(cg.std_string_view))
 
-SlopeTrigger = ezo_ns.class_("SlopeTrigger", automation.Trigger.template(cg.std_string))
+SlopeTrigger = ezo_ns.class_(
+    "SlopeTrigger", automation.Trigger.template(cg.std_string_view)
+)
 
 CalibrationTrigger = ezo_ns.class_(
-    "CalibrationTrigger", automation.Trigger.template(cg.std_string)
+    "CalibrationTrigger", automation.Trigger.template(cg.std_string_view)
 )
 
 DeviceInformationTrigger = ezo_ns.class_(
-    "DeviceInformationTrigger", automation.Trigger.template(cg.std_string)
+    "DeviceInformationTrigger", automation.Trigger.template(cg.std_string_view)
 )
 
 LedTrigger = ezo_ns.class_("LedTrigger", automation.Trigger.template(cg.bool_))
@@ -91,7 +93,7 @@ async def to_code(config):
 
     for conf in config.get(CONF_ON_CUSTOM, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
+        await automation.build_automation(trigger, [(cg.std_string_view, "x")], conf)
 
     for conf in config.get(CONF_ON_LED, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
@@ -99,16 +101,16 @@ async def to_code(config):
 
     for conf in config.get(CONF_ON_DEVICE_INFORMATION, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
+        await automation.build_automation(trigger, [(cg.std_string_view, "x")], conf)
 
     for conf in config.get(CONF_ON_SLOPE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
+        await automation.build_automation(trigger, [(cg.std_string_view, "x")], conf)
 
     for conf in config.get(CONF_ON_CALIBRATION, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
+        await automation.build_automation(trigger, [(cg.std_string_view, "x")], conf)
 
     for conf in config.get(CONF_ON_T, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [(cg.std_string, "x")], conf)
+        await automation.build_automation(trigger, [(cg.std_string_view, "x")], conf)

@@ -1,6 +1,10 @@
 #include "ezo.h"
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
+#include <array>
+#include <cstring>
+#include <string>
+#include <string_view>
 
 namespace esphome {
 namespace ezo {
@@ -10,6 +14,13 @@ static const char *const EZO_COMMAND_TYPE_STRINGS[] = {"EZO_READ",  "EZO_LED",  
                                                        "EZO_I2C",   "EZO_T",           "EZO_CUSTOM"};
 
 static const char *const EZO_CALIBRATION_TYPE_STRINGS[] = {"LOW", "MID", "HIGH"};
+
+// Atlas EZO sensors return at most READ_LEN (32) bytes including the status byte.
+// READ_LEN matches this limit and BUF_LEN adds one byte to guarantee
+// null termination for string operations.
+constexpr size_t READ_LEN = 32;
+constexpr size_t BUF_LEN = READ_LEN + 1;
+static_assert(BUF_LEN == READ_LEN + 1, "BUF_LEN must be READ_LEN + 1");
 
 void EZOSensor::dump_config() {
   LOG_SENSOR("", "EZO", this);
@@ -80,81 +91,86 @@ void EZOSensor::loop() {
   if (millis() - this->start_time_ < to_run->delay_ms)
     return;
 
-  uint8_t buf[32];
+  std::array<uint8_t, BUF_LEN> buf{};  // Zero-initialized buffer.
 
-  buf[0] = 0;
-
-  if (!this->read_bytes_raw(buf, 32)) {
+  if (!this->read_bytes_raw(buf.data(), READ_LEN)) {
     ESP_LOGE(TAG, "read error");
     this->commands_.pop_front();
     return;
   }
+  // Zero-initialization guarantees buf[READ_LEN] is '\0'.
+
+  const char *payload_raw = reinterpret_cast<const char *>(&buf[1]);
+  size_t resp_len = strnlen(payload_raw, READ_LEN /* 32 */);
 
   switch (buf[0]) {
     case 1:
       break;
     case 2:
       ESP_LOGE(TAG, "device returned a syntax error");
-      break;
+      this->commands_.pop_front();
+      return;
     case 254:
       return;  // keep waiting
     case 255:
       ESP_LOGE(TAG, "device returned no data");
-      break;
+      this->commands_.pop_front();
+      return;
     default:
-      ESP_LOGE(TAG, "device returned an unknown response: %d", buf[0]);
-      break;
+      ESP_LOGE(TAG, "device returned an unknown response: %d", static_cast<int>(buf[0]));
+      this->commands_.pop_front();
+      return;
   }
 
-  ESP_LOGV(TAG, "Received buffer \"%s\" for command type %s", &buf[1], EZO_COMMAND_TYPE_STRINGS[to_run->command_type]);
+  std::string_view response(payload_raw, resp_len);
+  ESP_LOGV(TAG, "Received buffer \"%.*s\" for command type %s", static_cast<int>(resp_len), response.data(),
+           EZO_COMMAND_TYPE_STRINGS[to_run->command_type]);
 
-  if (buf[0] == 1) {
-    std::string payload = reinterpret_cast<char *>(&buf[1]);
-    if (!payload.empty()) {
-      auto start_location = payload.find(',');
-      switch (to_run->command_type) {
-        case EzoCommandType::EZO_READ: {
-          // some sensors return multiple comma-separated values, terminate string after first one
-          if (start_location != std::string::npos) {
-            payload.erase(start_location);
-          }
-          auto val = parse_number<float>(payload);
-          if (!val.has_value()) {
-            ESP_LOGW(TAG, "Can't convert '%s' to number!", payload.c_str());
-          } else {
-            this->publish_state(*val);
-          }
-          break;
+  if (!response.empty()) {
+    auto start_location = response.find(',');
+    switch (to_run->command_type) {
+      case EzoCommandType::EZO_READ: {
+        std::string payload(response);
+        // some sensors return multiple comma-separated values, terminate string after first one
+        if (start_location != std::string::npos) {
+          payload.erase(start_location);
         }
-        case EzoCommandType::EZO_LED:
-          this->led_callback_.call(payload.back() == '1');
-          break;
-        case EzoCommandType::EZO_DEVICE_INFORMATION:
-          if (start_location != std::string::npos) {
-            this->device_infomation_callback_.call(payload.substr(start_location + 1));
-          }
-          break;
-        case EzoCommandType::EZO_SLOPE:
-          if (start_location != std::string::npos) {
-            this->slope_callback_.call(payload.substr(start_location + 1));
-          }
-          break;
-        case EzoCommandType::EZO_CALIBRATION:
-          if (start_location != std::string::npos) {
-            this->calibration_callback_.call(payload.substr(start_location + 1));
-          }
-          break;
-        case EzoCommandType::EZO_T:
-          if (start_location != std::string::npos) {
-            this->t_callback_.call(payload.substr(start_location + 1));
-          }
-          break;
-        case EzoCommandType::EZO_CUSTOM:
-          this->custom_callback_.call(payload);
-          break;
-        default:
-          break;
+        auto val = parse_number<float>(payload);
+        if (!val.has_value()) {
+          ESP_LOGW(TAG, "Can't convert '%s' to number!", payload.c_str());
+        } else {
+          this->publish_state(*val);
+        }
+        break;
       }
+      case EzoCommandType::EZO_LED:
+        this->led_callback_.call(response.back() == '1');
+        break;
+      case EzoCommandType::EZO_DEVICE_INFORMATION:
+        if (start_location != std::string::npos) {
+          this->device_infomation_callback_.call(response.substr(start_location + 1));
+        }
+        break;
+      case EzoCommandType::EZO_SLOPE:
+        if (start_location != std::string::npos) {
+          this->slope_callback_.call(response.substr(start_location + 1));
+        }
+        break;
+      case EzoCommandType::EZO_CALIBRATION:
+        if (start_location != std::string::npos) {
+          this->calibration_callback_.call(response.substr(start_location + 1));
+        }
+        break;
+      case EzoCommandType::EZO_T:
+        if (start_location != std::string::npos) {
+          this->t_callback_.call(response.substr(start_location + 1));
+        }
+        break;
+      case EzoCommandType::EZO_CUSTOM:
+        this->custom_callback_.call(response);
+        break;
+      default:
+        break;
     }
   }
   this->commands_.pop_front();
