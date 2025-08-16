@@ -21,9 +21,12 @@ CONFIG_SCHEMA = climate_ir.CLIMATE_IR_WITH_RECEIVER_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(HitachiClimate),
         # keep case as-is; values include a hyphen
-        cv.Optional(CONF_MODEL, default="DG11J1-91"): cv.one_of(*MODELS.keys(), lower=False),
+        cv.Optional(CONF_MODEL, default="DG11J1-91"): cv.one_of(
+            *MODELS.keys(), lower=False
+        ),
     }
 )
+
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])

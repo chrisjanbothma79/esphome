@@ -21,14 +21,14 @@ constexpr float HITACHI_168BIT_DG11J1_3A_TEMP_MAX = 30.0f;
 class hitachi_168bitClimate : public climate_ir::ClimateIR {
  public:
   hitachi_168bitClimate()
-      : climate_ir::ClimateIR(
-            temperature_min_(),         // min temp
-            temperature_max_(),         // max temp
-            1.0f,                       // temperature step
-            true,                       // supports_cool
-            true,                       // supports_heat
-            {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM, climate::CLIMATE_FAN_HIGH},
-            {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}) {}
+      : climate_ir::ClimateIR(temperature_min_(),  // min temp
+                              temperature_max_(),  // max temp
+                              1.0f,                // temperature step
+                              true,                // supports_cool
+                              true,                // supports_heat
+                              {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
+                               climate::CLIMATE_FAN_HIGH},
+                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}) {}
 
   void setup() override {
     climate_ir::ClimateIR::setup();
