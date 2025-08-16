@@ -14,7 +14,11 @@ from esphome.const import (
     CONF_SERVICE_UUID,
     CONF_TRIGGER_ID,
     CONF_VALUE,
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
 )
+from esphome.core.entity_helpers import entity_duplicate_validator
+from esphome.cpp_generator import MockObjClass
 
 AUTO_LOAD = ["esp32_ble_client"]
 CODEOWNERS = ["@buxtronix", "@clydebarrow"]
@@ -121,11 +125,35 @@ CONFIG_SCHEMA = cv.All(
 
 CONF_BLE_CLIENT_ID = "ble_client_id"
 
-BLE_CLIENT_SCHEMA = cv.Schema(
+_BLE_CLIENT_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.GenerateID(CONF_BLE_CLIENT_ID): cv.use_id(BLEClient),
     }
 )
+_BLE_CLIENT_SCHEMA.add_extra(entity_duplicate_validator("ble_client_schema"))
+
+
+def ble_client_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _BLE_CLIENT_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+BLE_CLIENT_SCHEMA = ble_client_schema(BLEClient)
+BLE_CLIENT_SCHEMA.add_extra(cv.deprecated_schema_constant("BLEClient"))
 
 
 async def register_ble_node(var, config):
@@ -133,7 +161,7 @@ async def register_ble_node(var, config):
     cg.add(parent.register_ble_node(var))
 
 
-BLE_WRITE_ACTION_SCHEMA = cv.Schema(
+_BLE_WRITE_ACTION_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.GenerateID(CONF_ID): cv.use_id(BLEClient),
         cv.Required(CONF_SERVICE_UUID): esp32_ble_tracker.bt_uuid,
@@ -141,32 +169,174 @@ BLE_WRITE_ACTION_SCHEMA = cv.Schema(
         cv.Required(CONF_VALUE): cv.templatable(cv.ensure_list(cv.hex_uint8_t)),
     }
 )
+_BLE_WRITE_ACTION_SCHEMA.add_extra(
+    entity_duplicate_validator("ble_write_action_schema")
+)
 
-BLE_CONNECT_ACTION_SCHEMA = maybe_simple_id(
+
+def ble_write_action_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _BLE_WRITE_ACTION_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+BLE_WRITE_ACTION_SCHEMA = ble_write_action_schema(BLEWriteAction)
+BLE_WRITE_ACTION_SCHEMA.add_extra(cv.deprecated_schema_constant("BLEWriteAction"))
+
+
+_BLE_CONNECT_ACTION_SCHEMA = maybe_simple_id(
     {
         cv.GenerateID(CONF_ID): cv.use_id(BLEClient),
     }
 )
+_BLE_CONNECT_ACTION_SCHEMA.add_extra(
+    entity_duplicate_validator("ble_connect_action_schema")
+)
 
-BLE_NUMERIC_COMPARISON_REPLY_ACTION_SCHEMA = cv.Schema(
+
+def ble_connect_action_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _BLE_CONNECT_ACTION_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+BLE_CONNECT_ACTION_SCHEMA = ble_write_action_schema(BLEConnectAction)
+BLE_CONNECT_ACTION_SCHEMA.add_extra(cv.deprecated_schema_constant("BLEConnectAction"))
+
+
+_BLE_NUMERIC_COMPARISON_REPLY_ACTION_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.GenerateID(CONF_ID): cv.use_id(BLEClient),
         cv.Required(CONF_ACCEPT): cv.templatable(cv.boolean),
     }
 )
+_BLE_NUMERIC_COMPARISON_REPLY_ACTION_SCHEMA.add_extra(
+    entity_duplicate_validator("ble_numeric_comparison_reply_action_schema")
+)
 
-BLE_PASSKEY_REPLY_ACTION_SCHEMA = cv.Schema(
+
+def ble_numeric_comparison_reply_action_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _BLE_NUMERIC_COMPARISON_REPLY_ACTION_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+BLE_NUMERIC_COMPARISON_REPLY_ACTION_SCHEMA = ble_numeric_comparison_reply_action_schema(
+    BLENumericComparisonReplyAction
+)
+BLE_NUMERIC_COMPARISON_REPLY_ACTION_SCHEMA.add_extra(
+    cv.deprecated_schema_constant("BLENumericComparisonReplyAction")
+)
+
+
+_BLE_PASSKEY_REPLY_ACTION_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.GenerateID(CONF_ID): cv.use_id(BLEClient),
         cv.Required(CONF_PASSKEY): cv.templatable(cv.int_range(min=0, max=999999)),
     }
 )
+_BLE_PASSKEY_REPLY_ACTION_SCHEMA.add_extra(
+    entity_duplicate_validator("ble_passkey_reply_action_schema")
+)
 
 
-BLE_REMOVE_BOND_ACTION_SCHEMA = cv.Schema(
+def ble_passkey_reply_action_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _BLE_PASSKEY_REPLY_ACTION_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+BLE_PASSKEY_REPLY_ACTION_SCHEMA = ble_passkey_reply_action_schema(BLEPasskeyReplyAction)
+BLE_PASSKEY_REPLY_ACTION_SCHEMA.add_extra(
+    cv.deprecated_schema_constant("BLEPasskeyReplyAction")
+)
+
+
+_BLE_REMOVE_BOND_ACTION_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.GenerateID(CONF_ID): cv.use_id(BLEClient),
     }
+)
+
+_BLE_REMOVE_BOND_ACTION_SCHEMA.add_extra(
+    entity_duplicate_validator("ble_remove_bond_action_schema")
+)
+
+
+def ble_remove_bond_action_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _BLE_REMOVE_BOND_ACTION_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+BLE_REMOVE_BOND_ACTION_SCHEMA = ble_remove_bond_action_schema(BLERemoveBondAction)
+BLE_REMOVE_BOND_ACTION_SCHEMA.add_extra(
+    cv.deprecated_schema_constant("BLERemoveBondAction")
 )
 
 
