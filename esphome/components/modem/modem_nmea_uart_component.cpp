@@ -24,7 +24,8 @@ struct GnssInfo {
   int dd = 1, mo = 1, yy = 0;  // yy: two digits
 };
 
-static inline bool to_double(const char *s, double &v) {
+// some functions are maybe_unused, because #ifdef are used in parse_gnssinfo
+[[maybe_unused]] static inline bool to_double(const char *s, double &v) {
   if (s == nullptr || *s == '\0')
     return false;
   char *end = nullptr;
@@ -32,7 +33,7 @@ static inline bool to_double(const char *s, double &v) {
   return end && end != s;
 }
 
-static inline bool to_int(const char *s, int &v) {
+[[maybe_unused]] static inline bool to_int(const char *s, int &v) {
   if (s == nullptr || *s == '\0')
     return false;
   char *end = nullptr;
@@ -43,7 +44,7 @@ static inline bool to_int(const char *s, int &v) {
   return true;
 }
 
-static inline void deg_to_ddmm_mmmm(double deg, char *out, size_t n, bool is_lon) {
+[[maybe_unused]] static inline void deg_to_ddmm_mmmm(double deg, char *out, size_t n, bool is_lon) {
   double a = std::fabs(deg);
   int d = static_cast<int>(a);
   double m = (a - d) * 60.0;
@@ -54,14 +55,7 @@ static inline void deg_to_ddmm_mmmm(double deg, char *out, size_t n, bool is_lon
   }
 }
 
-static inline uint8_t nmea_checksum(const char *s) {
-  uint8_t cs = 0;
-  for (; *s; ++s)
-    cs ^= static_cast<uint8_t>(*s);
-  return cs;
-}
-
-static bool parse_time_hhmmss(const char *s, int &hh, int &mm, int &ss) {
+[[maybe_unused]] static bool parse_time_hhmmss(const char *s, int &hh, int &mm, int &ss) {
   if (!s || !*s)
     return false;
   // strip fractional part if any
@@ -79,7 +73,7 @@ static bool parse_time_hhmmss(const char *s, int &hh, int &mm, int &ss) {
   return (hh >= 0 && hh < 24 && mm >= 0 && mm < 60 && ss >= 0 && ss < 60);
 }
 
-static bool parse_date_ddmmyy(const char *s, int &dd, int &mo, int &yy) {
+[[maybe_unused]] static bool parse_date_ddmmyy(const char *s, int &dd, int &mo, int &yy) {
   if (!s || std::strlen(s) < 6)
     return false;
   dd = (s[0] - '0') * 10 + (s[1] - '0');
@@ -88,12 +82,19 @@ static bool parse_date_ddmmyy(const char *s, int &dd, int &mo, int &yy) {
   return (dd >= 1 && dd <= 31 && mo >= 1 && mo <= 12);
 }
 
+static inline uint8_t nmea_checksum(const char *s) {
+  uint8_t cs = 0;
+  for (; *s; ++s)
+    cs ^= static_cast<uint8_t>(*s);
+  return cs;
+}
+
 // single entry point, content selected by #ifdef to keep only what's used
 static bool parse_cgnssinfo(const std::string &line, GnssInfo &gi) {
   const char *p = std::strchr(line.c_str(), ':');
   if (!p)
     return false;
-  const char *start __attribute__((unused)) = p + 1;
+  [[maybe_unused]] const char *start = p + 1;
 
 #ifdef USE_MODEM_GNSS_PARSER_CGNSSINFO16
   // 16 tokens: mode, sat_used, sat_view, fix_status, lat, N/S, lon, E/W, date, time, alt, spd, cog, hdop, vdop, pdop
@@ -261,7 +262,6 @@ static bool parse_cgnssinfo(const std::string &line, GnssInfo &gi) {
   return std::isfinite(gi.lat_deg) && std::isfinite(gi.lon_deg);
 #endif
 
-  (void) gi;
   return false;
 }
 

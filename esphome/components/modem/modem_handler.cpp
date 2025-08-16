@@ -167,7 +167,7 @@ bool ModemHandler::prepare_sim() {
   App.feed_wdt();
   AtCommandResult result = this->send_at("AT+CPIN?");
   if (!result.success) {
-    ESP_LOGW(TAG, "Failed to check pin: %s (%s)", result,
+    ESP_LOGW(TAG, "Failed to check pin: %s (%s)", result.c_str(),
              command_result_to_string(result.esp_modem_command_result).c_str());
     return false;
   }
