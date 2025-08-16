@@ -307,9 +307,13 @@ void ModemComponent::handle_state_powering_off_() {
 
 void ModemComponent::handle_state_syncing_() {
   if (this->modem_handler->dce->sync() != esp_modem::command_result::OK) {
-    ESP_LOGE(TAG, "Unable to sync modem");
-    this->component_state_ = ModemComponentState::NOT_RESPONDING;
-    return;
+    if (this->modem_handler->dce->set_mode(esp_modem::modem_mode::COMMAND_MODE)) {
+      ESP_LOGD(TAG, "Modem set to COMMAND_MODE");
+    } else {
+      ESP_LOGE(TAG, "Failed sync modem");
+      this->component_state_ = ModemComponentState::NOT_RESPONDING;
+      return;
+    }
   }
 
   if (this->modem_handler->baud_rate != this->modem_handler->current_baud_rate) {
