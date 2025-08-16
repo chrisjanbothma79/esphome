@@ -8,7 +8,7 @@ namespace hitachi_168bit {
 /// Simple enum to represent models.
 enum Model {
   MODEL_DG11J1_91 = 1,  /// Temperature range is from 16 to 30
-  MODEL_DG11J1_3A = 1,   // <— add this if missing
+  MODEL_DG11J1_3A = 1,  // <— add this if missing
 
 };
 
