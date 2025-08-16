@@ -4,7 +4,13 @@ from esphome import core
 import esphome.codegen as cg
 from esphome.components import climate, remote_base, sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_SENSOR, CONF_SUPPORTS_COOL, CONF_SUPPORTS_HEAT
+from esphome.const import (
+    CONF_HUMIDITY_SENSOR,
+    CONF_ID,
+    CONF_SENSOR,
+    CONF_SUPPORTS_COOL,
+    CONF_SUPPORTS_HEAT,
+)
 from esphome.cpp_generator import MockObjClass
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,6 +39,7 @@ def climate_ir_schema(
                 cv.Optional(CONF_SUPPORTS_COOL, default=True): cv.boolean,
                 cv.Optional(CONF_SUPPORTS_HEAT, default=True): cv.boolean,
                 cv.Optional(CONF_SENSOR): cv.use_id(sensor.Sensor),
+                cv.Optional(CONF_HUMIDITY_SENSOR): cv.use_id(sensor.Sensor),
             }
         )
         .extend(cv.COMPONENT_SCHEMA)
@@ -82,6 +89,9 @@ async def register_climate_ir(var, config):
     if sensor_id := config.get(CONF_SENSOR):
         sens = await cg.get_variable(sensor_id)
         cg.add(var.set_sensor(sens))
+    if sensor_id := config.get(CONF_HUMIDITY_SENSOR):
+        sens = await cg.get_variable(sensor_id)
+        cg.add(var.set_humidity_sensor(sens))
 
 
 async def new_climate_ir(config, *args):
