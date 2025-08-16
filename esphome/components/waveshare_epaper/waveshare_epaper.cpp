@@ -2524,6 +2524,216 @@ void GDEY042T81::dump_config() {
   LOG_UPDATE_INTERVAL(this);
 }
 
+// ========================================================
+//   LCMEN2R13EFC1 2.13in e-Paper display
+// Product page:
+//  - https://heltec.org/project/vision-master-e213/
+// Datasheet:
+//  - https://resource.heltec.cn/download/HT-VME213/LCMEN2R13EFC1.pdf
+// Reference code:
+//  - https://github.com/todd-herbert/heltec-eink-modules
+
+// Partial update screen LUT
+static const uint8_t LUT_20_VCOMDC_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x06, 0x03, 0x02, 0x01, 0x01, 0x01, 0x01, 0x06, 0x02, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_21_WW_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x06, 0x03, 0x02, 0x81, 0x01, 0x01, 0x01, 0x06, 0x02, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_22_BW_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x86, 0x83, 0x82, 0x81, 0x01, 0x01, 0x01, 0x86, 0x82, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_23_WB_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x46, 0x43, 0x02, 0x01, 0x01, 0x01, 0x01, 0x46, 0x42, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+static const uint8_t LUT_24_BB_PARTIAL_LCMEN2R13EFC1[] = {
+    0x01, 0x06, 0x03, 0x42, 0x41, 0x01, 0x01, 0x01, 0x06, 0x02, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+void LCMEN2R13EFC1::power_on_() {
+  if (!this->power_is_on_) {
+    this->command(0x04);
+    this->wait_until_idle_();
+  }
+  this->power_is_on_ = true;
+}
+
+void LCMEN2R13EFC1::power_off_() {
+  this->command(0x02);
+  this->wait_until_idle_();
+  this->power_is_on_ = false;
+}
+
+void LCMEN2R13EFC1::deep_sleep() {
+  if (this->deep_sleep_between_updates_) {
+    this->command(0x17);  // Auto sequence command
+    this->data(0xA7);     // PON -> DRF -> POF -> DSLP
+    ESP_LOGD(TAG, "go to deep sleep");
+    this->is_deep_sleep_ = true;
+  }
+}
+
+void LCMEN2R13EFC1::init_display_() {
+  // Hardware Initialization
+  if (this->deep_sleep_between_updates_ && this->is_deep_sleep_) {
+    ESP_LOGI(TAG, "wake up from deep sleep");
+    this->reset_();
+    this->is_deep_sleep_ = false;
+  }
+
+  this->power_on_();
+
+  ESP_LOGD(TAG, "panel setting done");
+}
+
+void LCMEN2R13EFC1::initialize() {
+  if (this->reset_pin_ != nullptr)
+    this->deep_sleep_between_updates_ = true;
+
+  // old buffer for partial update
+  RAMAllocator<uint8_t> allocator;
+  this->old_buffer_ = allocator.allocate(this->get_buffer_length_());
+  if (this->old_buffer_ == nullptr) {
+    ESP_LOGE(TAG, "Could not allocate old buffer for display!");
+    return;
+  }
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->old_buffer_[i] = 0xFF;
+  }
+}
+
+// https://github.com/todd-herbert/heltec-eink-modules/blob/9207eb6ab2b96f66298e0488740218c17b006af7/src/Platforms/VisionMasterE213/power_controls.cpp#L33
+LCMEN2R13EFC1::LCMEN2R13EFC1() { this->reset_duration_ = 10; }
+
+void LCMEN2R13EFC1::reset_() {
+  if (this->reset_pin_ != nullptr) {
+    this->reset_pin_->digital_write(false);
+    delay(reset_duration_);  // NOLINT
+    this->reset_pin_->digital_write(true);
+    delay(reset_duration_);  // NOLINT
+  }
+}
+
+void LCMEN2R13EFC1::init_full_() {
+  this->init_display_();
+
+  this->command(0x00);  // Panel setting
+  // [7:6] Display Res, [5] LUT, [4] BW / BWR [3] Scan Vert, [2] Shift Horiz, [1] Booster, [0] Reset?
+  this->data(0b11 << 6 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 1 | 1 << 0);
+
+  this->command(0x50);  // VCOM AND DATA INTERVAL SETTING
+  // [7:6] Border, [5:4] Data polarity (default), [3:0] VCOM and Data interval (default)
+  this->data(0b10 << 6 | 0b11 << 4 | 0b0111 << 0);
+  ESP_LOGD(TAG, "initialized full update");
+}
+
+void LCMEN2R13EFC1::init_partial_() {
+  this->init_display_();
+
+  this->command(0x00);  // Panel setting
+  // [7:6] Display Res, [5] LUT, [4] BW / BWR [3] Scan Vert, [2] Shift Horiz, [1] Booster, [0] Reset?
+  this->data(0b11 << 6 | 1 << 5 | 1 << 4 | 1 << 3 | 1 << 2 | 1 << 1 | 1 << 0);
+
+  this->command(0x50);  // VCOM and data interval setting
+  // [7:6] Border, [5:4] Data polarity (default), [3:0] VCOM and Data interval (default)
+  this->data(0b11 << 6 | 0b01 << 4 | 0b0111 << 0);
+
+  // Load the various LUTs
+  this->command(0x20);  // VCOM
+  this->write_lut_(LUT_20_VCOMDC_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_20_VCOMDC_PARTIAL_LCMEN2R13EFC1));
+  this->command(0x21);  // WW
+  this->write_lut_(LUT_21_WW_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_21_WW_PARTIAL_LCMEN2R13EFC1));
+  this->command(0x22);  // BW
+  this->write_lut_(LUT_22_BW_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_22_BW_PARTIAL_LCMEN2R13EFC1));
+  this->command(0x23);  // WB
+  this->write_lut_(LUT_23_WB_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_23_WB_PARTIAL_LCMEN2R13EFC1));
+  this->command(0x24);  // BB
+  this->write_lut_(LUT_24_BB_PARTIAL_LCMEN2R13EFC1, sizeof(LUT_24_BB_PARTIAL_LCMEN2R13EFC1));
+  ESP_LOGD(TAG, "initialized partial update");
+}
+
+void HOT LCMEN2R13EFC1::display() {
+  bool full_update = this->at_update_ == 0;
+  if (full_update) {
+    this->init_full_();
+  } else {
+    this->init_partial_();
+  }
+
+  // input old buffer data
+  this->command(0x10);
+  delay(2);
+  this->start_data_();
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(this->old_buffer_[i]);
+  }
+  this->end_data_();
+  delay(2);
+
+  // COMMAND DATA START TRANSMISSION 2 (B/W only)
+  this->command(0x13);
+  delay(2);
+  this->start_data_();
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(this->buffer_[i]);
+    this->old_buffer_[i] = this->buffer_[i];
+  }
+  this->end_data_();
+  delay(2);
+
+  // COMMAND DISPLAY REFRESH
+  this->command(0x12);
+  delay(2);
+  this->wait_until_idle_();
+
+  if (full_update) {
+    ESP_LOGD(TAG, "full update done");
+  } else {
+    ESP_LOGD(TAG, "partial update done");
+  }
+
+  this->at_update_ = (this->at_update_ + 1) % this->full_update_every_;
+  // COMMAND deep sleep
+  this->deep_sleep();
+}
+
+void LCMEN2R13EFC1::write_lut_(const uint8_t *lut, const uint8_t size) {
+  // COMMAND WRITE LUT REGISTER
+  this->start_data_();
+  for (uint8_t i = 0; i < size; i++)
+    this->write_byte(lut[i]);
+  this->end_data_();
+}
+
+void LCMEN2R13EFC1::set_full_update_every(uint32_t full_update_every) { this->full_update_every_ = full_update_every; }
+int LCMEN2R13EFC1::get_width_internal() { return 128; }
+int LCMEN2R13EFC1::get_height_internal() { return 250; }
+uint32_t LCMEN2R13EFC1::idle_timeout_() { return 4500; }
+void LCMEN2R13EFC1::dump_config() {
+  LOG_DISPLAY("", "VisionMaster E213 E-Paper", this)
+  ESP_LOGCONFIG(TAG, "  Model: LCMEN2R13EFC1");
+  ESP_LOGCONFIG(TAG, "  Full Update Every: %" PRIu32, this->full_update_every_);
+  LOG_PIN("  CS Pin: ", this->cs_);
+  LOG_PIN("  Reset Pin: ", this->reset_pin_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
+  LOG_PIN("  Busy Pin: ", this->busy_pin_);
+  LOG_UPDATE_INTERVAL(this);
+}
+
 static const uint8_t LUT_VCOM_DC_4_2[] = {
     0x00, 0x17, 0x00, 0x00, 0x00, 0x02, 0x00, 0x17, 0x17, 0x00, 0x00, 0x02, 0x00, 0x0A, 0x01,
     0x00, 0x00, 0x01, 0x00, 0x0E, 0x0E, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
