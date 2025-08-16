@@ -90,7 +90,6 @@ class ModemComponent : public Component {
 
   void dump_config() override { this->dump_connect_params_(); }
   float get_setup_priority() const override { return setup_priority::WIFI + 1; }  // Just before Wi-Fi
-  bool can_proceed() override { return network::is_disabled() || this->is_connected(); };
   void add_on_state_callback(std::function<void(ModemComponentState, ModemComponentState)> &&callback) {
     this->on_state_callback_.add(std::move(callback));
   }
