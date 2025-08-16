@@ -13,7 +13,11 @@ bool global_has_deep_sleep = false;  // NOLINT(cppcoreguidelines-avoid-non-const
 
 void DeepSleepComponent::setup() {
   global_has_deep_sleep = true;
+  this->setup_deep_sleep_();
+}
 
+void DeepSleepComponent::setup_deep_sleep_() {
+  this->next_enter_deep_sleep_ = false;
   const optional<uint32_t> run_duration = get_run_duration_();
   if (run_duration.has_value()) {
     ESP_LOGI(TAG, "Scheduling in %" PRIu32 " ms", *run_duration);
@@ -69,6 +73,7 @@ void DeepSleepComponent::begin_sleep(bool manual) {
   App.run_powerdown_hooks();
 
   this->deep_sleep_();
+  this->setup_deep_sleep_();
 }
 
 float DeepSleepComponent::get_setup_priority() const { return setup_priority::LATE; }
