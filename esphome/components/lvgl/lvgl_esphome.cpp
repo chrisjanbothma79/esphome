@@ -275,6 +275,7 @@ LVEncoderListener::LVEncoderListener(lv_indev_type_t type, uint16_t lpt, uint16_
     l->last_count_ = l->count_;
     data->continue_reading = false;
   };
+  this->indev_ = lv_indev_drv_register(&this->drv_);
 }
 #endif  // USE_LVGL_KEY_LISTENER
 

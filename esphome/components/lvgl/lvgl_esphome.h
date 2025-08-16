@@ -329,8 +329,15 @@ class LVEncoderListener : public Parented<LvglComponent> {
 
   lv_indev_drv_t *get_drv() { return &this->drv_; }
 
+  void set_group(lv_group_t *group) {
+    if (this->indev_ != nullptr) {
+      lv_indev_set_group(this->indev_, group);
+    }
+  }
+
  protected:
   lv_indev_drv_t drv_{};
+  lv_indev_t *indev_{nullptr};
   bool pressed_{};
   int32_t count_{};
   int32_t last_count_{};

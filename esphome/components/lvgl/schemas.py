@@ -96,7 +96,7 @@ ENCODER_SCHEMA = cv.Schema(
         cv.GenerateID(): cv.All(
             cv.declare_id(LVEncoderListener), requires_component("binary_sensor")
         ),
-        cv.Optional(CONF_GROUP): cv.declare_id(lv_group_t),
+        cv.Optional(CONF_GROUP): cv.use_id(lv_group_t),
         cv.Optional(df.CONF_INITIAL_FOCUS): cv.All(
             LIST_ACTION_SCHEMA, cv.Length(min=1, max=1)
         ),
@@ -496,6 +496,15 @@ ALL_STYLES = {
     cv.Optional(df.CONF_PAD_ROW): lvalid.padding,
     cv.Optional(df.CONF_PAD_COLUMN): lvalid.padding,
 }
+
+
+# schema for lvgl.[encoder|keypad].set_group action.
+SET_GROUP_ACTION_SCHEMA = LVGL_SCHEMA.extend(
+    {
+        cv.Required(CONF_ID): cv.use_id(LVEncoderListener),
+        cv.Required(CONF_GROUP): cv.use_id(lv_group_t),
+    }
+)
 
 
 def container_validator(schema, widget_type: WidgetType):
