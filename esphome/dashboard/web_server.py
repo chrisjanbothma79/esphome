@@ -731,7 +731,11 @@ class DownloadBinaryRequestHandler(BaseHandler):
 
         download_name = download_name + ".gz" if compressed else download_name
 
-        self.set_header("Content-Type", "application/octet-stream")
+        if file_name.endswith(".md5"):
+            self.set_header("Content-Type", "text/plain")
+        else:
+            self.set_header("Content-Type", "application/octet-stream")
+
         self.set_header(
             "Content-Disposition", f'attachment; filename="{download_name}"'
         )
@@ -740,8 +744,13 @@ class DownloadBinaryRequestHandler(BaseHandler):
             self.send_error(404)
             return
 
-        data = await loop.run_in_executor(None, self._load_file, path, compressed)
-        self.write(data)
+        # MD5 files should not be compressed and are text files
+        if file_name.endswith(".md5"):
+            with open(path, encoding="utf-8") as f:
+                self.write(f.read())
+        else:
+            data = await loop.run_in_executor(None, self._load_file, path, compressed)
+            self.write(data)
 
         self.finish()
 

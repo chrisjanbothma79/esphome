@@ -1,5 +1,6 @@
 Import("env")  # noqa: F821
 
+import hashlib  # noqa: E402
 import itertools  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
@@ -109,6 +110,8 @@ def merge_factory_bin(source, target, env):
 
     if result == 0:
         print(f"Successfully created {output_path}")
+        # Create MD5 checksum for factory binary
+        create_ota_bin_md5(str(output_path))
     else:
         print(f"Error: esptool merge-bin failed with code {result}")
 
@@ -121,7 +124,32 @@ def esp32_copy_ota_bin(source, target, env):
     new_file_name = env.subst("$BUILD_DIR/${PROGNAME}.ota.bin")
     shutil.copyfile(firmware_name, new_file_name)
     print(f"Copied firmware to {new_file_name}")
+    # Create MD5 checksum for OTA binary
+    create_ota_bin_md5(new_file_name)
 
+def create_ota_bin_md5(original_file_name):
+    """
+    Calculate an md5 hash for the specified file, storing in {original_file_name}.md5 .
+    """
+    file_path = pathlib.Path(original_file_name)
+    if not file_path.exists():
+        print(f"Warning: File {original_file_name} not found - skipping MD5 calculation")
+        return
+
+    # Calculate MD5 hash
+    md5_hash = hashlib.md5()
+    with file_path.open('rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            md5_hash.update(chunk)
+
+    calculated_hash = md5_hash.hexdigest()
+
+    # Write hash to .md5 file, following the gnu format. Compatible with md5sum.
+    md5_file_path = file_path.with_suffix(file_path.suffix + '.md5')
+    with md5_file_path.open('w') as f:
+        f.write(f"{calculated_hash} *{file_path.name}\n")
+
+    print(f"Calculated md5 hash for {original_file_name}: {calculated_hash}")
 
 # Run merge first, then ota copy second
 env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", merge_factory_bin)  # noqa: F821
