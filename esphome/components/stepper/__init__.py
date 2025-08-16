@@ -4,6 +4,8 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_ACCELERATION,
     CONF_DECELERATION,
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
     CONF_ID,
     CONF_MAX_SPEED,
     CONF_POSITION,
@@ -11,6 +13,8 @@ from esphome.const import (
     CONF_TARGET,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.core.entity_helpers import entity_duplicate_validator
+from esphome.cpp_generator import MockObjClass
 
 IS_PLATFORM_COMPONENT = True
 
@@ -64,13 +68,39 @@ def validate_speed(value):
     return value
 
 
-STEPPER_SCHEMA = cv.Schema(
+_STEPPER_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.Required(CONF_MAX_SPEED): validate_speed,
         cv.Optional(CONF_ACCELERATION, default="inf"): validate_acceleration,
         cv.Optional(CONF_DECELERATION, default="inf"): validate_acceleration,
     }
 )
+
+
+_STEPPER_SCHEMA.add_extra(entity_duplicate_validator("stepper"))
+
+
+def stepper_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _STEPPER_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+STEPPER_SCHEMA = stepper_schema(Stepper)
+STEPPER_SCHEMA.add_extra(cv.deprecated_schema_constant("stepper"))
 
 
 async def setup_stepper_core_(stepper_var, config):
