@@ -131,7 +131,7 @@ void ModemHandler::modem_log_status() {
     auto res = this->send_at("AT+CPIN?");
     if (res) {
       auto &out = res.output;
-      sim_status = out.rfind("+CPIN: ", 0) == 0 ? out.substr(7) : out;
+      sim_status = out.starts_with("+CPIN: ") ? out.substr(7) : out;
     }
     this->dce->get_radio_state(cfun);
     this->dce->get_network_attachment_state(attached);
@@ -167,7 +167,8 @@ bool ModemHandler::prepare_sim() {
   App.feed_wdt();
   AtCommandResult result = this->send_at("AT+CPIN?");
   if (!result.success) {
-    ESP_LOGW(TAG, "Failed to check pin");
+    ESP_LOGW(TAG, "Failed to check pin: %s (%s)", result,
+             command_result_to_string(result.esp_modem_command_result).c_str());
     return false;
   }
 

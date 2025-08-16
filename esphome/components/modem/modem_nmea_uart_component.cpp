@@ -274,8 +274,8 @@ bool ModemNMEAUARTComponent::read_array(uint8_t *data, size_t len) {
 }
 
 void ModemNMEAUARTComponent::update() {
-  if (!(global_modem_component->modem_handler && global_modem_component->modem_handler->dce &&
-        global_modem_component->modem_handler->dce->sync() == esp_modem::command_result::OK))
+  if (!global_modem_component->modem_handler || !global_modem_component->modem_handler->dce ||
+      global_modem_component->modem_handler->dce->sync() != esp_modem::command_result::OK)
     return;
 
   std::string resp = global_modem_component->modem_handler->send_at(this->gnss_command_).output;

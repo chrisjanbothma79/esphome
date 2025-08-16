@@ -253,10 +253,14 @@ void ModemComponent::handle_state_enabling_() {
       ESP_LOGV(TAG, "Modem ON. Autodetect mode: %s, baud: %d",
                modem_mode_to_string(this->modem_handler->dce->get_mode()).c_str(), b);
       auto mode = this->modem_handler->dce->get_mode();
-      if (mode == modem_mode::CMUX_MANUAL_MODE) {
+      if (mode == modem_mode::CMUX_MANUAL_MODE || mode == modem_mode::DATA_MODE) {
         if (b != this->modem_handler->baud_rate) {
           ESP_LOGI(TAG, "Modem connected, but baud rate has changed");
-          this->modem_handler->dce->set_mode(modem_mode::CMUX_MANUAL_EXIT);
+          if (mode == modem_mode::CMUX_MANUAL_MODE) {
+            this->modem_handler->dce->set_mode(modem_mode::CMUX_MANUAL_EXIT);
+          } else {
+            this->modem_handler->dce->set_mode(modem_mode::COMMAND_MODE);
+          }
           this->component_state_ = ModemComponentState::SYNCING;
           return;
         }
@@ -409,15 +413,6 @@ void ModemComponent::handle_state_wait_ip_() {
       this->component_state_ = ModemComponentState::SYNCING;
     }
   }
-  // if (millis() - this->internal_state_.connect_begin > this->connect_timeout_) {
-  //   // Connecting timeout
-  //   ESP_LOGW(TAG, "Modem connection failed! Reconnecting...");
-  //   this->component_state_ = ModemComponentState::START_PPP;
-  //   this->loop_delay_(this->connect_retry_delay_);
-  // } else {
-  //   // Wait until IP_EVENT_PPP_GOT_IP.
-  //   this->loop_delay_(1000);
-  // }
 }
 
 void ModemComponent::handle_state_connected_() {
@@ -429,12 +424,12 @@ void ModemComponent::handle_state_connected_() {
     return;
   }
   // If CMUX, we can log status
-  // if (this->modem_handler->cmux) {
-  //   if ((millis() - this->last_health_check_) > 30000) {
-  //     this->last_health_check_ = millis();
-  //     this->modem_handler->modem_log_status();
-  //   }
-  // }
+  if (this->modem_handler->cmux) {
+    if ((millis() - this->last_health_check_) > 30000) {
+      this->last_health_check_ = millis();
+      this->modem_handler->modem_log_status();
+    }
+  }
   this->loop_delay_(2000);
 }
 

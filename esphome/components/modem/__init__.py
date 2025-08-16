@@ -103,7 +103,8 @@ MODEM_MODELS_POWER["SIM7670"] = MODEM_MODELS_POWER["SIM7600"]
 MODEM_MODELS_GNSS_QUERY = {
     "SIM7600": {"command": "AT+CGNSSINFO", "parser": "CGNSSINFO16"},
     "SIM7670": {"command": "AT+CGNSSINFO", "parser": "CGNSSINFO18"},
-    "SIM7080": {"command": "AT+CGNSINF", "parser": "CGNSINF21"},
+    # SIM7080G cannot connect to cellular network and GPS positioning at the same time
+    #    "SIM7080": {"command": "AT+CGNSINF", "parser": "CGNSINF21"},
 }
 
 
@@ -179,7 +180,7 @@ CONFIG_SCHEMA = cv.All(
             ): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_NMEA): cv.Schema(
                 {cv.GenerateID(CONF_ID): cv.declare_id(ModemNMEAUARTComponent)}
-            ).extend(cv.polling_component_schema("60s")),
+            ).extend(cv.polling_component_schema("20s")),
             cv.Optional(CONF_ON_NOT_RESPONDING): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
