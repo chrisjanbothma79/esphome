@@ -28,8 +28,8 @@ constexpr uint8_t kModeAuto = 1;
 // Fan values (2 LSBits of byte[2])
 constexpr uint8_t kFanAuto = 0;
 constexpr uint8_t kFanHigh = 1;
-constexpr uint8_t kFanMed  = 2;
-constexpr uint8_t kFanLow  = 3;
+constexpr uint8_t kFanMed = 2;
+constexpr uint8_t kFanLow = 3;
 
 // Swing & power flags
 constexpr uint8_t kSwingMask = 0x80;  // TBD on Hitachi; matches your current mapping
@@ -56,23 +56,23 @@ void hitachi_168bitClimate::transmit_state() {
   // Mode
   switch (this->mode) {
     case climate::CLIMATE_MODE_HEAT_COOL:
-      remote_state[3]  = kModeAuto;  // auto mode
+      remote_state[3] = kModeAuto;  // auto mode
       remote_state[15] = 0x17;
       break;
     case climate::CLIMATE_MODE_HEAT:
-      remote_state[3]  = kModeHeat;
+      remote_state[3] = kModeHeat;
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_COOL:
-      remote_state[3]  = kModeCool;
+      remote_state[3] = kModeCool;
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_DRY:
-      remote_state[3]  = kModeDry;
+      remote_state[3] = kModeDry;
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_FAN_ONLY:
-      remote_state[3]  = kModeFan;
+      remote_state[3] = kModeFan;
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_OFF:
@@ -208,13 +208,14 @@ bool hitachi_168bitClimate::on_receive(remote_base::RemoteReceiveData data) {
     return false;
   }
 
-  ESP_LOGV(TAG,
-           "Received: %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X "
-           "%02X %02X   %02X",
-           remote_state[0], remote_state[1], remote_state[2], remote_state[3], remote_state[4], remote_state[5],
-           remote_state[6], remote_state[7], remote_state[8], remote_state[9], remote_state[10], remote_state[11],
-           remote_state[12], remote_state[13], remote_state[14], remote_state[15], remote_state[16], remote_state[17],
-           remote_state[18], remote_state[19], remote_state[20]);
+  ESP_LOGV(
+      TAG,
+      "Received: %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X "
+      "%02X %02X   %02X",
+      remote_state[0], remote_state[1], remote_state[2], remote_state[3], remote_state[4], remote_state[5],
+      remote_state[6], remote_state[7], remote_state[8], remote_state[9], remote_state[10], remote_state[11],
+      remote_state[12], remote_state[13], remote_state[14], remote_state[15], remote_state[16], remote_state[17],
+      remote_state[18], remote_state[19], remote_state[20]);
 
   // Verify header remote code (protocol ID)
   if (remote_state[0] != 0x83 || remote_state[1] != 0x06)

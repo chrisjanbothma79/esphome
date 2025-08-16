@@ -55,12 +55,8 @@ class hitachi_168bitClimate : public climate_ir::ClimateIR {
   // Default to a safe model to avoid uninitialized reads
   Model model_{MODEL_DG11J1_91};
 
-  float temperature_min_() {
-    return (model_ == MODEL_DG11J1_3A) ? kTempMinDG11J1_3A : kTempMinDG11J1_91;
-  }
-  float temperature_max_() {
-    return (model_ == MODEL_DG11J1_3A) ? kTempMaxDG11J1_3A : kTempMaxDG11J1_91;
-  }
+  float temperature_min_() { return (model_ == MODEL_DG11J1_3A) ? kTempMinDG11J1_3A : kTempMinDG11J1_91; }
+  float temperature_max_() { return (model_ == MODEL_DG11J1_3A) ? kTempMaxDG11J1_3A : kTempMaxDG11J1_91; }
 };
 
 }  // namespace hitachi_168bit
