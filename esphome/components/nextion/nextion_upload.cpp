@@ -11,7 +11,6 @@ static const char *const TAG = "nextion.upload";
 bool Nextion::upload_end_(bool successful) {
   if (successful) {
     ESP_LOGD(TAG, "Upload successful");
-    delay(1500);  // NOLINT
     App.safe_reboot();
   } else {
     ESP_LOGE(TAG, "Upload failed");
