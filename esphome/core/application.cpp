@@ -270,7 +270,7 @@ void Application::teardown_components(uint32_t timeout_ms) {
   }
 
   uint32_t now = start_time;
-  size_t pending_count = pending_components.size();
+  size_t pending_count = num_components;
 
   // Compaction algorithm for teardown
   // ==================================
