@@ -19,6 +19,8 @@
 namespace esphome {
 namespace deep_sleep {
 
+class DeepSleepComponent;
+
 #ifdef USE_ESP32
 
 /** The values of this enum define what should be done if deep sleep is set up with a wakeup pin on the ESP32
@@ -34,13 +36,6 @@ enum WakeupPinMode {
   WAKEUP_PIN_MODE_INVERT_WAKEUP,
 };
 
-#if defined(USE_ESP32) && !defined(USE_ESP32_VARIANT_ESP32C3)
-struct Ext1Wakeup {
-  uint64_t mask;
-  esp_sleep_ext1_wakeup_mode_t wakeup_mode;
-};
-#endif
-
 struct WakeupCauseToRunDuration {
   // Run duration if woken up by timer or any other reason besides those below.
   uint32_t default_cause;
@@ -50,6 +45,12 @@ struct WakeupCauseToRunDuration {
   uint32_t gpio_cause;
 };
 
+#if defined(USE_ESP32) && !defined(USE_ESP32_VARIANT_ESP32C3)
+struct Ext1Wakeup {
+  uint64_t mask;
+  esp_sleep_ext1_wakeup_mode_t wakeup_mode;
+};
+#endif
 #endif
 
 template<typename... Ts> class EnterDeepSleepAction;
@@ -66,6 +67,7 @@ class DeepSleepComponent : public Component {
  public:
   /// Set the duration in ms the component should sleep once it's in deep sleep mode.
   void set_sleep_duration(uint32_t time_ms);
+
 #if defined(USE_ESP32)
   /** Set the pin to wake up to on the ESP32 once it's in deep sleep mode.
    * Use the inverted property to set the wakeup level.
@@ -73,9 +75,11 @@ class DeepSleepComponent : public Component {
   void set_wakeup_pin(InternalGPIOPin *pin) { this->wakeup_pin_ = pin; }
 
   void set_wakeup_pin_mode(WakeupPinMode wakeup_pin_mode);
-#endif
 
-#if defined(USE_ESP32)
+  // Set the duration in ms for how long the code should run before entering
+  // deep sleep mode, according to the cause the ESP32 has woken.
+  void set_run_duration(WakeupCauseToRunDuration wakeup_cause_to_run_duration);
+
 #if !defined(USE_ESP32_VARIANT_ESP32C3)
 
   void set_ext1_wakeup(Ext1Wakeup ext1_wakeup);
@@ -83,9 +87,7 @@ class DeepSleepComponent : public Component {
   void set_touch_wakeup(bool touch_wakeup);
 
 #endif
-  // Set the duration in ms for how long the code should run before entering
-  // deep sleep mode, according to the cause the ESP32 has woken.
-  void set_run_duration(WakeupCauseToRunDuration wakeup_cause_to_run_duration);
+
 #endif
 
   /// Set a duration in ms for how long the code should run before entering deep sleep mode.
@@ -93,7 +95,7 @@ class DeepSleepComponent : public Component {
 
   void setup() override;
   void dump_config() override;
-  void loop() override;
+
   float get_loop_priority() const override;
   float get_setup_priority() const override;
 
@@ -103,19 +105,26 @@ class DeepSleepComponent : public Component {
   void prevent_deep_sleep();
   void allow_deep_sleep();
 
+  void set_deep_sleep_prevention(bool prevent, bool external);
+
  protected:
   // Returns nullopt if no run duration is set. Otherwise, returns the run
   // duration before entering deep sleep.
+  bool waiting_for_sleep_{false};
   optional<uint32_t> get_run_duration_() const;
-
+  void setup_platform_();
   void dump_config_platform_();
-  bool prepare_to_sleep_();
   void deep_sleep_();
 
   optional<uint64_t> sleep_duration_;
 #ifdef USE_ESP32
   InternalGPIOPin *wakeup_pin_;
   WakeupPinMode wakeup_pin_mode_{WAKEUP_PIN_MODE_IGNORE};
+
+  static void gpio_intr(DeepSleepComponent *arg);
+  volatile int32_t debounce_timer_{0};
+  volatile bool last_pin_state_{false};
+  ISRInternalGPIOPin isr_pin_;
 
 #if !defined(USE_ESP32_VARIANT_ESP32C3)
   optional<Ext1Wakeup> ext1_wakeup_;
@@ -126,7 +135,7 @@ class DeepSleepComponent : public Component {
 #endif
   optional<uint32_t> run_duration_;
   bool next_enter_deep_sleep_{false};
-  bool prevent_{false};
+  int8_t prevent_{0};
 };
 
 extern bool global_has_deep_sleep;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
@@ -135,6 +144,7 @@ template<typename... Ts> class EnterDeepSleepAction : public Action<Ts...> {
  public:
   EnterDeepSleepAction(DeepSleepComponent *deep_sleep) : deep_sleep_(deep_sleep) {}
   TEMPLATABLE_VALUE(uint32_t, sleep_duration);
+  TEMPLATABLE_VALUE(bool, direct);
 
 #ifdef USE_TIME
   void set_until(uint8_t hour, uint8_t minute, uint8_t second) {
@@ -189,7 +199,8 @@ template<typename... Ts> class EnterDeepSleepAction : public Action<Ts...> {
       this->deep_sleep_->set_sleep_duration(ms_left);
     }
 #endif
-    this->deep_sleep_->begin_sleep(true);
+    bool direct = this->direct_.value(x...);
+    this->deep_sleep_->begin_sleep(direct);
   }
 
  protected:
