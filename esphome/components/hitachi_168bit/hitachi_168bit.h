@@ -8,15 +8,15 @@ namespace hitachi_168bit {
 /// Models supported by the 168-bit Hitachi protocol.
 enum Model {
   MODEL_DG11J1_91 = 0,  // Temperature range 16–30
-  MODEL_DG11J1_3A = 1,  // Temperature range 16–30 (adjust if you later confirm different limits)
+  MODEL_DG11J1_3A = 1,  // Temperature range 16–30 (adjust later if different)
 };
 
-// Temperature limits (keep as float and constexpr for compile-time)
-constexpr float HITACHI_168BIT_DG11J1_91_TEMP_MIN = 16.0f;
-constexpr float HITACHI_168BIT_DG11J1_91_TEMP_MAX = 30.0f;
+// Temperature limits (constexpr + kCamelCase for clang-tidy)
+constexpr float kTempMinDG11J1_91 = 16.0f;
+constexpr float kTempMaxDG11J1_91 = 30.0f;
 
-constexpr float HITACHI_168BIT_DG11J1_3A_TEMP_MIN = 16.0f;
-constexpr float HITACHI_168BIT_DG11J1_3A_TEMP_MAX = 30.0f;
+constexpr float kTempMinDG11J1_3A = 16.0f;
+constexpr float kTempMaxDG11J1_3A = 30.0f;
 
 class hitachi_168bitClimate : public climate_ir::ClimateIR {
  public:
@@ -56,10 +56,10 @@ class hitachi_168bitClimate : public climate_ir::ClimateIR {
   Model model_{MODEL_DG11J1_91};
 
   float temperature_min_() {
-    return (model_ == MODEL_DG11J1_3A) ? HITACHI_168BIT_DG11J1_3A_TEMP_MIN : HITACHI_168BIT_DG11J1_91_TEMP_MIN;
+    return (model_ == MODEL_DG11J1_3A) ? kTempMinDG11J1_3A : kTempMinDG11J1_91;
   }
   float temperature_max_() {
-    return (model_ == MODEL_DG11J1_3A) ? HITACHI_168BIT_DG11J1_3A_TEMP_MAX : HITACHI_168BIT_DG11J1_91_TEMP_MAX;
+    return (model_ == MODEL_DG11J1_3A) ? kTempMaxDG11J1_3A : kTempMaxDG11J1_91;
   }
 };
 
