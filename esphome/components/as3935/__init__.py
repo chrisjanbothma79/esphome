@@ -13,7 +13,12 @@ from esphome.const import (
     CONF_SPIKE_REJECTION,
     CONF_TUNE_ANTENNA,
     CONF_WATCHDOG_THRESHOLD,
+    CONF_ID,
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
 )
+from esphome.core.entity_helpers import entity_duplicate_validator
+from esphome.cpp_generator import MockObjClass
 
 MULTI_CONF = True
 
@@ -22,7 +27,7 @@ CONF_AS3935_ID = "as3935_id"
 as3935_ns = cg.esphome_ns.namespace("as3935")
 AS3935 = as3935_ns.class_("AS3935Component", cg.Component)
 
-AS3935_SCHEMA = cv.Schema(
+_AS3935_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(AS3935),
         cv.Required(CONF_IRQ_PIN): pins.gpio_input_pin_schema,
@@ -40,6 +45,31 @@ AS3935_SCHEMA = cv.Schema(
         cv.Optional(CONF_CALIBRATION, default=True): cv.boolean,
     }
 )
+
+_AS3935_SCHEMA.add_extra(entity_duplicate_validator("as3935"))
+
+
+def as3935_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _AS3935_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+AS3935_SCHEMA = as3935_schema(AS3935)
+AS3935_SCHEMA.add_extra(cv.deprecated_schema_constant("as3935"))
 
 
 async def setup_as3935(var, config):
