@@ -219,16 +219,15 @@ async def to_code(config):
     await i2c.register_i2c_device(var, config)
 
     for key, funcName in SETTING_MAP.items():
-        if key in config:
-            cg.add(getattr(var, funcName)(config[key]))
+        if cfg := config.get(key):
+            cg.add(getattr(var, funcName)(cfg))
 
     for key, funcName in SENSOR_MAP.items():
-        if key in config:
-            sens = await sensor.new_sensor(config[key])
+        if cfg := config.get(key):
+            sens = await sensor.new_sensor(cfg)
             cg.add(getattr(var, funcName)(sens))
 
-    if CONF_VOC in config and CONF_ALGORITHM_TUNING in config[CONF_VOC]:
-        cfg = config[CONF_VOC][CONF_ALGORITHM_TUNING]
+    if cfg := config.get(CONF_VOC, {}).get(CONF_ALGORITHM_TUNING):
         cg.add(
             var.set_voc_algorithm_tuning(
                 cfg[CONF_INDEX_OFFSET],
@@ -239,8 +238,7 @@ async def to_code(config):
                 cfg[CONF_GAIN_FACTOR],
             )
         )
-    if CONF_NOX in config and CONF_ALGORITHM_TUNING in config[CONF_NOX]:
-        cfg = config[CONF_NOX][CONF_ALGORITHM_TUNING]
+    if cfg := config.get(CONF_NOX, {}).get(CONF_ALGORITHM_TUNING):
         cg.add(
             var.set_nox_algorithm_tuning(
                 cfg[CONF_INDEX_OFFSET],
@@ -250,12 +248,12 @@ async def to_code(config):
                 cfg[CONF_GAIN_FACTOR],
             )
         )
-    if CONF_TEMPERATURE_COMPENSATION in config:
+    if cfg := config.get(CONF_TEMPERATURE_COMPENSATION):
         cg.add(
             var.set_temperature_compensation(
-                config[CONF_TEMPERATURE_COMPENSATION][CONF_OFFSET],
-                config[CONF_TEMPERATURE_COMPENSATION][CONF_NORMALIZED_OFFSET_SLOPE],
-                config[CONF_TEMPERATURE_COMPENSATION][CONF_TIME_CONSTANT],
+                cfg[CONF_OFFSET],
+                cfg[CONF_NORMALIZED_OFFSET_SLOPE],
+                cfg[CONF_TIME_CONSTANT],
             )
         )
 
