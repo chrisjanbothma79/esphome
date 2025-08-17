@@ -12,8 +12,8 @@ enum Model {
 };
 
 // Temperature
-const float WHIRLPOOL_DG11J1_3A_TEMP_MAX = 30.0;
-const float WHIRLPOOL_DG11J1_3A_TEMP_MIN = 16.0;
+const float WHIRLPOOL_DG11J1_3A_TEMP_MAX = 32.0;
+const float WHIRLPOOL_DG11J1_3A_TEMP_MIN = 18.0;
 const float WHIRLPOOL_DG11J1_91_TEMP_MAX = 30.0;
 const float WHIRLPOOL_DG11J1_91_TEMP_MIN = 16.0;
 

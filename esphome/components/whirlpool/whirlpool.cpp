@@ -8,10 +8,10 @@ static const char *const TAG = "whirlpool.climate";
 
 const uint16_t WHIRLPOOL_HEADER_MARK = 9000;
 const uint16_t WHIRLPOOL_HEADER_SPACE = 4494;
-const uint16_t WHIRLPOOL_BIT_MARK = 610;
-const uint16_t WHIRLPOOL_ONE_SPACE = 1680;
-const uint16_t WHIRLPOOL_ZERO_SPACE = 565;
-const uint32_t WHIRLPOOL_GAP = 8007;
+const uint16_t WHIRLPOOL_BIT_MARK = 572;
+const uint16_t WHIRLPOOL_ONE_SPACE = 1659;
+const uint16_t WHIRLPOOL_ZERO_SPACE = 553;
+const uint32_t WHIRLPOOL_GAP = 7960;
 
 const uint32_t WHIRLPOOL_CARRIER_FREQUENCY = 38000;
 
@@ -35,20 +35,17 @@ const uint8_t WHIRLPOOL_POWER = 0x04;
 void WhirlpoolClimate::transmit_state() {
   this->last_transmit_time_ = millis();  // setting the time of the last transmission.
   uint8_t remote_state[WHIRLPOOL_STATE_LENGTH] = {0};
-  remote_state[0] = 0xA9;
-  remote_state[1] = 0x59;
-  remote_state[10] = 0x20;
+  remote_state[0] = 0x83;
+  remote_state[1] = 0x06;
   remote_state[6] = 0x80;
-  remote_state[18] = 0x38;
-  remote_state[19] = 0x08;
   // MODEL DG11J191
-  // remote_state[18] = 0x70;
+  remote_state[18] = 0x08;
 
   auto powered_on = this->mode != climate::CLIMATE_MODE_OFF;
   if (powered_on != this->powered_on_assumed) {
     // Set power toggle command
-    // remote_state[2] = 4;
-    // remote_state[15] = 1;
+    remote_state[2] = 4;
+    remote_state[15] = 1;
     this->powered_on_assumed = powered_on;
   }
   switch (this->mode) {
@@ -65,7 +62,7 @@ void WhirlpoolClimate::transmit_state() {
       break;
     case climate::CLIMATE_MODE_COOL:
       remote_state[3] = WHIRLPOOL_COOL;
-      remote_state[15] = 2;
+      remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_DRY:
       remote_state[3] = WHIRLPOOL_DRY;
@@ -76,10 +73,6 @@ void WhirlpoolClimate::transmit_state() {
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_OFF:
-      remote_state[2] = 4;
-      remote_state[3] = WHIRLPOOL_COOL;
-      remote_state[15] = 1;
-      remote_state[18] = 0x28;
     default:
       break;
   }
@@ -218,7 +211,7 @@ bool WhirlpoolClimate::on_receive(remote_base::RemoteReceiveData data) {
       remote_state[18], remote_state[19], remote_state[20]);
 
   // verify header remote code
-  if (remote_state[0] != 0xA9 || remote_state[1] != 0x59)
+  if (remote_state[0] != 0x83 || remote_state[1] != 0x06)
     return false;
 
   // powr on/off button
