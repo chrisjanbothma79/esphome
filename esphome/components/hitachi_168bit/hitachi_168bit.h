@@ -8,14 +8,14 @@ namespace hitachi_168bit {
 /// Models supported by the 168-bit Hitachi protocol.
 enum Model {
   MODEL_DG11J1_91 = 0,  // Temperature range 16–30
-  MODEL_DG11J1_3A = 1,  // Temperature range 16–30 (adjust later if different)
+  MODEL_HCRA31NEWH = 1,  // Temperature range 16–30 (adjust later if different)
 };
 
 // Temperature limits (constexpr + kCamelCase for clang-tidy)
 constexpr float TEMP_MIN_DG11J1_91 = 16.0f;
 constexpr float TEMP_MAX_DG11J1_91 = 30.0f;
-constexpr float TEMP_MIN_DG11J1_3A = 16.0f;
-constexpr float TEMP_MAX_DG11J1_3A = 30.0f;
+constexpr float TEMP_MIN_HCRA31NEWH = 16.0f;
+constexpr float TEMP_MAX_HCRA31NEWH = 30.0f;
 
 class Hitachi168bitClimate : public climate_ir::ClimateIR {
  public:
@@ -52,10 +52,10 @@ class Hitachi168bitClimate : public climate_ir::ClimateIR {
   bool send_swing_cmd_{false};
 
   // Default to a safe model to avoid uninitialized reads
-  Model model_{MODEL_DG11J1_91};
+  Model model_{MODEL_HCRA31NEWH};
 
-  float temperature_min_() { return (model_ == MODEL_DG11J1_3A) ? TEMP_MIN_DG11J1_3A : TEMP_MIN_DG11J1_91; }
-  float temperature_max_() { return (model_ == MODEL_DG11J1_3A) ? TEMP_MAX_DG11J1_3A : TEMP_MAX_DG11J1_91; }
+  float temperature_min_() { return (model_ == MODEL_HCRA31NEWH) ? TEMP_MIN_HCRA31NEWH : TEMP_MIN_DG11J1_91; }
+  float temperature_max_() { return (model_ == MODEL_HCRA31NEWH) ? TEMP_MAX_HCRA31NEWH : TEMP_MAX_DG11J1_91; }
 };
 
 }  // namespace hitachi_168bit
