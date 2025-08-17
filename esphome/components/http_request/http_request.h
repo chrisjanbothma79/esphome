@@ -292,7 +292,7 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
   std::vector<HttpRequestResponseTrigger *> response_triggers_{};
   std::vector<Trigger<> *> error_triggers_{};
 
-  size_t max_response_buffer_size_{SIZE_MAX}; // Initialized by set_max_response_buffer_size.
+  size_t max_response_buffer_size_{SIZE_MAX};  // Initialized by set_max_response_buffer_size.
 };
 
 }  // namespace http_request
