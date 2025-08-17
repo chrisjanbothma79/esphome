@@ -3,7 +3,7 @@ import logging
 from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components import i2c
-from esphome.components.esp32 import add_idf_component
+from esphome.components.esp32 import add_idf_component, add_idf_sdkconfig_option
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BRIGHTNESS,
@@ -85,6 +85,18 @@ FRAME_SIZES = {
     "2560X1920": ESP32CameraFrameSize.ESP32_CAMERA_SIZE_2560X1920,
     "QSXGA": ESP32CameraFrameSize.ESP32_CAMERA_SIZE_2560X1920,
 }
+ESP32CameraPixelFormat = esp32_camera_ns.enum("ESP32CameraPixelFormat")
+PIXEL_FORMATS = {
+    "RGB565": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_RGB565,
+    "YUV422": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_YUV422,
+    "YUV420": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_YUV420,
+    "GRAYSCALE": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_GRAYSCALE,
+    "JPEG": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_JPEG,
+    "RGB888": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_RGB888,
+    "RAW": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_RAW,
+    "RGB444": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_RGB444,
+    "RGB555": ESP32CameraPixelFormat.ESP32_PIXEL_FORMAT_RGB555,
+}
 ESP32GainControlMode = esp32_camera_ns.enum("ESP32GainControlMode")
 ENUM_GAIN_CONTROL_MODE = {
     "MANUAL": ESP32GainControlMode.ESP32_GC_MODE_MANU,
@@ -132,6 +144,7 @@ CONF_EXTERNAL_CLOCK = "external_clock"
 CONF_I2C_PINS = "i2c_pins"
 CONF_POWER_DOWN_PIN = "power_down_pin"
 # image
+CONF_PIXEL_FORMAT = "pixel_format"
 CONF_JPEG_QUALITY = "jpeg_quality"
 CONF_VERTICAL_FLIP = "vertical_flip"
 CONF_HORIZONTAL_MIRROR = "horizontal_mirror"
@@ -198,6 +211,9 @@ CONFIG_SCHEMA = cv.All(
             # image
             cv.Optional(CONF_RESOLUTION, default="640X480"): cv.enum(
                 FRAME_SIZES, upper=True
+            ),
+            cv.Optional(CONF_PIXEL_FORMAT, default="JPEG"): cv.enum(
+                PIXEL_FORMATS, upper=True
             ),
             cv.Optional(CONF_JPEG_QUALITY, default=10): cv.int_range(min=6, max=63),
             cv.Optional(CONF_CONTRAST, default=0): camera_range_param,
@@ -291,6 +307,7 @@ SETTERS = {
     CONF_RESET_PIN: "set_reset_pin",
     CONF_POWER_DOWN_PIN: "set_power_down_pin",
     # image
+    CONF_PIXEL_FORMAT: "set_pixel_format",
     CONF_JPEG_QUALITY: "set_jpeg_quality",
     CONF_VERTICAL_FLIP: "set_vertical_flip",
     CONF_HORIZONTAL_MIRROR: "set_horizontal_mirror",
@@ -346,6 +363,10 @@ async def to_code(config):
 
     if CORE.using_esp_idf:
         add_idf_component(name="espressif/esp32-camera", ref="2.1.1")
+
+        if config[CONF_PIXEL_FORMAT] != "JPEG":
+            add_idf_sdkconfig_option(name="CONFIG_SPIRAM_SUPPORT", value="y")
+            add_idf_sdkconfig_option(name="CONFIG_SPIRAM_USE_CAPS_ALLOC", value="y")
 
     for conf in config.get(CONF_ON_STREAM_START, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
