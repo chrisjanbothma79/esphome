@@ -15,6 +15,8 @@ from esphome.const import (
     CONF_FORMAT,
     CONF_ID,
     CONF_NUM_CHANNELS,
+    CONF_ON_TURN_OFF,
+    CONF_ON_TURN_ON,
     CONF_PATH,
     CONF_RAW_DATA_ID,
     CONF_SAMPLE_RATE,
@@ -51,6 +53,7 @@ CONF_VOLUME_INCREMENT = "volume_increment"
 CONF_VOLUME_INITIAL = "volume_initial"
 CONF_VOLUME_MIN = "volume_min"
 CONF_VOLUME_MAX = "volume_max"
+CONF_OFF_ON_ENABLED = "off_on_enabled"
 
 
 speaker_ns = cg.esphome_ns.namespace("speaker")
@@ -231,6 +234,20 @@ def _validate_supported_local_file(config):
     return config
 
 
+def _validate_off_on_enable(config):
+    if not config[CONF_OFF_ON_ENABLED]:
+        if CONF_ON_TURN_OFF in config:
+            raise cv.Invalid(
+                f"{CONF_ON_TURN_OFF} unsupported when {CONF_OFF_ON_ENABLED} is false"
+            )
+        if CONF_ON_TURN_ON in config:
+            raise cv.Invalid(
+                f"{CONF_ON_TURN_ON} unsupported when {CONF_OFF_ON_ENABLED} is false"
+            )
+
+    return config
+
+
 LOCAL_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_PATH): cv.file_,
@@ -289,6 +306,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ON_MUTE): automation.validate_automation(single=True),
             cv.Optional(CONF_ON_UNMUTE): automation.validate_automation(single=True),
             cv.Optional(CONF_ON_VOLUME): automation.validate_automation(single=True),
+            cv.Optional(CONF_OFF_ON_ENABLED, default=False): cv.boolean,
         }
     ),
     cv.only_with_esp_idf,
@@ -305,10 +323,14 @@ FINAL_VALIDATE_SCHEMA = cv.All(
         extra=cv.ALLOW_EXTRA,
     ),
     _validate_supported_local_file,
+    _validate_off_on_enable,
 )
 
 
 async def to_code(config):
+    if config[CONF_OFF_ON_ENABLED]:
+        cg.add_define("USE_SUPPORTS_TURN_OFF_ON", True)
+
     if config[CONF_CODEC_SUPPORT_ENABLED]:
         # Compile all supported audio codecs and optimize the wifi settings
 
