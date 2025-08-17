@@ -1,4 +1,3 @@
-#ifdef USE_ARDUINO
 
 #include "ac_dimmer.h"
 #include "esphome/core/helpers.h"
@@ -9,8 +8,9 @@
 #ifdef USE_ESP8266
 #include <core_esp8266_waveform.h>
 #endif
-#ifdef USE_ESP32_FRAMEWORK_ARDUINO
-#include <esp32-hal-timer.h>
+
+#ifdef USE_ESP32
+#include "hw_timer_esp_idf.h"
 #endif
 
 namespace esphome {
@@ -154,7 +154,7 @@ void IRAM_ATTR HOT AcDimmerDataStore::s_gpio_intr(AcDimmerDataStore *store) {
 #ifdef USE_ESP32
 // ESP32 implementation, uses basically the same code but needs to wrap
 // timer_interrupt() function to auto-reschedule
-static hw_timer_t *dimmer_timer = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+static HWTimer *dimmer_timer = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 void IRAM_ATTR HOT AcDimmerDataStore::s_timer_intr() { timer_interrupt(); }
 #endif
 
@@ -195,14 +195,15 @@ void AcDimmer::setup() {
 #endif
 #ifdef USE_ESP32
   // timer frequency of 1mhz
-  dimmer_timer = timerBegin(1000000);
-  timerAttachInterrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr);
+  dimmer_timer = timer_begin(1000000);
+  timer_attach_interrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr);
   // For ESP32, we can't use dynamic interval calculation because the timerX functions
   // are not callable from ISR (placed in flash storage).
   // Here we just use an interrupt firing every 50 µs.
-  timerAlarm(dimmer_timer, 50, true, 0);
+  timer_alarm(dimmer_timer, 50, true, 0);
 #endif
 }
+
 void AcDimmer::write_state(float state) {
   state = std::acos(1 - (2 * state)) / std::numbers::pi;  // RMS power compensation
   auto new_value = static_cast<uint16_t>(roundf(state * 65535));
@@ -210,6 +211,7 @@ void AcDimmer::write_state(float state) {
     this->store_.init_cycle = this->init_with_half_cycle_;
   this->store_.value = new_value;
 }
+
 void AcDimmer::dump_config() {
   ESP_LOGCONFIG(TAG, "AcDimmer:");
   LOG_PIN("  Output Pin: ", this->gate_pin_);
@@ -232,5 +234,3 @@ void AcDimmer::dump_config() {
 
 }  // namespace ac_dimmer
 }  // namespace esphome
-
-#endif  // USE_ARDUINO
