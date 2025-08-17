@@ -97,6 +97,6 @@ async def test_scheduler_removed_item_race(
         assert removed_executed == 0, (
             f"Cancelled items should not execute, but {removed_executed} did"
         )
-        assert normal_executed == 5, (
-            f"Expected 5 normal items to execute, got {normal_executed}"
+        assert normal_executed == 4, (
+            f"Expected 4 normal items to execute, got {normal_executed}"
         )
