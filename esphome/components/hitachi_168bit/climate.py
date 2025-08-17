@@ -8,7 +8,7 @@ CODEOWNERS = ["@Rodrigoah"]
 
 # Must match C++ namespace and class names
 hitachi_ns = cg.esphome_ns.namespace("hitachi_168bit")
-HitachiClimate = hitachi_ns.class_("Hitachi_168bitClimate", climate_ir.ClimateIR)
+HitachiClimate = hitachi_ns.class_("hitachi_168bitClimate", climate_ir.ClimateIR)
 
 Model = hitachi_ns.enum("Model")
 
