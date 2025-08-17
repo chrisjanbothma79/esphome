@@ -65,45 +65,47 @@ ACCELERATION_MODES = {
     "high": RhtAccelerationMode.HIGH_ACCELERATION,
 }
 
-VOC_SENSOR = cv.Schema(
-    {
-        cv.Optional(CONF_ALGORITHM_TUNING): cv.Schema(
-            {
-                cv.Optional(CONF_INDEX_OFFSET, default=100): cv.int_range(1, 250),
-                cv.Optional(CONF_LEARNING_TIME_OFFSET_HOURS, default=12): cv.int_range(
-                    1, 1000
-                ),
-                cv.Optional(CONF_LEARNING_TIME_GAIN_HOURS, default=12): cv.int_range(
-                    1, 1000
-                ),
-                cv.Optional(
-                    CONF_GATING_MAX_DURATION_MINUTES, default=180
-                ): cv.int_range(0, 3000),
-                cv.Optional(CONF_STD_INITIAL, default=50): cv.int_range(10, 5000),
-                cv.Optional(CONF_GAIN_FACTOR, default=230): cv.int_range(1, 1000),
-            }
-        )
-    }
-)
 
-NOX_SENSOR = cv.Schema(
-    {
-        cv.Optional(CONF_ALGORITHM_TUNING): cv.Schema(
-            {
-                cv.Optional(CONF_INDEX_OFFSET, default=1): cv.int_range(1, 250),
-                cv.Optional(CONF_LEARNING_TIME_OFFSET_HOURS, default=12): cv.int_range(
-                    1, 1000
-                ),
-                cv.Optional(CONF_LEARNING_TIME_GAIN_HOURS, default=12): cv.int_,
-                cv.Optional(
-                    CONF_GATING_MAX_DURATION_MINUTES, default=720
-                ): cv.int_range(0, 3000),
-                cv.Optional(CONF_STD_INITIAL, default=50): cv.int_,
-                cv.Optional(CONF_GAIN_FACTOR, default=230): cv.int_range(1, 1000),
-            }
-        )
-    }
-)
+def _gas_sensor(
+    *,
+    index_offset: int,
+    learning_time_offset: int,
+    learning_time_gain: int,
+    gating_max_duration: int,
+    std_initial: int,
+    gain_factor: int,
+) -> cv.Schema:
+    return sensor.sensor_schema(
+        icon=ICON_RADIATOR,
+        accuracy_decimals=0,
+        device_class=DEVICE_CLASS_AQI,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ).extend(
+        {
+            cv.Optional(CONF_ALGORITHM_TUNING): cv.Schema(
+                {
+                    cv.Optional(CONF_INDEX_OFFSET, default=index_offset): cv.int_range(
+                        1, 250
+                    ),
+                    cv.Optional(
+                        CONF_LEARNING_TIME_OFFSET_HOURS, default=learning_time_offset
+                    ): cv.int_range(1, 1000),
+                    cv.Optional(
+                        CONF_LEARNING_TIME_GAIN_HOURS, default=learning_time_gain
+                    ): cv.int_range(1, 1000),
+                    cv.Optional(
+                        CONF_GATING_MAX_DURATION_MINUTES, default=gating_max_duration
+                    ): cv.int_range(0, 3000),
+                    cv.Optional(CONF_STD_INITIAL, default=std_initial): cv.int_range(
+                        10, 5000
+                    ),
+                    cv.Optional(CONF_GAIN_FACTOR, default=gain_factor): cv.int_range(
+                        1, 1000
+                    ),
+                }
+            )
+        }
+    )
 
 
 def float_previously_pct(value):
@@ -146,18 +148,22 @@ CONFIG_SCHEMA = (
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_AUTO_CLEANING_INTERVAL): cv.update_interval,
-            cv.Optional(CONF_VOC): sensor.sensor_schema(
-                icon=ICON_RADIATOR,
-                accuracy_decimals=0,
-                device_class=DEVICE_CLASS_AQI,
-                state_class=STATE_CLASS_MEASUREMENT,
-            ).extend(VOC_SENSOR),
-            cv.Optional(CONF_NOX): sensor.sensor_schema(
-                icon=ICON_RADIATOR,
-                accuracy_decimals=0,
-                device_class=DEVICE_CLASS_AQI,
-                state_class=STATE_CLASS_MEASUREMENT,
-            ).extend(NOX_SENSOR),
+            cv.Optional(CONF_VOC): _gas_sensor(
+                index_offset=100,
+                learning_time_offset=12,
+                learning_time_gain=12,
+                gating_max_duration=180,
+                std_initial=50,
+                gain_factor=230,
+            ),
+            cv.Optional(CONF_NOX): _gas_sensor(
+                index_offset=1,
+                learning_time_offset=12,
+                learning_time_gain=12,
+                gating_max_duration=720,
+                std_initial=50,
+                gain_factor=230,
+            ),
             cv.Optional(CONF_STORE_BASELINE, default=True): cv.boolean,
             cv.Optional(CONF_VOC_BASELINE): cv.hex_uint16_t,
             cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
