@@ -1,0 +1,14 @@
+i2s_audio:
+  i2s_lrclk_pin: ${lrclk_pin}
+  i2s_bclk_pin: ${bclk_pin}
+  i2s_mclk_pin: ${mclk_pin}
+
+microphone:
+  - platform: i2s_audio
+    id: microphone_id
+    sample_rate: 48000
+    i2s_din_pin: ${din_pin}
+    adc_type: external
+  - platform: resampler
+    id: resampler_microphone_id
+    microphone: microphone_id
