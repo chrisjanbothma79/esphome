@@ -234,8 +234,11 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
       return;
     }
 
+    size_t max_length = this->max_response_buffer_size_;
     size_t content_length = container->content_length;
-    size_t max_length = std::min(content_length, this->max_response_buffer_size_);
+    if (content_length > 0) {
+      max_length = std::min(max_length, content_length);
+    }
 
     std::string response_body;
     if (this->capture_response_.value(x...)) {
@@ -246,6 +249,9 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
         while (container->get_bytes_read() < max_length) {
           int read = container->read(buf + read_index, std::min<size_t>(max_length - read_index, 512));
           App.feed_wdt();
+          if (read <= 0) {
+            break;
+          }
           yield();
           read_index += read;
         }
@@ -286,7 +292,7 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
   std::vector<HttpRequestResponseTrigger *> response_triggers_{};
   std::vector<Trigger<> *> error_triggers_{};
 
-  size_t max_response_buffer_size_{SIZE_MAX};
+  size_t max_response_buffer_size_{SIZE_MAX};  // Initialized by set_max_response_buffer_size.
 };
 
 }  // namespace http_request
