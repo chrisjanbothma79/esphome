@@ -7,38 +7,38 @@ namespace hitachi_168bit {
 static const char *const TAG = "hitachi_168bit.climate";
 
 // Timing & protocol constants
-constexpr uint16_t kHeaderMark = 9000;
-constexpr uint16_t kHeaderSpace = 4494;
-constexpr uint16_t kBitMark = 610;
-constexpr uint16_t kOneSpace = 1680;
-constexpr uint16_t kZeroSpace = 565;
-constexpr uint32_t kGap = 8007;
-constexpr uint32_t kCarrierFrequency = 38000;
+constexpr uint16_t HEADER_MARK        = 9000;
+constexpr uint16_t HEADER_SPACE       = 4494;
+constexpr uint16_t BIT_MARK           = 610;
+constexpr uint16_t ONE_SPACE          = 1680;
+constexpr uint16_t ZERO_SPACE         = 565;
+constexpr uint32_t GAP                = 8007;
+constexpr uint32_t CARRIER_FREQUENCY  = 38000;
 
 // Frame structure
-constexpr uint8_t kStateLength = 21;
+constexpr uint8_t  STATE_LENGTH = 21;
 
 // Mode nibble values
-constexpr uint8_t kModeHeat = 0;
-constexpr uint8_t kModeDry = 3;
-constexpr uint8_t kModeCool = 2;
-constexpr uint8_t kModeFan = 4;
-constexpr uint8_t kModeAuto = 1;
+constexpr uint8_t  MODE_HEAT = 0;
+constexpr uint8_t  MODE_DRY  = 3;
+constexpr uint8_t  MODE_COOL = 2;
+constexpr uint8_t  MODE_FAN  = 4;
+constexpr uint8_t  MODE_AUTO = 1;
 
 // Fan values (2 LSBits of byte[2])
-constexpr uint8_t kFanAuto = 0;
-constexpr uint8_t kFanHigh = 1;
-constexpr uint8_t kFanMed = 2;
-constexpr uint8_t kFanLow = 3;
+constexpr uint8_t  FAN_AUTO = 0;
+constexpr uint8_t  FAN_HIGH = 1;
+constexpr uint8_t  FAN_MED  = 2;
+constexpr uint8_t  FAN_LOW  = 3;
 
 // Swing & power flags
-constexpr uint8_t kSwingMask = 0x80;  // TBD on Hitachi; matches your current mapping
-constexpr uint8_t kPowerFlag = 0x04;
+constexpr uint8_t  SWING_MASK = 0x80; //Not Tested in HITACHI
+constexpr uint8_t  POWER_FLAG = 0x04;
 
-void hitachi_168bitClimate::transmit_state() {
+void Hitachi168bitClimate::transmit_state() {
   this->last_transmit_time_ = millis();  // timestamp last transmission
 
-  uint8_t remote_state[kStateLength] = {0};
+  uint8_t remote_state[STATE_LENGTH] = {0};
   remote_state[0] = 0x95;
   remote_state[1] = 0x9A;
   remote_state[6] = 0x01;
@@ -48,7 +48,7 @@ void hitachi_168bitClimate::transmit_state() {
   const bool powered_on = (this->mode != climate::CLIMATE_MODE_OFF);
   if (powered_on != this->powered_on_assumed) {
     // Set power toggle command
-    remote_state[2] = kPowerFlag;
+    remote_state[2] = POWER_FLAG;
     remote_state[15] = 1;
     this->powered_on_assumed = powered_on;
   }
@@ -56,23 +56,23 @@ void hitachi_168bitClimate::transmit_state() {
   // Mode
   switch (this->mode) {
     case climate::CLIMATE_MODE_HEAT_COOL:
-      remote_state[3] = kModeAuto;  // auto mode
+      remote_state[3] = MODE_AUTO;  // auto mode
       remote_state[15] = 0x17;
       break;
     case climate::CLIMATE_MODE_HEAT:
-      remote_state[3] = kModeHeat;
+      remote_state[3] = MODE_HEAT;
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_COOL:
-      remote_state[3] = kModeCool;
+      remote_state[3] = MODE_COOL;
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_DRY:
-      remote_state[3] = kModeDry;
+      remote_state[3] = MODE_DRY;
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_FAN_ONLY:
-      remote_state[3] = kModeFan;
+      remote_state[3] = MODE_FAN;
       remote_state[15] = 6;
       break;
     case climate::CLIMATE_MODE_OFF:
@@ -88,13 +88,13 @@ void hitachi_168bitClimate::transmit_state() {
   // Fan speed (lower 2 bits of byte[2])
   switch (this->fan_mode.value()) {
     case climate::CLIMATE_FAN_HIGH:
-      remote_state[2] |= kFanHigh;
+      remote_state[2] |= FAN_HIGH;
       break;
     case climate::CLIMATE_FAN_MEDIUM:
-      remote_state[2] |= kFanMed;
+      remote_state[2] |= FAN_MED;
       break;
     case climate::CLIMATE_FAN_LOW:
-      remote_state[2] |= kFanLow;
+      remote_state[2] |= FAN_LOW;
       break;
     default:
       // auto: leave as 0
@@ -105,7 +105,7 @@ void hitachi_168bitClimate::transmit_state() {
   ESP_LOGV(TAG, "send swing %s", this->send_swing_cmd_ ? "true" : "false");
   if (this->send_swing_cmd_) {
     if (this->swing_mode == climate::CLIMATE_SWING_VERTICAL || this->swing_mode == climate::CLIMATE_SWING_OFF) {
-      remote_state[2] |= kSwingMask;
+      remote_state[2] |= SWING_MASK;
       remote_state[8] |= 0x40;
     }
   }
@@ -128,35 +128,35 @@ void hitachi_168bitClimate::transmit_state() {
   auto transmit = this->transmitter_->transmit();
   auto *data = transmit.get_data();
 
-  data->set_carrier_frequency(kCarrierFrequency);
+  data->set_carrier_frequency(CARRIER_FREQUENCY);
 
   // Header
-  data->mark(kHeaderMark);
-  data->space(kHeaderSpace);
+  data->mark(HEADER_MARK);
+  data->space(HEADER_SPACE);
 
   // Data
   uint8_t bytes_sent = 0;
   for (uint8_t i : remote_state) {
     for (uint8_t j = 0; j < 8; j++) {
-      data->mark(kBitMark);
+      data->mark(BIT_MARK);
       const bool bit = (i & (1 << j)) != 0;
-      data->space(bit ? kOneSpace : kZeroSpace);
+      data->space(bit ? ONE_SPACE : ZERO_SPACE);
     }
     bytes_sent++;
     if (bytes_sent == 6 || bytes_sent == 14) {
       // Divider
-      data->mark(kBitMark);
-      data->space(kGap);
+      data->mark(BIT_MARK);
+      data->space(GAP);
     }
   }
 
   // Footer
-  data->mark(kBitMark);
+  data->mark(BIT_MARK);
 
   transmit.perform();
 }
 
-bool hitachi_168bitClimate::on_receive(remote_base::RemoteReceiveData data) {
+bool Hitachi168bitClimate::on_receive(remote_base::RemoteReceiveData data) {
   // Ignore if we recently transmitted (debounce)
   if (millis() - this->last_transmit_time_ < 500) {
     ESP_LOGV(TAG, "Blocked receive because of current transmission");
@@ -164,24 +164,24 @@ bool hitachi_168bitClimate::on_receive(remote_base::RemoteReceiveData data) {
   }
 
   // Header
-  if (!data.expect_item(kHeaderMark, kHeaderSpace)) {
+  if (!data.expect_item(HEADER_MARK, HEADER_SPACE)) {
     ESP_LOGV(TAG, "Header fail");
     return false;
   }
 
-  uint8_t remote_state[kStateLength] = {0};
+  uint8_t remote_state[STATE_LENGTH] = {0};
 
   // Read all bytes
-  for (int i = 0; i < kStateLength; i++) {
+  for (int i = 0; i < STATE_LENGTH; i++) {
     // Divider positions
     if (i == 6 || i == 14) {
-      if (!data.expect_item(kBitMark, kGap))
+      if (!data.expect_item(BIT_MARK, GAP))
         return false;
     }
     for (int j = 0; j < 8; j++) {
-      if (data.expect_item(kBitMark, kOneSpace)) {
+      if (data.expect_item(BIT_MARK, ONE_SPACE)) {
         remote_state[i] |= 1 << j;
-      } else if (!data.expect_item(kBitMark, kZeroSpace)) {
+      } else if (!data.expect_item(BIT_MARK, ZERO_SPACE)) {
         ESP_LOGV(TAG, "Byte %d bit %d fail", i, j);
         return false;
       }
@@ -190,7 +190,7 @@ bool hitachi_168bitClimate::on_receive(remote_base::RemoteReceiveData data) {
   }
 
   // Footer
-  if (!data.expect_mark(kBitMark)) {
+  if (!data.expect_mark(BIT_MARK)) {
     ESP_LOGV(TAG, "Footer fail");
     return false;
   }
@@ -222,8 +222,8 @@ bool hitachi_168bitClimate::on_receive(remote_base::RemoteReceiveData data) {
     return false;
 
   // Power toggle
-  ESP_LOGV(TAG, "Power: %02X", (remote_state[2] & kPowerFlag));
-  if ((remote_state[2] & kPowerFlag) == kPowerFlag) {
+  ESP_LOGV(TAG, "Power: %02X", (remote_state[2] & POWER_FLAG));
+  if ((remote_state[2] & POWER_FLAG) == POWER_FLAG) {
     const bool powered_on = (this->mode != climate::CLIMATE_MODE_OFF);
     if (powered_on) {
       this->mode = climate::CLIMATE_MODE_OFF;
@@ -238,19 +238,19 @@ bool hitachi_168bitClimate::on_receive(remote_base::RemoteReceiveData data) {
     const uint8_t mode = remote_state[3] & 0x07;
     ESP_LOGV(TAG, "Mode: %02X", mode);
     switch (mode) {
-      case kModeHeat:
+      case MODE_HEAT:
         this->mode = climate::CLIMATE_MODE_HEAT;
         break;
-      case kModeCool:
+      case MODE_COOL:
         this->mode = climate::CLIMATE_MODE_COOL;
         break;
-      case kModeDry:
+      case MODE_DRY:
         this->mode = climate::CLIMATE_MODE_DRY;
         break;
-      case kModeFan:
+      case MODE_FAN:
         this->mode = climate::CLIMATE_MODE_FAN_ONLY;
         break;
-      case kModeAuto:
+      case MODE_AUTO:
         this->mode = climate::CLIMATE_MODE_HEAT_COOL;
         break;
       default:
@@ -270,23 +270,23 @@ bool hitachi_168bitClimate::on_receive(remote_base::RemoteReceiveData data) {
   const uint8_t fan = remote_state[2] & 0x03;
   ESP_LOGVV(TAG, "Fan: %02X", fan);
   switch (fan) {
-    case kFanHigh:
+    case FAN_HIGH:
       this->fan_mode = climate::CLIMATE_FAN_HIGH;
       break;
-    case kFanMed:
+    case FAN_MED:
       this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
       break;
-    case kFanLow:
+    case FAN_LOW:
       this->fan_mode = climate::CLIMATE_FAN_LOW;
       break;
-    case kFanAuto:
+    case FAN_AUTO:
     default:
       this->fan_mode = climate::CLIMATE_FAN_AUTO;
       break;
   }
 
   // Swing toggle detection
-  if ((remote_state[2] & kSwingMask) == kSwingMask && remote_state[8] == 0x40) {
+  if ((remote_state[2] & SWING_MASK) == SWING_MASK && remote_state[8] == 0x40) {
     ESP_LOGVV(TAG, "Swing toggle pressed");
     if (this->swing_mode == climate::CLIMATE_SWING_OFF) {
       this->swing_mode = climate::CLIMATE_SWING_VERTICAL;

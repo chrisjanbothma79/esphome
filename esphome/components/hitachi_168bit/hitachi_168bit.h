@@ -12,15 +12,14 @@ enum Model {
 };
 
 // Temperature limits (constexpr + kCamelCase for clang-tidy)
-constexpr float kTempMinDG11J1_91 = 16.0f;
-constexpr float kTempMaxDG11J1_91 = 30.0f;
+constexpr float TEMP_MIN_DG11J1_91 = 16.0f;
+constexpr float TEMP_MAX_DG11J1_91 = 30.0f;
+constexpr float TEMP_MIN_DG11J1_3A = 16.0f;
+constexpr float TEMP_MAX_DG11J1_3A = 30.0f;
 
-constexpr float kTempMinDG11J1_3A = 16.0f;
-constexpr float kTempMaxDG11J1_3A = 30.0f;
-
-class hitachi_168bitClimate : public climate_ir::ClimateIR {
+class Hitachi168bitClimate : public climate_ir::ClimateIR {
  public:
-  hitachi_168bitClimate()
+  Hitachi168bitClimate()
       : climate_ir::ClimateIR(temperature_min_(),  // min temp
                               temperature_max_(),  // max temp
                               1.0f,                // temperature step
@@ -55,8 +54,8 @@ class hitachi_168bitClimate : public climate_ir::ClimateIR {
   // Default to a safe model to avoid uninitialized reads
   Model model_{MODEL_DG11J1_91};
 
-  float temperature_min_() { return (model_ == MODEL_DG11J1_3A) ? kTempMinDG11J1_3A : kTempMinDG11J1_91; }
-  float temperature_max_() { return (model_ == MODEL_DG11J1_3A) ? kTempMaxDG11J1_3A : kTempMaxDG11J1_91; }
+  float temperature_min_() { return (model_ == MODEL_DG11J1_3A) ? TEMP_MIN_DG11J1_3A : TEMP_MIN_DG11J1_91; }
+  float temperature_max_() { return (model_ == MODEL_DG11J1_3A) ? TEMP_MAX_DG11J1_3A : TEMP_MAX_DG11J1_91; }
 };
 
 }  // namespace hitachi_168bit
