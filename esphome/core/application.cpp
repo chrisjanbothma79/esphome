@@ -272,26 +272,42 @@ void Application::teardown_components(uint32_t timeout_ms) {
   uint32_t now = start_time;
   size_t pending_count = num_components;
 
-  // Compaction algorithm for teardown
-  // ==================================
-  // We repeatedly call teardown() on each component until it returns true.
-  // Components that are done are removed using array compaction:
+  // Teardown Algorithm
+  // ==================
+  // We iterate through pending components, calling teardown() on each.
+  // Components that return false (need more time) are copied to the front
+  // of the array. Components that return true (finished) are skipped.
   //
-  // Initial state (all components pending):
-  //   pending_components: [A, B, C, D, E, F]
-  //   pending_count: 6                    ^
+  // The compaction happens in-place during iteration:
+  //   - still_pending tracks the write position (where to put next pending component)
+  //   - i tracks the read position (which component we're testing)
+  //   - When teardown() returns false, we copy component[i] to component[still_pending]
+  //   - When teardown() returns true, we just skip it (don't increment still_pending)
   //
-  // After first iteration (B and D finish teardown):
-  //   pending_components: [A, C, E, F | B, D]  (B, D are still in memory but ignored)
-  //   pending_count: 4                ^
+  // Example with 4 components where B can teardown immediately:
   //
-  // After second iteration (A finishes):
-  //   pending_components: [C, E, F | A, B, D]
-  //   pending_count: 3             ^
+  // Start:
+  //   pending_components: [A, B, C, D]
+  //   pending_count: 4    ^----------^
   //
-  // The algorithm compacts remaining components to the front of the array,
-  // tracking only the count of pending components. This avoids expensive
-  // erase operations while maintaining O(n) complexity per iteration.
+  // During iteration 1:
+  //   i=0: A->teardown() returns false (needs more time) → copy A to position 0, still_pending=1
+  //   i=1: B->teardown() returns true (finished!)        → skip B, still_pending stays 1
+  //   i=2: C->teardown() returns false (needs more time) → copy C to position 1, still_pending=2
+  //   i=3: D->teardown() returns false (needs more time) → copy D to position 2, still_pending=3
+  //
+  // After iteration 1:
+  //   pending_components: [A, C, D | D]  (position 3 still has old D pointer)
+  //   pending_count: 3    ^--------^
+  //
+  // During iteration 2 (A and D can now finish):
+  //   i=0: A->teardown() returns true (finished!)        → skip A, still_pending stays 0
+  //   i=1: C->teardown() returns false (needs more time) → copy C to position 0, still_pending=1
+  //   i=2: D->teardown() returns true (finished!)        → skip D, still_pending stays 1
+  //
+  // After iteration 2:
+  //   pending_components: [C | C, D, D]  (positions 1-3 have old values)
+  //   pending_count: 1    ^-^
 
   while (pending_count > 0 && (now - start_time) < timeout_ms) {
     // Feed watchdog during teardown to prevent triggering
