@@ -317,7 +317,7 @@ void Application::teardown_components(uint32_t timeout_ms) {
     size_t still_pending = 0;
     for (size_t i = 0; i < pending_count; ++i) {
       if (!pending_components[i]->teardown()) {
-        // Component still needs time, keep it in the list
+        // Component still needs time, copy it forward
         if (still_pending != i) {
           pending_components[still_pending] = pending_components[i];
         }
