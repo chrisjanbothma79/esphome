@@ -307,7 +307,7 @@ void Application::teardown_components(uint32_t timeout_ms) {
   //
   // After iteration 2:
   //   pending_components: [C | C, D, D]  (positions 1-3 have old values)
-  //   pending_count: 1    ^-^
+  //   pending_count: 1    ^--^
 
   while (pending_count > 0 && (now - start_time) < timeout_ms) {
     // Feed watchdog during teardown to prevent triggering
