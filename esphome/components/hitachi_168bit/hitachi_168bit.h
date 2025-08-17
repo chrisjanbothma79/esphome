@@ -7,7 +7,7 @@ namespace hitachi_168bit {
 
 /// Models supported by the 168-bit Hitachi protocol.
 enum Model {
-  MODEL_DG11J1_91 = 0,  // Temperature range 16–30
+  MODEL_DG11J1_91 = 0,   // Temperature range 16–30
   MODEL_HCRA31NEWH = 1,  // Temperature range 16–30 (adjust later if different)
 };
 
