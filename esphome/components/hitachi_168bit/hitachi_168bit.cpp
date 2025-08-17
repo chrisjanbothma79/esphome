@@ -7,33 +7,33 @@ namespace hitachi_168bit {
 static const char *const TAG = "hitachi_168bit.climate";
 
 // Timing & protocol constants
-constexpr uint16_t HEADER_MARK        = 9000;
-constexpr uint16_t HEADER_SPACE       = 4494;
-constexpr uint16_t BIT_MARK           = 610;
-constexpr uint16_t ONE_SPACE          = 1680;
-constexpr uint16_t ZERO_SPACE         = 565;
-constexpr uint32_t GAP                = 8007;
-constexpr uint32_t CARRIER_FREQUENCY  = 38000;
+constexpr uint16_t HEADER_MARK = 9000;
+constexpr uint16_t HEADER_SPACE = 4494;
+constexpr uint16_t BIT_MARK = 610;
+constexpr uint16_t ONE_SPACE = 1680;
+constexpr uint16_t ZERO_SPACE = 565;
+constexpr uint32_t GAP = 8007;
+constexpr uint32_t CARRIER_FREQUENCY = 38000;
 
 // Frame structure
-constexpr uint8_t  STATE_LENGTH = 21;
+constexpr uint8_t STATE_LENGTH = 21;
 
 // Mode nibble values
-constexpr uint8_t  MODE_HEAT = 0;
-constexpr uint8_t  MODE_DRY  = 3;
-constexpr uint8_t  MODE_COOL = 2;
-constexpr uint8_t  MODE_FAN  = 4;
-constexpr uint8_t  MODE_AUTO = 1;
+constexpr uint8_t MODE_HEAT = 0;
+constexpr uint8_t MODE_DRY = 3;
+constexpr uint8_t MODE_COOL = 2;
+constexpr uint8_t MODE_FAN = 4;
+constexpr uint8_t MODE_AUTO = 1;
 
 // Fan values (2 LSBits of byte[2])
-constexpr uint8_t  FAN_AUTO = 0;
-constexpr uint8_t  FAN_HIGH = 1;
-constexpr uint8_t  FAN_MED  = 2;
-constexpr uint8_t  FAN_LOW  = 3;
+constexpr uint8_t FAN_AUTO = 0;
+constexpr uint8_t FAN_HIGH = 1;
+constexpr uint8_t FAN_MED = 2;
+constexpr uint8_t FAN_LOW = 3;
 
 // Swing & power flags
-constexpr uint8_t  SWING_MASK = 0x80; //Not Tested in HITACHI
-constexpr uint8_t  POWER_FLAG = 0x04;
+constexpr uint8_t SWING_MASK = 0x80;  // Not Tested in HITACHI
+constexpr uint8_t POWER_FLAG = 0x04;
 
 void Hitachi168bitClimate::transmit_state() {
   this->last_transmit_time_ = millis();  // timestamp last transmission
