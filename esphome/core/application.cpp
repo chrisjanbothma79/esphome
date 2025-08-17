@@ -291,7 +291,7 @@ void Application::teardown_components(uint32_t timeout_ms) {
   //   pending_count: 4    ^----------^
   //
   // Iteration 1:
-  //   i=0: A needs more time → copy to pos 0
+  //   i=0: A needs more time → keep at pos 0 (no copy needed)
   //   i=1: B finished → skip
   //   i=2: C needs more time → copy to pos 1
   //   i=3: D needs more time → copy to pos 2
