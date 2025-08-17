@@ -220,6 +220,13 @@ void WiFiComponent::loop() {
   }
 }
 
+void WiFiComponent::on_safe_shutdown() {
+  if (this->has_sta()) {
+    ESP_LOGD(TAG, "Disconnecting from WiFi...");
+    this->wifi_disconnect_();
+  }
+}
+
 WiFiComponent::WiFiComponent() { global_wifi_component = this; }
 
 bool WiFiComponent::has_ap() const { return this->has_ap_; }

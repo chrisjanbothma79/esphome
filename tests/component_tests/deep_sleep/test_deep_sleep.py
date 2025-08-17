@@ -42,3 +42,18 @@ def test_deep_sleep_run_duration_dictionary(generate_main):
         "    .gpio_cause = 30000,\n"
         "});"
     ) in main_cpp
+
+
+def test_deep_sleep_with_wifi_esp8266(generate_main):
+    """
+    When deep sleep is configured with WiFi on ESP8266, WiFi component should be included.
+    """
+    main_cpp = generate_main("tests/component_tests/deep_sleep/test_deep_sleep_esp8266_wifi.yaml")
+
+    # Verify WiFi component is registered
+    assert "wifi = new wifi::WiFiComponent();" in main_cpp
+    assert "App.register_component(wifi);" in main_cpp
+
+    # Verify deep sleep component is registered
+    assert "deep_sleep_1 = new deep_sleep::DeepSleepComponent();" in main_cpp
+    assert "App.register_component(deep_sleep_1);" in main_cpp

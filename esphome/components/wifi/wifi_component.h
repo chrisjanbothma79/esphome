@@ -265,6 +265,9 @@ class WiFiComponent : public Component {
   /// Reconnect WiFi if required.
   void loop() override;
 
+  /// Safely shutdown WiFi before deep sleep
+  void on_safe_shutdown() override;
+
   bool has_sta() const;
   bool has_ap() const;
 

@@ -1,0 +1,24 @@
+---
+esphome:
+  name: test_esp8266_wifi_deep_sleep
+
+esp8266:
+  board: esp12e
+
+wifi:
+  ssid: "test"
+  password: "testtest"
+
+api:
+  actions:
+    - action: goto_sleep
+      variables:
+        duration_ms: int
+      then:
+        - deep_sleep.enter:
+            id: deep_sleep_1
+            sleep_duration: !lambda 'return duration_ms;'
+
+deep_sleep:
+  id: deep_sleep_1
+  run_duration: 10s
