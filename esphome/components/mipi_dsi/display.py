@@ -67,6 +67,7 @@ MIPI_DSI = mipi_dsi_ns.class_("MIPI_DSI", display.Display, cg.Component)
 ColorOrder = display.display_ns.enum("ColorMode")
 ColorBitness = display.display_ns.enum("ColorBitness")
 
+
 CONF_LANE_BIT_RATE = "lane_bit_rate"
 CONF_LANES = "lanes"
 

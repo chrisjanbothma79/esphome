@@ -124,4 +124,4 @@ def test_code_generation(
     )
     assert "set_init_sequence({224, 1, 0, 225, 1, 147, 226, 1," in main_cpp
     assert "mipi_dsi_mipi_dsi_id->set_lane_bit_rate(1500);" in main_cpp
-    # assert "backlight_id = new light::LightState(mipi_dsi_dsibacklight_id);" in main_cpp
+    assert "backlight_id = new light::LightState(mipi_dsi_dsibacklight_id);" in main_cpp
