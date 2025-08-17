@@ -154,14 +154,14 @@ async def to_code(config):
         cg.add_define("USE_NEXTION_TFT_UPLOAD")
         cg.add(var.set_tft_url(config[CONF_TFT_URL]))
         if CORE.is_esp32 and CORE.using_arduino:
-            cg.add_library("NetworkClientSecure", None)
-            cg.add_library("HTTPClient", None)
+            cg.add_build_flag("-DCONFIG_ESP_TLS_INSECURE=1")
+            cg.add_build_flag("-DCONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY=1")
         elif CORE.is_esp32 and CORE.using_esp_idf:
             esp32.add_idf_sdkconfig_option("CONFIG_ESP_TLS_INSECURE", True)
             esp32.add_idf_sdkconfig_option(
                 "CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY", True
             )
-        elif CORE.is_esp8266 and CORE.using_arduino:
+        elif CORE.is_esp8266:
             cg.add_library("ESP8266HTTPClient", None)
 
     if CONF_TOUCH_SLEEP_TIMEOUT in config:
