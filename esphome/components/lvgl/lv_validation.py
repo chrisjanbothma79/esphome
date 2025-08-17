@@ -1,3 +1,5 @@
+import re
+
 import esphome.codegen as cg
 from esphome.components import image
 from esphome.components.color import CONF_HEX, ColorStruct, from_rgbw
@@ -243,6 +245,8 @@ def pixels_or_percent_validator(value):
         return ["pixels", "..%"]
     if isinstance(value, str) and value.lower().endswith("px"):
         value = cv.int_(value[:-2])
+    if isinstance(value, str) and re.match(r"^lv_pct\((\d+)\)$", value):
+        return value
     value = cv.Any(cv.int_, cv.percentage)(value)
     if isinstance(value, int):
         return value
@@ -302,8 +306,6 @@ def size_validator(value):
     """A size in one axis - one of "size_content", a number (pixels) or a percentage"""
     if value == SCHEMA_EXTRACT:
         return ["SIZE_CONTENT", "number of pixels", "percentage"]
-    if isinstance(value, str) and value.lower().endswith("px"):
-        value = cv.int_(value[:-2])
     if isinstance(value, str) and value.upper() == "SIZE_CONTENT":
         return "LV_SIZE_CONTENT"
     return pixels_or_percent_validator(value)

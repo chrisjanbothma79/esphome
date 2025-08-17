@@ -292,6 +292,7 @@ class LvExpr(MockLv):
 
 # Top level mock for generic lv_ calls to be recorded
 lv = MockLv("lv_")
+LV = MockLv("LV_")
 # Just generate an expression
 lv_expr = LvExpr("lv_")
 # Mock for lv_obj_ calls
