@@ -570,3 +570,69 @@ def get_components_from_integration_fixtures() -> set[str]:
                     components.add(item["platform"])
 
     return components
+
+
+def get_components_with_old_schema() -> list[str]:
+    # get the components directory
+    here = Path(__file__).parent
+    components_path = here.parent.joinpath("esphome/components")
+
+    # collect the __init__s for hte components
+    inits_to_check = sorted(
+        [x.joinpath("__init__.py") for x in components_path.iterdir() if x.is_dir()]
+    )
+
+    components_to_fix = []
+    for init in inits_to_check:
+        # check for the unwanted name!
+        component_name = init.parent.stem
+        old_schema_str = f"{component_name.upper()}_SCHEMA"
+        new_schema_str = f"_{component_name.upper()}_SCHEMA"
+        # search for the string in component files
+        if not init.exists():
+            continue
+        with init.open("r") as f:
+            init_text = f.readlines()
+
+        old_schema = False
+        new_schema = False
+
+        for line in init_text:
+            if old_schema_str in line:
+                old_schema = True
+            if new_schema_str in line:
+                new_schema = True
+
+        if old_schema and not new_schema:
+            components_to_fix.append(component_name)
+
+    return components_to_fix
+
+
+def get_schemas_to_update() -> list[str]:
+    # get the components directory
+    here = Path(__file__).parent
+    components_path = here.parent.joinpath("esphome/components")
+
+    # collect the __init__s for hte components
+    inits_to_check = sorted(
+        [x.joinpath("__init__.py") for x in components_path.iterdir() if x.is_dir()]
+    )
+
+    schemas_to_update = []
+    for init in inits_to_check:
+        # check for the unwanted name!
+        component_name = init.parent.stem
+        # search for the string in component files
+        comment_to_check = "Remove before 2025.11.0"
+        if not init.exists():
+            continue
+        with init.open("r") as f:
+            init_text = f.readlines()
+
+        for line in init_text:
+            if comment_to_check in line:
+                schemas_to_update.append(component_name)
+                break
+
+    return schemas_to_update

@@ -3,11 +3,15 @@ import esphome.codegen as cg
 from esphome.components import i2c
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
     CONF_ON_TAG,
     CONF_ON_TAG_REMOVED,
     CONF_RESET_PIN,
     CONF_TRIGGER_ID,
 )
+from esphome.core.entity_helpers import entity_duplicate_validator
+from esphome.cpp_generator import MockObjClass
 
 CODEOWNERS = ["@glmnet"]
 AUTO_LOAD = ["binary_sensor"]
@@ -20,7 +24,7 @@ RC522Trigger = rc522_ns.class_(
     "RC522Trigger", automation.Trigger.template(cg.std_string)
 )
 
-RC522_SCHEMA = cv.Schema(
+_RC522_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(RC522),
         cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
@@ -36,6 +40,33 @@ RC522_SCHEMA = cv.Schema(
         ),
     }
 ).extend(cv.polling_component_schema("1s"))
+
+_RC522_SCHEMA.add_extra(entity_duplicate_validator("rc522"))
+
+
+def rc522_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {
+        cv.GenerateID(): cv.declare_id(class_),
+    }
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _RC522_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+RC522_SCHEMA = rc522_schema(RC522)
+RC522_SCHEMA.add_extra(cv.deprecated_schema_constant("rc522"))
 
 
 async def setup_rc522(var, config):

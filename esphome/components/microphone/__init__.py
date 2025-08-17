@@ -6,13 +6,17 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BITS_PER_SAMPLE,
     CONF_CHANNELS,
+    CONF_ENTITY_CATEGORY,
     CONF_GAIN_FACTOR,
+    CONF_ICON,
     CONF_ID,
     CONF_MICROPHONE,
     CONF_TRIGGER_ID,
 )
 from esphome.core import CORE
+from esphome.core.entity_helpers import entity_duplicate_validator
 from esphome.coroutine import coroutine_with_priority
+from esphome.cpp_generator import MockObjClass
 
 AUTO_LOAD = ["audio"]
 CODEOWNERS = ["@jesserockz", "@kahrendt"]
@@ -67,7 +71,7 @@ async def register_microphone(var, config):
     await setup_microphone_core_(var, config)
 
 
-MICROPHONE_SCHEMA = cv.Schema.extend(audio.AUDIO_COMPONENT_SCHEMA).extend(
+_MICROPHONE_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(audio.AUDIO_COMPONENT_SCHEMA).extend(
     {
         cv.Optional(CONF_ON_DATA): automation.validate_automation(
             {
@@ -77,6 +81,30 @@ MICROPHONE_SCHEMA = cv.Schema.extend(audio.AUDIO_COMPONENT_SCHEMA).extend(
     }
 )
 
+_MICROPHONE_SCHEMA.add_extra(entity_duplicate_validator("microphone"))
+
+
+def microphone_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _MICROPHONE_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+MICROPHONE_SCHEMA = microphone_schema(Microphone)
+MICROPHONE_SCHEMA.add_extra(cv.deprecated_schema_constant("microphone"))
 
 MICROPHONE_ACTION_SCHEMA = maybe_simple_id({cv.GenerateID(): cv.use_id(Microphone)})
 

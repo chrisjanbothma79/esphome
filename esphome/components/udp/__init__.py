@@ -11,9 +11,17 @@ from esphome.components.packet_transport import (
     CONF_SENSORS,
 )
 import esphome.config_validation as cv
-from esphome.const import CONF_DATA, CONF_ID, CONF_PORT, CONF_TRIGGER_ID
+from esphome.const import (
+    CONF_DATA,
+    CONF_ENTITY_CATEGORY,
+    CONF_ICON,
+    CONF_ID,
+    CONF_PORT,
+    CONF_TRIGGER_ID,
+)
 from esphome.core import Lambda
-from esphome.cpp_generator import ExpressionStatement, MockObj
+from esphome.core.entity_helpers import entity_duplicate_validator
+from esphome.cpp_generator import ExpressionStatement, MockObj, MockObjClass
 
 CODEOWNERS = ["@clydebarrow"]
 DEPENDENCIES = ["network"]
@@ -31,11 +39,36 @@ CONF_UDP_ID = "udp_id"
 CONF_LISTEN_PORT = "listen_port"
 CONF_BROADCAST_PORT = "broadcast_port"
 
-UDP_SCHEMA = cv.Schema(
+_UDP_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
         cv.GenerateID(CONF_UDP_ID): cv.use_id(UDPComponent),
     }
 )
+
+_UDP_SCHEMA.add_extra(entity_duplicate_validator("udp"))
+
+
+def udp_schema(
+    class_: MockObjClass,
+    *,
+    entity_category: str = cv.UNDEFINED,
+    icon: str = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {cv.GenerateID(CONF_ID): cv.declare_id(class_)}
+
+    for key, default, validator in [
+        (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
+        (CONF_ICON, icon, cv.icon),
+    ]:
+        if default is not cv.UNDEFINED:
+            schema[cv.Optional(key, default=default)] = validator
+
+    return _UDP_SCHEMA.extend(schema)
+
+
+# Remove before 2025.11.0
+UDP_SCHEMA = udp_schema(UDPComponent)
+UDP_SCHEMA.add_extra(cv.deprecated_schema_constant("udp"))
 
 
 def is_relocated(option):
