@@ -290,20 +290,20 @@ void Application::teardown_components(uint32_t timeout_ms) {
   //   pending_components: [A, B, C, D]
   //   pending_count: 4    ^----------^
   //
-  // During iteration 1:
-  //   i=0: A->teardown() returns false (needs more time) → copy A to position 0, still_pending=1
-  //   i=1: B->teardown() returns true (finished!)        → skip B, still_pending stays 1
-  //   i=2: C->teardown() returns false (needs more time) → copy C to position 1, still_pending=2
-  //   i=3: D->teardown() returns false (needs more time) → copy D to position 2, still_pending=3
+  // Iteration 1:
+  //   i=0: A needs more time → copy to pos 0
+  //   i=1: B finished → skip
+  //   i=2: C needs more time → copy to pos 1
+  //   i=3: D needs more time → copy to pos 2
   //
   // After iteration 1:
-  //   pending_components: [A, C, D | D]  (position 3 still has old D pointer)
+  //   pending_components: [A, C, D | D]
   //   pending_count: 3    ^--------^
   //
-  // During iteration 2 (A and D can now finish):
-  //   i=0: A->teardown() returns true (finished!)        → skip A, still_pending stays 0
-  //   i=1: C->teardown() returns false (needs more time) → copy C to position 0, still_pending=1
-  //   i=2: D->teardown() returns true (finished!)        → skip D, still_pending stays 1
+  // Iteration 2:
+  //   i=0: A finished → skip
+  //   i=1: C needs more time → copy to pos 0
+  //   i=2: D finished → skip
   //
   // After iteration 2:
   //   pending_components: [C | C, D, D]  (positions 1-3 have old values)
