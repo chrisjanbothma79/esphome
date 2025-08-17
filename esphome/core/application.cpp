@@ -275,8 +275,8 @@ void Application::teardown_components(uint32_t timeout_ms) {
   // Teardown Algorithm
   // ==================
   // We iterate through pending components, calling teardown() on each.
-  // Components that return false (need more time) are copied to the front
-  // of the array. Components that return true (finished) are skipped.
+  // Components that return false (need more time) are copied forward
+  // in the array. Components that return true (finished) are skipped.
   //
   // The compaction happens in-place during iteration:
   //   - still_pending tracks the write position (where to put next pending component)
