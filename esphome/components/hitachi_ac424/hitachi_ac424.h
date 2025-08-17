@@ -55,6 +55,9 @@ const uint8_t HITACHI_AC424_POWER_BYTE = 27;
 const uint8_t HITACHI_AC424_POWER_ON = 0xF1;
 const uint8_t HITACHI_AC424_POWER_OFF = 0xE1;
 
+const uint8_t HITACHI_AC424_CLEAN_BYTE = 33;
+const uint8_t HITACHI_AC424_CLEAN_OFFSET = 3;  // Mask 0b0000x000
+
 const uint8_t HITACHI_AC424_SWINGH_BYTE = 35;
 const uint8_t HITACHI_AC424_SWINGH_OFFSET = 0;     // Mask 0b00000xxx
 const uint8_t HITACHI_AC424_SWINGH_SIZE = 3;       // Mask 0b00000xxx
@@ -86,12 +89,15 @@ class HitachiClimate : public climate_ir::ClimateIR {
                                climate::CLIMATE_FAN_HIGH},
                               {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_HORIZONTAL}) {}
 
+  void set_internal_cleaning(bool on) { this->internal_cleaning_enabled_ = on; }
+
  protected:
   uint8_t remote_state_[HITACHI_AC424_STATE_LENGTH]{
       0x01, 0x10, 0x00, 0x40, 0xBF, 0xFF, 0x00, 0xCC, 0x33, 0x92, 0x6D, 0x13, 0xEC, 0x5C, 0xA3, 0x00, 0xFF, 0x00,
       0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x53, 0xAC, 0xF1, 0x0E, 0x00, 0xFF, 0x00, 0xFF, 0x80, 0x7F, 0x03,
       0xFC, 0x01, 0xFE, 0x88, 0x77, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
   uint8_t previous_temp_{27};
+  bool internal_cleaning_enabled_{false};
   // Transmit via IR the state of this climate controller.
   void transmit_state() override;
   bool get_power_();
@@ -109,12 +115,14 @@ class HitachiClimate : public climate_ir::ClimateIR {
   uint8_t get_swing_h_();
   uint8_t get_button_();
   void set_button_(uint8_t button);
+  void set_internal_cleaning_(bool on);
   // Handle received IR Buffer
   bool on_receive(remote_base::RemoteReceiveData data) override;
   bool parse_mode_(const uint8_t remote_state[]);
   bool parse_temperature_(const uint8_t remote_state[]);
   bool parse_fan_(const uint8_t remote_state[]);
   bool parse_swing_(const uint8_t remote_state[]);
+  bool parse_internal_cleaning_(const uint8_t remote_state[]);
   bool parse_state_frame_(const uint8_t frame[]);
   void dump_state_(const char action[], uint8_t remote_state[]);
 };

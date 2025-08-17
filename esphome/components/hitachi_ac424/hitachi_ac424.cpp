@@ -102,12 +102,18 @@ void HitachiClimate::set_fan_(uint8_t speed) {
   // Set the values
 
   set_bits(&remote_state_[HITACHI_AC424_FAN_BYTE], 4, 4, new_speed);
-  remote_state_[9] = 0x92;
 
-  // When fan is at min/max, additional bytes seem to be set
-  if (new_speed == HITACHI_AC424_FAN_MIN)
+  // Set additional bits
+  remote_state_[9] = 0x92;
+  remote_state_[29] = 0x00;
+  if (new_speed == HITACHI_AC424_FAN_MAX) {
+    remote_state_[9] = 0xA9;
+    remote_state_[29] = 0x30;
+  } else if (this->internal_cleaning_enabled_) {
+    remote_state_[9] = 0xA3;
+  } else if (new_speed == HITACHI_AC424_FAN_MIN) {
     remote_state_[9] = 0x98;
-  remote_state_[29] = 0x01;
+  }
 }
 
 void HitachiClimate::set_swing_v_toggle_(bool on) {
@@ -149,6 +155,10 @@ uint8_t HitachiClimate::get_swing_h_() {
 uint8_t HitachiClimate::get_button_() { return remote_state_[HITACHI_AC424_BUTTON_BYTE]; }
 
 void HitachiClimate::set_button_(uint8_t button) { remote_state_[HITACHI_AC424_BUTTON_BYTE] = button; }
+
+void HitachiClimate::set_internal_cleaning_(bool on) {
+  set_bit(&remote_state_[HITACHI_AC424_CLEAN_BYTE], HITACHI_AC424_CLEAN_OFFSET, on);
+}
 
 void HitachiClimate::transmit_state() {
   switch (this->mode) {
@@ -210,6 +220,8 @@ void HitachiClimate::transmit_state() {
       set_swing_h_(HITACHI_AC424_SWINGH_MIDDLE);
       break;
   }
+
+  set_internal_cleaning_(this->internal_cleaning_enabled_);
 
   // TODO: find change value to set button, now always set to power button
   set_button_(HITACHI_AC424_BUTTON_POWER);
@@ -314,6 +326,14 @@ bool HitachiClimate::parse_swing_(const uint8_t remote_state[]) {
   return true;
 }
 
+bool HitachiClimate::parse_internal_cleaning_(const uint8_t remote_state[]) {
+  bool cleaning = HITACHI_AC424_GETBIT8(remote_state[HITACHI_AC424_CLEAN_BYTE], HITACHI_AC424_CLEAN_OFFSET);
+  ESP_LOGV(TAG, "Internal Cleaning: %02X %s", remote_state[HITACHI_AC424_CLEAN_BYTE], (cleaning ? "true" : "false"));
+  this->internal_cleaning_enabled_ = cleaning;
+
+  return true;
+}
+
 bool HitachiClimate::on_receive(remote_base::RemoteReceiveData data) {
   // Validate header
   if (!data.expect_item(HITACHI_AC424_HDR_MARK, HITACHI_AC424_HDR_SPACE)) {
@@ -351,6 +371,8 @@ bool HitachiClimate::on_receive(remote_base::RemoteReceiveData data) {
   this->parse_fan_(recv_state);
   // parse swingv
   this->parse_swing_(recv_state);
+  // parse internal cleaning
+  this->parse_internal_cleaning_(recv_state);
   this->publish_state();
   for (uint8_t i = 0; i < HITACHI_AC424_STATE_LENGTH; i++)
     remote_state_[i] = recv_state[i];
@@ -364,7 +386,7 @@ void HitachiClimate::dump_state_(const char action[], uint8_t state[]) {
              state[i + 2], state[i + 3], state[i + 4], state[i + 5], state[i + 6], state[i + 7], state[i + 8],
              state[i + 9]);
   }
-  ESP_LOGV(TAG, "%s: %02X %02X %02X", action, state[40], state[41], state[42]);
+  ESP_LOGV(TAG, "%s: %02X %02X %02X", action, state[50], state[51], state[52]);
 }
 
 }  // namespace hitachi_ac424
