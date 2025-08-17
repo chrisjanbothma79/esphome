@@ -409,6 +409,8 @@ void HOT Scheduler::call(uint32_t now) {
       // This handles two cases:
       // 1. Item was marked for removal after cleanup_() but before we got here
       // 2. Item is marked for removal but wasn't at the front of the heap during cleanup_()
+      // TEMPORARILY DISABLED TO VERIFY TEST CATCHES THE BUG
+      /*
 #ifdef ESPHOME_THREAD_MULTI_NO_ATOMICS
       // Multi-threaded platforms without atomics: must take lock to safely read remove flag
       {
@@ -428,6 +430,7 @@ void HOT Scheduler::call(uint32_t now) {
         continue;
       }
 #endif
+      */
 
 #ifdef ESPHOME_DEBUG_SCHEDULER
       const char *item_name = item->get_name();

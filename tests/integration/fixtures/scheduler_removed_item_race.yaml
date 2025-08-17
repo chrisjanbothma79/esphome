@@ -1,0 +1,118 @@
+esphome:
+  name: scheduler-removed-item-race
+
+host:
+
+api:
+  services:
+    - service: run_test
+      then:
+        - script.execute: run_test_script
+
+logger:
+  level: DEBUG
+
+globals:
+  - id: test_passed
+    type: bool
+    initial_value: 'true'
+  - id: removed_item_executed
+    type: int
+    initial_value: '0'
+  - id: normal_item_executed
+    type: int
+    initial_value: '0'
+
+sensor:
+  - platform: template
+    id: test_sensor
+    name: "Test Sensor"
+    update_interval: never
+    lambda: return 0.0;
+
+script:
+  - id: run_test_script
+    then:
+      - logger.log: "=== Starting Removed Item Race Test ==="
+
+      # This test creates a scenario where:
+      # 1. Multiple timeouts are scheduled to execute at nearly the same time
+      # 2. One timeout in the middle of the heap gets cancelled
+      # 3. Without the fix, the cancelled timeout would still execute
+
+      - lambda: |-
+          // Schedule multiple timeouts that will all be ready at the same time
+          // This ensures they're all in the heap together
+
+          // First timeout - executes at 10ms
+          App.scheduler.set_timeout(id(test_sensor), "timeout1", 10, []() {
+            ESP_LOGD("test", "Timeout 1 executed (expected)");
+            id(normal_item_executed)++;
+          });
+
+          // Second timeout - executes at 10ms (will be cancelled)
+          App.scheduler.set_timeout(id(test_sensor), "timeout2", 10, []() {
+            ESP_LOGE("test", "RACE: Timeout 2 executed after being cancelled!");
+            id(removed_item_executed)++;
+            id(test_passed) = false;
+          });
+
+          // Third timeout - executes at 10ms
+          App.scheduler.set_timeout(id(test_sensor), "timeout3", 10, []() {
+            ESP_LOGD("test", "Timeout 3 executed (expected)");
+            id(normal_item_executed)++;
+          });
+
+          // Fourth timeout - executes at 10ms
+          App.scheduler.set_timeout(id(test_sensor), "timeout4", 10, []() {
+            ESP_LOGD("test", "Timeout 4 executed (expected)");
+            id(normal_item_executed)++;
+          });
+
+          // Now cancel timeout2
+          // Since all timeouts have the same execution time, they're all in the heap
+          // timeout2 might not be at the front, so cleanup_() won't remove it
+          bool cancelled = App.scheduler.cancel_timeout(id(test_sensor), "timeout2");
+          ESP_LOGD("test", "Cancelled timeout2: %s", cancelled ? "true" : "false");
+
+          // Also test with items at slightly different times
+          App.scheduler.set_timeout(id(test_sensor), "timeout5", 11, []() {
+            ESP_LOGD("test", "Timeout 5 executed (expected)");
+            id(normal_item_executed)++;
+          });
+
+          App.scheduler.set_timeout(id(test_sensor), "timeout6", 12, []() {
+            ESP_LOGE("test", "RACE: Timeout 6 executed after being cancelled!");
+            id(removed_item_executed)++;
+            id(test_passed) = false;
+          });
+
+          App.scheduler.set_timeout(id(test_sensor), "timeout7", 13, []() {
+            ESP_LOGD("test", "Timeout 7 executed (expected)");
+            id(normal_item_executed)++;
+          });
+
+          // Cancel timeout6
+          cancelled = App.scheduler.cancel_timeout(id(test_sensor), "timeout6");
+          ESP_LOGD("test", "Cancelled timeout6: %s", cancelled ? "true" : "false");
+
+      # Wait for all timeouts to execute (or not)
+      - delay: 50ms
+
+      # Check results
+      - lambda: |-
+          ESP_LOGI("test", "=== Test Results ===");
+          ESP_LOGI("test", "Normal items executed: %d (expected 5)", id(normal_item_executed));
+          ESP_LOGI("test", "Removed items executed: %d (expected 0)", id(removed_item_executed));
+
+          if (id(removed_item_executed) > 0) {
+            ESP_LOGE("test", "TEST FAILED: %d cancelled items were executed!", id(removed_item_executed));
+            id(test_passed) = false;
+          } else if (id(normal_item_executed) != 5) {
+            ESP_LOGE("test", "TEST FAILED: Expected 5 normal items, got %d", id(normal_item_executed));
+            id(test_passed) = false;
+          } else {
+            ESP_LOGI("test", "TEST PASSED: No cancelled items were executed");
+          }
+
+          ESP_LOGI("test", "=== Test Complete ===");
