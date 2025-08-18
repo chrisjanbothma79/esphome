@@ -611,6 +611,7 @@ CONF_ENABLE_LWIP_MDNS_QUERIES = "enable_lwip_mdns_queries"
 CONF_ENABLE_LWIP_BRIDGE_INTERFACE = "enable_lwip_bridge_interface"
 CONF_ENABLE_LWIP_TCPIP_CORE_LOCKING = "enable_lwip_tcpip_core_locking"
 CONF_ENABLE_LWIP_CHECK_THREAD_SAFETY = "enable_lwip_check_thread_safety"
+CONF_ENABLE_LWIP_TCP_SACK = "enable_lwip_tcp_sack"
 
 
 def _validate_idf_component(config: ConfigType) -> ConfigType:
@@ -668,6 +669,7 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                     cv.Optional(
                         CONF_ENABLE_LWIP_CHECK_THREAD_SAFETY, default=True
                     ): cv.boolean,
+                    cv.Optional(CONF_ENABLE_LWIP_TCP_SACK, default=True): cv.boolean,
                     cv.Optional(CONF_EXECUTE_FROM_PSRAM): cv.boolean,
                 }
             ),
@@ -911,6 +913,10 @@ async def to_code(config):
             add_idf_sdkconfig_option("CONFIG_LWIP_TCPIP_CORE_LOCKING", True)
         if advanced.get(CONF_ENABLE_LWIP_CHECK_THREAD_SAFETY, True):
             add_idf_sdkconfig_option("CONFIG_LWIP_CHECK_THREAD_SAFETY", True)
+        add_idf_sdkconfig_option(
+            "CONFIG_LWIP_TCP_SACK_OUT",
+            advanced.get(CONF_ENABLE_LWIP_TCP_SACK, True),
+        )
 
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
         if CONF_PARTITIONS in config:
